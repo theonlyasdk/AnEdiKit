@@ -1,7 +1,27 @@
 // FFmpeg Command Builder Module based on ffmpeg-tools-frontend.ps1
 
-export function resolveDestinationPath(defaultFileName, settings = {}) {
-  const outDir = settings.outputDir || "C:\\Users\\User\\Videos";
+export function resolveDestinationPath(defaultFileName, settings = {}, inputFile = "") {
+  const currentInput = inputFile || document.getElementById("input-file-path")?.value?.trim() || "";
+  let outDir = "";
+
+  // 1. If explicit custom output directory specified
+  if (settings.customOutputDir && settings.customOutputDir.trim()) {
+    outDir = settings.customOutputDir.trim();
+  }
+
+  // 2. Default directly to the enclosing directory of the source file
+  if (!outDir && currentInput) {
+    const lastSlash = Math.max(currentInput.lastIndexOf("\\"), currentInput.lastIndexOf("/"));
+    if (lastSlash > 0) {
+      outDir = currentInput.substring(0, lastSlash);
+    }
+  }
+
+  // 3. Fallback to settings outputDir or system Videos directory
+  if (!outDir) {
+    outDir = settings.outputDir || "C:\\Users\\User\\Videos";
+  }
+
   const customNameInput = document.getElementById("output-file-name");
   let targetName = customNameInput?.value?.trim() || "";
 
@@ -33,7 +53,7 @@ export function buildConvertCommand(inputFile, outputDir, settings = {}) {
   const preset = document.getElementById("cvt-preset")?.value || "medium";
   const scale = document.getElementById("cvt-scale")?.value || "original";
 
-  const dst = resolveDestinationPath(`${baseName}_converted.${container}`, settings);
+  const dst = resolveDestinationPath(`${baseName}_converted.${container}`, settings, src);
 
   // Overwrite flag
   args.push("-y");
@@ -123,7 +143,7 @@ export function buildAudioExtractCommand(inputFile, outputDir, settings = {}) {
   const samplerate = document.getElementById("aud-samplerate")?.value || "original";
   const volume = document.getElementById("aud-volume")?.value || "none";
 
-  const dst = resolveDestinationPath(`${baseName}_extracted.${fmt}`, settings);
+  const dst = resolveDestinationPath(`${baseName}_extracted.${fmt}`, settings, src);
 
   args.push("-i", src);
   args.push("-vn");
@@ -212,7 +232,7 @@ export function buildTrimCommand(inputFile, outputDir, settings = {}) {
   const end = document.getElementById("trim-end")?.value?.trim() || "00:01:00.000";
   const mode = document.getElementById("trim-mode")?.value || "copy";
 
-  const dst = resolveDestinationPath(`${baseName}_trimmed.${ext}`, settings);
+  const dst = resolveDestinationPath(`${baseName}_trimmed.${ext}`, settings, src);
 
   if (start && start !== "00:00:00" && start !== "00:00:00.000") {
     args.push("-ss", start);
@@ -303,7 +323,7 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
   if (estVBitrate) estVBitrate.textContent = `~${videoBitrateK.toLocaleString()} kbps`;
   if (estABitrate) estABitrate.textContent = `${audioBitrateK} kbps`;
 
-  const dst = resolveDestinationPath(`${baseName}_compressed.mp4`, settings);
+  const dst = resolveDestinationPath(`${baseName}_compressed.mp4`, settings, src);
 
   args.push("-i", src);
 
@@ -362,7 +382,7 @@ export function buildMergeCommand(mergeFiles = [], outputDir, settings = {}, con
       .pop()
       ?.replace(/\.[^/.]+$/, "") || "merged_output";
 
-  const dst = resolveDestinationPath(`${baseName}_merged.${fmt}`, settings);
+  const dst = resolveDestinationPath(`${baseName}_merged.${fmt}`, settings, firstFile);
 
   if (engine === "concat_demuxer" && concatListPath) {
     args.push("-f", "concat", "-safe", "0", "-i", concatListPath, "-c", "copy", "-map_metadata", "0");
@@ -419,7 +439,7 @@ export function buildMuteReplaceCommand(inputFile, outputDir, settings = {}) {
   if (action === "replace") suffix = "_audio_replaced";
   else if (action === "mix") suffix = "_audio_mixed";
 
-  const dst = resolveDestinationPath(`${baseName}${suffix}.${ext}`, settings);
+  const dst = resolveDestinationPath(`${baseName}${suffix}.${ext}`, settings, src);
 
   args.push("-i", src);
 
@@ -478,7 +498,7 @@ export function buildGifFramesCommand(inputFile, outputDir, settings = {}) {
   let durationSec = dur;
 
   if (mode === "gif_hq") {
-    dst = resolveDestinationPath(`${baseName}_animated.gif`, settings);
+    dst = resolveDestinationPath(`${baseName}_animated.gif`, settings, src);
     if (start && start !== "00:00:00" && start !== "00:00:00.000") {
       args.push("-ss", start);
     }
@@ -490,7 +510,7 @@ export function buildGifFramesCommand(inputFile, outputDir, settings = {}) {
 
     args.push("-filter_complex", filter);
   } else if (mode === "snapshot") {
-    dst = resolveDestinationPath(`${baseName}_snapshot.${snapFmt}`, settings);
+    dst = resolveDestinationPath(`${baseName}_snapshot.${snapFmt}`, settings, src);
     durationSec = 1.0;
     if (start && start !== "00:00:00" && start !== "00:00:00.000") {
       args.push("-ss", start);
@@ -501,7 +521,7 @@ export function buildGifFramesCommand(inputFile, outputDir, settings = {}) {
       args.push("-vf", `scale=${width}:-1:flags=lanczos`);
     }
   } else if (mode === "frames_seq") {
-    dst = resolveDestinationPath(`${baseName}_frame_%04d.${snapFmt}`, settings);
+    dst = resolveDestinationPath(`${baseName}_frame_%04d.${snapFmt}`, settings, src);
     if (start && start !== "00:00:00" && start !== "00:00:00.000") {
       args.push("-ss", start);
     }
@@ -535,7 +555,7 @@ export function buildCustomCommand(inputFile, outputDir, settings = {}) {
 
   const ext = document.getElementById("custom-ext")?.value || "mp4";
   const customArgsStr = document.getElementById("custom-args")?.value?.trim() || "";
-  const dst = resolveDestinationPath(`${baseName}_custom.${ext}`, settings);
+  const dst = resolveDestinationPath(`${baseName}_custom.${ext}`, settings, src);
 
   args.push("-i", src);
 
