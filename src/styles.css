@@ -196,27 +196,35 @@ a:active,
 /* Drag & Drop Pulse Depth Animation for Media Input */
 @keyframes dropPulseShadow {
   0% {
-    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
-    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.25), 0 8px 24px rgba(0, 0, 0, 0.4);
-    border-color: var(--bs-primary);
-    transform: scale(1.008);
+    box-shadow: 0 0 0 6px rgba(13, 110, 253, 0.3), 0 12px 32px rgba(0, 0, 0, 0.55);
+    transform: scale(1.015);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
-    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.45), 0 4px 12px rgba(0, 0, 0, 0.25);
     transform: scale(1);
   }
 }
 
 .input-drop-pulsing {
-  animation: dropPulseShadow 1.2s ease-in-out infinite !important;
-  border-color: var(--bs-primary) !important;
+  animation: dropPulseShadow 1.1s ease-in-out infinite !important;
   border-radius: var(--bs-border-radius);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  z-index: 100;
+  background-color: var(--bs-body-bg);
+}
+
+.input-drop-pulsing .form-control,
+.input-drop-pulsing .btn {
+  border-color: var(--bs-primary) !important;
+  background-color: var(--bs-tertiary-bg) !important;
+}
+
+.input-drop-pulsing .form-control::placeholder {
+  color: var(--bs-primary) !important;
 }
 
 .user-select-all {
