@@ -579,6 +579,204 @@ export function buildCustomCommand(inputFile, outputDir, settings = {}) {
   };
 }
 
+export function resolveYtDlpOutputDir(settings = {}) {
+  const customOut = document.getElementById("ytdlp-output-dir")?.value?.trim();
+  if (customOut) return customOut;
+  return settings.outputDir || "C:\\Users\\User\\Downloads";
+}
+
+export function buildYtDlpVideoCommand(url, outputDir, settings = {}) {
+  const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  const outDir = resolveYtDlpOutputDir(settings);
+  const res = document.getElementById("dl-video-res")?.value || "best";
+  const container = document.getElementById("dl-video-container")?.value || "mp4";
+  const embedSubs = document.getElementById("dl-video-embed-subs")?.checked ?? true;
+  const embedThumb = document.getElementById("dl-video-embed-thumb")?.checked ?? true;
+  const embedMeta = document.getElementById("dl-video-embed-meta")?.checked ?? true;
+
+  const args = [];
+
+  // Format selection
+  if (res === "best") {
+    args.push("-f", "bestvideo*+bestaudio/best");
+  } else {
+    args.push("-f", `bestvideo[height<=${res}]+bestaudio/best[height<=${res}]/best`);
+  }
+
+  args.push("--merge-output-format", container);
+
+  if (embedSubs) {
+    args.push("--embed-subs", "--write-auto-subs", "--sub-lang", "en,.*");
+  }
+  if (embedThumb) {
+    args.push("--embed-thumbnail");
+  }
+  if (embedMeta) {
+    args.push("--embed-metadata", "--embed-chapters");
+  }
+
+  args.push("-P", outDir);
+  args.push("-o", "%(title)s [%(id)s].%(ext)s");
+  args.push(targetUrl);
+
+  return {
+    executable: "yt-dlp",
+    args,
+    destination: outDir,
+    fullString: `yt-dlp ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildYtDlpAudioCommand(url, outputDir, settings = {}) {
+  const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  const outDir = resolveYtDlpOutputDir(settings);
+  const fmt = document.getElementById("dl-audio-fmt")?.value || "mp3";
+  const quality = document.getElementById("dl-audio-quality")?.value || "0";
+  const embedThumb = document.getElementById("dl-audio-embed-thumb")?.checked ?? true;
+  const embedMeta = document.getElementById("dl-audio-embed-meta")?.checked ?? true;
+
+  const args = ["-x", "--audio-format", fmt, "--audio-quality", quality];
+
+  if (embedThumb) {
+    args.push("--embed-thumbnail");
+  }
+  if (embedMeta) {
+    args.push("--embed-metadata");
+  }
+
+  args.push("-P", outDir);
+  args.push("-o", "%(title)s [%(id)s].%(ext)s");
+  args.push(targetUrl);
+
+  return {
+    executable: "yt-dlp",
+    args,
+    destination: outDir,
+    fullString: `yt-dlp ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildYtDlpPlaylistCommand(url, outputDir, settings = {}) {
+  const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/playlist?list=PL...";
+  const outDir = resolveYtDlpOutputDir(settings);
+  const mode = document.getElementById("dl-playlist-mode")?.value || "video";
+  const items = document.getElementById("dl-playlist-items")?.value?.trim() || "all";
+  const autonumber = document.getElementById("dl-playlist-autonumber")?.checked ?? true;
+  const ignoreErrors = document.getElementById("dl-playlist-ignore-errors")?.checked ?? true;
+
+  const args = [];
+
+  if (ignoreErrors) {
+    args.push("-i");
+  }
+
+  if (items && items.toLowerCase() !== "all") {
+    args.push("--playlist-items", items);
+  }
+
+  if (mode === "audio") {
+    args.push("-x", "--audio-format", "mp3", "--audio-quality", "0", "--embed-thumbnail", "--embed-metadata");
+  } else {
+    args.push("-f", "bestvideo[height<=1080]+bestaudio/best", "--merge-output-format", "mp4", "--embed-thumbnail", "--embed-metadata");
+  }
+
+  args.push("-P", outDir);
+
+  if (autonumber) {
+    args.push("-o", "%(playlist_title)s/%(playlist_index)s - %(title)s.%(ext)s");
+  } else {
+    args.push("-o", "%(playlist_title)s/%(title)s.%(ext)s");
+  }
+
+  args.push(targetUrl);
+
+  return {
+    executable: "yt-dlp",
+    args,
+    destination: outDir,
+    fullString: `yt-dlp ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildYtDlpSubtitlesCommand(url, outputDir, settings = {}) {
+  const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  const outDir = resolveYtDlpOutputDir(settings);
+  const lang = document.getElementById("dl-sub-lang")?.value?.trim() || "en";
+  const fmt = document.getElementById("dl-sub-fmt")?.value || "srt";
+  const autoSubs = document.getElementById("dl-sub-auto")?.checked ?? true;
+  const downloadThumb = document.getElementById("dl-sub-thumb")?.checked ?? true;
+  const writeInfo = document.getElementById("dl-sub-info")?.checked ?? false;
+
+  const args = ["--skip-download"];
+
+  args.push("--write-subs", "--sub-lang", lang, "--convert-subs", fmt);
+  if (autoSubs) {
+    args.push("--write-auto-subs");
+  }
+  if (downloadThumb) {
+    args.push("--write-thumbnail", "--convert-thumbnails", "jpg");
+  }
+  if (writeInfo) {
+    args.push("--write-info-json", "--write-description");
+  }
+
+  args.push("-P", outDir);
+  args.push("-o", "%(title)s [%(id)s].%(ext)s");
+  args.push(targetUrl);
+
+  return {
+    executable: "yt-dlp",
+    args,
+    destination: outDir,
+    fullString: `yt-dlp ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildYtDlpCustomCommand(url, outputDir, settings = {}) {
+  const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  const outDir = resolveYtDlpOutputDir(settings);
+  const browser = document.getElementById("dl-cookie-browser")?.value || "none";
+  const ratelimit = document.getElementById("dl-ratelimit")?.value || "none";
+  const sponsorblock = document.getElementById("dl-sponsorblock")?.checked ?? false;
+  const geoBypass = document.getElementById("dl-geo-bypass")?.checked ?? true;
+  const customArgsStr = document.getElementById("dl-custom-args")?.value?.trim() || "";
+
+  const args = [];
+
+  if (browser !== "none") {
+    args.push("--cookies-from-browser", browser);
+  }
+  if (ratelimit !== "none") {
+    args.push("-r", ratelimit);
+  }
+  if (sponsorblock) {
+    args.push("--sponsorblock-remove", "all");
+  }
+  if (geoBypass) {
+    args.push("--geo-bypass");
+  }
+
+  if (customArgsStr) {
+    const matches = customArgsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g);
+    if (matches) {
+      matches.forEach((m) => {
+        args.push(m.replace(/^['"]|['"]$/g, ""));
+      });
+    }
+  }
+
+  args.push("-P", outDir);
+  args.push("-o", "%(title)s [%(id)s].%(ext)s");
+  args.push(targetUrl);
+
+  return {
+    executable: "yt-dlp",
+    args,
+    destination: outDir,
+    fullString: `yt-dlp ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
 export function buildCommandForTool(
   toolId,
   inputFile,
@@ -603,6 +801,16 @@ export function buildCommandForTool(
       return buildGifFramesCommand(inputFile, outputDir, settings);
     case "custom":
       return buildCustomCommand(inputFile, outputDir, settings);
+    case "ytdlp_video":
+      return buildYtDlpVideoCommand(extraParams.url, outputDir, settings);
+    case "ytdlp_audio":
+      return buildYtDlpAudioCommand(extraParams.url, outputDir, settings);
+    case "ytdlp_playlist":
+      return buildYtDlpPlaylistCommand(extraParams.url, outputDir, settings);
+    case "ytdlp_subtitles":
+      return buildYtDlpSubtitlesCommand(extraParams.url, outputDir, settings);
+    case "ytdlp_custom":
+      return buildYtDlpCustomCommand(extraParams.url, outputDir, settings);
     default:
       return buildConvertCommand(inputFile, outputDir, settings);
   }

@@ -10,7 +10,7 @@ export function isJobRunning() {
 
 export function setControlsDisabledState(disabled) {
   const elements = document.querySelectorAll(
-    "#tool-workspace input, #tool-workspace select, #tool-workspace button:not(#btn-execute), #tool-nav button, #settings-nav button, #btn-reset, #btn-sidebar-toggle",
+    "#tool-workspace input, #tool-workspace select, #tool-workspace button:not(#btn-execute), #tool-nav button, #ytdlp-nav button, #settings-nav button, #mobile-settings-nav button, #btn-reset, #btn-sidebar-toggle",
   );
   elements.forEach((el) => {
     if (el.id !== "btn-execute") {
@@ -19,13 +19,9 @@ export function setControlsDisabledState(disabled) {
   });
 
   const sharedInput = document.getElementById("shared-input-card");
-  if (sharedInput) {
-    if (disabled) {
-      sharedInput.classList.add("opacity-75");
-    } else {
-      sharedInput.classList.remove("opacity-75");
-    }
-  }
+  const sharedUrl = document.getElementById("shared-url-card");
+  if (sharedInput) sharedInput.classList.toggle("opacity-75", disabled);
+  if (sharedUrl) sharedUrl.classList.toggle("opacity-75", disabled);
 }
 
 export function appendLog(text, isError = false) {
@@ -137,10 +133,16 @@ export async function executeFfmpegJob(commandObj, totalDuration = 0.0) {
         onJobFinished(success, message);
       });
 
-      await window.__TAURI__.core.invoke("execute_ffmpeg", {
-        args: commandObj.args,
-        totalDuration: totalDuration || 0.0,
-      });
+      if (commandObj.executable === "yt-dlp") {
+        await window.__TAURI__.core.invoke("execute_ytdlp", {
+          args: commandObj.args,
+        });
+      } else {
+        await window.__TAURI__.core.invoke("execute_ffmpeg", {
+          args: commandObj.args,
+          totalDuration: totalDuration || 0.0,
+        });
+      }
 
       return;
     } catch (err) {

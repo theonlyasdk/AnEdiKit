@@ -551,6 +551,178 @@ fn execute_ffmpeg(
     Ok(())
 }
 
+#[tauri::command]
+fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String> {
+    CANCEL_REQUESTED.store(false, Ordering::SeqCst);
+
+    std::thread::spawn(move || {
+        let ytdlp_bin = find_binary("yt-dlp");
+        let mut cmd = Command::new(&ytdlp_bin);
+        // Force newline mode for reliable stream progress parsing
+        let mut full_args = vec!["--newline".to_string()];
+        full_args.extend(args);
+        cmd.args(&full_args);
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+
+        #[cfg(windows)]
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+        let mut child = match cmd.spawn() {
+            Ok(c) => c,
+            Err(e) => {
+                let _ = app.emit(
+                    "ffmpeg-finished",
+                    FinishPayload {
+                        success: false,
+                        exit_code: -1,
+                        message: format!("Failed to spawn yt-dlp: {}", e),
+                    },
+                );
+                return;
+            }
+        };
+
+        let child_pid = child.id();
+        {
+            let mut pid_lock = RUNNING_CHILD_PID.lock().unwrap();
+            *pid_lock = Some(child_pid);
+        }
+
+        let stdout = child.stdout.take();
+        let stderr = child.stderr.take();
+
+        // Stdout reader for yt-dlp download progress and stdout logs
+        let app_out = app.clone();
+        let out_handle = std::thread::spawn(move || {
+            if let Some(out) = stdout {
+                let reader = BufReader::new(out);
+                let mut cur_pct = 0u32;
+                let mut cur_speed = "0 MiB/s".to_string();
+                let mut cur_eta = "--:--".to_string();
+                let mut cur_size = "".to_string();
+
+                for line in reader.lines().flatten() {
+                    if CANCEL_REQUESTED.load(Ordering::SeqCst) {
+                        break;
+                    }
+
+                    // Emit log line
+                    let _ = app_out.emit("ffmpeg-log", LogPayload { line: line.clone() });
+
+                    // Parse download percentage: [download]  45.2% of  120.50MiB at 12.34MiB/s ETA 00:05
+                    if line.contains("[download]") && line.contains('%') {
+                        if let Some(pct_idx) = line.find('%') {
+                            let start = line[..pct_idx].rfind(' ').unwrap_or(0);
+                            if let Ok(pct) = line[start..pct_idx].trim().parse::<f64>() {
+                                cur_pct = pct.clamp(0.0, 100.0).round() as u32;
+                            }
+                        }
+
+                        if let Some(at_idx) = line.find(" at ") {
+                            let speed_part = &line[at_idx + 4..];
+                            let end = speed_part.find(" ETA").unwrap_or(speed_part.len());
+                            cur_speed = speed_part[..end].trim().to_string();
+                        }
+
+                        if let Some(eta_idx) = line.find(" ETA ") {
+                            cur_eta = line[eta_idx + 5..].trim().to_string();
+                        }
+
+                        if let Some(of_idx) = line.find(" of ") {
+                            let size_part = &line[of_idx + 4..];
+                            let end = size_part.find(" at ").unwrap_or(size_part.len());
+                            cur_size = size_part[..end].trim().to_string();
+                        }
+
+                        let _ = app_out.emit(
+                            "ffmpeg-progress",
+                            ProgressPayload {
+                                time: format!("ETA: {}", cur_eta),
+                                fps: "".to_string(),
+                                speed: cur_speed.clone(),
+                                bitrate: cur_size.clone(),
+                                pct: cur_pct,
+                            },
+                        );
+                    } else if line.contains("100% of") || line.contains("[ExtractAudio]") {
+                        cur_pct = 100;
+                        let _ = app_out.emit(
+                            "ffmpeg-progress",
+                            ProgressPayload {
+                                time: "Finishing...".to_string(),
+                                fps: "".to_string(),
+                                speed: "".to_string(),
+                                bitrate: "".to_string(),
+                                pct: 100,
+                            },
+                        );
+                    }
+                }
+            }
+        });
+
+        // Stderr reader for yt-dlp error logs
+        let app_err = app.clone();
+        let err_handle = std::thread::spawn(move || {
+            if let Some(err) = stderr {
+                let reader = BufReader::new(err);
+                for line in reader.lines().flatten() {
+                    if CANCEL_REQUESTED.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    let _ = app_err.emit("ffmpeg-log", LogPayload { line });
+                }
+            }
+        });
+
+        let status = child.wait();
+        let _ = out_handle.join();
+        let _ = err_handle.join();
+
+        {
+            let mut pid_lock = RUNNING_CHILD_PID.lock().unwrap();
+            *pid_lock = None;
+        }
+
+        let was_cancelled = CANCEL_REQUESTED.load(Ordering::SeqCst);
+        match status {
+            Ok(exit_status) => {
+                let code = exit_status.code().unwrap_or(if was_cancelled { -1 } else { 0 });
+                let success = exit_status.success() && !was_cancelled;
+                let msg = if was_cancelled {
+                    "Download cancelled by user".to_string()
+                } else if success {
+                    "Download completed successfully".to_string()
+                } else {
+                    format!("yt-dlp exited with code {}", code)
+                };
+
+                let _ = app.emit(
+                    "ffmpeg-finished",
+                    FinishPayload {
+                        success,
+                        exit_code: code,
+                        message: msg,
+                    },
+                );
+            }
+            Err(e) => {
+                let _ = app.emit(
+                    "ffmpeg-finished",
+                    FinishPayload {
+                        success: false,
+                        exit_code: -1,
+                        message: format!("Process error: {}", e),
+                    },
+                );
+            }
+        }
+    });
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -562,6 +734,7 @@ pub fn run() {
             write_temp_text_file,
             get_media_info,
             execute_ffmpeg,
+            execute_ytdlp,
             cancel_ffmpeg,
             check_tool_versions
         ])

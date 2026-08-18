@@ -92,6 +92,7 @@ export function updateExecuteButtonState() {
   const btnExecute = document.getElementById("btn-execute");
   const activeTool = getCurrentActiveTool();
   const currentInput = getCurrentInputFile();
+  const currentUrl = document.getElementById("ytdlp-url-input")?.value?.trim() || "";
 
   if (!btnExecute) return;
 
@@ -110,11 +111,13 @@ export function updateExecuteButtonState() {
     return;
   }
 
-  btnExecute.textContent = "Execute";
+  btnExecute.textContent = activeTool.startsWith("ytdlp_") ? "Download" : "Execute";
   btnExecute.className = "btn btn-primary btn-sm px-4";
 
   let canExecute = false;
-  if (activeTool === "merge") {
+  if (activeTool.startsWith("ytdlp_")) {
+    canExecute = currentUrl.length > 0;
+  } else if (activeTool === "merge") {
     canExecute = mergeFiles && mergeFiles.length >= 2;
   } else if (activeTool === "custom") {
     const cmdInput = document.getElementById("custom-args");
@@ -127,20 +130,26 @@ export function updateExecuteButtonState() {
   if (!canExecute) {
     btnExecute.setAttribute(
       "title",
-      activeTool === "merge"
-        ? "Add at least 2 files to merge"
-        : activeTool === "custom"
-          ? "Enter custom arguments to execute"
-          : "Select a source media file to execute",
+      activeTool.startsWith("ytdlp_")
+        ? "Enter a valid media URL to download"
+        : activeTool === "merge"
+          ? "Add at least 2 files to merge"
+          : activeTool === "custom"
+            ? "Enter custom arguments to execute"
+            : "Select a source media file to execute",
     );
   } else {
-    btnExecute.setAttribute("title", "Run processing operation");
+    btnExecute.setAttribute(
+      "title",
+      activeTool.startsWith("ytdlp_") ? "Start download task" : "Run processing operation",
+    );
   }
 }
 
 function updateCommandPreview() {
   const activeTool = getCurrentActiveTool();
   const currentInput = getCurrentInputFile();
+  const currentUrl = document.getElementById("ytdlp-url-input")?.value?.trim() || "";
   const cmdPreviewEl = document.getElementById("cmd-preview");
   const execFooter = document.getElementById("execution-footer-panel");
 
@@ -159,7 +168,7 @@ function updateCommandPreview() {
     currentInput,
     appSettings.outputDir,
     appSettings,
-    { mergeFiles },
+    { mergeFiles, url: currentUrl },
   );
   cmdPreviewEl.textContent = cmdObj.fullString;
   return cmdObj;
@@ -205,6 +214,44 @@ function bindFormEvents() {
       if (info) syncMediaDurationToTools(info);
       updateAutoOutputFilename(true);
       updateCommandPreview();
+    });
+  }
+
+  // URL Paste, Clear & Download Output Folder
+  const btnPasteUrl = document.getElementById("btn-paste-url");
+  const btnClearUrl = document.getElementById("btn-clear-url");
+  const ytdlpUrlInput = document.getElementById("ytdlp-url-input");
+  const btnBrowseYtdlpOut = document.getElementById("btn-browse-ytdlp-outdir");
+  const ytdlpOutInput = document.getElementById("ytdlp-output-dir");
+
+  if (btnPasteUrl && ytdlpUrlInput) {
+    btnPasteUrl.addEventListener("click", async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          ytdlpUrlInput.value = text.trim();
+          updateCommandPreview();
+        }
+      } catch (err) {
+        console.warn("Clipboard paste error:", err);
+      }
+    });
+  }
+
+  if (btnClearUrl && ytdlpUrlInput) {
+    btnClearUrl.addEventListener("click", () => {
+      ytdlpUrlInput.value = "";
+      updateCommandPreview();
+    });
+  }
+
+  if (btnBrowseYtdlpOut) {
+    btnBrowseYtdlpOut.addEventListener("click", async () => {
+      const folder = await selectOutputFolder();
+      if (folder) {
+        if (ytdlpOutInput) ytdlpOutInput.value = folder;
+        updateCommandPreview();
+      }
     });
   }
 

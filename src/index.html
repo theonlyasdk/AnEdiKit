@@ -73,6 +73,29 @@
                 <span>Custom Command</span>
               </button>
             </nav>
+            <div class="sidebar-section-header mt-3">yt-dlp Downloader</div>
+            <nav class="nav nav-pills flex-column gap-1" id="ytdlp-nav">
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_video" type="button" title="Download video streams with resolution and container options">
+                <i class="bi bi-download text-body-secondary"></i>
+                <span>Download Video</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_audio" type="button" title="Download audio and extract MP3, M4A, FLAC with metadata">
+                <i class="bi bi-file-earmark-music text-body-secondary"></i>
+                <span>Download Audio</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_playlist" type="button" title="Batch download full playlists, channels, or link lists">
+                <i class="bi bi-list-stars text-body-secondary"></i>
+                <span>Playlist & Batch</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_subtitles" type="button" title="Download subtitles, closed captions, and video thumbnails">
+                <i class="bi bi-card-image text-body-secondary"></i>
+                <span>Subtitles & Thumbnails</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_custom" type="button" title="Browser cookies, rate limits, sponsorblock, and custom flags">
+                <i class="bi bi-sliders text-body-secondary"></i>
+                <span>Advanced & Cookies</span>
+              </button>
+            </nav>
           </div>
           <!-- Mobile Sidebar Settings (Visible inside sidebar drawer in small width mode) -->
           <div class="p-2 border-top d-md-none" id="mobile-sidebar-settings-col">
@@ -89,7 +112,7 @@
         <main class="flex-grow-1 overflow-y-auto p-4 bg-body-tertiary" id="tool-workspace">
           <div id="tool-view-container" class="view-material-zoom">
             
-            <!-- Shared File Selection Section -->
+            <!-- Shared File Selection Section for FFmpeg Tools -->
             <div class="mb-4" id="shared-input-card">
               <div class="section-divider-header">Input File</div>
               <div class="input-group mb-2">
@@ -113,6 +136,23 @@
                   <button class="btn btn-outline-secondary" type="button" id="btn-browse-output-dir" title="Choose output folder">Browse...</button>
                   <input type="text" class="form-control small" id="output-file-name" placeholder="Auto-generated output filename..." />
                   <button class="btn btn-outline-secondary" type="button" id="btn-autodetect-output-name" title="Auto-detect output filename from input and format">Auto-detect</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Shared URL Input Section for yt-dlp Tools -->
+            <div class="mb-4 d-none" id="shared-url-card">
+              <div class="section-divider-header">Media Link / URL</div>
+              <div class="input-group mb-2">
+                <button class="btn btn-outline-secondary" type="button" id="btn-paste-url" title="Paste URL from clipboard">Paste</button>
+                <input type="text" class="form-control small font-sans" id="ytdlp-url-input" placeholder="https://www.youtube.com/watch?v=... or Twitch, X, TikTok link" />
+                <button class="btn btn-outline-secondary" type="button" id="btn-clear-url" title="Clear URL input">Clear</button>
+              </div>
+              <div class="mt-3">
+                <div class="section-divider-header">Download Output Folder</div>
+                <div class="input-group mb-2">
+                  <button class="btn btn-outline-secondary" type="button" id="btn-browse-ytdlp-outdir" title="Choose download destination folder">Browse...</button>
+                  <input type="text" class="form-control small" id="ytdlp-output-dir" placeholder="Default downloads folder..." readonly />
                 </div>
               </div>
             </div>
@@ -524,6 +564,224 @@
                 </div>
                 <div class="text-body-secondary small">
                   Arguments are automatically wrapped with <code class="text-body-secondary">-i &lt;source_file&gt;</code> and destination path.
+                </div>
+              </div>
+            </div>
+
+            <!-- YT-DLP TOOL 1: Download Video -->
+            <div class="tool-view d-none" id="view-ytdlp_video">
+              <div class="mb-4">
+                <div class="section-divider-header">Video Download Settings</div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-video-res">Max Resolution</label>
+                    <select class="form-select form-select-sm" id="dl-video-res">
+                      <option value="best" selected>Best Available (Highest Quality)</option>
+                      <option value="2160">4K Ultra HD (2160p)</option>
+                      <option value="1440">2K Quad HD (1440p)</option>
+                      <option value="1080">Full HD (1080p)</option>
+                      <option value="720">HD Ready (720p)</option>
+                      <option value="480">Standard (480p)</option>
+                      <option value="360">Low Data (360p)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-video-container">Target Container</label>
+                    <select class="form-select form-select-sm" id="dl-video-container">
+                      <option value="mp4" selected>MP4 (.mp4 - Universal compatibility)</option>
+                      <option value="mkv">MKV (.mkv - Matroska)</option>
+                      <option value="webm">WebM (.webm)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-video-embed-subs" checked />
+                      <label class="form-check-label small" for="dl-video-embed-subs">Embed Subtitles</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-video-embed-thumb" checked />
+                      <label class="form-check-label small" for="dl-video-embed-thumb">Embed Thumbnail Cover</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-video-embed-meta" checked />
+                      <label class="form-check-label small" for="dl-video-embed-meta">Embed Metadata & Chapters</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- YT-DLP TOOL 2: Download Audio -->
+            <div class="tool-view d-none" id="view-ytdlp_audio">
+              <div class="mb-4">
+                <div class="section-divider-header">Audio Extraction & Music Settings</div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-audio-fmt">Audio Format</label>
+                    <select class="form-select form-select-sm" id="dl-audio-fmt">
+                      <option value="mp3" selected>MP3 (.mp3 - Universal)</option>
+                      <option value="m4a">M4A (.m4a - High Efficiency AAC)</option>
+                      <option value="flac">FLAC (.flac - Lossless Studio Audio)</option>
+                      <option value="wav">WAV (.wav - Uncompressed PCM)</option>
+                      <option value="opus">OPUS (.opus - Modern Ultra Low Latency)</option>
+                      <option value="ogg">OGG (.ogg - Vorbis)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-audio-quality">Audio Bitrate / Quality</label>
+                    <select class="form-select form-select-sm" id="dl-audio-quality">
+                      <option value="0" selected>320 kbps / Best (Quality 0)</option>
+                      <option value="2">256 kbps / High (Quality 2)</option>
+                      <option value="4">192 kbps / Standard (Quality 4)</option>
+                      <option value="6">128 kbps / Compact (Quality 6)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-audio-embed-thumb" checked />
+                      <label class="form-check-label small" for="dl-audio-embed-thumb">Embed Album Art / Cover Thumbnail</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-audio-embed-meta" checked />
+                      <label class="form-check-label small" for="dl-audio-embed-meta">Embed ID3 Tags, Artist, and Track Info</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- YT-DLP TOOL 3: Playlist & Batch Downloader -->
+            <div class="tool-view d-none" id="view-ytdlp_playlist">
+              <div class="mb-4">
+                <div class="section-divider-header">Playlist & Batch Options</div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-playlist-mode">Download Mode</label>
+                    <select class="form-select form-select-sm" id="dl-playlist-mode">
+                      <option value="video" selected>Download Full Video Series (MP4 1080p/Best)</option>
+                      <option value="audio">Extract Audio Tracks / Full Album (MP3 320k)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-playlist-items">Playlist Items Range</label>
+                    <input type="text" class="form-control form-control-sm font-sans" id="dl-playlist-items" placeholder="all or e.g. 1-10, 15, 20-25" value="all" />
+                  </div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-playlist-autonumber" checked />
+                      <label class="form-check-label small" for="dl-playlist-autonumber">Include Playlist Index Numbering in Filenames</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-playlist-ignore-errors" checked />
+                      <label class="form-check-label small" for="dl-playlist-ignore-errors">Ignore Individual Item Errors (Continue Playlist)</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- YT-DLP TOOL 4: Subtitles & Thumbnails -->
+            <div class="tool-view d-none" id="view-ytdlp_subtitles">
+              <div class="mb-4">
+                <div class="section-divider-header">Subtitle & Artwork Extraction</div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-sub-lang">Subtitle Language Code</label>
+                    <input type="text" class="form-control form-control-sm font-sans" id="dl-sub-lang" value="en" placeholder="en, es, ja, de, or all" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-sub-fmt">Subtitle File Format</label>
+                    <select class="form-select form-select-sm" id="dl-sub-fmt">
+                      <option value="srt" selected>SubRip Subtitle (.srt)</option>
+                      <option value="vtt">WebVTT (.vtt)</option>
+                      <option value="ass">Advanced SubStation Alpha (.ass)</option>
+                      <option value="lrc">Synced Lyrics (.lrc)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-sub-auto" checked />
+                      <label class="form-check-label small" for="dl-sub-auto">Include Auto-Generated Subtitles</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-sub-thumb" checked />
+                      <label class="form-check-label small" for="dl-sub-thumb">Download High-Res Thumbnail Cover</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-sub-info" />
+                      <label class="form-check-label small" for="dl-sub-info">Write Description & JSON Metadata</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- YT-DLP TOOL 5: Advanced & Cookies -->
+            <div class="tool-view d-none" id="view-ytdlp_custom">
+              <div class="mb-4">
+                <div class="section-divider-header">Authentication & Custom Parameters</div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-cookie-browser">Browser Cookies (For Member / Age-Gated Content)</label>
+                    <select class="form-select form-select-sm" id="dl-cookie-browser">
+                      <option value="none" selected>None / Anonymous Download</option>
+                      <option value="firefox">Firefox</option>
+                      <option value="chrome">Google Chrome</option>
+                      <option value="edge">Microsoft Edge</option>
+                      <option value="brave">Brave Browser</option>
+                      <option value="opera">Opera</option>
+                      <option value="vivaldi">Vivaldi</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-ratelimit">Download Speed Limit</label>
+                    <select class="form-select form-select-sm" id="dl-ratelimit">
+                      <option value="none" selected>Unlimited (Maximum Bandwidth)</option>
+                      <option value="50M">50 MB/s</option>
+                      <option value="20M">20 MB/s</option>
+                      <option value="10M">10 MB/s</option>
+                      <option value="5M">5 MB/s</option>
+                      <option value="2M">2 MB/s</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-sponsorblock" />
+                      <label class="form-check-label small" for="dl-sponsorblock">Auto-Remove Sponsored Segments (SponsorBlock)</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-geo-bypass" checked />
+                      <label class="form-check-label small" for="dl-geo-bypass">Bypass Geographic Restrictions</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small fw-medium" for="dl-custom-args">Additional yt-dlp Flags</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="dl-custom-args" placeholder="--concurrent-fragments 5 --retries 10" />
                 </div>
               </div>
             </div>

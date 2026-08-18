@@ -42,6 +42,31 @@ const TOOL_METADATA = {
     desc: "Execute custom FFmpeg argument strings with live command preview and real-time execution logs.",
     viewId: "view-custom",
   },
+  ytdlp_video: {
+    title: "Download Video",
+    desc: "Download full video streams from YouTube, Twitch, Twitter, TikTok, and 1000+ sites with resolution and container options.",
+    viewId: "view-ytdlp_video",
+  },
+  ytdlp_audio: {
+    title: "Download Audio & Music",
+    desc: "Extract and convert online media directly to MP3, M4A, FLAC, or OPUS with automatic album art and metadata.",
+    viewId: "view-ytdlp_audio",
+  },
+  ytdlp_playlist: {
+    title: "Playlist & Batch Downloader",
+    desc: "Download complete playlists, video series, channels, or batch URL queues with index numbering.",
+    viewId: "view-ytdlp_playlist",
+  },
+  ytdlp_subtitles: {
+    title: "Subtitles & Thumbnails",
+    desc: "Extract closed captions, auto-generated subtitles, cover thumbnails, and video metadata without re-downloading media.",
+    viewId: "view-ytdlp_subtitles",
+  },
+  ytdlp_custom: {
+    title: "Advanced & Cookies",
+    desc: "Download private or age-gated media using browser cookies, rate limits, SponsorBlock, and custom yt-dlp arguments.",
+    viewId: "view-ytdlp_custom",
+  },
   settings: {
     title: "Settings & Defaults",
     desc: "Configure default output folders, hardware acceleration engine, encoding threads, and system binaries.",
@@ -58,6 +83,11 @@ const TOOL_ORDER = [
   "mute_replace",
   "gif_frames",
   "custom",
+  "ytdlp_video",
+  "ytdlp_audio",
+  "ytdlp_playlist",
+  "ytdlp_subtitles",
+  "ytdlp_custom",
   "settings",
 ];
 
@@ -97,20 +127,20 @@ export function switchTool(toolId, onToolChanged) {
   currentActiveTool = toolId;
   saveActiveTool(toolId);
 
-  // Update nav buttons active states
-  const toolNavButtons = document.querySelectorAll("#tool-nav .nav-link");
+  // Update nav buttons active states across tool-nav, ytdlp-nav, and settings-nav
+  const allToolButtons = document.querySelectorAll("#tool-nav .nav-link, #ytdlp-nav .nav-link");
   const allSettingsButtons = document.querySelectorAll('button[data-tool="settings"]');
   const desktopSettingsBtn = document.querySelector("#settings-nav .nav-link");
 
   if (toolId === "settings") {
-    toolNavButtons.forEach((b) => b.classList.remove("active"));
+    allToolButtons.forEach((b) => b.classList.remove("active"));
     allSettingsButtons.forEach((b) => b.classList.add("active"));
     if (desktopSettingsBtn) {
       updateSidebarIndicator(desktopSettingsBtn, true);
     }
   } else {
     allSettingsButtons.forEach((b) => b.classList.remove("active"));
-    toolNavButtons.forEach((b) => {
+    allToolButtons.forEach((b) => {
       if (b.dataset.tool === toolId) {
         b.classList.add("active");
         updateSidebarIndicator(b, false);
@@ -169,10 +199,17 @@ export function switchTool(toolId, onToolChanged) {
     );
   }
 
-  // Toggle shared input card on settings view
+  // Toggle shared input cards (FFmpeg input file vs yt-dlp URL input)
+  const isYtDlp = toolId.startsWith("ytdlp_");
+  const isSettings = toolId === "settings";
   const sharedInputCard = document.getElementById("shared-input-card");
+  const sharedUrlCard = document.getElementById("shared-url-card");
+
   if (sharedInputCard) {
-    sharedInputCard.classList.toggle("d-none", toolId === "settings");
+    sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings);
+  }
+  if (sharedUrlCard) {
+    sharedUrlCard.classList.toggle("d-none", !isYtDlp || isSettings);
   }
 
   // Toggle execute and reset buttons on settings view
