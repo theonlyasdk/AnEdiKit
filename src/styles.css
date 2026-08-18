@@ -283,3 +283,53 @@ a:active,
 ::-webkit-scrollbar-thumb:hover {
   background: var(--bs-secondary-color);
 }
+
+/* Responsive Collapsible Sidebar & Hamburger Drawer */
+@media (max-width: 768px) {
+  .header-brand-col {
+    width: auto !important;
+    min-width: 140px;
+  }
+
+  .sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1040;
+    width: 260px !important;
+    background-color: var(--bs-body-bg) !important;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+    box-shadow: none;
+  }
+
+  .sidebar.show-sidebar {
+    transform: translateX(0);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+  }
+
+  .sidebar-backdrop {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1030;
+    animation: fadeInBackdrop 0.2s ease forwards;
+  }
+
+  .bottom-settings-col {
+    width: auto !important;
+  }
+}
+
+@keyframes fadeInBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

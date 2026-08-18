@@ -194,14 +194,48 @@ export function switchTool(toolId, onToolChanged) {
     }
   }
 
+  // Auto close mobile drawer on selection
+  if (window.innerWidth <= 768) {
+    closeMobileSidebar();
+  }
+
   if (onToolChanged) {
     onToolChanged(toolId);
   }
 }
 
+export function closeMobileSidebar() {
+  const sidebar = document.getElementById("main-sidebar");
+  const backdrop = document.getElementById("sidebar-backdrop");
+  if (sidebar) sidebar.classList.remove("show-sidebar");
+  if (backdrop) backdrop.classList.add("d-none");
+}
+
+export function toggleMobileSidebar() {
+  const sidebar = document.getElementById("main-sidebar");
+  const backdrop = document.getElementById("sidebar-backdrop");
+  if (!sidebar) return;
+  const isShown = sidebar.classList.toggle("show-sidebar");
+  if (backdrop) backdrop.classList.toggle("d-none", !isShown);
+}
+
 export function initNavigation(onToolChanged) {
   const toolNavButtons = document.querySelectorAll("#tool-nav .nav-link");
   const settingsNavBtn = document.querySelector("#settings-nav .nav-link");
+  const btnToggle = document.getElementById("btn-sidebar-toggle");
+  const backdrop = document.getElementById("sidebar-backdrop");
+
+  if (btnToggle) {
+    btnToggle.addEventListener("click", () => {
+      toggleMobileSidebar();
+    });
+  }
+
+  if (backdrop) {
+    backdrop.addEventListener("click", () => {
+      closeMobileSidebar();
+    });
+  }
 
   toolNavButtons.forEach((btn) => {
     btn.addEventListener("click", () => {

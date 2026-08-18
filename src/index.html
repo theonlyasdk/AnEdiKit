@@ -15,8 +15,11 @@
     <div class="d-flex flex-column vh-100 overflow-hidden">
       <!-- Unified Top Header Bar -->
       <header class="d-flex border-bottom bg-body flex-shrink-0" style="height: 56px;">
-        <div class="d-flex align-items-center justify-content-center px-3 border-end flex-shrink-0" style="width: 280px;">
-          <h1 class="fs-4 mb-0 fw-light text-body text-center">AnEditKit</h1>
+        <div class="d-flex align-items-center justify-content-between px-3 border-end flex-shrink-0 header-brand-col" style="width: 280px;">
+          <h1 class="fs-4 mb-0 fw-light text-body text-center flex-grow-1">AnEditKit</h1>
+          <button class="btn btn-sm btn-outline-secondary d-md-none ms-2" id="btn-sidebar-toggle" type="button" aria-label="Toggle navigation menu" title="Toggle navigation menu">
+            <i class="bi bi-list fs-6"></i>
+          </button>
         </div>
         <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden" style="min-width: 0;">
           <div class="d-flex align-items-center gap-3 header-title-animated overflow-hidden w-100" id="tool-header-text" style="min-width: 0;">
@@ -27,9 +30,12 @@
       </header>
 
       <!-- Main Layout Body -->
-      <div class="d-flex flex-grow-1 overflow-hidden">
+      <div class="d-flex flex-grow-1 overflow-hidden position-relative">
+        <!-- Sidebar Backdrop Overlay for Mobile/Small Screens -->
+        <div class="sidebar-backdrop d-none" id="sidebar-backdrop"></div>
+
         <!-- Sidebar Navigation -->
-        <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" style="width: 280px;">
+        <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" id="main-sidebar" style="width: 280px;">
           <div class="overflow-y-auto flex-grow-1 p-2">
             <div class="sidebar-section-header">FFmpeg Tools</div>
             <nav class="nav nav-pills flex-column gap-1 position-relative" id="tool-nav">
@@ -501,7 +507,7 @@
 
       <!-- Unified Bottom Status & Control Bar Row -->
       <footer class="d-flex border-top bg-body flex-shrink-0" style="height: 56px;">
-        <div class="d-flex align-items-center p-2 border-end flex-shrink-0" style="width: 280px;">
+        <div class="d-flex align-items-center p-2 border-end flex-shrink-0 bottom-settings-col" style="width: 280px;">
           <nav class="nav nav-pills w-100 position-relative" id="settings-nav">
             <div class="sidebar-indicator" id="settings-indicator"></div>
             <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
