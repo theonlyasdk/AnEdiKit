@@ -79,11 +79,11 @@
               <div class="section-divider-header">Input File</div>
               <div class="input-group mb-2">
                 <button class="btn btn-outline-secondary" type="button" id="btn-browse-input" title="Select media file">Browse...</button>
-                <input type="text" class="form-control font-monospace small" id="input-file-path" placeholder="Select or drop a source media file..." readonly />
+                <input type="text" class="form-control small" id="input-file-path" placeholder="Select or drop a source media file..." readonly />
                 <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection">Clear</button>
               </div>
               <!-- Conditional metadata info readout -->
-              <div class="d-none flex-wrap gap-3 small text-body-secondary" id="input-meta-info">
+              <div class="d-none flex-wrap gap-3 small text-body-secondary ui-zoom-in" id="input-meta-info">
                 <span>Duration: <strong class="text-body" id="meta-duration">--:--:--</strong></span>
                 <span>Resolution: <strong class="text-body" id="meta-resolution">--</strong></span>
                 <span>Video Codec: <strong class="text-body" id="meta-vcodec">--</strong></span>
@@ -203,11 +203,11 @@
                 <div class="row g-3">
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="trim-start">Start Timestamp (HH:MM:SS.ms)</label>
-                    <input type="text" class="form-control form-control-sm font-monospace" id="trim-start" value="00:00:00.000" />
+                    <input type="text" class="form-control form-control-sm" id="trim-start" value="00:00:00.000" />
                   </div>
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="trim-end">End Timestamp (HH:MM:SS.ms)</label>
-                    <input type="text" class="form-control form-control-sm font-monospace" id="trim-end" value="00:01:00.000" />
+                    <input type="text" class="form-control form-control-sm" id="trim-end" value="00:01:00.000" />
                   </div>
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="trim-mode">Cut Mode</label>
@@ -285,7 +285,7 @@
                     <label class="form-label small fw-medium" for="second-audio-path">Replacement Audio File</label>
                     <div class="input-group input-group-sm">
                       <button class="btn btn-outline-secondary" type="button" id="btn-browse-audio" title="Select audio file">Browse...</button>
-                      <input type="text" class="form-control font-monospace" id="second-audio-path" placeholder="Select audio file..." readonly />
+                      <input type="text" class="form-control" id="second-audio-path" placeholder="Select audio file..." readonly />
                     </div>
                   </div>
                 </div>
@@ -333,7 +333,7 @@
                 <div class="section-divider-header">Custom FFmpeg Arguments</div>
                 <div class="mb-2">
                   <label class="form-label small fw-medium" for="custom-args">Arguments (between input and output)</label>
-                  <input type="text" class="form-control form-control-sm font-monospace" id="custom-args" placeholder="-vf eq=brightness=0.05:contrast=1.1 -c:a copy" />
+                  <input type="text" class="form-control form-control-sm" id="custom-args" placeholder="-vf eq=brightness=0.05:contrast=1.1 -c:a copy" />
                 </div>
                 <small class="text-body-secondary">Specify custom filters or parameters. Input (-i) and output filenames are automatically attached.</small>
               </div>
@@ -348,7 +348,7 @@
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="set-output-dir">Default Output Directory</label>
                     <div class="input-group input-group-sm">
-                      <input type="text" class="form-control font-monospace" id="set-output-dir" readonly />
+                      <input type="text" class="form-control" id="set-output-dir" readonly />
                       <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Select default output directory">Browse...</button>
                     </div>
                   </div>
@@ -437,11 +437,11 @@
                 <div class="row g-3">
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="set-ffmpeg-bin">FFmpeg Executable</label>
-                    <input type="text" class="form-control form-control-sm font-monospace" id="set-ffmpeg-bin" value="ffmpeg (System PATH)" readonly />
+                    <input type="text" class="form-control form-control-sm" id="set-ffmpeg-bin" value="ffmpeg (System PATH)" readonly />
                   </div>
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="set-ffprobe-bin">FFprobe Executable</label>
-                    <input type="text" class="form-control form-control-sm font-monospace" id="set-ffprobe-bin" value="ffprobe (System PATH)" readonly />
+                    <input type="text" class="form-control form-control-sm" id="set-ffprobe-bin" value="ffprobe (System PATH)" readonly />
                   </div>
                 </div>
               </div>
@@ -457,13 +457,13 @@
                     <i class="bi bi-clipboard"></i> Copy
                   </button>
                 </div>
-                <div class="p-2 bg-body rounded border font-monospace small user-select-all text-body" id="cmd-preview">
+                <div class="p-2 bg-body rounded border small user-select-all text-body" id="cmd-preview">
                   ffmpeg -i ...
                 </div>
               </div>
 
               <!-- Conditional Progress & Execution Logs (Shown only after user clicks Execute) -->
-              <div class="mb-3 d-none" id="execution-status-panel">
+              <div class="mb-3 d-none ui-zoom-in" id="execution-status-panel">
                 <div class="section-divider-header">Execution Status & Log Output</div>
                 <div class="card border-secondary-subtle overflow-hidden position-relative">
                   <!-- Log Box at top (full width, no gap from top) -->
@@ -478,7 +478,7 @@
                       <span id="stat-speed">Speed: 0x</span>
                       <span id="stat-bitrate">Bitrate: 0 kbits/s</span>
                     </div>
-                    <span class="font-monospace fw-semibold text-body" id="progress-pct">0%</span>
+                    <span class="fw-semibold text-body" id="progress-pct">0%</span>
                   </div>
                   <!-- Progress Bar at absolute bottom (full width, no gap) -->
                   <div class="progress rounded-0" style="height: 4px; background-color: var(--bs-border-color);" id="exec-progress-container">

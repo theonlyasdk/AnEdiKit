@@ -289,10 +289,13 @@ function updateMetadataVisibility() {
   const metaInfo = document.getElementById("input-meta-info");
   if (!metaInfo) return;
   if (currentInputFile) {
-    metaInfo.classList.remove("d-none");
-    metaInfo.classList.add("d-flex");
+    if (metaInfo.classList.contains("d-none")) {
+      metaInfo.classList.remove("d-none");
+      metaInfo.classList.add("d-flex", "ui-zoom-in");
+      void metaInfo.offsetWidth;
+    }
   } else {
-    metaInfo.classList.remove("d-flex");
+    metaInfo.classList.remove("d-flex", "ui-zoom-in");
     metaInfo.classList.add("d-none");
   }
 }
@@ -359,7 +362,9 @@ function setupInputs() {
   if (btnExecute) {
     btnExecute.addEventListener("click", () => {
       if (execStatusPanel) {
-        execStatusPanel.classList.remove("d-none");
+        execStatusPanel.classList.remove("d-none", "ui-zoom-in");
+        void execStatusPanel.offsetWidth;
+        execStatusPanel.classList.add("ui-zoom-in");
       }
       setProgress(0); // 0% shows indeterminate striped animated bar
       const statusEl = document.getElementById("status-message");
@@ -445,7 +450,13 @@ function setupInputs() {
   const secondAudioWrapper = document.getElementById("second-audio-wrapper");
   if (muteAction && secondAudioWrapper) {
     muteAction.addEventListener("change", () => {
-      secondAudioWrapper.classList.toggle("d-none", muteAction.value === "strip");
+      const show = muteAction.value !== "strip";
+      secondAudioWrapper.classList.toggle("d-none", !show);
+      if (show) {
+        secondAudioWrapper.classList.remove("ui-zoom-in");
+        void secondAudioWrapper.offsetWidth;
+        secondAudioWrapper.classList.add("ui-zoom-in");
+      }
       updateCommandPreview();
     });
   }
@@ -455,7 +466,13 @@ function setupInputs() {
   const compCustomWrapper = document.getElementById("comp-custom-wrapper");
   if (compPreset && compCustomWrapper) {
     compPreset.addEventListener("change", () => {
-      compCustomWrapper.classList.toggle("d-none", compPreset.value !== "custom");
+      const show = compPreset.value === "custom";
+      compCustomWrapper.classList.toggle("d-none", !show);
+      if (show) {
+        compCustomWrapper.classList.remove("ui-zoom-in");
+        void compCustomWrapper.offsetWidth;
+        compCustomWrapper.classList.add("ui-zoom-in");
+      }
       updateCommandPreview();
     });
   }
@@ -479,8 +496,8 @@ function renderMergeList() {
   mergeList.innerHTML = mergeFiles
     .map(
       (file, idx) => `
-    <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
-      <span class="font-monospace text-truncate" style="max-width: 80%;">${file}</span>
+    <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3 ui-zoom-in">
+      <span class="text-truncate" style="max-width: 80%;">${file}</span>
       <span class="badge text-bg-secondary">#${idx + 1}</span>
     </div>
   `

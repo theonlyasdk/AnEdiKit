@@ -42,9 +42,11 @@ Avoid:
 - Don't use emojis as a replacement for real icons
 - No version tags like v0.1 or build badges in UI
 - No random monospace badges or decorative status pills
+- No monospace font in the UI except inside log boxes and console outputs
 - Keep a clean table-like grid layout (fixed sidebar on left, unified top bar spanning across sidebar header and main tool titlebar in a crisp grid alignment)
 - Cursor pointer must be used for dropdown menu buttons and select elements
 - Use Material Zoom transition (subtle scale and fade) for the main workspace view container when switching tools. For the top tool header title and description, use a directional vertical slide without fade reflecting sidebar navigation order (sliding from bottom when moving downwards, sliding from top when moving upwards)
+- Use zoom-in ease-out animations for conditionally appearing and disappearing UI elements
 - No floating pills or badges like "AI Powered" or "Trusted by 10k+ teams" unless useful
 - No "modern", "innovative", or "next-gen" styling without a reason
 - No purposeless whitespace or uniform padding everywhere
