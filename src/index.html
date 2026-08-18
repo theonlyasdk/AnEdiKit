@@ -451,14 +451,12 @@
             <div id="execution-footer-panel">
               <!-- Command Preview -->
               <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Command Preview</div>
-                  <button class="btn btn-link btn-sm text-body-secondary p-0 text-decoration-none flex-shrink-0" id="btn-copy-cmd" type="button" title="Copy command string">
+                <div class="section-divider-header">Command Preview</div>
+                <div class="input-group">
+                  <div class="form-control small user-select-all text-body bg-body d-flex align-items-center" style="min-height: 38px;" id="cmd-preview">ffmpeg -i ...</div>
+                  <button class="btn btn-outline-secondary" type="button" id="btn-copy-cmd" title="Copy command string">
                     <i class="bi bi-clipboard"></i> Copy
                   </button>
-                </div>
-                <div class="p-2 bg-body rounded border small user-select-all text-body" id="cmd-preview">
-                  ffmpeg -i ...
                 </div>
               </div>
 

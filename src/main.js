@@ -354,6 +354,57 @@ function setupInputs() {
     });
   }
 
+  // Drag & drop handling with depth pulse animation
+  const inputGroup = document.querySelector("#shared-input-card .input-group");
+  let dragCounter = 0;
+
+  window.addEventListener("dragenter", (e) => {
+    e.preventDefault();
+    dragCounter++;
+    if (inputGroup) {
+      inputGroup.classList.add("input-drop-pulsing");
+    }
+  });
+
+  window.addEventListener("dragover", (e) => {
+    e.preventDefault();
+  });
+
+  window.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      if (inputGroup) {
+        inputGroup.classList.remove("input-drop-pulsing");
+      }
+    }
+  });
+
+  window.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    if (inputGroup) {
+      inputGroup.classList.remove("input-drop-pulsing");
+    }
+
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      currentInputFile = file.path || file.name || "C:\\Users\\User\\Videos\\dropped_media.mp4";
+      if (inputFilePath) inputFilePath.value = currentInputFile;
+
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      document.getElementById("meta-duration").textContent = "00:02:15";
+      document.getElementById("meta-resolution").textContent = "1920x1080";
+      document.getElementById("meta-vcodec").textContent = "h264";
+      document.getElementById("meta-acodec").textContent = "aac";
+      document.getElementById("meta-size").textContent = `${parseFloat(sizeMb) > 0 ? sizeMb : "42.5"} MB`;
+
+      updateMetadataVisibility();
+      updateCommandPreview();
+    }
+  });
+
   // Execute and Reset buttons
   const btnExecute = document.getElementById("btn-execute");
   const btnReset = document.getElementById("btn-reset");

@@ -193,6 +193,32 @@ a:active,
   }
 }
 
+/* Drag & Drop Pulse Depth Animation for Media Input */
+@keyframes dropPulseShadow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+    border-color: var(--bs-primary);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.25), 0 8px 24px rgba(0, 0, 0, 0.4);
+    border-color: var(--bs-primary);
+    transform: scale(1.008);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+    border-color: var(--bs-primary);
+    transform: scale(1);
+  }
+}
+
+.input-drop-pulsing {
+  animation: dropPulseShadow 1.2s ease-in-out infinite !important;
+  border-color: var(--bs-primary) !important;
+  border-radius: var(--bs-border-radius);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
 .user-select-all {
   user-select: all;
 }
