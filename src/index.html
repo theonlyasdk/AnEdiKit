@@ -116,11 +116,26 @@
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="cvt-container">Output Format</label>
                     <select class="form-select form-select-sm" id="cvt-container">
-                      <option value="mp4" selected>MP4 (.mp4)</option>
-                      <option value="mkv">MKV (.mkv)</option>
-                      <option value="webm">WebM (.webm)</option>
-                      <option value="mov">MOV (.mov)</option>
-                      <option value="avi">AVI (.avi)</option>
+                      <optgroup label="Common Video Formats">
+                        <option value="mp4" selected>MP4 (.mp4)</option>
+                        <option value="mkv">MKV (.mkv)</option>
+                        <option value="webm">WebM (.webm)</option>
+                        <option value="mov">QuickTime MOV (.mov)</option>
+                        <option value="avi">AVI (.avi)</option>
+                        <option value="flv">Flash Video (.flv)</option>
+                        <option value="ts">MPEG-TS (.ts)</option>
+                        <option value="wmv">Windows Media (.wmv)</option>
+                      </optgroup>
+                      <optgroup label="Extended & Broadcast Formats">
+                        <option value="m4v">Apple M4V (.m4v)</option>
+                        <option value="3gp">3GPP Mobile (.3gp)</option>
+                        <option value="mpg">MPEG-1/2 (.mpg)</option>
+                        <option value="vob">DVD Video (.vob)</option>
+                        <option value="ogv">Ogg Video (.ogv)</option>
+                        <option value="mxf">Material Exchange (.mxf)</option>
+                        <option value="webp">Animated WebP (.webp)</option>
+                        <option value="gif">Animated GIF (.gif)</option>
+                      </optgroup>
                     </select>
                   </div>
                   <div class="col-md-4">
@@ -182,12 +197,23 @@
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="aud-format">Target Audio Format</label>
                     <select class="form-select form-select-sm" id="aud-format">
-                      <option value="mp3" selected>MP3 (.mp3)</option>
-                      <option value="m4a">M4A (.m4a)</option>
-                      <option value="flac">FLAC (.flac)</option>
-                      <option value="wav">WAV (.wav)</option>
-                      <option value="ogg">OGG (.ogg)</option>
-                      <option value="opus">Opus (.opus)</option>
+                      <optgroup label="Common Audio Formats">
+                        <option value="mp3" selected>MP3 (.mp3)</option>
+                        <option value="m4a">M4A / AAC (.m4a)</option>
+                        <option value="flac">FLAC Lossless (.flac)</option>
+                        <option value="wav">WAV Uncompressed (.wav)</option>
+                        <option value="opus">Opus (.opus)</option>
+                        <option value="ogg">Ogg Vorbis (.ogg)</option>
+                      </optgroup>
+                      <optgroup label="Additional Audio Formats">
+                        <option value="wma">Windows Media Audio (.wma)</option>
+                        <option value="aiff">AIFF (.aiff)</option>
+                        <option value="ac3">Dolby Digital AC-3 (.ac3)</option>
+                        <option value="dts">DTS Audio (.dts)</option>
+                        <option value="amr">AMR Speech (.amr)</option>
+                        <option value="mka">Matroska Audio (.mka)</option>
+                        <option value="mp2">MPEG Layer 2 (.mp2)</option>
+                      </optgroup>
                     </select>
                   </div>
                   <div class="col-md-4">

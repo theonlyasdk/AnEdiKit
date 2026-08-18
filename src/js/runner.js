@@ -8,6 +8,26 @@ export function isJobRunning() {
   return isRunning;
 }
 
+export function setControlsDisabledState(disabled) {
+  const elements = document.querySelectorAll(
+    "#tool-workspace input, #tool-workspace select, #tool-workspace button:not(#btn-execute), #tool-nav button, #settings-nav button, #btn-reset, #btn-sidebar-toggle",
+  );
+  elements.forEach((el) => {
+    if (el.id !== "btn-execute") {
+      el.disabled = disabled;
+    }
+  });
+
+  const sharedInput = document.getElementById("shared-input-card");
+  if (sharedInput) {
+    if (disabled) {
+      sharedInput.classList.add("opacity-75");
+    } else {
+      sharedInput.classList.remove("opacity-75");
+    }
+  }
+}
+
 export function appendLog(text, isError = false) {
   const logConsole = document.getElementById("log-console");
   if (!logConsole) return;
@@ -80,11 +100,21 @@ export async function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   });
 
   isRunning = true;
+  setControlsDisabledState(true);
+
   if (statusMsg) statusMsg.textContent = "Processing task...";
   if (btnExecute) {
     btnExecute.textContent = "Cancel";
     btnExecute.classList.remove("btn-primary");
     btnExecute.classList.add("btn-danger");
+  }
+
+  // Smoothly scroll workspace to bottom to view logs and status
+  const workspace = document.getElementById("tool-workspace");
+  if (workspace) {
+    setTimeout(() => {
+      workspace.scrollTo({ top: workspace.scrollHeight, behavior: "smooth" });
+    }, 60);
   }
 
   // Tauri IPC execution
@@ -170,6 +200,7 @@ export async function cancelFfmpegJob() {
 
 export function onJobFinished(success, message) {
   isRunning = false;
+  setControlsDisabledState(false);
 
   if (currentProgressUnlisten) {
     currentProgressUnlisten();

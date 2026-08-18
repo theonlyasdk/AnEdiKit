@@ -133,6 +133,13 @@ export function buildAudioExtractCommand(inputFile, outputDir, settings = {}) {
     wav: "pcm_s16le",
     ogg: "libvorbis",
     opus: "libopus",
+    wma: "wmav2",
+    aiff: "pcm_s16be",
+    ac3: "ac3",
+    dts: "dca",
+    amr: "libopencore_amrnb",
+    mka: "flac",
+    mp2: "mp2",
   };
 
   const codec = codecMap[fmt] || "libmp3lame";
