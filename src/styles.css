@@ -257,27 +257,21 @@ a:active,
   user-select: all;
 }
 
-/* iOS Bounce Zoom In Animation for Dialogs */
-@keyframes iosBounceZoomIn {
-  0% {
+/* Center Zoom In Ease-In Animation for Dialogs */
+@keyframes dialogZoomIn {
+  from {
     opacity: 0;
-    transform: scale(0.65);
+    transform: scale(0.88);
   }
-  60% {
-    opacity: 1;
-    transform: scale(1.035);
-  }
-  82% {
-    transform: scale(0.985);
-  }
-  100% {
+  to {
     opacity: 1;
     transform: scale(1);
   }
 }
 
-.modal.ios-bounce.show .modal-dialog {
-  animation: iosBounceZoomIn 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+.modal.ios-bounce.show .modal-dialog,
+.modal.dialog-zoom-in.show .modal-dialog {
+  animation: dialogZoomIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Clean Scrollbar */
