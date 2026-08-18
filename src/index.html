@@ -74,6 +74,15 @@
               </button>
             </nav>
           </div>
+          <!-- Mobile Sidebar Settings (Visible inside sidebar drawer in small width mode) -->
+          <div class="p-2 border-top d-md-none" id="mobile-sidebar-settings-col">
+            <nav class="nav nav-pills w-100 position-relative" id="mobile-settings-nav">
+              <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
+                <i class="bi bi-gear text-body-secondary"></i>
+                <span>Settings</span>
+              </button>
+            </nav>
+          </div>
         </aside>
 
         <!-- Tool Workspace Panel -->
@@ -681,7 +690,7 @@
 
       <!-- Unified Bottom Status & Control Bar Row -->
       <footer class="d-flex border-top bg-body flex-shrink-0" style="height: 56px;">
-        <div class="d-flex align-items-center p-2 border-end flex-shrink-0 bottom-settings-col" style="width: 280px;">
+        <div class="d-none d-md-flex align-items-center p-2 border-end flex-shrink-0 bottom-settings-col" style="width: 280px;">
           <nav class="nav nav-pills w-100 position-relative" id="settings-nav">
             <div class="sidebar-indicator" id="settings-indicator"></div>
             <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">

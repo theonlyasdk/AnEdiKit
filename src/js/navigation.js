@@ -99,16 +99,17 @@ export function switchTool(toolId, onToolChanged) {
 
   // Update nav buttons active states
   const toolNavButtons = document.querySelectorAll("#tool-nav .nav-link");
-  const settingsNavBtn = document.querySelector("#settings-nav .nav-link");
+  const allSettingsButtons = document.querySelectorAll('button[data-tool="settings"]');
+  const desktopSettingsBtn = document.querySelector("#settings-nav .nav-link");
 
   if (toolId === "settings") {
     toolNavButtons.forEach((b) => b.classList.remove("active"));
-    if (settingsNavBtn) {
-      settingsNavBtn.classList.add("active");
-      updateSidebarIndicator(settingsNavBtn, true);
+    allSettingsButtons.forEach((b) => b.classList.add("active"));
+    if (desktopSettingsBtn) {
+      updateSidebarIndicator(desktopSettingsBtn, true);
     }
   } else {
-    if (settingsNavBtn) settingsNavBtn.classList.remove("active");
+    allSettingsButtons.forEach((b) => b.classList.remove("active"));
     toolNavButtons.forEach((b) => {
       if (b.dataset.tool === toolId) {
         b.classList.add("active");
@@ -220,8 +221,7 @@ export function toggleMobileSidebar() {
 }
 
 export function initNavigation(onToolChanged) {
-  const toolNavButtons = document.querySelectorAll("#tool-nav .nav-link");
-  const settingsNavBtn = document.querySelector("#settings-nav .nav-link");
+  const allToolButtons = document.querySelectorAll("button[data-tool]");
   const btnToggle = document.getElementById("btn-sidebar-toggle");
   const backdrop = document.getElementById("sidebar-backdrop");
 
@@ -237,18 +237,12 @@ export function initNavigation(onToolChanged) {
     });
   }
 
-  toolNavButtons.forEach((btn) => {
+  allToolButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const tool = btn.dataset.tool;
       switchTool(tool, onToolChanged);
     });
   });
-
-  if (settingsNavBtn) {
-    settingsNavBtn.addEventListener("click", () => {
-      switchTool("settings", onToolChanged);
-    });
-  }
 
   // Restore saved active tool on startup
   const savedTool = getSavedActiveTool("convert");
