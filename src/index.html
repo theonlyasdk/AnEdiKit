@@ -479,12 +479,43 @@
             <!-- TOOL 8: Custom Command -->
             <div class="tool-view d-none" id="view-custom">
               <div class="mb-4">
-                <div class="section-divider-header">Custom FFmpeg Arguments</div>
-                <div class="mb-2">
-                  <label class="form-label small fw-medium" for="custom-args">Arguments (between input and output)</label>
-                  <input type="text" class="form-control form-control-sm" id="custom-args" placeholder="-vf eq=brightness=0.05:contrast=1.1 -c:a copy" />
+                <div class="section-divider-header">Custom FFmpeg Command</div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-8">
+                    <label class="form-label small fw-medium" for="custom-preset-select">Quick Example Presets</label>
+                    <select class="form-select form-select-sm" id="custom-preset-select">
+                      <option value="" selected>Choose a preset to load parameters...</option>
+                      <option value="-vf transpose=1 -c:a copy">Rotate 90° Clockwise (-vf transpose=1)</option>
+                      <option value="-vf transpose=2 -c:a copy">Rotate 90° Counter-Clockwise (-vf transpose=2)</option>
+                      <option value="-vf hflip -c:a copy">Horizontal Flip / Mirror (-vf hflip)</option>
+                      <option value='-filter_complex "[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]" -map "[v]" -map "[a]" -c:v libx264 -c:a aac'>Speed Up 2.0x Fast Forward (Video + Audio)</option>
+                      <option value='-filter_complex "[0:v]setpts=2.0*PTS[v];[0:a]atempo=0.5[a]" -map "[v]" -map "[a]" -c:v libx264 -c:a aac'>Slow Down 0.5x Slow Motion (Video + Audio)</option>
+                      <option value="-vf reverse -af areverse">Reverse Playback (Video + Audio)</option>
+                      <option value="-vf yadif -c:a copy">Deinterlace Video (Yadif Filter)</option>
+                      <option value="-vf eq=brightness=0.06:contrast=1.15 -c:a copy">Adjust Brightness & Contrast</option>
+                      <option value="-c:v libx264 -crf 0 -preset medium -c:a copy">Lossless Archive Re-encode (CRF 0)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="custom-ext">Output Extension</label>
+                    <select class="form-select form-select-sm" id="custom-ext">
+                      <option value="mp4" selected>.mp4 (MPEG-4)</option>
+                      <option value="mkv">.mkv (Matroska)</option>
+                      <option value="mov">.mov (QuickTime)</option>
+                      <option value="webm">.webm (WebM)</option>
+                      <option value="avi">.avi (Audio Video Interleaved)</option>
+                      <option value="mp3">.mp3 (Audio Only)</option>
+                      <option value="wav">.wav (WAV Audio)</option>
+                    </select>
+                  </div>
                 </div>
-                <small class="text-body-secondary">Specify custom filters or parameters. Input (-i) and output filenames are automatically attached.</small>
+                <div class="mb-2">
+                  <label class="form-label small fw-medium" for="custom-args">Custom FFmpeg Arguments (Injected between input and output)</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="custom-args" placeholder="-c:v libx264 -crf 20 -c:a copy" value="-c:v libx264 -crf 20 -c:a copy" />
+                </div>
+                <div class="text-body-secondary small">
+                  Arguments are automatically wrapped with <code class="text-body-secondary">-i &lt;source_file&gt;</code> and destination path.
+                </div>
               </div>
             </div>
 

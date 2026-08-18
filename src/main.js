@@ -57,8 +57,10 @@ export function getSmartOutputFileName(inputFile, toolId) {
       if (mode === "frames_seq") return `${baseName}_frame_%04d.${snapFmt}`;
       return `${baseName}_animated.gif`;
     }
-    case "custom":
-      return `${baseName}_output.mp4`;
+    case "custom": {
+      const ext = document.getElementById("custom-ext")?.value || "mp4";
+      return `${baseName}_custom.${ext}`;
+    }
     default:
       return `${baseName}_out.mp4`;
   }
@@ -493,6 +495,18 @@ function bindFormEvents() {
       }
       updateAutoOutputFilename(true);
       updateCommandPreview();
+    });
+  }
+
+  // Custom preset dropdown selector
+  const customPresetSelect = document.getElementById("custom-preset-select");
+  const customArgsInput = document.getElementById("custom-args");
+  if (customPresetSelect && customArgsInput) {
+    customPresetSelect.addEventListener("change", () => {
+      if (customPresetSelect.value) {
+        customArgsInput.value = customPresetSelect.value;
+        updateCommandPreview();
+      }
     });
   }
 }

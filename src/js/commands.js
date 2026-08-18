@@ -533,8 +533,9 @@ export function buildCustomCommand(inputFile, outputDir, settings = {}) {
       .pop()
       ?.replace(/\.[^/.]+$/, "") || "output_custom";
 
+  const ext = document.getElementById("custom-ext")?.value || "mp4";
   const customArgsStr = document.getElementById("custom-args")?.value?.trim() || "";
-  const dst = resolveDestinationPath(`${baseName}_custom.mp4`, settings);
+  const dst = resolveDestinationPath(`${baseName}_custom.${ext}`, settings);
 
   args.push("-i", src);
 
