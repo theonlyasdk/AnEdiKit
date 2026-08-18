@@ -81,6 +81,36 @@ fn pick_folder() -> Option<String> {
         .map(|p| p.to_string_lossy().to_string())
 }
 
+fn find_binary(bin: &str) -> String {
+    let mut check_cmd = Command::new(bin);
+    check_cmd.arg("-version");
+    #[cfg(windows)]
+    check_cmd.creation_flags(0x08000000);
+    if let Ok(out) = check_cmd.output() {
+        if out.status.success() {
+            return bin.to_string();
+        }
+    }
+
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        let p = std::path::Path::new(&local_app_data)
+            .join("ASDK")
+            .join("Shared")
+            .join("bin")
+            .join(format!("{}.exe", bin));
+        if p.exists() {
+            return p.to_string_lossy().to_string();
+        }
+    }
+
+    let p2 = std::path::Path::new(r"C:\ffmpeg\bin").join(format!("{}.exe", bin));
+    if p2.exists() {
+        return p2.to_string_lossy().to_string();
+    }
+
+    bin.to_string()
+}
+
 #[tauri::command]
 fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
     let path = std::path::Path::new(&file_path);
@@ -110,12 +140,13 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
         bitrate_kbps: 0,
     };
 
-    let mut cmd = Command::new("ffprobe");
+    let probe_bin = find_binary("ffprobe");
+    let mut cmd = Command::new(&probe_bin);
     cmd.args([
         "-v",
         "error",
         "-show_entries",
-        "format=duration,bit_rate:stream=codec_type,codec_name,width,height",
+        "format=duration,bit_rate:stream=codec_type,codec_name,width,height,duration:stream_tags=DURATION",
         "-of",
         "json",
         &file_path,
@@ -150,6 +181,15 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
                             } else if c_type == "audio" && info.audio_codec == "--" {
                                 info.audio_codec = c_name.to_string();
                             }
+
+                            // Fallback stream duration
+                            if info.duration_seconds == 0.0 {
+                                if let Some(d_str) = stream.get("duration").and_then(|d| d.as_str()) {
+                                    if let Ok(dur) = d_str.parse::<f64>() {
+                                        info.duration_seconds = dur;
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -159,11 +199,6 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
                         {
                             if let Ok(dur_sec) = dur_str.parse::<f64>() {
                                 info.duration_seconds = dur_sec;
-                                let total_sec = dur_sec.round() as u64;
-                                let h = total_sec / 3600;
-                                let m = (total_sec % 3600) / 60;
-                                let s = total_sec % 60;
-                                info.duration_string = format!("{:02}:{:02}:{:02}", h, m, s);
                             }
                         }
                         if let Some(br_str) = format_obj.get("bit_rate").and_then(|b| b.as_str())
@@ -172,6 +207,14 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
                                 info.bitrate_kbps = br / 1000;
                             }
                         }
+                    }
+
+                    if info.duration_seconds > 0.0 {
+                        let total_sec = info.duration_seconds.round() as u64;
+                        let h = total_sec / 3600;
+                        let m = (total_sec % 3600) / 60;
+                        let s = total_sec % 60;
+                        info.duration_string = format!("{:02}:{:02}:{:02}", h, m, s);
                     }
                 }
             }

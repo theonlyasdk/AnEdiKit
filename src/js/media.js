@@ -12,7 +12,34 @@ export function getCurrentMediaInfo() {
   return currentMediaInfo;
 }
 
-export async function probeMedia(filePath) {
+export function showMetadataLoading(filePath) {
+  const metaInfo = document.getElementById("input-meta-info");
+  const pathInput = document.getElementById("input-file-path");
+
+  if (pathInput) {
+    pathInput.value = filePath || "";
+  }
+
+  if (metaInfo) {
+    document.getElementById("meta-duration").innerHTML =
+      '<span class="meta-loading-pulse">...</span>';
+    document.getElementById("meta-resolution").innerHTML =
+      '<span class="meta-loading-pulse">...</span>';
+    document.getElementById("meta-vcodec").innerHTML =
+      '<span class="meta-loading-pulse">...</span>';
+    document.getElementById("meta-acodec").innerHTML =
+      '<span class="meta-loading-pulse">...</span>';
+    document.getElementById("meta-size").innerHTML =
+      '<span class="meta-loading-pulse">...</span>';
+
+    if (metaInfo.classList.contains("d-none")) {
+      metaInfo.classList.remove("d-none");
+      metaInfo.classList.add("d-flex", "ui-zoom-in");
+    }
+  }
+}
+
+export async function probeMedia(filePath, fileObject = null) {
   if (!filePath) {
     currentInputFile = "";
     currentMediaInfo = null;
@@ -23,6 +50,7 @@ export async function probeMedia(filePath) {
 
   currentInputFile = filePath;
   saveInputFile(filePath);
+  showMetadataLoading(filePath);
 
   // Try Tauri IPC if available
   if (window.__TAURI__?.core?.invoke) {
@@ -30,31 +58,113 @@ export async function probeMedia(filePath) {
       const info = await window.__TAURI__.core.invoke("get_media_info", {
         filePath,
       });
-      currentMediaInfo = info;
-      updateMetadataDisplay(info);
-      return info;
+      if (
+        info &&
+        (info.duration_seconds > 0 ||
+          info.resolution !== "--" ||
+          info.video_codec !== "--")
+      ) {
+        currentMediaInfo = info;
+        updateMetadataDisplay(info);
+        return info;
+      }
     } catch (err) {
       console.warn("Tauri get_media_info error:", err);
     }
   }
 
-  // Fallback metadata for browser simulation
+  // Browser video/audio element fallback when running with file object
+  if (fileObject instanceof Blob || fileObject instanceof File) {
+    try {
+      const mediaInfo = await probeInBrowser(fileObject, filePath);
+      currentMediaInfo = mediaInfo;
+      updateMetadataDisplay(mediaInfo);
+      return mediaInfo;
+    } catch (e) {
+      console.warn("Browser media probe error:", e);
+    }
+  }
+
+  // Simulated fallback for demo/mock file paths
   const fileName = filePath.split(/[/\\]/).pop() || "sample_video.mp4";
+  const ext = (fileName.split(".").pop() || "mp4").toLowerCase();
+  const isAudio = ["mp3", "wav", "flac", "m4a", "ogg", "opus"].includes(ext);
+
   const mockInfo = {
     file_path: filePath,
     file_name: fileName,
     duration_seconds: 135.0,
     duration_string: "00:02:15",
-    resolution: "1920x1080",
-    video_codec: "h264",
-    audio_codec: "aac",
+    resolution: isAudio ? "N/A" : "1920x1080",
+    video_codec: isAudio ? "None" : ext === "webm" ? "vp9" : "h264",
+    audio_codec: ext === "flac" ? "flac" : ext === "wav" ? "pcm" : "aac",
     file_size_mb: 42.5,
     file_size_formatted: "42.5 MB",
     bitrate_kbps: 2600,
   };
+
+  // Small delay for smooth pulsing ellipsis appearance
+  await new Promise((res) => setTimeout(res, 200));
   currentMediaInfo = mockInfo;
   updateMetadataDisplay(mockInfo);
   return mockInfo;
+}
+
+function probeInBrowser(file, filePath) {
+  return new Promise((resolve) => {
+    const isVideo = file.type.startsWith("video");
+    const mediaEl = document.createElement(isVideo ? "video" : "audio");
+    const objectUrl = URL.createObjectURL(file);
+
+    mediaEl.preload = "metadata";
+    mediaEl.src = objectUrl;
+
+    mediaEl.onloadedmetadata = () => {
+      URL.revokeObjectURL(objectUrl);
+      const durSec = mediaEl.duration || 0;
+      const h = Math.floor(durSec / 3600);
+      const m = Math.floor((durSec % 3600) / 60);
+      const s = Math.floor(durSec % 60);
+      const durStr = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+      const sizeMb = file.size
+        ? (file.size / (1024 * 1024)).toFixed(2)
+        : "42.5";
+
+      resolve({
+        file_path: filePath,
+        file_name: file.name,
+        duration_seconds: durSec,
+        duration_string: durStr,
+        resolution: isVideo
+          ? `${mediaEl.videoWidth}x${mediaEl.videoHeight}`
+          : "N/A",
+        video_codec: isVideo ? "h264" : "None",
+        audio_codec: "aac",
+        file_size_mb: parseFloat(sizeMb),
+        file_size_formatted: `${sizeMb} MB`,
+        bitrate_kbps: 0,
+      });
+    };
+
+    mediaEl.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      const sizeMb = file.size
+        ? (file.size / (1024 * 1024)).toFixed(2)
+        : "42.5";
+      resolve({
+        file_path: filePath,
+        file_name: file.name,
+        duration_seconds: 0.0,
+        duration_string: "--:--:--",
+        resolution: "--",
+        video_codec: "--",
+        audio_codec: "--",
+        file_size_mb: parseFloat(sizeMb),
+        file_size_formatted: `${sizeMb} MB`,
+        bitrate_kbps: 0,
+      });
+    };
+  });
 }
 
 export function updateMetadataDisplay(info) {
@@ -192,7 +302,7 @@ export function initDragAndDrop(onFileSelected) {
       const file = e.dataTransfer.files[0];
       const filePath =
         file.path || file.name || "C:\\Users\\User\\Videos\\dropped_media.mp4";
-      const info = await probeMedia(filePath);
+      const info = await probeMedia(filePath, file);
       if (onFileSelected) onFileSelected(info);
     }
   });

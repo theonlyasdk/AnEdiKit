@@ -217,6 +217,24 @@ a:active,
   }
 }
 
+/* Pulsing ellipsis for loading metadata fields */
+.meta-loading-pulse {
+  display: inline-block;
+  animation: metaPulse 0.85s infinite alternate ease-in-out;
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+
+@keyframes metaPulse {
+  0% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .input-drop-pulsing {
   animation: dropPulseShadow 1.3s ease-in-out infinite !important;
   border-radius: var(--bs-border-radius);
