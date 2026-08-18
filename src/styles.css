@@ -152,13 +152,32 @@ a:active,
 /* Header Text Vertical Slide without fade (Directional based on navigation) */
 #tool-header-text {
   min-width: 0;
+  cursor: default;
 }
 
-#current-tool-title,
+#current-tool-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* Tool description hidden by default, slides in left-to-right with fade on title hover */
 #current-tool-desc {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-12px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+#tool-header-text:hover #current-tool-desc {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 .header-title-animated.slide-from-bottom {
