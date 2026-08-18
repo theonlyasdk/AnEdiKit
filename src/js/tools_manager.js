@@ -98,22 +98,21 @@ export async function refreshToolsUI() {
   if (elFfmpegLatest) elFfmpegLatest.textContent = latestInfo.ffmpeg_latest || "Unknown";
 
   // Update Settings Executables status badges
-  const statusFfmpeg = document.getElementById("status-ffmpeg-installed");
-  const statusFfprobe = document.getElementById("status-ffprobe-installed");
-  if (statusFfmpeg) {
-    const isInstalled = localInfo.ffmpeg_installed && localInfo.ffmpeg_installed !== "Not Found";
-    statusFfmpeg.textContent = isInstalled ? "Installed" : "Not Installed";
-    statusFfmpeg.className = isInstalled
+  const updateBadge = (elId, ver) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const isInstalled = ver && ver !== "Not Found" && !ver.toLowerCase().includes("not");
+    el.textContent = isInstalled ? "Installed" : "Not Installed";
+    el.className = isInstalled
       ? "badge text-bg-success-subtle text-success border border-success-subtle"
       : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
-  }
-  if (statusFfprobe) {
-    const isInstalled = localInfo.ffprobe_installed && localInfo.ffprobe_installed !== "Not Found";
-    statusFfprobe.textContent = isInstalled ? "Installed" : "Not Installed";
-    statusFfprobe.className = isInstalled
-      ? "badge text-bg-success-subtle text-success border border-success-subtle"
-      : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
-  }
+    el.title = ver || "Not Found";
+  };
+
+  updateBadge("status-ffmpeg-installed", localInfo.ffmpeg_installed);
+  updateBadge("status-ffprobe-installed", localInfo.ffprobe_installed);
+  updateBadge("status-ytdlp-installed", localInfo.ytdlp_installed);
+  updateBadge("status-deno-installed", localInfo.deno_installed);
 }
 
 export function simulateToolUpdate(toolName, callback) {
