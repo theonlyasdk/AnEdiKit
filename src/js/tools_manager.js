@@ -113,6 +113,39 @@ export async function refreshToolsUI() {
   updateBadge("status-ffprobe-installed", localInfo.ffprobe_installed);
   updateBadge("status-ytdlp-installed", localInfo.ytdlp_installed);
   updateBadge("status-deno-installed", localInfo.deno_installed);
+
+  // Update button labels: Install (if missing), Update (if new update available), Reinstall (if already latest)
+  updateActionButton("btn-update-ytdlp", "yt-dlp", localInfo.ytdlp_installed, latestInfo.ytdlp_latest);
+  updateActionButton("btn-update-deno", "Deno", localInfo.deno_installed, latestInfo.deno_latest);
+  updateActionButton("btn-update-ffmpeg", "FFmpeg", localInfo.ffmpeg_installed, latestInfo.ffmpeg_latest);
+}
+
+export function updateActionButton(btnId, toolName, localVer, latestVer) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+
+  const isInstalled = localVer && localVer !== "Not Found" && !localVer.toLowerCase().includes("not");
+  const hasUpdate =
+    isInstalled &&
+    latestVer &&
+    latestVer !== "Unknown" &&
+    latestVer !== "Checking..." &&
+    !latestVer.toLowerCase().includes("check") &&
+    localVer.trim() !== latestVer.trim();
+
+  if (!isInstalled) {
+    btn.innerHTML = `<i class="bi bi-download"></i> Install ${toolName}`;
+    btn.className = "btn btn-primary btn-sm flex-shrink-0";
+    btn.title = `Install ${toolName} binary to system/app data`;
+  } else if (hasUpdate) {
+    btn.innerHTML = `<i class="bi bi-arrow-repeat"></i> Update ${toolName}`;
+    btn.className = "btn btn-outline-primary btn-sm flex-shrink-0";
+    btn.title = `Update ${toolName} from ${localVer} to ${latestVer}`;
+  } else {
+    btn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Reinstall ${toolName}`;
+    btn.className = "btn btn-outline-secondary btn-sm flex-shrink-0";
+    btn.title = `Reinstall verified ${toolName} binary build (${localVer})`;
+  }
 }
 
 export function simulateToolUpdate(toolName, callback) {
@@ -127,7 +160,7 @@ export function simulateToolUpdate(toolName, callback) {
     progressContainer.classList.add("ui-zoom-in");
   }
 
-  if (statusEl) statusEl.textContent = `Downloading latest ${toolName} binary release...`;
+  if (statusEl) statusEl.textContent = `Processing ${toolName} binary package...`;
   if (pctEl) pctEl.textContent = "0%";
   if (bar) bar.style.width = "0%";
 
@@ -139,7 +172,7 @@ export function simulateToolUpdate(toolName, callback) {
 
     if (pct >= 100) {
       clearInterval(interval);
-      if (statusEl) statusEl.textContent = `${toolName} updated and verified successfully!`;
+      if (statusEl) statusEl.textContent = `${toolName} installed and verified successfully!`;
       setTimeout(() => {
         if (progressContainer) progressContainer.classList.add("d-none");
         if (callback) callback();
@@ -149,24 +182,27 @@ export function simulateToolUpdate(toolName, callback) {
 }
 
 export function initToolsManager() {
-  // Initialize settings status badges on startup
+  // Initialize settings status badges and buttons on startup
   checkLocalToolVersions().then((localInfo) => {
-    const statusFfmpeg = document.getElementById("status-ffmpeg-installed");
-    const statusFfprobe = document.getElementById("status-ffprobe-installed");
-    if (statusFfmpeg) {
-      const isInstalled = localInfo.ffmpeg_installed && localInfo.ffmpeg_installed !== "Not Found";
-      statusFfmpeg.textContent = isInstalled ? "Installed" : "Not Installed";
-      statusFfmpeg.className = isInstalled
+    const updateBadge = (elId, ver) => {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      const isInstalled = ver && ver !== "Not Found" && !ver.toLowerCase().includes("not");
+      el.textContent = isInstalled ? "Installed" : "Not Installed";
+      el.className = isInstalled
         ? "badge text-bg-success-subtle text-success border border-success-subtle"
         : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
-    }
-    if (statusFfprobe) {
-      const isInstalled = localInfo.ffprobe_installed && localInfo.ffprobe_installed !== "Not Found";
-      statusFfprobe.textContent = isInstalled ? "Installed" : "Not Installed";
-      statusFfprobe.className = isInstalled
-        ? "badge text-bg-success-subtle text-success border border-success-subtle"
-        : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
-    }
+      el.title = ver || "Not Found";
+    };
+
+    updateBadge("status-ffmpeg-installed", localInfo.ffmpeg_installed);
+    updateBadge("status-ffprobe-installed", localInfo.ffprobe_installed);
+    updateBadge("status-ytdlp-installed", localInfo.ytdlp_installed);
+    updateBadge("status-deno-installed", localInfo.deno_installed);
+
+    updateActionButton("btn-update-ytdlp", "yt-dlp", localInfo.ytdlp_installed);
+    updateActionButton("btn-update-deno", "Deno", localInfo.deno_installed);
+    updateActionButton("btn-update-ffmpeg", "FFmpeg", localInfo.ffmpeg_installed);
   });
 
   const modal = document.getElementById("manage-tools-modal");
