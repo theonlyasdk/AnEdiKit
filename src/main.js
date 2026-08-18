@@ -319,9 +319,9 @@ function setupInputs() {
     });
   }
 
-  // Execute and Cancel buttons
+  // Execute and Reset buttons
   const btnExecute = document.getElementById("btn-execute");
-  const btnCancel = document.getElementById("btn-cancel");
+  const btnReset = document.getElementById("btn-reset");
   const execStatusPanel = document.getElementById("execution-status-panel");
 
   if (btnExecute) {
@@ -331,17 +331,42 @@ function setupInputs() {
       }
       const statusEl = document.getElementById("status-message");
       if (statusEl) statusEl.textContent = "Processing task...";
-      if (btnCancel) btnCancel.removeAttribute("disabled");
-      btnExecute.setAttribute("disabled", "true");
     });
   }
 
-  if (btnCancel) {
-    btnCancel.addEventListener("click", () => {
+  if (btnReset) {
+    btnReset.addEventListener("click", () => {
+      // Clear input file
+      currentInputFile = "";
+      if (inputFilePath) inputFilePath.value = "";
+      updateMetadataVisibility();
+
+      // Reset merge list
+      mergeFiles = [];
+      renderMergeList();
+
+      // Reset execution panel
+      if (execStatusPanel) {
+        execStatusPanel.classList.add("d-none");
+      }
+
       const statusEl = document.getElementById("status-message");
       if (statusEl) statusEl.textContent = "Ready";
-      btnCancel.setAttribute("disabled", "true");
-      if (btnExecute) btnExecute.removeAttribute("disabled");
+
+      // Reset active tool form controls
+      const activeForm = document.getElementById(`view-${currentToolId}`);
+      if (activeForm) {
+        const inputs = activeForm.querySelectorAll("input, select");
+        inputs.forEach((input) => {
+          if (input.type === "checkbox") {
+            input.checked = input.defaultChecked;
+          } else if (input.defaultValue !== undefined) {
+            input.value = input.defaultValue;
+          }
+        });
+      }
+
+      updateCommandPreview();
     });
   }
 

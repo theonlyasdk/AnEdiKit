@@ -124,4 +124,5 @@ Good implementations:
 - No horizontal rules (no `---`).
 - No unnecessary bold letters.
 - Keep responses and documentation direct, clean, and concise.
+- Create distinct modules for each JS functionality instead of a monolithic main.js file.
 - Expose backend commands via `tauri::command` in `src-tauri/src/lib.rs` and invoke from frontend via `@tauri-apps/api/core`.

@@ -27,8 +27,9 @@ a:active,
   filter: brightness(75%);
 }
 
-/* Sidebar Navigation & Sliding Indicator */
-.sidebar .nav {
+/* Sidebar Navigation & Settings Button Sliding Indicator */
+.sidebar .nav,
+#settings-nav {
   position: relative;
 }
 
@@ -46,7 +47,8 @@ a:active,
   will-change: transform, height;
 }
 
-.sidebar .nav-link {
+.sidebar .nav-link,
+#settings-nav .nav-link {
   color: var(--bs-body-color);
   border-radius: var(--bs-border-radius);
   padding: 0.5rem 0.75rem;
@@ -57,15 +59,18 @@ a:active,
   transition: color 0.2s ease, background-color 0.2s ease;
 }
 
-.sidebar .nav-link:hover:not(.active) {
+.sidebar .nav-link:hover:not(.active),
+#settings-nav .nav-link:hover:not(.active) {
   background-color: var(--bs-tertiary-bg) !important;
 }
 
-.sidebar .nav-link.active {
+.sidebar .nav-link.active,
+#settings-nav .nav-link.active {
   color: #ffffff;
 }
 
-.sidebar .nav-link.active i {
+.sidebar .nav-link.active i,
+#settings-nav .nav-link.active i {
   color: #ffffff !important;
 }
 
