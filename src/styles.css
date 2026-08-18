@@ -8,19 +8,52 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
+/* Mouse press down effect: brightness 75% for clickable components */
+button:active,
+.btn:active,
+.nav-link:active,
+.form-select:active,
+.form-check-input:active,
+a:active,
+[role="button"]:active {
+  filter: brightness(75%);
+}
+
+/* Sidebar Navigation & Sliding Indicator */
+.sidebar .nav {
+  position: relative;
+}
+
+.sidebar-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--bs-primary);
+  border-radius: var(--bs-border-radius);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), height 0.22s ease, opacity 0.15s ease;
+  will-change: transform, height;
+}
+
 .sidebar .nav-link {
   color: var(--bs-body-color);
   border-radius: var(--bs-border-radius);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
+  position: relative;
+  z-index: 1;
+  background-color: transparent !important;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 
-.sidebar .nav-link:hover {
-  background-color: var(--bs-tertiary-bg);
+.sidebar .nav-link:hover:not(.active) {
+  background-color: var(--bs-tertiary-bg) !important;
 }
 
 .sidebar .nav-link.active {
-  background-color: var(--bs-primary);
   color: #ffffff;
 }
 

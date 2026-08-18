@@ -32,7 +32,8 @@
         <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" style="width: 280px;">
           <div class="overflow-y-auto flex-grow-1 p-2">
             <div class="text-uppercase small fw-semibold text-body-secondary px-3 py-2">FFmpeg Tools</div>
-            <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
+            <nav class="nav nav-pills flex-column gap-1 position-relative" id="tool-nav">
+              <div class="sidebar-indicator" id="sidebar-indicator"></div>
               <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
                 <i class="bi bi-film text-body-secondary"></i>
                 <span>Convert Video</span>
@@ -69,7 +70,8 @@
           </div>
 
           <div class="p-2 border-top">
-            <nav class="nav nav-pills flex-column">
+            <nav class="nav nav-pills flex-column position-relative" id="settings-nav">
+              <div class="sidebar-indicator" id="settings-indicator"></div>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
                 <i class="bi bi-gear text-body-secondary"></i>
                 <span>Settings</span>

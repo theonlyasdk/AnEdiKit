@@ -62,7 +62,6 @@ function initApp() {
 }
 
 function setupNavigation() {
-  const toolNav = document.getElementById("tool-nav");
   const allButtons = document.querySelectorAll("[data-tool]");
 
   allButtons.forEach((btn) => {
@@ -71,6 +70,35 @@ function setupNavigation() {
       updateToolView(toolId);
     });
   });
+
+  window.addEventListener("resize", () => {
+    const activeBtn = document.querySelector(`[data-tool="${currentToolId}"]`);
+    updateSidebarIndicator(activeBtn);
+  });
+}
+
+function updateSidebarIndicator(activeBtn) {
+  const toolIndicator = document.getElementById("sidebar-indicator");
+  const settingsIndicator = document.getElementById("settings-indicator");
+
+  if (!activeBtn) return;
+  const isSettings = activeBtn.dataset.tool === "settings";
+
+  if (isSettings) {
+    if (toolIndicator) toolIndicator.style.opacity = "0";
+    if (settingsIndicator) {
+      settingsIndicator.style.transform = `translateY(${activeBtn.offsetTop}px)`;
+      settingsIndicator.style.height = `${activeBtn.offsetHeight}px`;
+      settingsIndicator.style.opacity = "1";
+    }
+  } else {
+    if (settingsIndicator) settingsIndicator.style.opacity = "0";
+    if (toolIndicator) {
+      toolIndicator.style.transform = `translateY(${activeBtn.offsetTop}px)`;
+      toolIndicator.style.height = `${activeBtn.offsetHeight}px`;
+      toolIndicator.style.opacity = "1";
+    }
+  }
 }
 
 function updateToolView(toolId) {
@@ -78,9 +106,14 @@ function updateToolView(toolId) {
   const meta = toolsMeta[toolId] || toolsMeta.convert;
 
   // Update active state in sidebar
+  let activeBtn = null;
   document.querySelectorAll("[data-tool]").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.tool === toolId);
+    const isActive = btn.dataset.tool === toolId;
+    btn.classList.toggle("active", isActive);
+    if (isActive) activeBtn = btn;
   });
+
+  updateSidebarIndicator(activeBtn);
 
   // Update header titles
   document.getElementById("current-tool-title").textContent = meta.title;
