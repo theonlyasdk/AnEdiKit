@@ -238,6 +238,30 @@ function bindFormEvents() {
     });
   }
 
+  // Brand Logo Credits Dialog & GitHub link
+  const brandLogoTitle = document.getElementById("brand-logo-title");
+  if (brandLogoTitle) {
+    brandLogoTitle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const modalEl = document.getElementById("credits-modal");
+      if (modalEl && window.bootstrap?.Modal) {
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      }
+    });
+  }
+
+  const btnOpenGithub = document.getElementById("btn-open-github");
+  if (btnOpenGithub) {
+    btnOpenGithub.addEventListener("click", () => {
+      const url = "https://github.com/theonlyasdk";
+      if (window.__TAURI__?.opener?.openUrl) {
+        window.__TAURI__.opener.openUrl(url);
+      } else {
+        window.open(url, "_blank");
+      }
+    });
+  }
+
   if (btnClearUrl && ytdlpUrlInput) {
     btnClearUrl.addEventListener("click", () => {
       ytdlpUrlInput.value = "";

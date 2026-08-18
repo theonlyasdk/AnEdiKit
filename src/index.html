@@ -16,9 +16,9 @@
       <!-- Unified Top Header Bar -->
       <header class="d-flex border-bottom bg-body flex-shrink-0" style="height: 56px;">
         <div class="d-flex align-items-center justify-content-center px-3 border-end flex-shrink-0 header-brand-col" style="width: 280px;">
-          <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn" id="btn-sidebar-toggle" role="button" tabindex="0" title="AnEditKit - Toggle Navigation">
-            <i class="bi bi-list text-primary fs-4 lh-1 d-md-none" id="brand-logo-icon"></i>
-            <h1 class="fs-4 mb-0 fw-light text-body user-select-none">AnEditKit</h1>
+          <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn" id="btn-sidebar-toggle" title="AnEditKit - Click Logo for Credits / Scroll to Switch Tools">
+            <i class="bi bi-list text-primary fs-4 lh-1 d-md-none" id="brand-logo-icon" role="button" tabindex="0" title="Toggle Navigation"></i>
+            <h1 class="fs-4 mb-0 fw-light text-body user-select-none" id="brand-logo-title" role="button" tabindex="0" title="About AnEditKit Credits">AnEditKit</h1>
           </div>
         </div>
         <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden" style="min-width: 0;">
@@ -1065,6 +1065,44 @@
               <i class="bi bi-arrow-clockwise"></i> Check for Updates
             </button>
             <button type="button" class="btn btn-primary btn-sm px-3" data-bs-dismiss="modal">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credits & About Dialog (Center Modal with Smooth Material Zoom) -->
+    <div class="modal fade" id="credits-modal" tabindex="-1" aria-labelledby="creditsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="creditsModalLabel">
+              <i class="bi bi-info-circle text-primary"></i> About AnEditKit
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4 text-center">
+            <h4 class="fw-light mb-1 text-body">AnEditKit</h4>
+            <div class="text-body-secondary small mb-3">Lightweight All-in-One Creator Media Toolkit</div>
+            
+            <div class="p-3 border rounded bg-body-tertiary mb-3 text-start">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <div class="small fw-semibold text-body">Creator & Developer</div>
+                  <div class="small text-body-secondary">theonlyasdk &copy; 2026</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" type="button" id="btn-open-github" title="Open GitHub Profile in Browser">
+                  <i class="bi bi-github"></i>
+                  <span>github.com/theonlyasdk</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="small text-body-secondary">
+              Built with Tauri v2, Rust, FFmpeg, and yt-dlp.
+            </div>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 justify-content-end">
+            <button type="button" class="btn btn-primary btn-sm px-3" data-bs-dismiss="modal">Close</button>
           </div>
         </div>
       </div>

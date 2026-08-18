@@ -273,11 +273,15 @@ export function initNavigation(onToolChanged) {
   const btnToggle = document.getElementById("btn-sidebar-toggle");
   const backdrop = document.getElementById("sidebar-backdrop");
 
-  if (btnToggle) {
-    btnToggle.addEventListener("click", () => {
+  const brandLogoIcon = document.getElementById("brand-logo-icon");
+  if (brandLogoIcon) {
+    brandLogoIcon.addEventListener("click", (e) => {
+      e.stopPropagation();
       toggleMobileSidebar();
     });
+  }
 
+  if (btnToggle) {
     let lastScrollTime = 0;
     btnToggle.addEventListener(
       "wheel",
