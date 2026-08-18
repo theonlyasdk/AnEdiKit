@@ -16,7 +16,17 @@ select,
   cursor: pointer;
 }
 
-/* Mouse press down effect: brightness 75% for clickable components */
+/* Interactive Clickable Components: Instant brightness 75% on mousedown, smooth linear recovery on mouseup */
+button,
+.btn,
+.nav-link,
+.form-select,
+.form-check-input,
+a,
+[role="button"] {
+  transition: filter 0.15s linear;
+}
+
 button:active,
 .btn:active,
 .nav-link:active,
@@ -25,6 +35,7 @@ button:active,
 a:active,
 [role="button"]:active {
   filter: brightness(75%);
+  transition: none !important;
 }
 
 /* Sidebar Navigation & Settings Button Sliding Indicator */
