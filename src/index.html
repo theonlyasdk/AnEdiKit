@@ -36,10 +36,10 @@
 
         <!-- Sidebar Navigation -->
         <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" id="main-sidebar" style="width: 280px;">
-          <div class="overflow-y-auto flex-grow-1 p-2">
+          <div class="overflow-y-auto flex-grow-1 p-2 position-relative" id="sidebar-scroll-container">
+            <div class="sidebar-indicator" id="sidebar-indicator"></div>
             <div class="sidebar-section-header">FFmpeg Tools</div>
-            <nav class="nav nav-pills flex-column gap-1 position-relative" id="tool-nav">
-              <div class="sidebar-indicator" id="sidebar-indicator"></div>
+            <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
               <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
                 <i class="bi bi-film text-body-secondary"></i>
                 <span>Convert Video</span>

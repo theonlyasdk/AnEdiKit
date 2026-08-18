@@ -42,11 +42,27 @@ a:active,
 
 /* Sidebar Navigation & Settings Button Sliding Indicator */
 .sidebar .nav,
-#settings-nav {
+#settings-nav,
+#mobile-settings-nav {
   position: relative;
 }
 
-.sidebar-indicator {
+#sidebar-scroll-container > .sidebar-indicator {
+  position: absolute;
+  top: 0;
+  left: 0.5rem;
+  right: 0.5rem;
+  background-color: var(--bs-primary);
+  border-radius: var(--bs-border-radius);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1), height 0.28s ease, opacity 0.2s ease;
+  will-change: transform, height;
+}
+
+#settings-nav > .sidebar-indicator,
+#mobile-settings-nav > .sidebar-indicator {
   position: absolute;
   top: 0;
   left: 0;

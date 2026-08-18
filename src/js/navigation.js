@@ -98,22 +98,33 @@ export function getCurrentActiveTool() {
 }
 
 export function updateSidebarIndicator(activeBtn, isSettings = false) {
-  const indicator = isSettings
-    ? document.getElementById("settings-indicator")
-    : document.getElementById("sidebar-indicator");
-  const otherIndicator = isSettings
-    ? document.getElementById("sidebar-indicator")
-    : document.getElementById("settings-indicator");
+  const settingsIndicator = document.getElementById("settings-indicator");
+  const sidebarIndicator = document.getElementById("sidebar-indicator");
 
-  if (otherIndicator) otherIndicator.style.opacity = "0";
-  if (!indicator || !activeBtn) return;
+  if (isSettings) {
+    if (sidebarIndicator) sidebarIndicator.style.opacity = "0";
+    if (!settingsIndicator || !activeBtn) return;
+    const top = activeBtn.offsetTop;
+    const height = activeBtn.offsetHeight;
+    settingsIndicator.style.transform = `translateY(${top}px)`;
+    settingsIndicator.style.height = `${height}px`;
+    settingsIndicator.style.opacity = "1";
+  } else {
+    if (settingsIndicator) settingsIndicator.style.opacity = "0";
+    if (!sidebarIndicator || !activeBtn) return;
 
-  const top = activeBtn.offsetTop;
-  const height = activeBtn.offsetHeight;
+    const scrollContainer = document.getElementById("sidebar-scroll-container");
+    if (!scrollContainer) return;
 
-  indicator.style.transform = `translateY(${top}px)`;
-  indicator.style.height = `${height}px`;
-  indicator.style.opacity = "1";
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const btnRect = activeBtn.getBoundingClientRect();
+    const top = btnRect.top - containerRect.top + scrollContainer.scrollTop;
+    const height = btnRect.height;
+
+    sidebarIndicator.style.transform = `translateY(${top}px)`;
+    sidebarIndicator.style.height = `${height}px`;
+    sidebarIndicator.style.opacity = "1";
+  }
 }
 
 export function switchTool(toolId, onToolChanged) {
@@ -304,6 +315,26 @@ export function initNavigation(onToolChanged) {
       const tool = btn.dataset.tool;
       switchTool(tool, onToolChanged);
     });
+  });
+
+  const scrollContainer = document.getElementById("sidebar-scroll-container");
+  if (scrollContainer) {
+    scrollContainer.addEventListener("scroll", () => {
+      const activeBtn = document.querySelector("#sidebar-scroll-container .nav-link.active");
+      if (activeBtn) {
+        updateSidebarIndicator(activeBtn, false);
+      }
+    });
+  }
+
+  window.addEventListener("resize", () => {
+    const activeBtn =
+      currentActiveTool === "settings"
+        ? document.querySelector("#settings-nav .nav-link")
+        : document.querySelector("#sidebar-scroll-container .nav-link.active");
+    if (activeBtn) {
+      updateSidebarIndicator(activeBtn, currentActiveTool === "settings");
+    }
   });
 
   // Restore saved active tool on startup
