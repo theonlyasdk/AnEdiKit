@@ -224,10 +224,12 @@ export async function selectMediaFile(filterMode = "all") {
   return await probeMedia(mockPath);
 }
 
-export async function selectOutputFolder() {
+export async function selectOutputFolder(defaultPath = null) {
   if (window.__TAURI__?.core?.invoke) {
     try {
-      const selected = await window.__TAURI__.core.invoke("pick_folder");
+      const selected = await window.__TAURI__.core.invoke("pick_folder", {
+        defaultPath: defaultPath || null,
+      });
       return selected || null;
     } catch (err) {
       console.warn("Tauri pick_folder error:", err);

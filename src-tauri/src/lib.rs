@@ -75,10 +75,19 @@ fn pick_file(filter_mode: Option<String>) -> Option<String> {
 }
 
 #[tauri::command]
-fn pick_folder() -> Option<String> {
-    rfd::FileDialog::new()
-        .pick_folder()
-        .map(|p| p.to_string_lossy().to_string())
+fn pick_folder(default_path: Option<String>) -> Option<String> {
+    let mut dialog = rfd::FileDialog::new();
+    if let Some(dp) = default_path {
+        let p = std::path::Path::new(&dp);
+        if p.is_dir() {
+            dialog = dialog.set_directory(p);
+        } else if let Some(parent) = p.parent() {
+            if parent.exists() {
+                dialog = dialog.set_directory(parent);
+            }
+        }
+    }
+    dialog.pick_folder().map(|p| p.to_string_lossy().to_string())
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -347,7 +356,8 @@ fn execute_ffmpeg(
     CANCEL_REQUESTED.store(false, Ordering::SeqCst);
 
     std::thread::spawn(move || {
-        let mut cmd = Command::new("ffmpeg");
+        let ffmpeg_bin = find_binary("ffmpeg");
+        let mut cmd = Command::new(&ffmpeg_bin);
         cmd.args(&args);
         cmd.stdout(Stdio::piped());
         cmd.stderr(Stdio::piped());

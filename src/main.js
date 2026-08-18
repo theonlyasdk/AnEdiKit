@@ -218,7 +218,8 @@ function bindFormEvents() {
   const btnBrowseOutputRow = document.getElementById("btn-browse-output-dir");
   if (btnBrowseOutputRow) {
     btnBrowseOutputRow.addEventListener("click", async () => {
-      const folder = await selectOutputFolder();
+      const currentInput = getCurrentInputFile();
+      const folder = await selectOutputFolder(currentInput || null);
       if (folder) {
         appSettings.outputDir = folder;
         const setOutDirInput = document.getElementById("set-output-dir");
