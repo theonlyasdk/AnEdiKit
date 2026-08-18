@@ -5,7 +5,9 @@
 body {
   margin: 0;
   user-select: none;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Cursor pointer for dropdowns and interactive buttons */
@@ -136,8 +138,6 @@ a:active,
   animation-name: materialZoomIn;
   animation-duration: 0.3s;
   animation-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1.0);
-  animation-fill-mode: both;
-  will-change: transform;
 }
 
 @keyframes materialZoomIn {
@@ -145,24 +145,17 @@ a:active,
     transform: scale(0.975);
   }
   to {
-    transform: scale(1);
+    transform: none;
   }
 }
 
 /* Header Text Vertical Slide without fade (Directional based on navigation) */
-.header-title-animated {
-  animation-duration: 0.3s;
-  animation-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1.0);
-  animation-fill-mode: both;
-  will-change: transform;
-}
-
 .header-title-animated.slide-from-bottom {
-  animation-name: headerSlideFromBottom;
+  animation: headerSlideFromBottom 0.28s cubic-bezier(0.05, 0.7, 0.1, 1.0);
 }
 
 .header-title-animated.slide-from-top {
-  animation-name: headerSlideFromTop;
+  animation: headerSlideFromTop 0.28s cubic-bezier(0.05, 0.7, 0.1, 1.0);
 }
 
 @keyframes headerSlideFromBottom {
@@ -170,7 +163,7 @@ a:active,
     transform: translateY(100%);
   }
   to {
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -179,7 +172,7 @@ a:active,
     transform: translateY(-100%);
   }
   to {
-    transform: translateY(0);
+    transform: none;
   }
 }
 

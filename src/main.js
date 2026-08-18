@@ -149,6 +149,20 @@ function setupNavigation() {
     const activeBtn = document.querySelector(`[data-tool="${currentToolId}"]`);
     updateSidebarIndicator(activeBtn);
   });
+
+  const headerText = document.getElementById("tool-header-text");
+  if (headerText) {
+    headerText.addEventListener("animationend", () => {
+      headerText.classList.remove("slide-from-bottom", "slide-from-top");
+    });
+  }
+
+  const viewContainer = document.getElementById("tool-view-container");
+  if (viewContainer) {
+    viewContainer.addEventListener("animationend", () => {
+      viewContainer.classList.remove("view-material-zoom");
+    });
+  }
 }
 
 function updateSidebarIndicator(activeBtn) {
