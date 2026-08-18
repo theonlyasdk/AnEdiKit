@@ -68,16 +68,6 @@
               </button>
             </nav>
           </div>
-
-          <div class="p-2 border-top">
-            <nav class="nav nav-pills flex-column position-relative" id="settings-nav">
-              <div class="sidebar-indicator" id="settings-indicator"></div>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
-                <i class="bi bi-gear text-body-secondary"></i>
-                <span>Settings</span>
-              </button>
-            </nav>
-          </div>
         </aside>
 
         <!-- Tool Workspace Panel -->
@@ -92,7 +82,8 @@
                 <input type="text" class="form-control font-monospace small" id="input-file-path" placeholder="Select or drop a source media file..." readonly />
                 <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection">Clear</button>
               </div>
-              <div class="d-flex flex-wrap gap-3 small text-body-secondary" id="input-meta-info">
+              <!-- Conditional metadata info readout -->
+              <div class="d-none flex-wrap gap-3 small text-body-secondary" id="input-meta-info">
                 <span>Duration: <strong class="text-body" id="meta-duration">--:--:--</strong></span>
                 <span>Resolution: <strong class="text-body" id="meta-resolution">--</strong></span>
                 <span>Video Codec: <strong class="text-body" id="meta-vcodec">--</strong></span>
@@ -456,7 +447,7 @@
               </div>
             </div>
 
-            <!-- Execution Footer Panel (Command Preview, Action Buttons, Progress & Logs) -->
+            <!-- Execution Footer Panel (Command Preview & Conditional Execution Status/Logs) -->
             <div id="execution-footer-panel">
               <!-- Command Preview -->
               <div class="mb-4">
@@ -471,17 +462,8 @@
                 </div>
               </div>
 
-              <!-- Action Buttons -->
-              <div class="d-flex align-items-center justify-content-between mb-4">
-                <div class="text-body-secondary small" id="status-message">Ready</div>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-cancel" disabled title="Cancel active job">Cancel</button>
-                  <button class="btn btn-primary btn-sm px-4" type="button" id="btn-execute" title="Run processing operation">Execute</button>
-                </div>
-              </div>
-
-              <!-- Progress & Logs Accordion -->
-              <div class="mb-3">
+              <!-- Conditional Progress & Execution Logs (Shown only after user clicks Execute) -->
+              <div class="mb-3 d-none" id="execution-status-panel">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                   <div class="section-divider-header flex-grow-1 mb-0 me-3">Execution Status & Log Output</div>
                   <span class="small font-monospace text-body-secondary flex-shrink-0" id="progress-pct">0%</span>
@@ -504,6 +486,26 @@
           </div>
         </main>
       </div>
+
+      <!-- Unified Bottom Status & Control Bar Row -->
+      <footer class="d-flex border-top bg-body flex-shrink-0" style="height: 56px;">
+        <div class="d-flex align-items-center p-2 border-end flex-shrink-0" style="width: 280px;">
+          <nav class="nav nav-pills w-100 position-relative" id="settings-nav">
+            <div class="sidebar-indicator" id="settings-indicator"></div>
+            <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
+              <i class="bi bi-gear text-body-secondary"></i>
+              <span>Settings</span>
+            </button>
+          </nav>
+        </div>
+        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1" id="bottom-control-bar">
+          <div class="text-body-secondary small" id="status-message">Ready</div>
+          <div class="d-flex gap-2" id="bottom-action-buttons">
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-cancel" disabled title="Cancel active job">Cancel</button>
+            <button class="btn btn-primary btn-sm px-4" type="button" id="btn-execute" title="Run processing operation">Execute</button>
+          </div>
+        </div>
+      </footer>
     </div>
   </body>
 </html>

@@ -247,6 +247,19 @@ function updateToolView(toolId) {
     viewContainer.classList.add("view-material-zoom");
   }
 
+  // Show/Hide bottom action buttons for settings
+  const actionButtons = document.getElementById("bottom-action-buttons");
+  const statusMsg = document.getElementById("status-message");
+  if (actionButtons) {
+    actionButtons.classList.toggle("d-none", toolId === "settings");
+  }
+  if (statusMsg) {
+    statusMsg.textContent = toolId === "settings" ? "Configuration saved automatically" : "Ready";
+  }
+
+  // Update metadata info visibility
+  updateMetadataVisibility();
+
   // Save active tool state to LocalStorage
   try {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_TOOL, toolId);
@@ -255,6 +268,18 @@ function updateToolView(toolId) {
   }
 
   updateCommandPreview();
+}
+
+function updateMetadataVisibility() {
+  const metaInfo = document.getElementById("input-meta-info");
+  if (!metaInfo) return;
+  if (currentInputFile) {
+    metaInfo.classList.remove("d-none");
+    metaInfo.classList.add("d-flex");
+  } else {
+    metaInfo.classList.remove("d-flex");
+    metaInfo.classList.add("d-none");
+  }
 }
 
 function setupInputs() {
@@ -275,6 +300,7 @@ function setupInputs() {
         document.getElementById("meta-acodec").textContent = "aac";
         document.getElementById("meta-size").textContent = "84.2 MB";
       }
+      updateMetadataVisibility();
       updateCommandPreview();
     });
   }
@@ -288,7 +314,34 @@ function setupInputs() {
       document.getElementById("meta-vcodec").textContent = "--";
       document.getElementById("meta-acodec").textContent = "--";
       document.getElementById("meta-size").textContent = "-- MB";
+      updateMetadataVisibility();
       updateCommandPreview();
+    });
+  }
+
+  // Execute and Cancel buttons
+  const btnExecute = document.getElementById("btn-execute");
+  const btnCancel = document.getElementById("btn-cancel");
+  const execStatusPanel = document.getElementById("execution-status-panel");
+
+  if (btnExecute) {
+    btnExecute.addEventListener("click", () => {
+      if (execStatusPanel) {
+        execStatusPanel.classList.remove("d-none");
+      }
+      const statusEl = document.getElementById("status-message");
+      if (statusEl) statusEl.textContent = "Processing task...";
+      if (btnCancel) btnCancel.removeAttribute("disabled");
+      btnExecute.setAttribute("disabled", "true");
+    });
+  }
+
+  if (btnCancel) {
+    btnCancel.addEventListener("click", () => {
+      const statusEl = document.getElementById("status-message");
+      if (statusEl) statusEl.textContent = "Ready";
+      btnCancel.setAttribute("disabled", "true");
+      if (btnExecute) btnExecute.removeAttribute("disabled");
     });
   }
 
