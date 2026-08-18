@@ -229,6 +229,31 @@ export function initNavigation(onToolChanged) {
     btnToggle.addEventListener("click", () => {
       toggleMobileSidebar();
     });
+
+    let lastScrollTime = 0;
+    btnToggle.addEventListener(
+      "wheel",
+      (e) => {
+        e.preventDefault();
+        const now = Date.now();
+        if (now - lastScrollTime < 100) return;
+        lastScrollTime = now;
+
+        const curIdx = TOOL_ORDER.indexOf(currentActiveTool);
+        if (curIdx === -1) return;
+
+        if (e.deltaY > 0) {
+          // Scroll down -> Next tool
+          const nextIdx = (curIdx + 1) % TOOL_ORDER.length;
+          switchTool(TOOL_ORDER[nextIdx], onToolChanged);
+        } else if (e.deltaY < 0) {
+          // Scroll up -> Previous tool
+          const prevIdx = (curIdx - 1 + TOOL_ORDER.length) % TOOL_ORDER.length;
+          switchTool(TOOL_ORDER[prevIdx], onToolChanged);
+        }
+      },
+      { passive: false },
+    );
   }
 
   if (backdrop) {
