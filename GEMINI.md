@@ -44,7 +44,7 @@ Avoid:
 - No random monospace badges or decorative status pills
 - Keep a clean table-like grid layout (fixed sidebar on left, unified top bar spanning across sidebar header and main tool titlebar in a crisp grid alignment)
 - Cursor pointer must be used for dropdown menu buttons and select elements
-- Use ease-in vertical sliding view transition animations with fade when switching views. The vertical animation direction must reflect sidebar navigation order (sliding from bottom when moving downwards, sliding from top when moving upwards)
+- Use Material Zoom transition (subtle scale and fade) for the main workspace view container when switching tools. For the top tool header title and description, use a directional vertical slide without fade reflecting sidebar navigation order (sliding from bottom when moving downwards, sliding from top when moving upwards)
 - No floating pills or badges like "AI Powered" or "Trusted by 10k+ teams" unless useful
 - No "modern", "innovative", or "next-gen" styling without a reason
 - No purposeless whitespace or uniform padding everywhere

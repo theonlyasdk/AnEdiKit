@@ -18,8 +18,8 @@
         <div class="d-flex align-items-center justify-content-center px-3 border-end flex-shrink-0" style="width: 280px;">
           <h1 class="fs-4 mb-0 fw-light text-body text-center">AnEdiKit</h1>
         </div>
-        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1">
-          <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden">
+          <div class="d-flex align-items-center gap-3 header-title-animated" id="tool-header-text">
             <h2 class="fs-4 mb-0 fw-light text-body" id="current-tool-title">Convert Video Formats</h2>
             <span class="text-body-secondary small" id="current-tool-desc">Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.</span>
           </div>
@@ -82,7 +82,7 @@
 
         <!-- Tool Workspace Panel -->
         <main class="flex-grow-1 overflow-y-auto p-4 bg-body-tertiary" id="tool-workspace">
-          <div id="tool-view-container" class="view-animated">
+          <div id="tool-view-container" class="view-material-zoom">
             <!-- Shared File Selection Card -->
             <div class="card mb-3 shadow-sm border-secondary-subtle" id="shared-input-card">
               <div class="card-header bg-body py-2 px-3">

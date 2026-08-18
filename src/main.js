@@ -231,12 +231,20 @@ function updateToolView(toolId) {
     activeView.classList.remove("d-none");
   }
 
-  // Trigger unified view transition animation on the entire root view container
+  // Trigger directional vertical slide animation on header title text (without fade)
+  const headerText = document.getElementById("tool-header-text");
+  if (headerText) {
+    headerText.classList.remove("slide-from-bottom", "slide-from-top");
+    void headerText.offsetWidth;
+    headerText.classList.add(isDown ? "slide-from-bottom" : "slide-from-top");
+  }
+
+  // Trigger Material Zoom transition on the workspace view container
   const viewContainer = document.getElementById("tool-view-container");
   if (viewContainer) {
-    viewContainer.classList.remove("slide-from-bottom", "slide-from-top");
+    viewContainer.classList.remove("view-material-zoom");
     void viewContainer.offsetWidth;
-    viewContainer.classList.add(isDown ? "slide-from-bottom" : "slide-from-top");
+    viewContainer.classList.add("view-material-zoom");
   }
 
   // Save active tool state to LocalStorage
