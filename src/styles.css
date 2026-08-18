@@ -334,8 +334,14 @@ a:active,
   transition: opacity 0.15s ease, filter 0.15s ease;
 }
 
+#brand-logo-title {
+  cursor: default !important;
+  user-select: none;
+}
+
 #brand-logo-icon {
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
 }
 
 /* Responsive Collapsible Sidebar & Hamburger Drawer */

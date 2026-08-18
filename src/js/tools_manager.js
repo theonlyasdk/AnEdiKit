@@ -135,15 +135,15 @@ export function updateActionButton(btnId, toolName, localVer, latestVer) {
 
   if (!isInstalled) {
     btn.innerHTML = `<i class="bi bi-download"></i> Install ${toolName}`;
-    btn.className = "btn btn-primary btn-sm flex-shrink-0";
+    btn.className = "btn btn-outline-primary btn-sm flex-shrink-0";
     btn.title = `Install ${toolName} binary to system/app data`;
   } else if (hasUpdate) {
     btn.innerHTML = `<i class="bi bi-arrow-repeat"></i> Update ${toolName}`;
-    btn.className = "btn btn-outline-primary btn-sm flex-shrink-0";
+    btn.className = "btn btn-warning btn-sm flex-shrink-0 text-dark";
     btn.title = `Update ${toolName} from ${localVer} to ${latestVer}`;
   } else {
     btn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Reinstall ${toolName}`;
-    btn.className = "btn btn-outline-secondary btn-sm flex-shrink-0";
+    btn.className = "btn btn-primary btn-sm flex-shrink-0";
     btn.title = `Reinstall verified ${toolName} binary build (${localVer})`;
   }
 }
