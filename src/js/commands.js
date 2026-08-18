@@ -1,5 +1,21 @@
 // FFmpeg Command Builder Module based on ffmpeg-tools-frontend.ps1
 
+export function resolveDestinationPath(defaultFileName, settings = {}) {
+  const outDir = settings.outputDir || "C:\\Users\\User\\Videos";
+  const customNameInput = document.getElementById("output-file-name");
+  let targetName = customNameInput?.value?.trim() || "";
+
+  if (!targetName) {
+    targetName = defaultFileName;
+  }
+
+  if (targetName.includes("\\") || targetName.includes("/")) {
+    return targetName;
+  }
+
+  return `${outDir.replace(/[/\\]+$/, "")}\\${targetName}`;
+}
+
 export function buildConvertCommand(inputFile, outputDir, settings = {}) {
   const args = [];
   const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
@@ -17,8 +33,7 @@ export function buildConvertCommand(inputFile, outputDir, settings = {}) {
   const preset = document.getElementById("cvt-preset")?.value || "medium";
   const scale = document.getElementById("cvt-scale")?.value || "original";
 
-  const outDir = settings.outputDir || "C:\\Users\\User\\Videos";
-  const dst = `${outDir}\\${baseName}_converted.${container}`;
+  const dst = resolveDestinationPath(`${baseName}_converted.${container}`, settings);
 
   // Overwrite flag
   args.push("-y");
@@ -106,8 +121,7 @@ export function buildAudioExtractCommand(inputFile, outputDir, settings = {}) {
   const bitrate = document.getElementById("aud-bitrate")?.value || "256k";
   const volume = document.getElementById("aud-volume")?.value || "none";
 
-  const outDir = settings.outputDir || "C:\\Users\\User\\Videos";
-  const dst = `${outDir}\\${baseName}_extracted.${fmt}`;
+  const dst = resolveDestinationPath(`${baseName}_extracted.${fmt}`, settings);
 
   args.push("-i", src);
   args.push("-vn");
@@ -154,25 +168,23 @@ export function buildTrimCommand(inputFile, outputDir, settings = {}) {
     src
       .split(/[/\\]/)
       .pop()
-      ?.replace(/\.[^/.]+$/, "") || "trimmed";
-  const ext = src.split(".").pop() || "mp4";
-  const start = document.getElementById("trim-start")?.value || "00:00:00.000";
-  const end = document.getElementById("trim-end")?.value || "00:01:00.000";
+      ?.replace(/\.[^/.]+$/, "") || "output_trimmed";
+  const ext = (src.split(".").pop() || "mp4").toLowerCase();
+
+  const start = document.getElementById("trim-start")?.value || "00:00:00";
+  const end = document.getElementById("trim-end")?.value || "00:00:10";
   const mode = document.getElementById("trim-mode")?.value || "copy";
 
-  const outDir = settings.outputDir || "C:\\Users\\User\\Videos";
-  const dst = `${outDir}\\${baseName}_trimmed.${ext}`;
+  const dst = resolveDestinationPath(`${baseName}_trimmed.${ext}`, settings);
+
+  args.push("-ss", start);
+  args.push("-to", end);
+  args.push("-i", src);
 
   if (mode === "copy") {
-    if (start) args.push("-ss", start);
-    args.push("-i", src);
-    if (end) args.push("-to", end);
     args.push("-c", "copy");
   } else {
-    if (start) args.push("-ss", start);
-    args.push("-i", src);
-    if (end) args.push("-to", end);
-    args.push("-c:v", "libx264", "-crf", "20", "-preset", "fast", "-c:a", "aac", "-b:a", "192k");
+    args.push("-c:v", "libx264", "-crf", "20", "-c:a", "aac", "-b:a", "192k");
   }
 
   args.push("-progress", "pipe:1");
@@ -193,7 +205,8 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
     src
       .split(/[/\\]/)
       .pop()
-      ?.replace(/\.[^/.]+$/, "") || "compressed";
+      ?.replace(/\.[^/.]+$/, "") || "output_compressed";
+
   const preset = document.getElementById("comp-preset")?.value || "discord";
   const customMb =
     parseFloat(document.getElementById("comp-custom-mb")?.value) || 24;
@@ -208,8 +221,7 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
   const totalBitrateK = Math.floor((targetMb * 8192) / durationSec);
   const videoBitrateK = Math.max(80, totalBitrateK - audioBitrateK);
 
-  const outDir = settings.outputDir || "C:\\Users\\User\\Videos";
-  const dst = `${outDir}\\${baseName}_compressed.mp4`;
+  const dst = resolveDestinationPath(`${baseName}_compressed.mp4`, settings);
 
   args.push("-i", src);
   args.push("-c:v", "libx264");

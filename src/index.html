@@ -89,12 +89,28 @@
                 <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection">Clear</button>
               </div>
               <!-- Conditional metadata info readout -->
-              <div class="d-none flex-wrap gap-3 small text-body-secondary ui-zoom-in" id="input-meta-info">
+              <div class="d-none flex-wrap gap-3 small text-body-secondary ui-zoom-in mb-3" id="input-meta-info">
                 <span>Duration: <strong class="text-body" id="meta-duration">--:--:--</strong></span>
                 <span>Resolution: <strong class="text-body" id="meta-resolution">--</strong></span>
                 <span>Video Codec: <strong class="text-body" id="meta-vcodec">--</strong></span>
                 <span>Audio Codec: <strong class="text-body" id="meta-acodec">--</strong></span>
                 <span>Size: <strong class="text-body" id="meta-size">-- MB</strong></span>
+              </div>
+
+              <!-- Output Filename & Directory Section -->
+              <div class="pt-2 border-top">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <label class="form-label small fw-medium mb-0" for="output-file-name">Output Filename</label>
+                  <button class="btn btn-link btn-sm text-decoration-none p-0 small text-body-secondary" type="button" id="btn-autodetect-output-name" title="Auto-detect output filename from input and format">
+                    <i class="bi bi-magic"></i> Auto-detect
+                  </button>
+                </div>
+                <div class="input-group input-group-sm">
+                  <input type="text" class="form-control font-sans" id="output-file-name" placeholder="Auto-generated output filename..." />
+                  <button class="btn btn-outline-secondary" type="button" id="btn-browse-output-dir" title="Choose output folder">
+                    <i class="bi bi-folder2-open"></i> Choose Folder...
+                  </button>
+                </div>
               </div>
             </div>
 

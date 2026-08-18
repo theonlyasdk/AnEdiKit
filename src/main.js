@@ -19,12 +19,119 @@ import { initToolsManager } from "./js/tools_manager.js";
 
 let appSettings = loadSettings();
 let mergeFiles = [];
+let userHasCustomOutputName = false;
+
+export function getSmartOutputFileName(inputFile, toolId) {
+  if (!inputFile) return "";
+  const baseName =
+    inputFile
+      .split(/[/\\]/)
+      .pop()
+      ?.replace(/\.[^/.]+$/, "") || "output";
+
+  switch (toolId) {
+    case "convert": {
+      const container = document.getElementById("cvt-container")?.value || "mp4";
+      return `${baseName}_converted.${container}`;
+    }
+    case "extract_audio": {
+      const fmt = document.getElementById("aud-format")?.value || "mp3";
+      return `${baseName}_extracted.${fmt}`;
+    }
+    case "trim": {
+      const ext = (inputFile.split(".").pop() || "mp4").toLowerCase();
+      return `${baseName}_trimmed.${ext}`;
+    }
+    case "compress":
+      return `${baseName}_compressed.mp4`;
+    case "merge": {
+      const fmt = document.getElementById("merge-format")?.value || "mp4";
+      return `${baseName}_merged.${fmt}`;
+    }
+    case "mute_replace":
+      return `${baseName}_audio_edit.mp4`;
+    case "gif_frames": {
+      const mode = document.getElementById("gif-mode")?.value || "gif";
+      return mode === "frames" ? `${baseName}_frame_%04d.png` : `${baseName}_animated.gif`;
+    }
+    case "custom":
+      return `${baseName}_output.mp4`;
+    default:
+      return `${baseName}_out.mp4`;
+  }
+}
+
+export function updateAutoOutputFilename(force = false) {
+  const outputNameInput = document.getElementById("output-file-name");
+  if (!outputNameInput) return;
+
+  const currentInput = getCurrentInputFile();
+  const activeTool = getCurrentActiveTool();
+
+  if (force || !userHasCustomOutputName || !outputNameInput.value.trim()) {
+    const smartName = getSmartOutputFileName(currentInput, activeTool);
+    outputNameInput.value = smartName;
+    if (force) userHasCustomOutputName = false;
+  }
+}
+
+export function updateExecuteButtonState() {
+  const btnExecute = document.getElementById("btn-execute");
+  const activeTool = getCurrentActiveTool();
+  const currentInput = getCurrentInputFile();
+
+  if (!btnExecute) return;
+
+  if (activeTool === "settings") {
+    btnExecute.classList.add("d-none");
+    btnExecute.disabled = true;
+    return;
+  }
+
+  btnExecute.classList.remove("d-none");
+
+  if (isJobRunning()) {
+    btnExecute.disabled = false;
+    btnExecute.textContent = "Cancel";
+    btnExecute.className = "btn btn-danger btn-sm px-4";
+    return;
+  }
+
+  btnExecute.textContent = "Execute";
+  btnExecute.className = "btn btn-primary btn-sm px-4";
+
+  let canExecute = false;
+  if (activeTool === "merge") {
+    canExecute = mergeFiles && mergeFiles.length >= 2;
+  } else if (activeTool === "custom") {
+    const cmdInput = document.getElementById("custom-args");
+    canExecute = !!(cmdInput && cmdInput.value.trim().length > 0);
+  } else {
+    canExecute = !!(currentInput && currentInput.trim().length > 0);
+  }
+
+  btnExecute.disabled = !canExecute;
+  if (!canExecute) {
+    btnExecute.setAttribute(
+      "title",
+      activeTool === "merge"
+        ? "Add at least 2 files to merge"
+        : activeTool === "custom"
+          ? "Enter custom arguments to execute"
+          : "Select a source media file to execute",
+    );
+  } else {
+    btnExecute.setAttribute("title", "Run processing operation");
+  }
+}
 
 function updateCommandPreview() {
   const activeTool = getCurrentActiveTool();
   const currentInput = getCurrentInputFile();
   const cmdPreviewEl = document.getElementById("cmd-preview");
   const execFooter = document.getElementById("execution-footer-panel");
+
+  updateExecuteButtonState();
 
   if (!cmdPreviewEl) return;
 
@@ -48,15 +155,27 @@ function bindFormEvents() {
   // Update command preview whenever any form element changes
   const formElements = document.querySelectorAll("select, input");
   formElements.forEach((el) => {
-    el.addEventListener("input", () => {
+    el.addEventListener("input", (e) => {
+      if (e.target.id === "output-file-name") {
+        userHasCustomOutputName = true;
+      }
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
       }
+      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "gif-mode") {
+        updateAutoOutputFilename();
+      }
       updateCommandPreview();
     });
-    el.addEventListener("change", () => {
+    el.addEventListener("change", (e) => {
+      if (e.target.id === "output-file-name") {
+        userHasCustomOutputName = true;
+      }
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
+      }
+      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "gif-mode") {
+        updateAutoOutputFilename();
       }
       updateCommandPreview();
     });
@@ -69,6 +188,7 @@ function bindFormEvents() {
       const activeTool = getCurrentActiveTool();
       const filterMode = activeTool === "extract_audio" ? "audio" : "all";
       await selectMediaFile(filterMode);
+      updateAutoOutputFilename(true);
       updateCommandPreview();
     });
   }
@@ -78,7 +198,34 @@ function bindFormEvents() {
   if (btnClearInput) {
     btnClearInput.addEventListener("click", async () => {
       await probeMedia("");
+      const outputNameInput = document.getElementById("output-file-name");
+      if (outputNameInput) outputNameInput.value = "";
+      userHasCustomOutputName = false;
       updateCommandPreview();
+    });
+  }
+
+  // Auto-detect Output Name button
+  const btnAutodetectName = document.getElementById("btn-autodetect-output-name");
+  if (btnAutodetectName) {
+    btnAutodetectName.addEventListener("click", () => {
+      updateAutoOutputFilename(true);
+      updateCommandPreview();
+    });
+  }
+
+  // Choose Output Folder on Output Name Row
+  const btnBrowseOutputRow = document.getElementById("btn-browse-output-dir");
+  if (btnBrowseOutputRow) {
+    btnBrowseOutputRow.addEventListener("click", async () => {
+      const folder = await selectOutputFolder();
+      if (folder) {
+        appSettings.outputDir = folder;
+        const setOutDirInput = document.getElementById("set-output-dir");
+        if (setOutDirInput) setOutDirInput.value = folder;
+        saveSettings(appSettings);
+        updateCommandPreview();
+      }
     });
   }
 
@@ -128,6 +275,7 @@ function bindFormEvents() {
           }
         });
       }
+      updateAutoOutputFilename(true);
       updateCommandPreview();
     });
   }
@@ -165,9 +313,9 @@ function bindFormEvents() {
     });
   }
 
-  // Mute / Replace audio dynamic section toggle
+  // Mute / Replace tool toggle
   const muteAction = document.getElementById("mute-action");
-  const secondAudioWrapper = document.getElementById("second-audio-wrapper");
+  const secondAudioWrapper = document.getElementById("mute-second-audio-wrapper");
   if (muteAction && secondAudioWrapper) {
     muteAction.addEventListener("change", () => {
       const show = muteAction.value !== "strip";
@@ -210,14 +358,23 @@ function renderMergeList() {
 
   mergeList.innerHTML = mergeFiles
     .map(
-      (file, idx) => `
-    <div class="list-group-item d-flex justify-content-between align-items-center py-2 px-3 ui-zoom-in">
-      <span class="text-truncate" style="max-width: 80%;">${file}</span>
-      <span class="badge text-bg-secondary">#${idx + 1}</span>
-    </div>
-  `,
+      (f, idx) => `
+      <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+        <span class="text-truncate small"><strong class="me-2">${idx + 1}.</strong>${f}</span>
+        <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-merge-del" data-idx="${idx}" type="button"><i class="bi bi-x"></i></button>
+      </div>
+    `,
     )
     .join("");
+
+  mergeList.querySelectorAll(".btn-merge-del").forEach((b) => {
+    b.addEventListener("click", () => {
+      const idx = parseInt(b.dataset.idx, 10);
+      mergeFiles.splice(idx, 1);
+      renderMergeList();
+      updateCommandPreview();
+    });
+  });
 }
 
 function populateSettingsUI() {
@@ -230,14 +387,14 @@ function populateSettingsUI() {
   const setDefAf = document.getElementById("set-def-aformat");
   const setDefAb = document.getElementById("set-def-abitrate");
 
-  if (setOutDir) setOutDir.value = appSettings.outputDir;
-  if (setPromptOver) setPromptOver.checked = appSettings.promptOverwrite;
-  if (setHw) setHw.value = appSettings.hwAccel;
-  if (setThr) setThr.value = appSettings.threads;
-  if (setDefVc) setDefVc.value = appSettings.defVCodec;
-  if (setDefSp) setDefSp.value = appSettings.defSpeed;
-  if (setDefAf) setDefAf.value = appSettings.defAFmt;
-  if (setDefAb) setDefAb.value = appSettings.defABitrate;
+  if (setOutDir) setOutDir.value = appSettings.outputDir || "C:\\Users\\User\\Videos";
+  if (setPromptOver) setPromptOver.checked = !!appSettings.promptOverwrite;
+  if (setHw) setHw.value = appSettings.hwAccel || "auto";
+  if (setThr) setThr.value = appSettings.threads || "0";
+  if (setDefVc) setDefVc.value = appSettings.defVCodec || "libx264";
+  if (setDefSp) setDefSp.value = appSettings.defSpeed || "medium";
+  if (setDefAf) setDefAf.value = appSettings.defAFmt || "mp3";
+  if (setDefAb) setDefAb.value = appSettings.defABitrate || "256k";
 }
 
 function syncSettingsFromUI() {
@@ -267,11 +424,14 @@ document.addEventListener("DOMContentLoaded", () => {
   populateSettingsUI();
   initToolsManager();
   initDragAndDrop((mediaInfo) => {
+    updateAutoOutputFilename(true);
     updateCommandPreview();
   });
   bindFormEvents();
   initNavigation((toolId) => {
+    updateAutoOutputFilename();
     updateCommandPreview();
   });
+  updateAutoOutputFilename();
   updateCommandPreview();
 });
