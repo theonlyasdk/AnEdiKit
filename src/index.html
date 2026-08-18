@@ -83,12 +83,10 @@
         <!-- Tool Workspace Panel -->
         <main class="flex-grow-1 overflow-y-auto p-4 bg-body-tertiary" id="tool-workspace">
           <div id="tool-view-container" class="view-material-zoom">
-            <!-- Shared File Selection Card -->
-            <div class="card mb-3 shadow-sm border-secondary-subtle" id="shared-input-card">
-              <div class="card-header bg-body py-2 px-3">
-                <span class="fw-semibold small text-body-secondary">Input File</span>
-              </div>
-            <div class="card-body p-3">
+            
+            <!-- Shared File Selection Section -->
+            <div class="mb-4" id="shared-input-card">
+              <div class="section-divider-header">Input File</div>
               <div class="input-group mb-2">
                 <button class="btn btn-outline-secondary" type="button" id="btn-browse-input" title="Select media file">Browse...</button>
                 <input type="text" class="form-control font-monospace small" id="input-file-path" placeholder="Select or drop a source media file..." readonly />
@@ -102,15 +100,11 @@
                 <span>Size: <strong class="text-body" id="meta-size">-- MB</strong></span>
               </div>
             </div>
-          </div>
 
-          <!-- TOOL 1: Convert Video -->
-          <div class="tool-view" id="view-convert">
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3">
-                <span class="fw-semibold small text-body-secondary">Conversion Parameters</span>
-              </div>
-              <div class="card-body p-3">
+            <!-- TOOL 1: Convert Video -->
+            <div class="tool-view" id="view-convert">
+              <div class="mb-4">
+                <div class="section-divider-header">Conversion Parameters</div>
                 <div class="row g-3">
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="cvt-container">Output Format</label>
@@ -172,15 +166,11 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- TOOL 2: Extract & Convert Audio -->
-          <div class="tool-view d-none" id="view-extract_audio">
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3">
-                <span class="fw-semibold small text-body-secondary">Audio Extraction Parameters</span>
-              </div>
-              <div class="card-body p-3">
+            <!-- TOOL 2: Extract & Convert Audio -->
+            <div class="tool-view d-none" id="view-extract_audio">
+              <div class="mb-4">
+                <div class="section-divider-header">Audio Extraction Parameters</div>
                 <div class="row g-3">
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="aud-format">Target Audio Format</label>
@@ -214,15 +204,11 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- TOOL 3: Trim & Cut -->
-          <div class="tool-view d-none" id="view-trim">
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3">
-                <span class="fw-semibold small text-body-secondary">Trim Range</span>
-              </div>
-              <div class="card-body p-3">
+            <!-- TOOL 3: Trim & Cut -->
+            <div class="tool-view d-none" id="view-trim">
+              <div class="mb-4">
+                <div class="section-divider-header">Trim Range</div>
                 <div class="row g-3">
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="trim-start">Start Timestamp (HH:MM:SS.ms)</label>
@@ -242,15 +228,11 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- TOOL 4: Compress Video -->
-          <div class="tool-view d-none" id="view-compress">
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3">
-                <span class="fw-semibold small text-body-secondary">Target Compression Preset</span>
-              </div>
-              <div class="card-body p-3">
+            <!-- TOOL 4: Compress Video -->
+            <div class="tool-view d-none" id="view-compress">
+              <div class="mb-4">
+                <div class="section-divider-header">Target Compression Preset</div>
                 <div class="row g-3">
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="comp-preset">Size Preset</label>
@@ -268,20 +250,18 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- TOOL 5: Merge & Concat -->
-          <div class="tool-view d-none" id="view-merge">
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
-                <span class="fw-semibold small text-body-secondary">Media Files to Concatenate</span>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-secondary" type="button" id="btn-merge-add" title="Add files to merge list">Add Files...</button>
-                  <button class="btn btn-outline-secondary" type="button" id="btn-merge-remove" title="Remove selected file">Remove</button>
-                  <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear list">Clear All</button>
+            <!-- TOOL 5: Merge & Concat -->
+            <div class="tool-view d-none" id="view-merge">
+              <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Media Files to Concatenate</div>
+                  <div class="btn-group btn-group-sm flex-shrink-0">
+                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-add" title="Add files to merge list">Add Files...</button>
+                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-remove" title="Remove selected file">Remove</button>
+                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear list">Clear All</button>
+                  </div>
                 </div>
-              </div>
-              <div class="card-body p-3">
                 <div class="list-group list-group-flush border rounded mb-3 small overflow-y-auto" style="max-height: 160px;" id="merge-file-list">
                   <div class="list-group-item text-body-secondary text-center py-4" id="merge-empty-msg">No files added. Click Add Files to queue items for merging.</div>
                 </div>
@@ -296,15 +276,11 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- TOOL 6: Mute or Replace Audio -->
-          <div class="tool-view d-none" id="view-mute_replace">
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3">
-                <span class="fw-semibold small text-body-secondary">Audio Track Operation</span>
-              </div>
-              <div class="card-body p-3">
+            <!-- TOOL 6: Mute or Replace Audio -->
+            <div class="tool-view d-none" id="view-mute_replace">
+              <div class="mb-4">
+                <div class="section-divider-header">Audio Track Operation</div>
                 <div class="row g-3">
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="mute-action">Action</label>
@@ -324,15 +300,11 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- TOOL 7: GIF and Frames -->
-          <div class="tool-view d-none" id="view-gif_frames">
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3">
-                <span class="fw-semibold small text-body-secondary">GIF and Frame Extraction</span>
-              </div>
-              <div class="card-body p-3">
+            <!-- TOOL 7: GIF and Frames -->
+            <div class="tool-view d-none" id="view-gif_frames">
+              <div class="mb-4">
+                <div class="section-divider-header">GIF and Frame Extraction</div>
                 <div class="row g-3">
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="gif-mode">Operation Mode</label>
@@ -363,15 +335,11 @@
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- TOOL 8: Custom Command -->
-          <div class="tool-view d-none" id="view-custom">
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3">
-                <span class="fw-semibold small text-body-secondary">Custom FFmpeg Arguments</span>
-              </div>
-              <div class="card-body p-3">
+            <!-- TOOL 8: Custom Command -->
+            <div class="tool-view d-none" id="view-custom">
+              <div class="mb-4">
+                <div class="section-divider-header">Custom FFmpeg Arguments</div>
                 <div class="mb-2">
                   <label class="form-label small fw-medium" for="custom-args">Arguments (between input and output)</label>
                   <input type="text" class="form-control form-control-sm font-monospace" id="custom-args" placeholder="-vf eq=brightness=0.05:contrast=1.1 -c:a copy" />
@@ -379,147 +347,145 @@
                 <small class="text-body-secondary">Specify custom filters or parameters. Input (-i) and output filenames are automatically attached.</small>
               </div>
             </div>
-          </div>
 
-          <!-- TOOL 9: Settings View -->
-          <div class="tool-view d-none" id="view-settings">
-            <!-- Section 1: Storage and Paths -->
-            <div class="mb-4">
-              <div class="section-divider-header">Storage and Directories</div>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label small fw-medium" for="set-output-dir">Default Output Directory</label>
-                  <div class="input-group input-group-sm">
-                    <input type="text" class="form-control font-monospace" id="set-output-dir" readonly />
-                    <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Select default output directory">Browse...</button>
+            <!-- TOOL 9: Settings View -->
+            <div class="tool-view d-none" id="view-settings">
+              <!-- Section 1: Storage and Paths -->
+              <div class="mb-4">
+                <div class="section-divider-header">Storage and Directories</div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-output-dir">Default Output Directory</label>
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control font-monospace" id="set-output-dir" readonly />
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Select default output directory">Browse...</button>
+                    </div>
+                  </div>
+                  <div class="col-md-6 d-flex align-items-end">
+                    <div class="form-check form-switch pb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="set-prompt-overwrite" checked />
+                      <label class="form-check-label small" for="set-prompt-overwrite">Prompt before overwriting existing files</label>
+                    </div>
                   </div>
                 </div>
-                <div class="col-md-6 d-flex align-items-end">
-                  <div class="form-check form-switch pb-1">
-                    <input class="form-check-input" type="checkbox" role="switch" id="set-prompt-overwrite" checked />
-                    <label class="form-check-label small" for="set-prompt-overwrite">Prompt before overwriting existing files</label>
+              </div>
+
+              <!-- Section 2: Hardware Acceleration & Performance -->
+              <div class="mb-4">
+                <div class="section-divider-header">Hardware Acceleration & Performance</div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-hwaccel">Hardware Acceleration Engine</label>
+                    <select class="form-select form-select-sm" id="set-hwaccel">
+                      <option value="auto" selected>Auto / CPU</option>
+                      <option value="cuda">NVIDIA NVENC (CUDA)</option>
+                      <option value="qsv">Intel QuickSync (QSV)</option>
+                      <option value="amf">AMD AMF</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-threads">Encoding Threads</label>
+                    <select class="form-select form-select-sm" id="set-threads">
+                      <option value="0" selected>Auto (0)</option>
+                      <option value="2">2 Threads</option>
+                      <option value="4">4 Threads</option>
+                      <option value="8">8 Threads</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 3: Encoding Defaults -->
+              <div class="mb-4">
+                <div class="section-divider-header">Encoding Defaults</div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-def-vcodec">Default Video Codec</label>
+                    <select class="form-select form-select-sm" id="set-def-vcodec">
+                      <option value="libx264" selected>H.264 (libx264 - Maximum Compatibility)</option>
+                      <option value="libx265">H.265 / HEVC (libx265)</option>
+                      <option value="libsvtav1">AV1 (libsvtav1)</option>
+                      <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-def-speed">Default Speed Preset</label>
+                    <select class="form-select form-select-sm" id="set-def-speed">
+                      <option value="ultrafast">Ultrafast</option>
+                      <option value="veryfast">Very Fast</option>
+                      <option value="fast">Fast</option>
+                      <option value="medium" selected>Medium (Standard)</option>
+                      <option value="slow">Slow</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-def-aformat">Default Audio Format</label>
+                    <select class="form-select form-select-sm" id="set-def-aformat">
+                      <option value="mp3" selected>MP3 (.mp3)</option>
+                      <option value="m4a">M4A (.m4a / AAC)</option>
+                      <option value="opus">Opus (.opus)</option>
+                      <option value="flac">FLAC (.flac)</option>
+                      <option value="wav">WAV (.wav)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-def-abitrate">Default Audio Bitrate</label>
+                    <select class="form-select form-select-sm" id="set-def-abitrate">
+                      <option value="320k">320 kbps</option>
+                      <option value="256k" selected>256 kbps</option>
+                      <option value="192k">192 kbps</option>
+                      <option value="128k">128 kbps</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 4: Executables & Environment -->
+              <div class="mb-4">
+                <div class="section-divider-header">Executables & Environment</div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-ffmpeg-bin">FFmpeg Executable</label>
+                    <input type="text" class="form-control form-control-sm font-monospace" id="set-ffmpeg-bin" value="ffmpeg (System PATH)" readonly />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-ffprobe-bin">FFprobe Executable</label>
+                    <input type="text" class="form-control form-control-sm font-monospace" id="set-ffprobe-bin" value="ffprobe (System PATH)" readonly />
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Section 2: Hardware Acceleration & Performance -->
-            <div class="mb-4">
-              <div class="section-divider-header">Hardware Acceleration & Performance</div>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label small fw-medium" for="set-hwaccel">Hardware Acceleration Engine</label>
-                  <select class="form-select form-select-sm" id="set-hwaccel">
-                    <option value="auto" selected>Auto / CPU</option>
-                    <option value="cuda">NVIDIA NVENC (CUDA)</option>
-                    <option value="qsv">Intel QuickSync (QSV)</option>
-                    <option value="amf">AMD AMF</option>
-                  </select>
+            <!-- Execution Footer Panel (Command Preview, Action Buttons, Progress & Logs) -->
+            <div id="execution-footer-panel">
+              <!-- Command Preview -->
+              <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Command Preview</div>
+                  <button class="btn btn-link btn-sm text-body-secondary p-0 text-decoration-none flex-shrink-0" id="btn-copy-cmd" type="button" title="Copy command string">
+                    <i class="bi bi-clipboard"></i> Copy
+                  </button>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label small fw-medium" for="set-threads">Encoding Threads</label>
-                  <select class="form-select form-select-sm" id="set-threads">
-                    <option value="0" selected>Auto (0)</option>
-                    <option value="2">2 Threads</option>
-                    <option value="4">4 Threads</option>
-                    <option value="8">8 Threads</option>
-                  </select>
+                <div class="p-2 bg-body rounded border font-monospace small user-select-all text-body" id="cmd-preview">
+                  ffmpeg -i ...
                 </div>
               </div>
-            </div>
 
-            <!-- Section 3: Encoding Defaults -->
-            <div class="mb-4">
-              <div class="section-divider-header">Encoding Defaults</div>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label small fw-medium" for="set-def-vcodec">Default Video Codec</label>
-                  <select class="form-select form-select-sm" id="set-def-vcodec">
-                    <option value="libx264" selected>H.264 (libx264 - Maximum Compatibility)</option>
-                    <option value="libx265">H.265 / HEVC (libx265)</option>
-                    <option value="libsvtav1">AV1 (libsvtav1)</option>
-                    <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
-                  </select>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label small fw-medium" for="set-def-speed">Default Speed Preset</label>
-                  <select class="form-select form-select-sm" id="set-def-speed">
-                    <option value="ultrafast">Ultrafast</option>
-                    <option value="veryfast">Very Fast</option>
-                    <option value="fast">Fast</option>
-                    <option value="medium" selected>Medium (Standard)</option>
-                    <option value="slow">Slow</option>
-                  </select>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label small fw-medium" for="set-def-aformat">Default Audio Format</label>
-                  <select class="form-select form-select-sm" id="set-def-aformat">
-                    <option value="mp3" selected>MP3 (.mp3)</option>
-                    <option value="m4a">M4A (.m4a / AAC)</option>
-                    <option value="opus">Opus (.opus)</option>
-                    <option value="flac">FLAC (.flac)</option>
-                    <option value="wav">WAV (.wav)</option>
-                  </select>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label small fw-medium" for="set-def-abitrate">Default Audio Bitrate</label>
-                  <select class="form-select form-select-sm" id="set-def-abitrate">
-                    <option value="320k">320 kbps</option>
-                    <option value="256k" selected>256 kbps</option>
-                    <option value="192k">192 kbps</option>
-                    <option value="128k">128 kbps</option>
-                  </select>
+              <!-- Action Buttons -->
+              <div class="d-flex align-items-center justify-content-between mb-4">
+                <div class="text-body-secondary small" id="status-message">Ready</div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-cancel" disabled title="Cancel active job">Cancel</button>
+                  <button class="btn btn-primary btn-sm px-4" type="button" id="btn-execute" title="Run processing operation">Execute</button>
                 </div>
               </div>
-            </div>
 
-            <!-- Section 4: Executables & Environment -->
-            <div class="mb-4">
-              <div class="section-divider-header">Executables & Environment</div>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label small fw-medium" for="set-ffmpeg-bin">FFmpeg Executable</label>
-                  <input type="text" class="form-control form-control-sm font-monospace" id="set-ffmpeg-bin" value="ffmpeg (System PATH)" readonly />
+              <!-- Progress & Logs Accordion -->
+              <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Execution Status & Log Output</div>
+                  <span class="small font-monospace text-body-secondary flex-shrink-0" id="progress-pct">0%</span>
                 </div>
-                <div class="col-md-6">
-                  <label class="form-label small fw-medium" for="set-ffprobe-bin">FFprobe Executable</label>
-                  <input type="text" class="form-control form-control-sm font-monospace" id="set-ffprobe-bin" value="ffprobe (System PATH)" readonly />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Execution Footer Panel (Command Preview, Action Buttons, Progress & Logs) -->
-          <div id="execution-footer-panel">
-            <!-- Command Preview -->
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
-                <span class="fw-semibold small text-body-secondary">Command Preview</span>
-                <button class="btn btn-link btn-sm text-body-secondary p-0 text-decoration-none" id="btn-copy-cmd" type="button" title="Copy command string">
-                  <i class="bi bi-clipboard"></i> Copy
-                </button>
-              </div>
-              <div class="card-body p-3 bg-body-tertiary">
-                <code class="d-block text-break font-monospace small user-select-all text-body" id="cmd-preview">ffmpeg -i ...</code>
-              </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="d-flex align-items-center justify-content-between mb-4">
-              <div class="text-body-secondary small" id="status-message">Ready</div>
-              <div class="d-flex gap-2">
-                <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-cancel" disabled title="Cancel active job">Cancel</button>
-                <button class="btn btn-primary btn-sm px-4" type="button" id="btn-execute" title="Run processing operation">Execute</button>
-              </div>
-            </div>
-
-            <!-- Progress & Logs Accordion -->
-            <div class="card shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
-                <span class="fw-semibold small text-body-secondary">Execution Status & Log Output</span>
-                <span class="small font-monospace text-body-secondary" id="progress-pct">0%</span>
-              </div>
-              <div class="card-body p-3">
                 <div class="progress mb-2" style="height: 6px;">
                   <div class="progress-bar progress-bar-striped progress-bar-animated" id="job-progress-bar" role="progressbar" style="width: 0%"></div>
                 </div>
@@ -534,10 +500,9 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-      </main>
+          </div>
+        </main>
       </div>
     </div>
   </body>

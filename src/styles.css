@@ -42,7 +42,7 @@ a:active,
   pointer-events: none;
   z-index: 0;
   opacity: 0;
-  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), height 0.22s ease, opacity 0.15s ease;
+  transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1), height 0.28s ease, opacity 0.2s ease;
   will-change: transform, height;
 }
 
@@ -54,7 +54,7 @@ a:active,
   position: relative;
   z-index: 1;
   background-color: transparent !important;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .sidebar .nav-link:hover:not(.active) {
@@ -115,10 +115,10 @@ a:active,
   margin-left: 0.75rem;
 }
 
-/* Material Zoom Transition for main workspace view */
+/* Material Zoom Transition for main workspace view (smoothed duration 0.3s) */
 .view-material-zoom {
   animation-name: materialZoomIn;
-  animation-duration: 0.2s;
+  animation-duration: 0.3s;
   animation-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1.0);
   animation-fill-mode: both;
   will-change: transform, opacity;
@@ -135,9 +135,9 @@ a:active,
   }
 }
 
-/* Header Text Vertical Slide without fade (Directional based on navigation) */
+/* Header Text Vertical Slide without fade (Directional based on navigation, smoothed duration 0.3s) */
 .header-title-animated {
-  animation-duration: 0.2s;
+  animation-duration: 0.3s;
   animation-timing-function: cubic-bezier(0.05, 0.7, 0.1, 1.0);
   animation-fill-mode: both;
   will-change: transform;
