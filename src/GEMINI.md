@@ -47,6 +47,8 @@ Avoid:
 - Cursor pointer must be used for dropdown menu buttons and select elements
 - Use Material Zoom transition (subtle scale and fade) for the main workspace view container when switching tools. For the top tool header title and description, use a directional vertical slide without fade reflecting sidebar navigation order (sliding from bottom when moving downwards, sliding from top when moving upwards)
 - Use zoom-in ease-out animations for conditionally appearing and disappearing UI elements
+- Use ellipsis text-truncation for tool header titles and descriptions when the window is narrow
+- Do not show action buttons (such as Execute or Run) on informational or configuration views like Settings where no task execution is performed
 - No floating pills or badges like "AI Powered" or "Trusted by 10k+ teams" unless useful
 - No "modern", "innovative", or "next-gen" styling without a reason
 - No purposeless whitespace or uniform padding everywhere

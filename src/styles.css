@@ -150,6 +150,17 @@ a:active,
 }
 
 /* Header Text Vertical Slide without fade (Directional based on navigation) */
+#tool-header-text {
+  min-width: 0;
+}
+
+#current-tool-title,
+#current-tool-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .header-title-animated.slide-from-bottom {
   animation: headerSlideFromBottom 0.28s cubic-bezier(0.05, 0.7, 0.1, 1.0);
 }

@@ -174,6 +174,26 @@ export function switchTool(toolId, onToolChanged) {
     sharedInputCard.classList.toggle("d-none", toolId === "settings");
   }
 
+  // Toggle execute and reset buttons on settings view
+  const btnExecute = document.getElementById("btn-execute");
+  const btnReset = document.getElementById("btn-reset");
+  if (btnExecute) {
+    btnExecute.classList.toggle("d-none", toolId === "settings");
+  }
+  if (btnReset) {
+    btnReset.classList.toggle("d-none", toolId === "settings");
+  }
+
+  // Contextual status message for settings
+  const statusMsg = document.getElementById("status-message");
+  if (statusMsg) {
+    if (toolId === "settings") {
+      statusMsg.textContent = "Settings are saved automatically";
+    } else if (statusMsg.textContent === "Settings are saved automatically") {
+      statusMsg.textContent = "Ready";
+    }
+  }
+
   if (onToolChanged) {
     onToolChanged(toolId);
   }
