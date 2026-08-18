@@ -15,8 +15,8 @@
     <div class="d-flex flex-column vh-100 overflow-hidden">
       <!-- Unified Top Header Bar -->
       <header class="d-flex border-bottom bg-body flex-shrink-0" style="height: 56px;">
-        <div class="d-flex align-items-center px-3 border-end flex-shrink-0" style="width: 280px;">
-          <h1 class="h6 mb-0 fw-semibold text-body">AnEdiKit</h1>
+        <div class="d-flex align-items-center justify-content-center px-3 border-end flex-shrink-0" style="width: 280px;">
+          <h1 class="fs-4 mb-0 fw-light text-body text-center">AnEdiKit</h1>
         </div>
         <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1">
           <div class="d-flex align-items-center gap-3">
@@ -383,82 +383,155 @@
 
           <!-- TOOL 9: Settings View -->
           <div class="tool-view d-none" id="view-settings">
-            <div class="card mb-3 shadow-sm border-secondary-subtle">
-              <div class="card-header bg-body py-2 px-3">
-                <span class="fw-semibold small text-body-secondary">General Preferences</span>
+            <!-- Section 1: Storage and Paths -->
+            <div class="mb-4">
+              <h3 class="h6 text-uppercase fw-semibold text-body-secondary mb-3 pb-1 border-bottom">Storage and Directories</h3>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium" for="set-output-dir">Default Output Directory</label>
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control font-monospace" id="set-output-dir" readonly />
+                    <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Select default output directory">Browse...</button>
+                  </div>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                  <div class="form-check form-switch pb-1">
+                    <input class="form-check-input" type="checkbox" role="switch" id="set-prompt-overwrite" checked />
+                    <label class="form-check-label small" for="set-prompt-overwrite">Prompt before overwriting existing files</label>
+                  </div>
+                </div>
               </div>
-              <div class="card-body p-3">
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-hwaccel">Hardware Acceleration Engine</label>
-                    <select class="form-select form-select-sm" id="set-hwaccel">
-                      <option value="auto" selected>Auto / CPU</option>
-                      <option value="cuda">NVIDIA NVENC (CUDA)</option>
-                      <option value="qsv">Intel QuickSync (QSV)</option>
-                      <option value="amf">AMD AMF</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-threads">Thread Count</label>
-                    <select class="form-select form-select-sm" id="set-threads">
-                      <option value="0" selected>Auto (0)</option>
-                      <option value="2">2 Threads</option>
-                      <option value="4">4 Threads</option>
-                      <option value="8">8 Threads</option>
-                    </select>
-                  </div>
-                  <div class="col-12">
-                    <label class="form-label small fw-medium" for="set-output-dir">Default Output Directory</label>
-                    <div class="input-group input-group-sm">
-                      <input type="text" class="form-control font-monospace" id="set-output-dir" readonly />
-                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Select default output directory">Browse...</button>
-                    </div>
-                  </div>
+            </div>
+
+            <!-- Section 2: Hardware Acceleration & Performance -->
+            <div class="mb-4">
+              <h3 class="h6 text-uppercase fw-semibold text-body-secondary mb-3 pb-1 border-bottom">Hardware Acceleration & Performance</h3>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium" for="set-hwaccel">Hardware Acceleration Engine</label>
+                  <select class="form-select form-select-sm" id="set-hwaccel">
+                    <option value="auto" selected>Auto / CPU</option>
+                    <option value="cuda">NVIDIA NVENC (CUDA)</option>
+                    <option value="qsv">Intel QuickSync (QSV)</option>
+                    <option value="amf">AMD AMF</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium" for="set-threads">Encoding Threads</label>
+                  <select class="form-select form-select-sm" id="set-threads">
+                    <option value="0" selected>Auto (0)</option>
+                    <option value="2">2 Threads</option>
+                    <option value="4">4 Threads</option>
+                    <option value="8">8 Threads</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 3: Encoding Defaults -->
+            <div class="mb-4">
+              <h3 class="h6 text-uppercase fw-semibold text-body-secondary mb-3 pb-1 border-bottom">Encoding Defaults</h3>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium" for="set-def-vcodec">Default Video Codec</label>
+                  <select class="form-select form-select-sm" id="set-def-vcodec">
+                    <option value="libx264" selected>H.264 (libx264 - Maximum Compatibility)</option>
+                    <option value="libx265">H.265 / HEVC (libx265)</option>
+                    <option value="libsvtav1">AV1 (libsvtav1)</option>
+                    <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium" for="set-def-speed">Default Speed Preset</label>
+                  <select class="form-select form-select-sm" id="set-def-speed">
+                    <option value="ultrafast">Ultrafast</option>
+                    <option value="veryfast">Very Fast</option>
+                    <option value="fast">Fast</option>
+                    <option value="medium" selected>Medium (Standard)</option>
+                    <option value="slow">Slow</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium" for="set-def-aformat">Default Audio Format</label>
+                  <select class="form-select form-select-sm" id="set-def-aformat">
+                    <option value="mp3" selected>MP3 (.mp3)</option>
+                    <option value="m4a">M4A (.m4a / AAC)</option>
+                    <option value="opus">Opus (.opus)</option>
+                    <option value="flac">FLAC (.flac)</option>
+                    <option value="wav">WAV (.wav)</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium" for="set-def-abitrate">Default Audio Bitrate</label>
+                  <select class="form-select form-select-sm" id="set-def-abitrate">
+                    <option value="320k">320 kbps</option>
+                    <option value="256k" selected>256 kbps</option>
+                    <option value="192k">192 kbps</option>
+                    <option value="128k">128 kbps</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 4: Executables & Environment -->
+            <div class="mb-4">
+              <h3 class="h6 text-uppercase fw-semibold text-body-secondary mb-3 pb-1 border-bottom">Executables & Environment</h3>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium" for="set-ffmpeg-bin">FFmpeg Executable</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="set-ffmpeg-bin" value="ffmpeg (System PATH)" readonly />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium" for="set-ffprobe-bin">FFprobe Executable</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="set-ffprobe-bin" value="ffprobe (System PATH)" readonly />
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Command Preview & Execution Controls -->
-          <div class="card mb-3 shadow-sm border-secondary-subtle">
-            <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
-              <span class="fw-semibold small text-body-secondary">Command Preview</span>
-              <button class="btn btn-link btn-sm text-body-secondary p-0 text-decoration-none" id="btn-copy-cmd" type="button" title="Copy command string">
-                <i class="bi bi-clipboard"></i> Copy
-              </button>
-            </div>
-            <div class="card-body p-3 bg-body-tertiary">
-              <code class="d-block text-break font-monospace small user-select-all text-body" id="cmd-preview">ffmpeg -i ...</code>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="d-flex align-items-center justify-content-between mb-4">
-            <div class="text-body-secondary small" id="status-message">Ready</div>
-            <div class="d-flex gap-2">
-              <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-cancel" disabled title="Cancel active job">Cancel</button>
-              <button class="btn btn-primary btn-sm px-4" type="button" id="btn-execute" title="Run processing operation">Execute</button>
-            </div>
-          </div>
-
-          <!-- Progress & Logs Accordion -->
-          <div class="card shadow-sm border-secondary-subtle">
-            <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
-              <span class="fw-semibold small text-body-secondary">Execution Status & Log Output</span>
-              <span class="small font-monospace text-body-secondary" id="progress-pct">0%</span>
-            </div>
-            <div class="card-body p-3">
-              <div class="progress mb-2" style="height: 6px;">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" id="job-progress-bar" role="progressbar" style="width: 0%"></div>
+          <!-- Execution Footer Panel (Command Preview, Action Buttons, Progress & Logs) -->
+          <div id="execution-footer-panel">
+            <!-- Command Preview -->
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
+                <span class="fw-semibold small text-body-secondary">Command Preview</span>
+                <button class="btn btn-link btn-sm text-body-secondary p-0 text-decoration-none" id="btn-copy-cmd" type="button" title="Copy command string">
+                  <i class="bi bi-clipboard"></i> Copy
+                </button>
               </div>
-              <div class="d-flex justify-content-between small text-body-secondary mb-3">
-                <span id="stat-time">Time: 00:00:00</span>
-                <span id="stat-fps">FPS: 0</span>
-                <span id="stat-speed">Speed: 0x</span>
-                <span id="stat-bitrate">Bitrate: 0 kbits/s</span>
+              <div class="card-body p-3 bg-body-tertiary">
+                <code class="d-block text-break font-monospace small user-select-all text-body" id="cmd-preview">ffmpeg -i ...</code>
               </div>
-              <div class="bg-black text-success-emphasis p-2 rounded font-monospace small overflow-y-auto" style="height: 140px; font-size: 0.8rem;" id="log-console">
-                <div class="text-secondary">[Ready to process tasks]</div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex align-items-center justify-content-between mb-4">
+              <div class="text-body-secondary small" id="status-message">Ready</div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-cancel" disabled title="Cancel active job">Cancel</button>
+                <button class="btn btn-primary btn-sm px-4" type="button" id="btn-execute" title="Run processing operation">Execute</button>
+              </div>
+            </div>
+
+            <!-- Progress & Logs Accordion -->
+            <div class="card shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
+                <span class="fw-semibold small text-body-secondary">Execution Status & Log Output</span>
+                <span class="small font-monospace text-body-secondary" id="progress-pct">0%</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="progress mb-2" style="height: 6px;">
+                  <div class="progress-bar progress-bar-striped progress-bar-animated" id="job-progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div class="d-flex justify-content-between small text-body-secondary mb-3">
+                  <span id="stat-time">Time: 00:00:00</span>
+                  <span id="stat-fps">FPS: 0</span>
+                  <span id="stat-speed">Speed: 0x</span>
+                  <span id="stat-bitrate">Bitrate: 0 kbits/s</span>
+                </div>
+                <div class="bg-black text-success-emphasis p-2 rounded font-monospace small overflow-y-auto" style="height: 140px; font-size: 0.8rem;" id="log-console">
+                  <div class="text-secondary">[Ready to process tasks]</div>
+                </div>
               </div>
             </div>
           </div>

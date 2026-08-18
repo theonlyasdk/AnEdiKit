@@ -125,6 +125,12 @@ function updateToolView(toolId) {
     sharedInputCard.classList.toggle("d-none", !meta.hasSingleInput);
   }
 
+  // Show/Hide execution footer panel (hidden for settings)
+  const execPanel = document.getElementById("execution-footer-panel");
+  if (execPanel) {
+    execPanel.classList.toggle("d-none", toolId === "settings");
+  }
+
   // Show/Hide tool views
   document.querySelectorAll(".tool-view").forEach((view) => {
     view.classList.add("d-none");
