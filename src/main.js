@@ -141,6 +141,7 @@ function setupNavigation() {
   allButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const toolId = btn.dataset.tool;
+      if (toolId === currentToolId) return;
       updateToolView(toolId);
     });
   });
@@ -296,6 +297,23 @@ function updateMetadataVisibility() {
   }
 }
 
+function setProgress(pct) {
+  const bar = document.getElementById("job-progress-bar");
+  const pctEl = document.getElementById("progress-pct");
+  if (!bar || !pctEl) return;
+
+  if (pct <= 0) {
+    pctEl.textContent = "0%";
+    bar.classList.add("progress-bar-striped", "progress-bar-animated");
+    bar.style.width = "100%";
+  } else {
+    const clamped = Math.min(100, Math.max(0, Math.round(pct)));
+    pctEl.textContent = `${clamped}%`;
+    bar.classList.remove("progress-bar-striped", "progress-bar-animated");
+    bar.style.width = `${clamped}%`;
+  }
+}
+
 function setupInputs() {
   // Input browse button (mock / placeholder for Tauri dialog)
   const btnBrowse = document.getElementById("btn-browse-input");
@@ -343,6 +361,7 @@ function setupInputs() {
       if (execStatusPanel) {
         execStatusPanel.classList.remove("d-none");
       }
+      setProgress(0); // 0% shows indeterminate striped animated bar
       const statusEl = document.getElementById("status-message");
       if (statusEl) statusEl.textContent = "Processing task...";
     });
@@ -359,10 +378,11 @@ function setupInputs() {
       mergeFiles = [];
       renderMergeList();
 
-      // Reset execution panel
+      // Reset execution panel and progress
       if (execStatusPanel) {
         execStatusPanel.classList.add("d-none");
       }
+      setProgress(0);
 
       const statusEl = document.getElementById("status-message");
       if (statusEl) statusEl.textContent = "Ready";
