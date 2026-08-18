@@ -349,11 +349,62 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
   };
 }
 
+export function buildMergeCommand(mergeFiles = [], outputDir, settings = {}, concatListPath = null) {
+  const args = ["-y"];
+  const engine = document.getElementById("merge-engine")?.value || "concat_demuxer";
+  const fmt = document.getElementById("merge-format")?.value || "mp4";
+  const isAudioOnly = ["mp3", "wav", "flac", "m4a", "ogg"].includes(fmt);
+
+  const firstFile = mergeFiles[0] || "merged_output";
+  const baseName =
+    firstFile
+      .split(/[/\\]/)
+      .pop()
+      ?.replace(/\.[^/.]+$/, "") || "merged_output";
+
+  const dst = resolveDestinationPath(`${baseName}_merged.${fmt}`, settings);
+
+  if (engine === "concat_demuxer" && concatListPath) {
+    args.push("-f", "concat", "-safe", "0", "-i", concatListPath, "-c", "copy", "-map_metadata", "0");
+  } else if (engine === "concat_demuxer") {
+    args.push("-f", "concat", "-safe", "0", "-i", "concat_list.txt", "-c", "copy", "-map_metadata", "0");
+  } else {
+    // filter_complex re-encode concat
+    const files = mergeFiles.length > 0 ? mergeFiles : ["clip1.mp4", "clip2.mp4"];
+    files.forEach((f) => {
+      args.push("-i", f);
+    });
+
+    const count = files.length;
+    if (isAudioOnly) {
+      const inputs = files.map((_, i) => `[${i}:a:0]`).join("");
+      args.push("-filter_complex", `${inputs}concat=n=${count}:v=0:a=1[outa]`, "-map", "[outa]");
+      args.push("-c:a", fmt === "flac" ? "flac" : fmt === "wav" ? "pcm_s16le" : "aac");
+      if (fmt !== "flac" && fmt !== "wav") args.push("-b:a", "192k");
+    } else {
+      const inputs = files.map((_, i) => `[${i}:v:0][${i}:a:0]`).join("");
+      args.push("-filter_complex", `${inputs}concat=n=${count}:v=1:a=1[outv][outa]`, "-map", "[outv]", "-map", "[outa]");
+      args.push("-c:v", "libx264", "-crf", "22", "-preset", "medium", "-c:a", "aac", "-b:a", "192k");
+    }
+  }
+
+  args.push("-progress", "pipe:1");
+  args.push(dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
 export function buildCommandForTool(
   toolId,
   inputFile,
   outputDir,
   settings = {},
+  extraParams = {},
 ) {
   switch (toolId) {
     case "convert":
@@ -364,6 +415,8 @@ export function buildCommandForTool(
       return buildTrimCommand(inputFile, outputDir, settings);
     case "compress":
       return buildCompressCommand(inputFile, outputDir, settings);
+    case "merge":
+      return buildMergeCommand(extraParams.mergeFiles || [], outputDir, settings, extraParams.concatListPath);
     default:
       return buildConvertCommand(inputFile, outputDir, settings);
   }

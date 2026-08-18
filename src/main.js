@@ -154,6 +154,7 @@ function updateCommandPreview() {
     currentInput,
     appSettings.outputDir,
     appSettings,
+    { mergeFiles },
   );
   cmdPreviewEl.textContent = cmdObj.fullString;
   return cmdObj;
@@ -170,7 +171,7 @@ function bindFormEvents() {
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
       }
-      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "gif-mode") {
+      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
         updateAutoOutputFilename();
       }
       updateCommandPreview();
@@ -182,7 +183,7 @@ function bindFormEvents() {
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
       }
-      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "gif-mode") {
+      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
         updateAutoOutputFilename();
       }
       updateCommandPreview();
@@ -280,11 +281,34 @@ function bindFormEvents() {
   // Execute / Cancel Button
   const btnExecute = document.getElementById("btn-execute");
   if (btnExecute) {
-    btnExecute.addEventListener("click", () => {
+    btnExecute.addEventListener("click", async () => {
       if (isJobRunning()) {
         cancelFfmpegJob();
       } else {
-        const cmdObj = updateCommandPreview();
+        const activeTool = getCurrentActiveTool();
+        let cmdObj = null;
+        if (activeTool === "merge" && document.getElementById("merge-engine")?.value === "concat_demuxer") {
+          let concatPath = null;
+          if (window.__TAURI__?.core?.invoke && mergeFiles && mergeFiles.length > 0) {
+            try {
+              const lines = mergeFiles.map((f) => `file '${f.replace(/'/g, "'\\''")}'`);
+              const content = lines.join("\n");
+              concatPath = await window.__TAURI__.core.invoke("write_temp_text_file", {
+                filename: `anedikit_concat_${Date.now()}.txt`,
+                content,
+              });
+            } catch (e) {
+              console.warn("Failed to write concat file:", e);
+            }
+          }
+          cmdObj = buildCommandForTool("merge", null, appSettings.outputDir, appSettings, {
+            mergeFiles,
+            concatListPath: concatPath,
+          });
+        } else {
+          cmdObj = updateCommandPreview();
+        }
+
         const mediaInfo = getCurrentMediaInfo();
         const totalDuration = cmdObj?.duration || mediaInfo?.duration_seconds || 0.0;
         if (cmdObj) {
@@ -330,19 +354,64 @@ function bindFormEvents() {
   }
 
   // Merge tool actions
+  let selectedMergeIdx = -1;
   const btnMergeAdd = document.getElementById("btn-merge-add");
+  const btnMergeUp = document.getElementById("btn-merge-up");
+  const btnMergeDown = document.getElementById("btn-merge-down");
   const btnMergeClear = document.getElementById("btn-merge-clear");
+
   if (btnMergeAdd) {
     btnMergeAdd.addEventListener("click", async () => {
-      const mockFile = `C:\\Users\\User\\Videos\\clip_${mergeFiles.length + 1}.mp4`;
-      mergeFiles.push(mockFile);
-      renderMergeList();
-      updateCommandPreview();
+      if (window.__TAURI__?.core?.invoke) {
+        try {
+          const picked = await window.__TAURI__.core.invoke("pick_files", { filter_mode: "all" });
+          if (picked && picked.length > 0) {
+            mergeFiles.push(...picked);
+            renderMergeList();
+            updateCommandPreview();
+          }
+        } catch (e) {
+          console.warn("pick_files error:", e);
+        }
+      } else {
+        const mockFile = `C:\\Users\\User\\Videos\\clip_${mergeFiles.length + 1}.mp4`;
+        mergeFiles.push(mockFile);
+        renderMergeList();
+        updateCommandPreview();
+      }
     });
   }
+
+  if (btnMergeUp) {
+    btnMergeUp.addEventListener("click", () => {
+      if (selectedMergeIdx > 0 && selectedMergeIdx < mergeFiles.length) {
+        const temp = mergeFiles[selectedMergeIdx];
+        mergeFiles[selectedMergeIdx] = mergeFiles[selectedMergeIdx - 1];
+        mergeFiles[selectedMergeIdx - 1] = temp;
+        selectedMergeIdx--;
+        renderMergeList();
+        updateCommandPreview();
+      }
+    });
+  }
+
+  if (btnMergeDown) {
+    btnMergeDown.addEventListener("click", () => {
+      if (selectedMergeIdx >= 0 && selectedMergeIdx < mergeFiles.length - 1) {
+        const temp = mergeFiles[selectedMergeIdx];
+        mergeFiles[selectedMergeIdx] = mergeFiles[selectedMergeIdx + 1];
+        mergeFiles[selectedMergeIdx + 1] = temp;
+        selectedMergeIdx++;
+        renderMergeList();
+        updateCommandPreview();
+      }
+    });
+  }
+
   if (btnMergeClear) {
     btnMergeClear.addEventListener("click", () => {
       mergeFiles = [];
+      selectedMergeIdx = -1;
       renderMergeList();
       updateCommandPreview();
     });
@@ -394,18 +463,29 @@ function renderMergeList() {
   mergeList.innerHTML = mergeFiles
     .map(
       (f, idx) => `
-      <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+      <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 ${idx === selectedMergeIdx ? 'active' : ''}" data-item-idx="${idx}" style="cursor: pointer;">
         <span class="text-truncate small"><strong class="me-2">${idx + 1}.</strong>${f}</span>
-        <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-merge-del" data-idx="${idx}" type="button"><i class="bi bi-x"></i></button>
+        <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-merge-del ${idx === selectedMergeIdx ? 'btn-outline-light' : ''}" data-idx="${idx}" type="button"><i class="bi bi-x"></i></button>
       </div>
     `,
     )
     .join("");
 
+  mergeList.querySelectorAll(".list-group-item-action").forEach((item) => {
+    item.addEventListener("click", (e) => {
+      if (e.target.closest(".btn-merge-del")) return;
+      selectedMergeIdx = parseInt(item.dataset.itemIdx, 10);
+      renderMergeList();
+    });
+  });
+
   mergeList.querySelectorAll(".btn-merge-del").forEach((b) => {
-    b.addEventListener("click", () => {
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
       const idx = parseInt(b.dataset.idx, 10);
       mergeFiles.splice(idx, 1);
+      if (selectedMergeIdx === idx) selectedMergeIdx = -1;
+      else if (selectedMergeIdx > idx) selectedMergeIdx--;
       renderMergeList();
       updateCommandPreview();
     });

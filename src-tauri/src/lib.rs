@@ -75,6 +75,52 @@ fn pick_file(filter_mode: Option<String>) -> Option<String> {
 }
 
 #[tauri::command]
+fn pick_files(filter_mode: Option<String>) -> Vec<String> {
+    let mut dialog = rfd::FileDialog::new();
+    match filter_mode.as_deref() {
+        Some("audio") => {
+            dialog = dialog.add_filter(
+                "Audio Files",
+                &["mp3", "wav", "flac", "m4a", "ogg", "opus", "aac", "wma", "aiff"],
+            );
+        }
+        Some("video") => {
+            dialog = dialog.add_filter(
+                "Video Files",
+                &["mp4", "mkv", "webm", "mov", "avi", "flv", "ts", "wmv", "m4v"],
+            );
+        }
+        _ => {
+            dialog = dialog.add_filter(
+                "Media Files",
+                &[
+                    "mp4", "mkv", "webm", "mov", "avi", "flv", "ts", "wmv", "m4v", "mp3", "wav", "flac", "m4a",
+                    "ogg", "opus", "wma", "aiff",
+                ],
+            );
+        }
+    }
+    dialog
+        .pick_files()
+        .map(|paths| {
+            paths
+                .into_iter()
+                .map(|p| p.to_string_lossy().to_string())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+#[tauri::command]
+fn write_temp_text_file(filename: String, content: String) -> Result<String, String> {
+    let temp_dir = std::env::temp_dir();
+    let file_path = temp_dir.join(&filename);
+    std::fs::write(&file_path, content.as_bytes())
+        .map_err(|e| format!("Failed to write temp file: {}", e))?;
+    Ok(file_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 fn pick_folder(default_path: Option<String>) -> Option<String> {
     let mut dialog = rfd::FileDialog::new();
     if let Some(dp) = default_path {
@@ -511,7 +557,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             pick_file,
+            pick_files,
             pick_folder,
+            write_temp_text_file,
             get_media_info,
             execute_ffmpeg,
             cancel_ffmpeg,

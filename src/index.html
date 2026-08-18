@@ -349,19 +349,40 @@
                   <div class="section-divider-header flex-grow-1 mb-0 me-3">Media Files to Concatenate</div>
                   <div class="btn-group btn-group-sm flex-shrink-0">
                     <button class="btn btn-outline-secondary" type="button" id="btn-merge-add" title="Add files to merge list">Add Files...</button>
-                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-remove" title="Remove selected file">Remove</button>
-                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear list">Clear All</button>
+                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-up" title="Move selected item up">Move Up</button>
+                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-down" title="Move selected item down">Move Down</button>
+                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear all files">Clear All</button>
                   </div>
                 </div>
-                <div class="list-group list-group-flush border rounded mb-3 small overflow-y-auto" style="max-height: 160px;" id="merge-file-list">
+                <div class="list-group list-group-flush border rounded mb-3 small overflow-y-auto" style="max-height: 180px;" id="merge-file-list">
                   <div class="list-group-item text-body-secondary text-center py-4" id="merge-empty-msg">No files added. Click Add Files to queue items for merging.</div>
                 </div>
                 <div class="row g-3">
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="merge-engine">Merge Engine</label>
                     <select class="form-select form-select-sm" id="merge-engine">
-                      <option value="concat_demuxer" selected>Fast Concat Demuxer (Same formats / codecs)</option>
-                      <option value="filter_complex">Filter Complex (Re-encode disparate formats)</option>
+                      <option value="concat_demuxer" selected>Fast Concat (Direct Stream Copy - for matching codecs)</option>
+                      <option value="filter_complex">Re-encode Concat (for mixed resolutions / formats)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="merge-format">Output Format</label>
+                    <select class="form-select form-select-sm" id="merge-format">
+                      <optgroup label="Video Formats">
+                        <option value="mp4" selected>MP4 (.mp4)</option>
+                        <option value="mkv">MKV (.mkv)</option>
+                        <option value="webm">WebM (.webm)</option>
+                        <option value="mov">MOV (.mov)</option>
+                        <option value="avi">AVI (.avi)</option>
+                        <option value="ts">TS (.ts)</option>
+                      </optgroup>
+                      <optgroup label="Audio Formats">
+                        <option value="mp3">MP3 (.mp3)</option>
+                        <option value="m4a">M4A (.m4a)</option>
+                        <option value="flac">FLAC (.flac)</option>
+                        <option value="wav">WAV (.wav)</option>
+                        <option value="ogg">OGG (.ogg)</option>
+                      </optgroup>
                     </select>
                   </div>
                 </div>
