@@ -426,32 +426,50 @@
             <!-- TOOL 7: GIF and Frames -->
             <div class="tool-view d-none" id="view-gif_frames">
               <div class="mb-4">
-                <div class="section-divider-header">GIF and Frame Extraction</div>
+                <div class="section-divider-header">GIF & Frame Extraction Parameters</div>
                 <div class="row g-3">
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="gif-mode">Operation Mode</label>
                     <select class="form-select form-select-sm" id="gif-mode">
-                      <option value="gif_hq" selected>Animated GIF (HQ PaletteGen)</option>
-                      <option value="frames_png">Extract Frames (PNG)</option>
-                      <option value="frames_jpg">Extract Frames (JPEG)</option>
+                      <option value="gif_hq" selected>High-Quality Animated GIF (PaletteGen)</option>
+                      <option value="snapshot">Single Frame Snapshot (Image)</option>
+                      <option value="frames_seq">Extract Frame Sequence (Image Series)</option>
                     </select>
                   </div>
-                  <div class="col-md-4">
+                  <div class="col-md-4" id="gif-fps-wrapper">
                     <label class="form-label small fw-medium" for="gif-fps">Frame Rate (FPS)</label>
                     <select class="form-select form-select-sm" id="gif-fps">
                       <option value="10">10 FPS</option>
-                      <option value="15" selected>15 FPS</option>
-                      <option value="24">24 FPS</option>
-                      <option value="30">30 FPS</option>
+                      <option value="15" selected>15 FPS (Standard)</option>
+                      <option value="20">20 FPS</option>
+                      <option value="24">24 FPS (Smooth)</option>
+                      <option value="30">30 FPS (High Motion)</option>
                     </select>
                   </div>
-                  <div class="col-md-4">
-                    <label class="form-label small fw-medium" for="gif-width">Max Width</label>
+                  <div class="col-md-4" id="gif-width-wrapper">
+                    <label class="form-label small fw-medium" for="gif-width">Target Width</label>
                     <select class="form-select form-select-sm" id="gif-width">
-                      <option value="320">320 px</option>
-                      <option value="480" selected>480 px</option>
-                      <option value="720">720 px</option>
+                      <option value="320">320 px (Compact)</option>
+                      <option value="480" selected>480 px (Standard)</option>
+                      <option value="640">640 px (High Res)</option>
+                      <option value="800">800 px</option>
                       <option value="original">Original Width</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4" id="gif-start-wrapper">
+                    <label class="form-label small fw-medium" for="gif-start">Start Timestamp</label>
+                    <input type="text" class="form-control form-control-sm font-sans" id="gif-start" value="00:00:00.000" placeholder="00:00:00.000" />
+                  </div>
+                  <div class="col-md-4" id="gif-dur-wrapper">
+                    <label class="form-label small fw-medium" for="gif-dur">Clip Duration (Seconds)</label>
+                    <input type="number" class="form-control form-control-sm font-sans" id="gif-dur" value="5" min="0.5" step="0.5" max="300" />
+                  </div>
+                  <div class="col-md-4 d-none ui-zoom-in" id="gif-snap-wrapper">
+                    <label class="form-label small fw-medium" for="gif-snap-fmt">Image Format</label>
+                    <select class="form-select form-select-sm" id="gif-snap-fmt">
+                      <option value="png" selected>PNG (.png - Lossless)</option>
+                      <option value="jpg">JPEG (.jpg)</option>
+                      <option value="webp">WebP (.webp)</option>
                     </select>
                   </div>
                 </div>

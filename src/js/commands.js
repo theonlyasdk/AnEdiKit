@@ -458,6 +458,106 @@ export function buildMuteReplaceCommand(inputFile, outputDir, settings = {}) {
   };
 }
 
+export function buildGifFramesCommand(inputFile, outputDir, settings = {}) {
+  const args = ["-y"];
+  const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
+  const baseName =
+    src
+      .split(/[/\\]/)
+      .pop()
+      ?.replace(/\.[^/.]+$/, "") || "output_media";
+
+  const mode = document.getElementById("gif-mode")?.value || "gif_hq";
+  const fps = document.getElementById("gif-fps")?.value || "15";
+  const width = document.getElementById("gif-width")?.value || "480";
+  const start = document.getElementById("gif-start")?.value?.trim() || "00:00:00.000";
+  const dur = parseFloat(document.getElementById("gif-dur")?.value) || 5;
+  const snapFmt = document.getElementById("gif-snap-fmt")?.value || "png";
+
+  let dst = "";
+  let durationSec = dur;
+
+  if (mode === "gif_hq") {
+    dst = resolveDestinationPath(`${baseName}_animated.gif`, settings);
+    if (start && start !== "00:00:00" && start !== "00:00:00.000") {
+      args.push("-ss", start);
+    }
+    args.push("-t", dur.toString());
+    args.push("-i", src);
+
+    const scaleFilter = width === "original" ? "" : `,scale=${width}:-1:flags=lanczos`;
+    const filter = `[0:v]fps=${fps}${scaleFilter},split[s0][s1];[s0]palettegen=max_colors=256:reserve_transparent=0[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3`;
+
+    args.push("-filter_complex", filter);
+  } else if (mode === "snapshot") {
+    dst = resolveDestinationPath(`${baseName}_snapshot.${snapFmt}`, settings);
+    durationSec = 1.0;
+    if (start && start !== "00:00:00" && start !== "00:00:00.000") {
+      args.push("-ss", start);
+    }
+    args.push("-i", src);
+    args.push("-frames:v", "1");
+    if (width !== "original") {
+      args.push("-vf", `scale=${width}:-1:flags=lanczos`);
+    }
+  } else if (mode === "frames_seq") {
+    dst = resolveDestinationPath(`${baseName}_frame_%04d.${snapFmt}`, settings);
+    if (start && start !== "00:00:00" && start !== "00:00:00.000") {
+      args.push("-ss", start);
+    }
+    if (dur > 0) {
+      args.push("-t", dur.toString());
+    }
+    args.push("-i", src);
+    args.push("-vf", `fps=${fps}${width !== "original" ? `,scale=${width}:-1:flags=lanczos` : ""}`);
+  }
+
+  args.push("-progress", "pipe:1");
+  args.push(dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    duration: durationSec,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildCustomCommand(inputFile, outputDir, settings = {}) {
+  const args = ["-y"];
+  const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
+  const baseName =
+    src
+      .split(/[/\\]/)
+      .pop()
+      ?.replace(/\.[^/.]+$/, "") || "output_custom";
+
+  const customArgsStr = document.getElementById("custom-args")?.value?.trim() || "";
+  const dst = resolveDestinationPath(`${baseName}_custom.mp4`, settings);
+
+  args.push("-i", src);
+
+  if (customArgsStr) {
+    const matches = customArgsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g);
+    if (matches) {
+      matches.forEach((m) => {
+        args.push(m.replace(/^['"]|['"]$/g, ""));
+      });
+    }
+  }
+
+  args.push("-progress", "pipe:1");
+  args.push(dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
 export function buildCommandForTool(
   toolId,
   inputFile,
@@ -478,6 +578,10 @@ export function buildCommandForTool(
       return buildMergeCommand(extraParams.mergeFiles || [], outputDir, settings, extraParams.concatListPath);
     case "mute_replace":
       return buildMuteReplaceCommand(inputFile, outputDir, settings);
+    case "gif_frames":
+      return buildGifFramesCommand(inputFile, outputDir, settings);
+    case "custom":
+      return buildCustomCommand(inputFile, outputDir, settings);
     default:
       return buildConvertCommand(inputFile, outputDir, settings);
   }

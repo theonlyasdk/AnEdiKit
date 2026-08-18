@@ -51,8 +51,11 @@ export function getSmartOutputFileName(inputFile, toolId) {
     case "mute_replace":
       return `${baseName}_audio_edit.mp4`;
     case "gif_frames": {
-      const mode = document.getElementById("gif-mode")?.value || "gif";
-      return mode === "frames" ? `${baseName}_frame_%04d.png` : `${baseName}_animated.gif`;
+      const mode = document.getElementById("gif-mode")?.value || "gif_hq";
+      const snapFmt = document.getElementById("gif-snap-fmt")?.value || "png";
+      if (mode === "snapshot") return `${baseName}_snapshot.${snapFmt}`;
+      if (mode === "frames_seq") return `${baseName}_frame_%04d.${snapFmt}`;
+      return `${baseName}_animated.gif`;
     }
     case "custom":
       return `${baseName}_output.mp4`;
@@ -466,18 +469,29 @@ function bindFormEvents() {
     });
   }
 
-  // Compression dynamic custom MB toggle
-  const compPreset = document.getElementById("comp-preset");
-  const compCustomWrapper = document.getElementById("comp-custom-wrapper");
-  if (compPreset && compCustomWrapper) {
-    compPreset.addEventListener("change", () => {
-      const show = compPreset.value === "custom";
-      compCustomWrapper.classList.toggle("d-none", !show);
-      if (show) {
-        compCustomWrapper.classList.remove("ui-zoom-in");
-        void compCustomWrapper.offsetWidth;
-        compCustomWrapper.classList.add("ui-zoom-in");
+  // GIF / Frames dynamic controls toggle
+  const gifMode = document.getElementById("gif-mode");
+  const gifFpsWrapper = document.getElementById("gif-fps-wrapper");
+  const gifDurWrapper = document.getElementById("gif-dur-wrapper");
+  const gifSnapWrapper = document.getElementById("gif-snap-wrapper");
+
+  if (gifMode) {
+    gifMode.addEventListener("change", () => {
+      const mode = gifMode.value;
+      const isSnapshot = mode === "snapshot";
+      const isSeq = mode === "frames_seq";
+
+      if (gifFpsWrapper) gifFpsWrapper.classList.toggle("d-none", isSnapshot);
+      if (gifDurWrapper) gifDurWrapper.classList.toggle("d-none", isSnapshot);
+      if (gifSnapWrapper) {
+        gifSnapWrapper.classList.toggle("d-none", !(isSnapshot || isSeq));
+        if (isSnapshot || isSeq) {
+          gifSnapWrapper.classList.remove("ui-zoom-in");
+          void gifSnapWrapper.offsetWidth;
+          gifSnapWrapper.classList.add("ui-zoom-in");
+        }
       }
+      updateAutoOutputFilename(true);
       updateCommandPreview();
     });
   }
