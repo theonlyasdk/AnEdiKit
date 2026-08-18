@@ -1,497 +1,125 @@
-// AnEdiKit - Frontend Tool State & Controller
+// AnEditKit - Modular Application Entry Point
+import { loadSettings, saveSettings } from "./js/storage.js";
+import {
+  selectMediaFile,
+  selectOutputFolder,
+  initDragAndDrop,
+  getCurrentInputFile,
+  getCurrentMediaInfo,
+  probeMedia,
+} from "./js/media.js";
+import { buildCommandForTool } from "./js/commands.js";
+import {
+  executeFfmpegJob,
+  cancelFfmpegJob,
+  isJobRunning,
+} from "./js/runner.js";
+import { initNavigation, getCurrentActiveTool } from "./js/navigation.js";
 
-const toolsMeta = {
-  convert: {
-    title: "Convert Video Formats",
-    desc: "Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.",
-    hasSingleInput: true
-  },
-  extract_audio: {
-    title: "Extract and Convert Audio",
-    desc: "Extract audio from video or convert between MP3, M4A, FLAC, WAV, OGG, and Opus.",
-    hasSingleInput: true
-  },
-  trim: {
-    title: "Trim and Cut Media",
-    desc: "Cut video or audio clips instantly with lossless stream copy or accurate re-encoding.",
-    hasSingleInput: true
-  },
-  compress: {
-    title: "Compress Video",
-    desc: "Reduce video file size for Discord (24MB), WhatsApp (15MB), Email, or custom target size.",
-    hasSingleInput: true
-  },
-  merge: {
-    title: "Merge and Concatenate Media",
-    desc: "Combine multiple video or audio files into a single continuous file.",
-    hasSingleInput: false
-  },
-  mute_replace: {
-    title: "Mute or Replace Audio",
-    desc: "Remove audio tracks from video or attach and mix new background audio.",
-    hasSingleInput: true
-  },
-  gif_frames: {
-    title: "GIF and Frame Extractor",
-    desc: "Create crisp high-quality animated GIFs with PaletteGen or export video frames.",
-    hasSingleInput: true
-  },
-  custom: {
-    title: "Custom FFmpeg Command",
-    desc: "Execute arbitrary FFmpeg flags and filters with live command syntax preview.",
-    hasSingleInput: true
-  },
-  settings: {
-    title: "Application Settings",
-    desc: "Configure default output folders, hardware acceleration engines, and encoding threads.",
-    hasSingleInput: false
-  }
-};
-
-const STORAGE_KEYS = {
-  ACTIVE_TOOL: "anedikit:active_tool",
-  SETTINGS: "anedikit:settings",
-  LAST_INPUT: "anedikit:last_input_file",
-  TOOL_PARAMS: "anedikit:tool_params:"
-};
-
-let currentToolId = "convert";
-let currentInputFile = "";
-let currentOutputDir = "C:\\Users\\User\\Videos";
+let appSettings = loadSettings();
 let mergeFiles = [];
 
-function initApp() {
-  loadSavedSettings();
-  setupNavigation();
-  setupInputs();
-  setupCommandPreviewListeners();
+function updateCommandPreview() {
+  const activeTool = getCurrentActiveTool();
+  const currentInput = getCurrentInputFile();
+  const cmdPreviewEl = document.getElementById("cmd-preview");
+  const execFooter = document.getElementById("execution-footer-panel");
 
-  const savedTool = localStorage.getItem(STORAGE_KEYS.ACTIVE_TOOL);
-  const initialTool = savedTool && toolsMeta[savedTool] ? savedTool : "convert";
+  if (!cmdPreviewEl) return;
 
-  updateToolView(initialTool);
-  updateCommandPreview();
+  if (activeTool === "settings") {
+    if (execFooter) execFooter.classList.add("d-none");
+    return;
+  }
+  if (execFooter) execFooter.classList.remove("d-none");
+
+  const cmdObj = buildCommandForTool(
+    activeTool,
+    currentInput,
+    appSettings.outputDir,
+    appSettings,
+  );
+  cmdPreviewEl.textContent = cmdObj.fullString;
+  return cmdObj;
 }
 
-function loadSavedSettings() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (!raw) return;
-    const settings = JSON.parse(raw);
-
-    if (settings.outputDir) {
-      currentOutputDir = settings.outputDir;
-      const el = document.getElementById("set-output-dir");
-      if (el) el.value = currentOutputDir;
-    }
-    if (settings.hwaccel) {
-      const el = document.getElementById("set-hwaccel");
-      if (el) el.value = settings.hwaccel;
-    }
-    if (settings.threads) {
-      const el = document.getElementById("set-threads");
-      if (el) el.value = settings.threads;
-    }
-    if (settings.defVcodec) {
-      const el = document.getElementById("set-def-vcodec");
-      if (el) el.value = settings.defVcodec;
-    }
-    if (settings.defSpeed) {
-      const el = document.getElementById("set-def-speed");
-      if (el) el.value = settings.defSpeed;
-    }
-    if (settings.defAformat) {
-      const el = document.getElementById("set-def-aformat");
-      if (el) el.value = settings.defAformat;
-    }
-    if (settings.defAbitrate) {
-      const el = document.getElementById("set-def-abitrate");
-      if (el) el.value = settings.defAbitrate;
-    }
-    if (typeof settings.promptOverwrite === "boolean") {
-      const el = document.getElementById("set-prompt-overwrite");
-      if (el) el.checked = settings.promptOverwrite;
-    }
-  } catch (e) {
-    console.warn("Failed to parse saved settings:", e);
-  }
-}
-
-function saveSettings() {
-  try {
-    const settings = {
-      outputDir: document.getElementById("set-output-dir")?.value || currentOutputDir,
-      promptOverwrite: document.getElementById("set-prompt-overwrite")?.checked ?? true,
-      hwaccel: document.getElementById("set-hwaccel")?.value || "auto",
-      threads: document.getElementById("set-threads")?.value || "0",
-      defVcodec: document.getElementById("set-def-vcodec")?.value || "libx264",
-      defSpeed: document.getElementById("set-def-speed")?.value || "medium",
-      defAformat: document.getElementById("set-def-aformat")?.value || "mp3",
-      defAbitrate: document.getElementById("set-def-abitrate")?.value || "256k"
-    };
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-  } catch (e) {
-    console.warn("Failed to save settings:", e);
-  }
-}
-
-function setupNavigation() {
-  const allButtons = document.querySelectorAll("[data-tool]");
-
-  allButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const toolId = btn.dataset.tool;
-      if (toolId === currentToolId) return;
-      updateToolView(toolId);
-    });
-  });
-
-  window.addEventListener("resize", () => {
-    const activeBtn = document.querySelector(`[data-tool="${currentToolId}"]`);
-    updateSidebarIndicator(activeBtn);
-  });
-
-  const headerText = document.getElementById("tool-header-text");
-  if (headerText) {
-    headerText.addEventListener("animationend", () => {
-      headerText.classList.remove("slide-from-bottom", "slide-from-top");
-    });
-  }
-
-  const viewContainer = document.getElementById("tool-view-container");
-  if (viewContainer) {
-    viewContainer.addEventListener("animationend", () => {
-      viewContainer.classList.remove("view-material-zoom");
-    });
-  }
-}
-
-function updateSidebarIndicator(activeBtn) {
-  const toolIndicator = document.getElementById("sidebar-indicator");
-  const settingsIndicator = document.getElementById("settings-indicator");
-
-  if (!activeBtn) return;
-  const isSettings = activeBtn.dataset.tool === "settings";
-
-  if (isSettings) {
-    if (toolIndicator) toolIndicator.style.opacity = "0";
-    if (settingsIndicator) {
-      settingsIndicator.style.transform = `translateY(${activeBtn.offsetTop}px)`;
-      settingsIndicator.style.height = `${activeBtn.offsetHeight}px`;
-      settingsIndicator.style.opacity = "1";
-    }
-  } else {
-    if (settingsIndicator) settingsIndicator.style.opacity = "0";
-    if (toolIndicator) {
-      toolIndicator.style.transform = `translateY(${activeBtn.offsetTop}px)`;
-      toolIndicator.style.height = `${activeBtn.offsetHeight}px`;
-      toolIndicator.style.opacity = "1";
-    }
-  }
-}
-
-const toolOrder = [
-  "convert",
-  "extract_audio",
-  "trim",
-  "compress",
-  "merge",
-  "mute_replace",
-  "gif_frames",
-  "custom",
-  "settings"
-];
-
-function updateToolView(toolId) {
-  const prevIndex = toolOrder.indexOf(currentToolId);
-  const nextIndex = toolOrder.indexOf(toolId);
-  const isDown = nextIndex >= prevIndex;
-
-  currentToolId = toolId;
-  const meta = toolsMeta[toolId] || toolsMeta.convert;
-
-  // Update active state in sidebar
-  let activeBtn = null;
-  document.querySelectorAll("[data-tool]").forEach((btn) => {
-    const isActive = btn.dataset.tool === toolId;
-    btn.classList.toggle("active", isActive);
-    if (isActive) activeBtn = btn;
-  });
-
-  updateSidebarIndicator(activeBtn);
-
-  // Update header titles
-  document.getElementById("current-tool-title").textContent = meta.title;
-  document.getElementById("current-tool-desc").textContent = meta.desc;
-
-  // Show/Hide shared input card
-  const sharedInputCard = document.getElementById("shared-input-card");
-  if (sharedInputCard) {
-    sharedInputCard.classList.toggle("d-none", !meta.hasSingleInput);
-  }
-
-  // Show/Hide execution footer panel (hidden for settings)
-  const execPanel = document.getElementById("execution-footer-panel");
-  if (execPanel) {
-    execPanel.classList.toggle("d-none", toolId === "settings");
-  }
-
-  // Show/Hide tool views
-  document.querySelectorAll(".tool-view").forEach((view) => {
-    view.classList.add("d-none");
-  });
-
-  const activeView = document.getElementById(`view-${toolId}`);
-  if (activeView) {
-    activeView.classList.remove("d-none");
-  }
-
-  // Trigger directional vertical slide animation on header title text (without fade)
-  const headerText = document.getElementById("tool-header-text");
-  if (headerText) {
-    headerText.classList.remove("slide-from-bottom", "slide-from-top");
-    void headerText.offsetWidth;
-    headerText.classList.add(isDown ? "slide-from-bottom" : "slide-from-top");
-  }
-
-  // Trigger Material Zoom transition on the workspace view container
-  const viewContainer = document.getElementById("tool-view-container");
-  if (viewContainer) {
-    viewContainer.classList.remove("view-material-zoom");
-    void viewContainer.offsetWidth;
-    viewContainer.classList.add("view-material-zoom");
-  }
-
-  // Show/Hide bottom action buttons for settings
-  const actionButtons = document.getElementById("bottom-action-buttons");
-  const statusMsg = document.getElementById("status-message");
-  if (actionButtons) {
-    actionButtons.classList.toggle("d-none", toolId === "settings");
-  }
-  if (statusMsg) {
-    statusMsg.textContent = toolId === "settings" ? "Configuration saved automatically" : "Ready";
-  }
-
-  // Update metadata info visibility
-  updateMetadataVisibility();
-
-  // Save active tool state to LocalStorage
-  try {
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_TOOL, toolId);
-  } catch (e) {
-    console.warn("Failed to persist active tool:", e);
-  }
-
-  updateCommandPreview();
-}
-
-function updateMetadataVisibility() {
-  const metaInfo = document.getElementById("input-meta-info");
-  if (!metaInfo) return;
-  if (currentInputFile) {
-    if (metaInfo.classList.contains("d-none")) {
-      metaInfo.classList.remove("d-none");
-      metaInfo.classList.add("d-flex", "ui-zoom-in");
-      void metaInfo.offsetWidth;
-    }
-  } else {
-    metaInfo.classList.remove("d-flex", "ui-zoom-in");
-    metaInfo.classList.add("d-none");
-  }
-}
-
-function setProgress(pct) {
-  const bar = document.getElementById("job-progress-bar");
-  const pctEl = document.getElementById("progress-pct");
-  if (!bar || !pctEl) return;
-
-  if (pct <= 0) {
-    pctEl.textContent = "0%";
-    bar.classList.add("progress-bar-striped", "progress-bar-animated");
-    bar.style.width = "100%";
-  } else {
-    const clamped = Math.min(100, Math.max(0, Math.round(pct)));
-    pctEl.textContent = `${clamped}%`;
-    bar.classList.remove("progress-bar-striped", "progress-bar-animated");
-    bar.style.width = `${clamped}%`;
-  }
-}
-
-function setupInputs() {
-  // Input browse button (mock / placeholder for Tauri dialog)
-  const btnBrowse = document.getElementById("btn-browse-input");
-  const inputFilePath = document.getElementById("input-file-path");
-  const btnClear = document.getElementById("btn-clear-input");
-
-  if (btnBrowse) {
-    btnBrowse.addEventListener("click", () => {
-      // In web preview / non-IPC fallback
-      if (!currentInputFile) {
-        currentInputFile = "C:\\Users\\User\\Videos\\sample_video.mp4";
-        inputFilePath.value = currentInputFile;
-        document.getElementById("meta-duration").textContent = "00:03:45";
-        document.getElementById("meta-resolution").textContent = "1920x1080";
-        document.getElementById("meta-vcodec").textContent = "h264";
-        document.getElementById("meta-acodec").textContent = "aac";
-        document.getElementById("meta-size").textContent = "84.2 MB";
+function bindFormEvents() {
+  // Update command preview whenever any form element changes
+  const formElements = document.querySelectorAll("select, input");
+  formElements.forEach((el) => {
+    el.addEventListener("input", () => {
+      if (el.closest("#view-settings")) {
+        syncSettingsFromUI();
       }
-      updateMetadataVisibility();
+      updateCommandPreview();
+    });
+    el.addEventListener("change", () => {
+      if (el.closest("#view-settings")) {
+        syncSettingsFromUI();
+      }
+      updateCommandPreview();
+    });
+  });
+
+  // Browse Media Input
+  const btnBrowseInput = document.getElementById("btn-browse-input");
+  if (btnBrowseInput) {
+    btnBrowseInput.addEventListener("click", async () => {
+      const activeTool = getCurrentActiveTool();
+      const filterMode = activeTool === "extract_audio" ? "audio" : "all";
+      await selectMediaFile(filterMode);
       updateCommandPreview();
     });
   }
 
-  if (btnClear) {
-    btnClear.addEventListener("click", () => {
-      currentInputFile = "";
-      inputFilePath.value = "";
-      document.getElementById("meta-duration").textContent = "--:--:--";
-      document.getElementById("meta-resolution").textContent = "--";
-      document.getElementById("meta-vcodec").textContent = "--";
-      document.getElementById("meta-acodec").textContent = "--";
-      document.getElementById("meta-size").textContent = "-- MB";
-      updateMetadataVisibility();
+  // Clear Media Input
+  const btnClearInput = document.getElementById("btn-clear-input");
+  if (btnClearInput) {
+    btnClearInput.addEventListener("click", async () => {
+      await probeMedia("");
       updateCommandPreview();
     });
   }
 
-  // Drag & drop handling with depth pulse animation
-  const activateDropPulse = () => {
-    const group = document.querySelector("#shared-input-card .input-group");
-    if (group) group.classList.add("input-drop-pulsing");
-  };
-
-  const deactivateDropPulse = () => {
-    const group = document.querySelector("#shared-input-card .input-group");
-    if (group) group.classList.remove("input-drop-pulsing");
-  };
-
-  const handleDroppedFilePath = (filePath, sizeInBytes) => {
-    currentInputFile = filePath || "C:\\Users\\User\\Videos\\dropped_media.mp4";
-    if (inputFilePath) inputFilePath.value = currentInputFile;
-
-    const sizeMb = sizeInBytes ? (sizeInBytes / (1024 * 1024)).toFixed(1) : "42.5";
-    document.getElementById("meta-duration").textContent = "00:02:15";
-    document.getElementById("meta-resolution").textContent = "1920x1080";
-    document.getElementById("meta-vcodec").textContent = "h264";
-    document.getElementById("meta-acodec").textContent = "aac";
-    document.getElementById("meta-size").textContent = `${parseFloat(sizeMb) > 0 ? sizeMb : "42.5"} MB`;
-
-    updateMetadataVisibility();
-    updateCommandPreview();
-  };
-
-  let dragCounter = 0;
-
-  ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
-    window.addEventListener(eventName, (e) => {
-      e.preventDefault();
-    }, false);
-    document.addEventListener(eventName, (e) => {
-      e.preventDefault();
-    }, false);
-  });
-
-  window.addEventListener("dragenter", (e) => {
-    e.preventDefault();
-    dragCounter++;
-    activateDropPulse();
-  });
-
-  window.addEventListener("dragover", (e) => {
-    e.preventDefault();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = "copy";
-    }
-    activateDropPulse();
-  });
-
-  window.addEventListener("dragleave", (e) => {
-    e.preventDefault();
-    dragCounter--;
-    if (dragCounter <= 0 || e.clientX === 0 || e.clientY === 0) {
-      dragCounter = 0;
-      deactivateDropPulse();
-    }
-  });
-
-  window.addEventListener("drop", (e) => {
-    e.preventDefault();
-    dragCounter = 0;
-    deactivateDropPulse();
-
-    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const file = e.dataTransfer.files[0];
-      handleDroppedFilePath(file.path || file.name, file.size);
-    }
-  });
-
-  // Tauri native window drag drop event support
-  if (window.__TAURI__) {
-    try {
-      const webviewWin = window.__TAURI__.webviewWindow?.getCurrentWebviewWindow?.() || window.__TAURI__.window?.getCurrentWindow?.();
-      if (webviewWin && typeof webviewWin.onDragDropEvent === "function") {
-        webviewWin.onDragDropEvent((event) => {
-          if (!event || !event.payload) return;
-          if (event.payload.type === "enter" || event.payload.type === "over") {
-            activateDropPulse();
-          } else if (event.payload.type === "leave") {
-            deactivateDropPulse();
-          } else if (event.payload.type === "drop") {
-            deactivateDropPulse();
-            if (event.payload.paths && event.payload.paths.length > 0) {
-              handleDroppedFilePath(event.payload.paths[0], 0);
-            }
-          }
-        });
+  // Browse Output Folder in Settings
+  const btnBrowseOutDir = document.getElementById("btn-browse-outdir");
+  const setOutDirInput = document.getElementById("set-output-dir");
+  if (btnBrowseOutDir) {
+    btnBrowseOutDir.addEventListener("click", async () => {
+      const folder = await selectOutputFolder();
+      if (folder) {
+        appSettings.outputDir = folder;
+        if (setOutDirInput) setOutDirInput.value = folder;
+        saveSettings(appSettings);
+        updateCommandPreview();
       }
-    } catch (err) {
-      console.warn("Tauri drag drop listener setup:", err);
-    }
+    });
   }
 
-  // Execute and Reset buttons
+  // Execute / Cancel Button
   const btnExecute = document.getElementById("btn-execute");
-  const btnReset = document.getElementById("btn-reset");
-  const execStatusPanel = document.getElementById("execution-status-panel");
-
   if (btnExecute) {
     btnExecute.addEventListener("click", () => {
-      if (execStatusPanel) {
-        execStatusPanel.classList.remove("d-none", "ui-zoom-in");
-        void execStatusPanel.offsetWidth;
-        execStatusPanel.classList.add("ui-zoom-in");
+      if (isJobRunning()) {
+        cancelFfmpegJob();
+      } else {
+        const cmdObj = updateCommandPreview();
+        const mediaInfo = getCurrentMediaInfo();
+        const totalDuration = mediaInfo?.duration_seconds || 0.0;
+        if (cmdObj) {
+          executeFfmpegJob(cmdObj, totalDuration);
+        }
       }
-      setProgress(0); // 0% shows indeterminate striped animated bar
-      const statusEl = document.getElementById("status-message");
-      if (statusEl) statusEl.textContent = "Processing task...";
     });
   }
 
+  // Reset Button
+  const btnReset = document.getElementById("btn-reset");
   if (btnReset) {
     btnReset.addEventListener("click", () => {
-      // Clear input file
-      currentInputFile = "";
-      if (inputFilePath) inputFilePath.value = "";
-      updateMetadataVisibility();
-
-      // Reset merge list
-      mergeFiles = [];
-      renderMergeList();
-
-      // Reset execution panel and progress
-      if (execStatusPanel) {
-        execStatusPanel.classList.add("d-none");
-      }
-      setProgress(0);
-
-      const statusEl = document.getElementById("status-message");
-      if (statusEl) statusEl.textContent = "Ready";
-
-      // Reset active tool form controls
-      const activeForm = document.getElementById(`view-${currentToolId}`);
-      if (activeForm) {
-        const inputs = activeForm.querySelectorAll("input, select");
-        inputs.forEach((input) => {
+      const activeView = document.querySelector(".tool-view:not(.d-none)");
+      if (activeView) {
+        activeView.querySelectorAll("select, input").forEach((input) => {
           if (input.type === "checkbox") {
             input.checked = input.defaultChecked;
           } else if (input.defaultValue !== undefined) {
@@ -499,16 +127,15 @@ function setupInputs() {
           }
         });
       }
-
       updateCommandPreview();
     });
   }
 
-  // Copy command button
+  // Copy Command Button
   const btnCopy = document.getElementById("btn-copy-cmd");
   if (btnCopy) {
     btnCopy.addEventListener("click", () => {
-      const cmdText = document.getElementById("cmd-preview").textContent;
+      const cmdText = document.getElementById("cmd-preview")?.textContent || "";
       navigator.clipboard.writeText(cmdText).then(() => {
         btnCopy.innerHTML = '<i class="bi bi-check2"></i> Copied!';
         setTimeout(() => {
@@ -518,20 +145,17 @@ function setupInputs() {
     });
   }
 
-  // Merge tool buttons
+  // Merge tool actions
   const btnMergeAdd = document.getElementById("btn-merge-add");
   const btnMergeClear = document.getElementById("btn-merge-clear");
-  const mergeList = document.getElementById("merge-file-list");
-
   if (btnMergeAdd) {
-    btnMergeAdd.addEventListener("click", () => {
-      const demoFile = `C:\\Users\\User\\Videos\\clip_${mergeFiles.length + 1}.mp4`;
-      mergeFiles.push(demoFile);
+    btnMergeAdd.addEventListener("click", async () => {
+      const mockFile = `C:\\Users\\User\\Videos\\clip_${mergeFiles.length + 1}.mp4`;
+      mergeFiles.push(mockFile);
       renderMergeList();
       updateCommandPreview();
     });
   }
-
   if (btnMergeClear) {
     btnMergeClear.addEventListener("click", () => {
       mergeFiles = [];
@@ -540,7 +164,7 @@ function setupInputs() {
     });
   }
 
-  // Mute / Replace audio action selector
+  // Mute / Replace audio dynamic section toggle
   const muteAction = document.getElementById("mute-action");
   const secondAudioWrapper = document.getElementById("second-audio-wrapper");
   if (muteAction && secondAudioWrapper) {
@@ -556,7 +180,7 @@ function setupInputs() {
     });
   }
 
-  // Compression custom size toggle
+  // Compression dynamic custom MB toggle
   const compPreset = document.getElementById("comp-preset");
   const compCustomWrapper = document.getElementById("comp-custom-wrapper");
   if (compPreset && compCustomWrapper) {
@@ -571,12 +195,6 @@ function setupInputs() {
       updateCommandPreview();
     });
   }
-
-  // Settings default output
-  const setOutDir = document.getElementById("set-output-dir");
-  if (setOutDir) {
-    setOutDir.value = currentOutputDir;
-  }
 }
 
 function renderMergeList() {
@@ -584,7 +202,8 @@ function renderMergeList() {
   if (!mergeList) return;
 
   if (mergeFiles.length === 0) {
-    mergeList.innerHTML = '<div class="list-group-item text-body-secondary text-center py-4" id="merge-empty-msg">No files added. Click Add Files to queue items for merging.</div>';
+    mergeList.innerHTML =
+      '<div class="list-group-item text-body-secondary text-center py-4" id="merge-empty-msg">No files added. Click Add Files to queue items for merging.</div>';
     return;
   }
 
@@ -595,146 +214,62 @@ function renderMergeList() {
       <span class="text-truncate" style="max-width: 80%;">${file}</span>
       <span class="badge text-bg-secondary">#${idx + 1}</span>
     </div>
-  `
+  `,
     )
     .join("");
 }
 
-function setupCommandPreviewListeners() {
-  const formElements = document.querySelectorAll("select, input");
-  formElements.forEach((el) => {
-    el.addEventListener("input", () => {
-      if (el.closest("#view-settings")) {
-        saveSettings();
-      }
-      updateCommandPreview();
-    });
-    el.addEventListener("change", () => {
-      if (el.closest("#view-settings")) {
-        saveSettings();
-      }
-      updateCommandPreview();
-    });
+function populateSettingsUI() {
+  const setOutDir = document.getElementById("set-output-dir");
+  const setPromptOver = document.getElementById("set-prompt-overwrite");
+  const setHw = document.getElementById("set-hwaccel");
+  const setThr = document.getElementById("set-threads");
+  const setDefVc = document.getElementById("set-def-vcodec");
+  const setDefSp = document.getElementById("set-def-speed");
+  const setDefAf = document.getElementById("set-def-aformat");
+  const setDefAb = document.getElementById("set-def-abitrate");
+
+  if (setOutDir) setOutDir.value = appSettings.outputDir;
+  if (setPromptOver) setPromptOver.checked = appSettings.promptOverwrite;
+  if (setHw) setHw.value = appSettings.hwAccel;
+  if (setThr) setThr.value = appSettings.threads;
+  if (setDefVc) setDefVc.value = appSettings.defVCodec;
+  if (setDefSp) setDefSp.value = appSettings.defSpeed;
+  if (setDefAf) setDefAf.value = appSettings.defAFmt;
+  if (setDefAb) setDefAb.value = appSettings.defABitrate;
+}
+
+function syncSettingsFromUI() {
+  const setOutDir = document.getElementById("set-output-dir");
+  const setPromptOver = document.getElementById("set-prompt-overwrite");
+  const setHw = document.getElementById("set-hwaccel");
+  const setThr = document.getElementById("set-threads");
+  const setDefVc = document.getElementById("set-def-vcodec");
+  const setDefSp = document.getElementById("set-def-speed");
+  const setDefAf = document.getElementById("set-def-aformat");
+  const setDefAb = document.getElementById("set-def-abitrate");
+
+  if (setOutDir) appSettings.outputDir = setOutDir.value;
+  if (setPromptOver) appSettings.promptOverwrite = setPromptOver.checked;
+  if (setHw) appSettings.hwAccel = setHw.value;
+  if (setThr) appSettings.threads = setThr.value;
+  if (setDefVc) appSettings.defVCodec = setDefVc.value;
+  if (setDefSp) appSettings.defSpeed = setDefSp.value;
+  if (setDefAf) appSettings.defAFmt = setDefAf.value;
+  if (setDefAb) appSettings.defABitrate = setDefAb.value;
+
+  saveSettings(appSettings);
+}
+
+// App Initialization
+document.addEventListener("DOMContentLoaded", () => {
+  populateSettingsUI();
+  initDragAndDrop((mediaInfo) => {
+    updateCommandPreview();
   });
-}
-
-function updateCommandPreview() {
-  const previewEl = document.getElementById("cmd-preview");
-  if (!previewEl) return;
-
-  const inFile = currentInputFile || "input.mp4";
-  let cmd = "ffmpeg";
-
-  switch (currentToolId) {
-    case "convert": {
-      const container = document.getElementById("cvt-container").value;
-      const vcodec = document.getElementById("cvt-vcodec").value;
-      const acodec = document.getElementById("cvt-acodec").value;
-      const crf = document.getElementById("cvt-crf").value;
-      const preset = document.getElementById("cvt-preset").value;
-      const scale = document.getElementById("cvt-scale").value;
-
-      let filter = "";
-      if (scale !== "original") {
-        filter = ` -vf "scale=${scale}"`;
-      }
-
-      const crfFlag = vcodec === "copy" ? "" : ` -crf ${crf}`;
-      const presetFlag = vcodec === "copy" ? "" : ` -preset ${preset}`;
-      cmd = `ffmpeg -i "${inFile}" -c:v ${vcodec}${crfFlag}${presetFlag} -c:a ${acodec}${filter} "output.${container}"`;
-      break;
-    }
-
-    case "extract_audio": {
-      const format = document.getElementById("aud-format").value;
-      const bitrate = document.getElementById("aud-bitrate").value;
-      const volume = document.getElementById("aud-volume").value;
-
-      let volFilter = "";
-      if (volume === "loudnorm") volFilter = " -af loudnorm";
-      else if (volume === "vol_150") volFilter = " -af volume=1.5";
-      else if (volume === "vol_200") volFilter = " -af volume=2.0";
-
-      cmd = `ffmpeg -i "${inFile}" -vn -c:a libmp3lame -b:a ${bitrate}${volFilter} "output.${format}"`;
-      break;
-    }
-
-    case "trim": {
-      const start = document.getElementById("trim-start").value;
-      const end = document.getElementById("trim-end").value;
-      const mode = document.getElementById("trim-mode").value;
-
-      if (mode === "copy") {
-        cmd = `ffmpeg -ss ${start} -to ${end} -i "${inFile}" -c copy "trimmed_output.mp4"`;
-      } else {
-        cmd = `ffmpeg -i "${inFile}" -ss ${start} -to ${end} -c:v libx264 -crf 23 -c:a aac "trimmed_output.mp4"`;
-      }
-      break;
-    }
-
-    case "compress": {
-      const preset = document.getElementById("comp-preset").value;
-      let targetMb = 24;
-      if (preset === "whatsapp") targetMb = 15;
-      else if (preset === "email") targetMb = 10;
-      else if (preset === "custom") targetMb = document.getElementById("comp-custom-mb").value || 24;
-
-      cmd = `ffmpeg -i "${inFile}" -c:v libx264 -b:v 1500k -maxrate 2000k -bufsize 3000k -c:a aac -b:a 128k "compressed_${targetMb}MB.mp4"`;
-      break;
-    }
-
-    case "merge": {
-      const engine = document.getElementById("merge-engine").value;
-      if (engine === "concat_demuxer") {
-        cmd = `ffmpeg -f concat -safe 0 -i "filelist.txt" -c copy "merged_output.mp4"`;
-      } else {
-        cmd = `ffmpeg -i "clip_1.mp4" -i "clip_2.mp4" -filter_complex "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]" -map "[v]" -map "[a]" "merged_output.mp4"`;
-      }
-      break;
-    }
-
-    case "mute_replace": {
-      const action = document.getElementById("mute-action").value;
-      const audioFile = document.getElementById("second-audio-path").value || "audio.mp3";
-      if (action === "strip") {
-        cmd = `ffmpeg -i "${inFile}" -an -c:v copy "muted_output.mp4"`;
-      } else if (action === "replace") {
-        cmd = `ffmpeg -i "${inFile}" -i "${audioFile}" -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 -shortest "replaced_audio.mp4"`;
-      } else {
-        cmd = `ffmpeg -i "${inFile}" -i "${audioFile}" -filter_complex "[0:a][1:a]amix=inputs=2:duration=first[a]" -c:v copy -map 0:v:0 -map "[a]" "mixed_output.mp4"`;
-      }
-      break;
-    }
-
-    case "gif_frames": {
-      const mode = document.getElementById("gif-mode").value;
-      const fps = document.getElementById("gif-fps").value;
-      const width = document.getElementById("gif-width").value;
-
-      const scaleStr = width === "original" ? "" : `,scale=${width}:-1:flags=lanczos`;
-      if (mode === "gif_hq") {
-        cmd = `ffmpeg -i "${inFile}" -vf "fps=${fps}${scaleStr},split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" "output.gif"`;
-      } else if (mode === "frames_png") {
-        cmd = `ffmpeg -i "${inFile}" -vf "fps=${fps}${scaleStr}" "frame_%04d.png"`;
-      } else {
-        cmd = `ffmpeg -i "${inFile}" -vf "fps=${fps}${scaleStr}" -q:v 2 "frame_%04d.jpg"`;
-      }
-      break;
-    }
-
-    case "custom": {
-      const args = document.getElementById("custom-args").value || "-c:v copy -c:a copy";
-      cmd = `ffmpeg -i "${inFile}" ${args} "custom_output.mp4"`;
-      break;
-    }
-
-    case "settings": {
-      cmd = "echo Application settings mode";
-      break;
-    }
-  }
-
-  previewEl.textContent = cmd;
-}
-
-window.addEventListener("DOMContentLoaded", initApp);
+  bindFormEvents();
+  initNavigation((toolId) => {
+    updateCommandPreview();
+  });
+  updateCommandPreview();
+});
