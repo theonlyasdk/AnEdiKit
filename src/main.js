@@ -355,68 +355,99 @@ function setupInputs() {
   }
 
   // Drag & drop handling with depth pulse animation
-  const getInputGroup = () => document.querySelector("#shared-input-card .input-group");
-  let dragDepth = 0;
+  const activateDropPulse = () => {
+    const group = document.querySelector("#shared-input-card .input-group");
+    if (group) group.classList.add("input-drop-pulsing");
+  };
+
+  const deactivateDropPulse = () => {
+    const group = document.querySelector("#shared-input-card .input-group");
+    if (group) group.classList.remove("input-drop-pulsing");
+  };
+
+  const handleDroppedFilePath = (filePath, sizeInBytes) => {
+    currentInputFile = filePath || "C:\\Users\\User\\Videos\\dropped_media.mp4";
+    if (inputFilePath) inputFilePath.value = currentInputFile;
+
+    const sizeMb = sizeInBytes ? (sizeInBytes / (1024 * 1024)).toFixed(1) : "42.5";
+    document.getElementById("meta-duration").textContent = "00:02:15";
+    document.getElementById("meta-resolution").textContent = "1920x1080";
+    document.getElementById("meta-vcodec").textContent = "h264";
+    document.getElementById("meta-acodec").textContent = "aac";
+    document.getElementById("meta-size").textContent = `${parseFloat(sizeMb) > 0 ? sizeMb : "42.5"} MB`;
+
+    updateMetadataVisibility();
+    updateCommandPreview();
+  };
+
+  let dragCounter = 0;
 
   ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+    window.addEventListener(eventName, (e) => {
+      e.preventDefault();
+    }, false);
     document.addEventListener(eventName, (e) => {
       e.preventDefault();
-      e.stopPropagation();
     }, false);
   });
 
-  document.addEventListener("dragenter", (e) => {
-    dragDepth++;
-    const group = getInputGroup();
-    if (group) {
-      group.classList.add("input-drop-pulsing");
-    }
+  window.addEventListener("dragenter", (e) => {
+    e.preventDefault();
+    dragCounter++;
+    activateDropPulse();
   });
 
-  document.addEventListener("dragover", (e) => {
+  window.addEventListener("dragover", (e) => {
+    e.preventDefault();
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = "copy";
     }
-    const group = getInputGroup();
-    if (group && !group.classList.contains("input-drop-pulsing")) {
-      group.classList.add("input-drop-pulsing");
+    activateDropPulse();
+  });
+
+  window.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter <= 0 || e.clientX === 0 || e.clientY === 0) {
+      dragCounter = 0;
+      deactivateDropPulse();
     }
   });
 
-  document.addEventListener("dragleave", (e) => {
-    dragDepth--;
-    if (dragDepth <= 0 || e.clientX === 0 || e.clientY === 0) {
-      dragDepth = 0;
-      const group = getInputGroup();
-      if (group) {
-        group.classList.remove("input-drop-pulsing");
-      }
-    }
-  });
-
-  document.addEventListener("drop", (e) => {
-    dragDepth = 0;
-    const group = getInputGroup();
-    if (group) {
-      group.classList.remove("input-drop-pulsing");
-    }
+  window.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dragCounter = 0;
+    deactivateDropPulse();
 
     if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-      currentInputFile = file.path || file.name || "C:\\Users\\User\\Videos\\dropped_media.mp4";
-      if (inputFilePath) inputFilePath.value = currentInputFile;
-
-      const sizeMb = file.size ? (file.size / (1024 * 1024)).toFixed(1) : "42.5";
-      document.getElementById("meta-duration").textContent = "00:02:15";
-      document.getElementById("meta-resolution").textContent = "1920x1080";
-      document.getElementById("meta-vcodec").textContent = "h264";
-      document.getElementById("meta-acodec").textContent = "aac";
-      document.getElementById("meta-size").textContent = `${parseFloat(sizeMb) > 0 ? sizeMb : "42.5"} MB`;
-
-      updateMetadataVisibility();
-      updateCommandPreview();
+      handleDroppedFilePath(file.path || file.name, file.size);
     }
   });
+
+  // Tauri native window drag drop event support
+  if (window.__TAURI__) {
+    try {
+      const webviewWin = window.__TAURI__.webviewWindow?.getCurrentWebviewWindow?.() || window.__TAURI__.window?.getCurrentWindow?.();
+      if (webviewWin && typeof webviewWin.onDragDropEvent === "function") {
+        webviewWin.onDragDropEvent((event) => {
+          if (!event || !event.payload) return;
+          if (event.payload.type === "enter" || event.payload.type === "over") {
+            activateDropPulse();
+          } else if (event.payload.type === "leave") {
+            deactivateDropPulse();
+          } else if (event.payload.type === "drop") {
+            deactivateDropPulse();
+            if (event.payload.paths && event.payload.paths.length > 0) {
+              handleDroppedFilePath(event.payload.paths[0], 0);
+            }
+          }
+        });
+      }
+    } catch (err) {
+      console.warn("Tauri drag drop listener setup:", err);
+    }
+  }
 
   // Execute and Reset buttons
   const btnExecute = document.getElementById("btn-execute");
