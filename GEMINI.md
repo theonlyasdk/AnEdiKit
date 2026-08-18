@@ -1,41 +1,110 @@
-# Project Context: AnEdiKit
+# Project Overview - AnEdiKit
 
-## Overview
-AnEdiKit is a lightweight cross-platform desktop application built using Tauri with a Rust backend and a Vanilla HTML/CSS/JavaScript frontend.
+AnEditKit is a lightweight, all-in-one toolkit for creators, combining a wide range of media utilities into a single desktop application. It includes FFmpeg-based video and audio tools, a yt-dlp frontend for downloading media, image extraction utilities, and other tools for common content creation workflows.
 
-## Summary
+The application uses Tauri for its frontend, keeping the overall application size and resource usage relatively low compared to traditional desktop frameworks. Python is used as the backend for image processing and other tasks that benefit from its extensive ecosystem of media and machine-learning libraries.
+
+AnEditKit is designed around asynchronous processing, allowing long-running tasks such as encoding, downloading, image processing, and AI-based operations to run in the background without freezing the interface. Tasks can provide clear progress and status feedback while keeping the UI responsive.
+
+The interface follows a simple and predictable workflow, making tools easy to discover and use without requiring users to navigate through unnecessary screens or complex settings. Common actions, inputs, outputs, progress states, and errors are presented consistently across the application.
+
+AnEditKit also supports on-device neural processing for features such as background removal and image upscaling, allowing these operations to run locally without requiring files to be uploaded to external services. This keeps creator data on the user's device while providing advanced processing capabilities.
+
+
+Tech:
 - Application Type: Desktop app (Tauri v2)
 - Frontend: HTML5, CSS3, JavaScript
 - Backend: Rust (`src-tauri`)
 - Package Manager: npm
-- Helpers: Installation and uninstallation scripts in `tools/`
 
-## Project Structure
-```text
-AnEdiKit/
-├── src/                  # Frontend assets
-│   ├── assets/           # Static assets
-│   ├── index.html        # App view
-│   ├── main.js           # Frontend logic and IPC
-│   └── styles.css        # Styles
-├── src-tauri/            # Rust native backend
-│   ├── src/              # Source files (main.rs, lib.rs)
-│   ├── Cargo.toml        # Rust package configuration
-│   └── tauri.conf.json   # Tauri configuration
-├── tools/                # Scripts
-│   ├── Installers/       # Dependency installation
-│   └── Uninstallers/     # Dependency cleanup
-└── package.json          # Node scripts and dependencies
-```
+Avoid:
+- generic SaaS aesthetics
+- oversized spacing
+- decorative UI patterns
 
-## Setup and Commands
-Prerequisites: Node.js, Rust toolchain, Microsoft C++ Build Tools, Microsoft Edge WebView2.
+# Hard rules
 
-```powershell
-npm install
-npm run tauri dev
-npm run tauri build
-```
+- No generic SaaS layouts
+- No copy-paste AI-style UI patterns
+- No predictable navbar + hero + feature grid + pricing layouts
+- No colorful or neon gradients
+- No neon gradient borders
+- No glow, lighting blooms, or heavy shadows without a clear purpose
+- No huge drop shadow radii
+- No huge rounded corners
+- Don't round every element
+- No oversized headings
+- No default or trendy fonts just for looks
+- No overused startup serif fonts
+- No stock 3D graphics unless needed
+- No excessive use of icons
+- No icons that don't clearly match their meaning
+- No excessive use of emojis
+- Don't use emojis as a replacement for real icons
+- No floating pills or badges like "AI Powered" or "Trusted by 10k+ teams" unless useful
+- No "modern", "innovative", or "next-gen" styling without a reason
+- No purposeless whitespace or uniform padding everywhere
+- No cliché UI elements like bouncing scroll indicators
+- No default eyebrow text above headings unless useful
+- No UI elements without a clear purpose
+- No screens designed without considering the full user flow
+- No buttons or links without a clear result
+- Keep interactions consistent across the app
+- Handle loading, empty, error, disabled, and success states
+- Check edge cases before implementing a feature
+- No vague copy like "Boost Your Workflow" or "Unlock Productivity"
+- UI text must clearly explain the action or feature with a title=""
+- Don't invent features, data, or requirements
+- Follow the project's technical limits
+- Keep accessibility in mind
+- Don't add UI that makes the app harder to build for no good reason
+- Prefer simple and useful over flashy
+- Reuse existing components and patterns
+- Treat AI-generated boilerplate as a starting point, not a finished design
+- Add visual or interaction choices only when they serve the product
+- Follow the product needs, not current design trends
+
+# Bootstrap 5 design rules
+
+- Follow Bootstrap 5 components and patterns closely
+- Prefer Bootstrap classes over custom CSS
+- Use Bootstrap's grid system for layout
+- Use Bootstrap's spacing utilities instead of custom margins and padding
+- Use Bootstrap's standard breakpoints
+- Use Bootstrap's standard buttons, forms, cards, alerts, modals, dropdowns, and navs
+- Follow Bootstrap's default component structure and behavior
+- Use Bootstrap's typography scale and text utilities
+- Use Bootstrap's color and utility classes where possible
+- Keep border radius and shadows close to Bootstrap defaults
+- Do not recreate Bootstrap components with custom implementations
+- Do not add custom design patterns when a Bootstrap solution already exists
+- Avoid excessive use of custom CSS
+- Keep custom CSS limited to styles that Bootstrap cannot provide
+- Keep responsive behavior consistent with Bootstrap 5
+- Use Bootstrap icons or another consistent icon set instead of random icons
+- Do not mix unrelated design systems with Bootstrap
+- When unsure, choose the closest Bootstrap 5 pattern instead of inventing a new one
+
+# Success criteria
+
+Good implementations:
+- Require minimal explanation
+- Are easy to scan
+- Feel predictable
+- Minimize cognitive load
+- Are easy to modify later
+- Follow Bootstrap 5 patterns closely
+- Use existing components instead of custom solutions
+- Have clear and consistent user flows
+- Handle common edge cases
+- Handle errors gracefully
+- Give clear feedback when something fails
+- Explain what went wrong and what the user can do next
+- Give clear feedback when an action succeeds
+- Give immediate feedback for important user actions and controls
+- Keep controls visually consistent with their current state
+- Never leave the user unsure whether an action worked
+- Avoid unnecessary code and complexity
 
 ## Assistant and Output Instructions
 - Use summaries.

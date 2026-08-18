@@ -1,39 +1,473 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri App</title>
+    <title>AnEdiKit</title>
+    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="styles.css" />
     <script type="module" src="/main.js" defer></script>
   </head>
 
-  <body>
-    <main class="container">
-      <h1>Welcome to Tauri</h1>
+  <body class="bg-body-tertiary">
+    <div class="d-flex vh-100 overflow-hidden">
+      <!-- Sidebar -->
+      <aside class="sidebar bg-body border-end d-flex flex-column" style="width: 280px; min-width: 280px;">
+        <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+          <div>
+            <h1 class="h6 mb-0 fw-semibold text-body">AnEdiKit</h1>
+            <small class="text-body-secondary">Creator Toolkit</small>
+          </div>
+          <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">v0.1</span>
+        </div>
 
-      <div class="row">
-        <a href="https://tauri.app" target="_blank">
-          <img src="/assets/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a
-          href="https://developer.mozilla.org/en-US/docs/Web/JavaScript"
-          target="_blank"
-        >
-          <img
-            src="/assets/javascript.svg"
-            class="logo vanilla"
-            alt="JavaScript logo"
-          />
-        </a>
-      </div>
-      <p>Click on the Tauri logo to learn more about the framework</p>
+        <div class="overflow-y-auto flex-grow-1 p-2">
+          <div class="text-uppercase small fw-semibold text-body-secondary px-3 py-2">FFmpeg Tools</div>
+          <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
+            <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
+              <i class="bi bi-film text-body-secondary"></i>
+              <span>Convert Video</span>
+            </button>
+            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="extract_audio" type="button" title="Extract audio tracks or convert audio formats">
+              <i class="bi bi-music-note-beamed text-body-secondary"></i>
+              <span>Extract and Convert Audio</span>
+            </button>
+            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="trim" type="button" title="Trim or cut media with timestamps">
+              <i class="bi bi-scissors text-body-secondary"></i>
+              <span>Trim and Cut</span>
+            </button>
+            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress" type="button" title="Compress media for Discord, WhatsApp, or custom target size">
+              <i class="bi bi-file-earmark-zip text-body-secondary"></i>
+              <span>Compress Video</span>
+            </button>
+            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="merge" type="button" title="Combine multiple audio or video files">
+              <i class="bi bi-collection-play text-body-secondary"></i>
+              <span>Merge and Concat</span>
+            </button>
+            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="mute_replace" type="button" title="Mute or replace background audio">
+              <i class="bi bi-volume-mute text-body-secondary"></i>
+              <span>Mute or Replace Audio</span>
+            </button>
+            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="gif_frames" type="button" title="Generate animated GIFs or extract image frames">
+              <i class="bi bi-images text-body-secondary"></i>
+              <span>GIF and Frames</span>
+            </button>
+            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="custom" type="button" title="Run custom FFmpeg commands with live preview">
+              <i class="bi bi-terminal text-body-secondary"></i>
+              <span>Custom Command</span>
+            </button>
+          </nav>
+        </div>
 
-      <form class="row" id="greet-form">
-        <input id="greet-input" placeholder="Enter a name..." />
-        <button type="submit">Greet</button>
-      </form>
-      <p id="greet-msg"></p>
-    </main>
+        <div class="p-2 border-top">
+          <nav class="nav nav-pills flex-column">
+            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
+              <i class="bi bi-gear text-body-secondary"></i>
+              <span>Settings</span>
+            </button>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="flex-grow-1 d-flex flex-column overflow-hidden bg-body-tertiary">
+        <!-- Top Tool Header -->
+        <header class="p-3 bg-body border-bottom d-flex align-items-center justify-content-between">
+          <div>
+            <h2 class="h5 mb-1 text-body" id="current-tool-title">Convert Video Formats</h2>
+            <p class="small text-body-secondary mb-0" id="current-tool-desc">Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.</p>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge text-bg-dark border border-secondary-subtle font-monospace small" id="hw-indicator">HW: Auto / CPU</span>
+          </div>
+        </header>
+
+        <!-- Tool Views Workspace -->
+        <div class="flex-grow-1 overflow-y-auto p-4" id="tool-workspace">
+          
+          <!-- Shared File Selection Card (For single file tools) -->
+          <div class="card mb-3 shadow-sm border-secondary-subtle" id="shared-input-card">
+            <div class="card-header bg-body py-2 px-3">
+              <span class="fw-semibold small text-body-secondary">Input File</span>
+            </div>
+            <div class="card-body p-3">
+              <div class="input-group mb-2">
+                <button class="btn btn-outline-secondary" type="button" id="btn-browse-input" title="Select media file">Browse...</button>
+                <input type="text" class="form-control font-monospace small" id="input-file-path" placeholder="Select or drop a source media file..." readonly />
+                <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection">Clear</button>
+              </div>
+              <div class="d-flex flex-wrap gap-3 small text-body-secondary" id="input-meta-info">
+                <span>Duration: <strong class="text-body" id="meta-duration">--:--:--</strong></span>
+                <span>Resolution: <strong class="text-body" id="meta-resolution">--</strong></span>
+                <span>Video Codec: <strong class="text-body" id="meta-vcodec">--</strong></span>
+                <span>Audio Codec: <strong class="text-body" id="meta-acodec">--</strong></span>
+                <span>Size: <strong class="text-body" id="meta-size">-- MB</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOL 1: Convert Video -->
+          <div class="tool-view" id="view-convert">
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3">
+                <span class="fw-semibold small text-body-secondary">Conversion Parameters</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="cvt-container">Output Format</label>
+                    <select class="form-select form-select-sm" id="cvt-container">
+                      <option value="mp4" selected>MP4 (.mp4)</option>
+                      <option value="mkv">MKV (.mkv)</option>
+                      <option value="webm">WebM (.webm)</option>
+                      <option value="mov">MOV (.mov)</option>
+                      <option value="avi">AVI (.avi)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="cvt-vcodec">Video Codec</label>
+                    <select class="form-select form-select-sm" id="cvt-vcodec">
+                      <option value="libx264" selected>H.264 (libx264)</option>
+                      <option value="libx265">H.265 / HEVC (libx265)</option>
+                      <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
+                      <option value="libsvtav1">AV1 (libsvtav1)</option>
+                      <option value="copy">Stream Copy (Lossless)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="cvt-acodec">Audio Codec</label>
+                    <select class="form-select form-select-sm" id="cvt-acodec">
+                      <option value="aac" selected>AAC (Default)</option>
+                      <option value="mp3">MP3</option>
+                      <option value="opus">Opus</option>
+                      <option value="flac">FLAC (Lossless)</option>
+                      <option value="copy">Stream Copy (Keep Original)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="cvt-crf">Quality (CRF)</label>
+                    <select class="form-select form-select-sm" id="cvt-crf">
+                      <option value="18">High Quality (CRF 18)</option>
+                      <option value="23" selected>Balanced (CRF 23)</option>
+                      <option value="28">Low Size (CRF 28)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="cvt-preset">Encoding Speed</label>
+                    <select class="form-select form-select-sm" id="cvt-preset">
+                      <option value="ultrafast">Ultrafast</option>
+                      <option value="veryfast">Very Fast</option>
+                      <option value="fast">Fast</option>
+                      <option value="medium" selected>Medium (Standard)</option>
+                      <option value="slow">Slow (Better compression)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="cvt-scale">Resolution Scale</label>
+                    <select class="form-select form-select-sm" id="cvt-scale">
+                      <option value="original" selected>Original</option>
+                      <option value="1920:1080">1080p (1920x1080)</option>
+                      <option value="1280:720">720p (1280x720)</option>
+                      <option value="854:480">480p (854x480)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOL 2: Extract & Convert Audio -->
+          <div class="tool-view d-none" id="view-extract_audio">
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3">
+                <span class="fw-semibold small text-body-secondary">Audio Extraction Parameters</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="aud-format">Target Audio Format</label>
+                    <select class="form-select form-select-sm" id="aud-format">
+                      <option value="mp3" selected>MP3 (.mp3)</option>
+                      <option value="m4a">M4A (.m4a)</option>
+                      <option value="flac">FLAC (.flac)</option>
+                      <option value="wav">WAV (.wav)</option>
+                      <option value="ogg">OGG (.ogg)</option>
+                      <option value="opus">Opus (.opus)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="aud-bitrate">Audio Bitrate</label>
+                    <select class="form-select form-select-sm" id="aud-bitrate">
+                      <option value="320k">320 kbps (High Quality)</option>
+                      <option value="256k" selected>256 kbps (Standard)</option>
+                      <option value="192k">192 kbps</option>
+                      <option value="128k">128 kbps (Compact)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="aud-volume">Volume and Normalization</label>
+                    <select class="form-select form-select-sm" id="aud-volume">
+                      <option value="none" selected>Original Volume</option>
+                      <option value="loudnorm">Loudnorm (EBU R128 Normalize)</option>
+                      <option value="vol_150">Boost +50%</option>
+                      <option value="vol_200">Boost +100%</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOL 3: Trim & Cut -->
+          <div class="tool-view d-none" id="view-trim">
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3">
+                <span class="fw-semibold small text-body-secondary">Trim Range</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="trim-start">Start Timestamp (HH:MM:SS.ms)</label>
+                    <input type="text" class="form-control form-control-sm font-monospace" id="trim-start" value="00:00:00.000" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="trim-end">End Timestamp (HH:MM:SS.ms)</label>
+                    <input type="text" class="form-control form-control-sm font-monospace" id="trim-end" value="00:01:00.000" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="trim-mode">Cut Mode</label>
+                    <select class="form-select form-select-sm" id="trim-mode">
+                      <option value="copy" selected>Fast Lossless Copy (Keyframe accurate)</option>
+                      <option value="reencode">Accurate Re-encode (Frame accurate)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOL 4: Compress Video -->
+          <div class="tool-view d-none" id="view-compress">
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3">
+                <span class="fw-semibold small text-body-secondary">Target Compression Preset</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="comp-preset">Size Preset</label>
+                    <select class="form-select form-select-sm" id="comp-preset">
+                      <option value="discord" selected>Discord Nitro Free (24 MB)</option>
+                      <option value="whatsapp">WhatsApp Video (15 MB)</option>
+                      <option value="email">Email Attachment (10 MB)</option>
+                      <option value="custom">Custom Target Size (MB)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6" id="comp-custom-wrapper">
+                    <label class="form-label small fw-medium" for="comp-custom-mb">Target Size (MB)</label>
+                    <input type="number" class="form-control form-control-sm" id="comp-custom-mb" value="24" min="1" max="4000" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOL 5: Merge & Concat -->
+          <div class="tool-view d-none" id="view-merge">
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
+                <span class="fw-semibold small text-body-secondary">Media Files to Concatenate</span>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-secondary" type="button" id="btn-merge-add" title="Add files to merge list">Add Files...</button>
+                  <button class="btn btn-outline-secondary" type="button" id="btn-merge-remove" title="Remove selected file">Remove</button>
+                  <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear list">Clear All</button>
+                </div>
+              </div>
+              <div class="card-body p-3">
+                <div class="list-group list-group-flush border rounded mb-3 small overflow-y-auto" style="max-height: 160px;" id="merge-file-list">
+                  <div class="list-group-item text-body-secondary text-center py-4" id="merge-empty-msg">No files added. Click Add Files to queue items for merging.</div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="merge-engine">Merge Engine</label>
+                    <select class="form-select form-select-sm" id="merge-engine">
+                      <option value="concat_demuxer" selected>Fast Concat Demuxer (Same formats / codecs)</option>
+                      <option value="filter_complex">Filter Complex (Re-encode disparate formats)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOL 6: Mute or Replace Audio -->
+          <div class="tool-view d-none" id="view-mute_replace">
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3">
+                <span class="fw-semibold small text-body-secondary">Audio Track Operation</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="mute-action">Action</label>
+                    <select class="form-select form-select-sm" id="mute-action">
+                      <option value="strip" selected>Mute / Strip Audio (Video Only)</option>
+                      <option value="replace">Replace Audio with New File</option>
+                      <option value="mix">Mix Background Audio with Existing Track</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6" id="second-audio-wrapper">
+                    <label class="form-label small fw-medium" for="second-audio-path">Replacement Audio File</label>
+                    <div class="input-group input-group-sm">
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-audio" title="Select audio file">Browse...</button>
+                      <input type="text" class="form-control font-monospace" id="second-audio-path" placeholder="Select audio file..." readonly />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOL 7: GIF and Frames -->
+          <div class="tool-view d-none" id="view-gif_frames">
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3">
+                <span class="fw-semibold small text-body-secondary">GIF and Frame Extraction</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="gif-mode">Operation Mode</label>
+                    <select class="form-select form-select-sm" id="gif-mode">
+                      <option value="gif_hq" selected>Animated GIF (HQ PaletteGen)</option>
+                      <option value="frames_png">Extract Frames (PNG)</option>
+                      <option value="frames_jpg">Extract Frames (JPEG)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="gif-fps">Frame Rate (FPS)</label>
+                    <select class="form-select form-select-sm" id="gif-fps">
+                      <option value="10">10 FPS</option>
+                      <option value="15" selected>15 FPS</option>
+                      <option value="24">24 FPS</option>
+                      <option value="30">30 FPS</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="gif-width">Max Width</label>
+                    <select class="form-select form-select-sm" id="gif-width">
+                      <option value="320">320 px</option>
+                      <option value="480" selected>480 px</option>
+                      <option value="720">720 px</option>
+                      <option value="original">Original Width</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOL 8: Custom Command -->
+          <div class="tool-view d-none" id="view-custom">
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3">
+                <span class="fw-semibold small text-body-secondary">Custom FFmpeg Arguments</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="mb-2">
+                  <label class="form-label small fw-medium" for="custom-args">Arguments (between input and output)</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="custom-args" placeholder="-vf eq=brightness=0.05:contrast=1.1 -c:a copy" />
+                </div>
+                <small class="text-body-secondary">Specify custom filters or parameters. Input (-i) and output filenames are automatically attached.</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOOL 9: Settings View -->
+          <div class="tool-view d-none" id="view-settings">
+            <div class="card mb-3 shadow-sm border-secondary-subtle">
+              <div class="card-header bg-body py-2 px-3">
+                <span class="fw-semibold small text-body-secondary">General Preferences</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-hwaccel">Hardware Acceleration Engine</label>
+                    <select class="form-select form-select-sm" id="set-hwaccel">
+                      <option value="auto" selected>Auto / CPU</option>
+                      <option value="cuda">NVIDIA NVENC (CUDA)</option>
+                      <option value="qsv">Intel QuickSync (QSV)</option>
+                      <option value="amf">AMD AMF</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-threads">Thread Count</label>
+                    <select class="form-select form-select-sm" id="set-threads">
+                      <option value="0" selected>Auto (0)</option>
+                      <option value="2">2 Threads</option>
+                      <option value="4">4 Threads</option>
+                      <option value="8">8 Threads</option>
+                    </select>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small fw-medium" for="set-output-dir">Default Output Directory</label>
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control font-monospace" id="set-output-dir" readonly />
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Select default output directory">Browse...</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Command Preview & Execution Controls -->
+          <div class="card mb-3 shadow-sm border-secondary-subtle">
+            <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold small text-body-secondary">Command Preview</span>
+              <button class="btn btn-link btn-sm text-body-secondary p-0 text-decoration-none" id="btn-copy-cmd" type="button" title="Copy command string">
+                <i class="bi bi-clipboard"></i> Copy
+              </button>
+            </div>
+            <div class="card-body p-3 bg-body-tertiary">
+              <code class="d-block text-break font-monospace small user-select-all text-body" id="cmd-preview">ffmpeg -i ...</code>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="text-body-secondary small" id="status-message">Ready</div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-cancel" disabled title="Cancel active job">Cancel</button>
+              <button class="btn btn-primary btn-sm px-4" type="button" id="btn-execute" title="Run processing operation">Execute</button>
+            </div>
+          </div>
+
+          <!-- Progress & Logs Accordion -->
+          <div class="card shadow-sm border-secondary-subtle">
+            <div class="card-header bg-body py-2 px-3 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold small text-body-secondary">Execution Status & Log Output</span>
+              <span class="small font-monospace text-body-secondary" id="progress-pct">0%</span>
+            </div>
+            <div class="card-body p-3">
+              <div class="progress mb-2" style="height: 6px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="job-progress-bar" role="progressbar" style="width: 0%"></div>
+              </div>
+              <div class="d-flex justify-content-between small text-body-secondary mb-3">
+                <span id="stat-time">Time: 00:00:00</span>
+                <span id="stat-fps">FPS: 0</span>
+                <span id="stat-speed">Speed: 0x</span>
+                <span id="stat-bitrate">Bitrate: 0 kbits/s</span>
+              </div>
+              <div class="bg-black text-success-emphasis p-2 rounded font-monospace small overflow-y-auto" style="height: 140px; font-size: 0.8rem;" id="log-console">
+                <div class="text-secondary">[Ready to process tasks]</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
   </body>
 </html>
