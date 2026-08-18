@@ -217,21 +217,43 @@
                     </select>
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label small fw-medium" for="aud-bitrate">Audio Bitrate</label>
+                    <label class="form-label small fw-medium" for="aud-bitrate">Audio Bitrate / Quality</label>
                     <select class="form-select form-select-sm" id="aud-bitrate">
-                      <option value="320k">320 kbps (High Quality)</option>
-                      <option value="256k" selected>256 kbps (Standard)</option>
-                      <option value="192k">192 kbps</option>
-                      <option value="128k">128 kbps (Compact)</option>
+                      <option value="320k">320 kbps (Max Quality)</option>
+                      <option value="256k" selected>256 kbps (High Quality)</option>
+                      <option value="192k">192 kbps (Standard Quality)</option>
+                      <option value="128k">128 kbps (Good / Compact)</option>
+                      <option value="96k">96 kbps (Speech)</option>
+                      <option value="64k">64 kbps (Low Bitrate)</option>
+                      <option value="copy">Direct Copy (Stream Copy - Lossless)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="aud-channels">Audio Channels</label>
+                    <select class="form-select form-select-sm" id="aud-channels">
+                      <option value="original" selected>Keep Original</option>
+                      <option value="2">Stereo (2 Channels)</option>
+                      <option value="1">Mono (1 Channel)</option>
+                      <option value="6">5.1 Surround (6 Channels)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="aud-samplerate">Sample Rate</label>
+                    <select class="form-select form-select-sm" id="aud-samplerate">
+                      <option value="original" selected>Keep Original</option>
+                      <option value="48000">48 kHz (48000 Hz - Video Standard)</option>
+                      <option value="44100">44.1 kHz (44100 Hz - CD Standard)</option>
+                      <option value="96000">96 kHz (96000 Hz - High Res)</option>
+                      <option value="22050">22.05 kHz (22050 Hz)</option>
                     </select>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="aud-volume">Volume and Normalization</label>
                     <select class="form-select form-select-sm" id="aud-volume">
                       <option value="none" selected>Original Volume</option>
-                      <option value="loudnorm">Loudnorm (EBU R128 Normalize)</option>
-                      <option value="vol_150">Boost +50%</option>
-                      <option value="vol_200">Boost +100%</option>
+                      <option value="vol_3db">Boost Volume (+3 dB)</option>
+                      <option value="vol_6db">Boost Volume (+6 dB)</option>
+                      <option value="loudnorm">Normalize Volume (EBU R128 loudnorm)</option>
                     </select>
                   </div>
                 </div>

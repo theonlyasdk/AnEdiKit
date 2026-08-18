@@ -119,6 +119,8 @@ export function buildAudioExtractCommand(inputFile, outputDir, settings = {}) {
       ?.replace(/\.[^/.]+$/, "") || "output_audio";
   const fmt = document.getElementById("aud-format")?.value || "mp3";
   const bitrate = document.getElementById("aud-bitrate")?.value || "256k";
+  const channels = document.getElementById("aud-channels")?.value || "original";
+  const samplerate = document.getElementById("aud-samplerate")?.value || "original";
   const volume = document.getElementById("aud-volume")?.value || "none";
 
   const dst = resolveDestinationPath(`${baseName}_extracted.${fmt}`, settings);
@@ -126,36 +128,51 @@ export function buildAudioExtractCommand(inputFile, outputDir, settings = {}) {
   args.push("-i", src);
   args.push("-vn");
 
-  const codecMap = {
-    mp3: "libmp3lame",
-    m4a: "aac",
-    flac: "flac",
-    wav: "pcm_s16le",
-    ogg: "libvorbis",
-    opus: "libopus",
-    wma: "wmav2",
-    aiff: "pcm_s16be",
-    ac3: "ac3",
-    dts: "dca",
-    amr: "libopencore_amrnb",
-    mka: "flac",
-    mp2: "mp2",
-  };
+  if (bitrate === "copy") {
+    args.push("-c:a", "copy");
+  } else {
+    const codecMap = {
+      mp3: "libmp3lame",
+      m4a: "aac",
+      flac: "flac",
+      wav: "pcm_s16le",
+      ogg: "libvorbis",
+      opus: "libopus",
+      wma: "wmav2",
+      aiff: "pcm_s16be",
+      ac3: "ac3",
+      dts: "dca",
+      amr: "libopencore_amrnb",
+      mka: "flac",
+      mp2: "mp2",
+    };
 
-  const codec = codecMap[fmt] || "libmp3lame";
-  args.push("-c:a", codec);
+    const codec = codecMap[fmt] || "libmp3lame";
+    args.push("-c:a", codec);
 
-  if (codec !== "flac" && codec !== "pcm_s16le") {
-    args.push("-b:a", bitrate);
+    if (codec !== "flac" && codec !== "pcm_s16le" && codec !== "pcm_s16be") {
+      args.push("-b:a", bitrate);
+    }
+
+    if (channels !== "original") {
+      args.push("-ac", channels);
+    }
+
+    if (samplerate !== "original") {
+      args.push("-ar", samplerate);
+    }
+
+    if (volume === "loudnorm") {
+      args.push("-af", "loudnorm=I=-16:TP=-1.5:LRA=11");
+    } else if (volume === "vol_3db") {
+      args.push("-af", "volume=3dB");
+    } else if (volume === "vol_6db") {
+      args.push("-af", "volume=6dB");
+    }
   }
 
-  if (volume === "loudnorm") {
-    args.push("-af", "loudnorm=I=-16:TP=-1.5:LRA=11");
-  } else if (volume === "vol_150") {
-    args.push("-af", "volume=1.5");
-  } else if (volume === "vol_200") {
-    args.push("-af", "volume=2.0");
-  }
+  // Preserve metadata tags
+  args.push("-map_metadata", "0");
 
   args.push("-progress", "pipe:1");
   args.push(dst);
