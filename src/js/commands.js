@@ -262,29 +262,80 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
       ?.replace(/\.[^/.]+$/, "") || "output_compressed";
 
   const preset = document.getElementById("comp-preset")?.value || "discord";
-  const customMb =
-    parseFloat(document.getElementById("comp-custom-mb")?.value) || 24;
+  const customMbInput = document.getElementById("comp-custom-mb");
+  const customMb = parseFloat(customMbInput?.value) || 24;
+  const scale = document.getElementById("comp-scale")?.value || "original";
+  const vcodec = document.getElementById("comp-vcodec")?.value || "libx264";
+
+  // Check source file size / duration from media element if available
+  const metaDurationEl = document.getElementById("meta-duration");
+  let durationSec = 120.0;
+  if (metaDurationEl && metaDurationEl.textContent && metaDurationEl.textContent !== "--:--:--") {
+    durationSec = parseTimestampToSeconds(metaDurationEl.textContent) || 120.0;
+  }
+
+  const metaSizeEl = document.getElementById("meta-size");
+  let srcSizeMb = 48.0;
+  if (metaSizeEl && metaSizeEl.textContent) {
+    const parsedMb = parseFloat(metaSizeEl.textContent);
+    if (!isNaN(parsedMb) && parsedMb > 0) srcSizeMb = parsedMb;
+  }
 
   let targetMb = 24;
-  if (preset === "whatsapp") targetMb = 15;
-  else if (preset === "email") targetMb = 10;
+  if (preset === "discord") targetMb = 24;
+  else if (preset === "discord_nitro") targetMb = 500;
+  else if (preset === "whatsapp") targetMb = 15;
+  else if (preset === "email") targetMb = 20;
+  else if (preset === "reduce_50") targetMb = Math.max(1, Math.round(srcSizeMb * 0.5));
+  else if (preset === "reduce_75") targetMb = Math.max(1, Math.round(srcSizeMb * 0.25));
   else if (preset === "custom") targetMb = customMb;
 
-  const durationSec = 120.0;
-  const audioBitrateK = 96;
-  const totalBitrateK = Math.floor((targetMb * 8192) / durationSec);
-  const videoBitrateK = Math.max(80, totalBitrateK - audioBitrateK);
+  const audioBitrateK = targetMb <= 15 ? 64 : 96;
+  // 5% margin for container overhead
+  const totalBitrateK = Math.floor((targetMb * 8192 * 0.95) / Math.max(1.0, durationSec));
+  const videoBitrateK = Math.max(60, totalBitrateK - audioBitrateK);
+
+  // Update estimation readout in UI
+  const estTarget = document.getElementById("comp-est-target");
+  const estVBitrate = document.getElementById("comp-est-vbitrate");
+  const estABitrate = document.getElementById("comp-est-abitrate");
+  if (estTarget) estTarget.textContent = `${targetMb} MB`;
+  if (estVBitrate) estVBitrate.textContent = `~${videoBitrateK.toLocaleString()} kbps`;
+  if (estABitrate) estABitrate.textContent = `${audioBitrateK} kbps`;
 
   const dst = resolveDestinationPath(`${baseName}_compressed.mp4`, settings);
 
   args.push("-i", src);
-  args.push("-c:v", "libx264");
+
+  // Resolution Filter
+  if (scale !== "original") {
+    const [w, h] = scale.split(":");
+    args.push(
+      "-vf",
+      `scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2`,
+    );
+  }
+
+  // Video Codec & Bitrate Budgeting
+  args.push("-c:v", vcodec);
   args.push("-b:v", `${videoBitrateK}k`);
-  args.push("-maxrate", `${Math.round(videoBitrateK * 1.5)}k`);
+  args.push("-maxrate", `${Math.round(videoBitrateK * 1.4)}k`);
   args.push("-bufsize", `${videoBitrateK * 2}k`);
-  args.push("-preset", "medium");
+  
+  if (vcodec === "libx264") {
+    args.push("-preset", "medium", "-pix_fmt", "yuv420p");
+  } else if (vcodec === "libx265") {
+    args.push("-preset", "medium", "-tag:v", "hvc1");
+  } else if (vcodec === "libsvtav1") {
+    args.push("-preset", "6");
+  }
+
+  // Audio Codec
   args.push("-c:a", "aac");
   args.push("-b:a", `${audioBitrateK}k`);
+
+  // Preserve metadata
+  args.push("-map_metadata", "0");
 
   args.push("-progress", "pipe:1");
   args.push(dst);
@@ -293,6 +344,7 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
     executable: "ffmpeg",
     args,
     destination: dst,
+    duration: durationSec,
     fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
   };
 }
