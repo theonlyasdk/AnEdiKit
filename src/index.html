@@ -12,82 +12,76 @@
   </head>
 
   <body class="bg-body-tertiary">
-    <div class="d-flex vh-100 overflow-hidden">
-      <!-- Sidebar -->
-      <aside class="sidebar bg-body border-end d-flex flex-column" style="width: 280px; min-width: 280px;">
-        <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
-          <div>
-            <h1 class="h6 mb-0 fw-semibold text-body">AnEdiKit</h1>
-            <small class="text-body-secondary">Creator Toolkit</small>
-          </div>
-          <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle">v0.1</span>
+    <div class="d-flex flex-column vh-100 overflow-hidden">
+      <!-- Unified Top Header Bar -->
+      <header class="d-flex border-bottom bg-body flex-shrink-0" style="height: 56px;">
+        <div class="d-flex align-items-center px-3 border-end flex-shrink-0" style="width: 280px;">
+          <h1 class="h6 mb-0 fw-semibold text-body">AnEdiKit</h1>
         </div>
-
-        <div class="overflow-y-auto flex-grow-1 p-2">
-          <div class="text-uppercase small fw-semibold text-body-secondary px-3 py-2">FFmpeg Tools</div>
-          <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
-            <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
-              <i class="bi bi-film text-body-secondary"></i>
-              <span>Convert Video</span>
-            </button>
-            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="extract_audio" type="button" title="Extract audio tracks or convert audio formats">
-              <i class="bi bi-music-note-beamed text-body-secondary"></i>
-              <span>Extract and Convert Audio</span>
-            </button>
-            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="trim" type="button" title="Trim or cut media with timestamps">
-              <i class="bi bi-scissors text-body-secondary"></i>
-              <span>Trim and Cut</span>
-            </button>
-            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress" type="button" title="Compress media for Discord, WhatsApp, or custom target size">
-              <i class="bi bi-file-earmark-zip text-body-secondary"></i>
-              <span>Compress Video</span>
-            </button>
-            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="merge" type="button" title="Combine multiple audio or video files">
-              <i class="bi bi-collection-play text-body-secondary"></i>
-              <span>Merge and Concat</span>
-            </button>
-            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="mute_replace" type="button" title="Mute or replace background audio">
-              <i class="bi bi-volume-mute text-body-secondary"></i>
-              <span>Mute or Replace Audio</span>
-            </button>
-            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="gif_frames" type="button" title="Generate animated GIFs or extract image frames">
-              <i class="bi bi-images text-body-secondary"></i>
-              <span>GIF and Frames</span>
-            </button>
-            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="custom" type="button" title="Run custom FFmpeg commands with live preview">
-              <i class="bi bi-terminal text-body-secondary"></i>
-              <span>Custom Command</span>
-            </button>
-          </nav>
-        </div>
-
-        <div class="p-2 border-top">
-          <nav class="nav nav-pills flex-column">
-            <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
-              <i class="bi bi-gear text-body-secondary"></i>
-              <span>Settings</span>
-            </button>
-          </nav>
-        </div>
-      </aside>
-
-      <!-- Main Content Area -->
-      <main class="flex-grow-1 d-flex flex-column overflow-hidden bg-body-tertiary">
-        <!-- Top Tool Header -->
-        <header class="p-3 bg-body border-bottom d-flex align-items-center justify-content-between">
-          <div>
-            <h2 class="h5 mb-1 text-body" id="current-tool-title">Convert Video Formats</h2>
-            <p class="small text-body-secondary mb-0" id="current-tool-desc">Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.</p>
+        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1">
+          <div class="d-flex align-items-center gap-3">
+            <h2 class="h6 mb-0 fw-semibold text-body" id="current-tool-title">Convert Video Formats</h2>
+            <span class="text-body-secondary small" id="current-tool-desc">Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.</span>
           </div>
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge text-bg-dark border border-secondary-subtle font-monospace small" id="hw-indicator">HW: Auto / CPU</span>
-          </div>
-        </header>
+        </div>
+      </header>
 
-        <!-- Tool Views Workspace -->
-        <div class="flex-grow-1 overflow-y-auto p-4" id="tool-workspace">
+      <!-- Main Layout Body -->
+      <div class="d-flex flex-grow-1 overflow-hidden">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" style="width: 280px;">
+          <div class="overflow-y-auto flex-grow-1 p-2">
+            <div class="text-uppercase small fw-semibold text-body-secondary px-3 py-2">FFmpeg Tools</div>
+            <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
+              <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
+                <i class="bi bi-film text-body-secondary"></i>
+                <span>Convert Video</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="extract_audio" type="button" title="Extract audio tracks or convert audio formats">
+                <i class="bi bi-music-note-beamed text-body-secondary"></i>
+                <span>Extract and Convert Audio</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="trim" type="button" title="Trim or cut media with timestamps">
+                <i class="bi bi-scissors text-body-secondary"></i>
+                <span>Trim and Cut</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress" type="button" title="Compress media for Discord, WhatsApp, or custom target size">
+                <i class="bi bi-file-earmark-zip text-body-secondary"></i>
+                <span>Compress Video</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="merge" type="button" title="Combine multiple audio or video files">
+                <i class="bi bi-collection-play text-body-secondary"></i>
+                <span>Merge and Concat</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="mute_replace" type="button" title="Mute or replace background audio">
+                <i class="bi bi-volume-mute text-body-secondary"></i>
+                <span>Mute or Replace Audio</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="gif_frames" type="button" title="Generate animated GIFs or extract image frames">
+                <i class="bi bi-images text-body-secondary"></i>
+                <span>GIF and Frames</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="custom" type="button" title="Run custom FFmpeg commands with live preview">
+                <i class="bi bi-terminal text-body-secondary"></i>
+                <span>Custom Command</span>
+              </button>
+            </nav>
+          </div>
+
+          <div class="p-2 border-top">
+            <nav class="nav nav-pills flex-column">
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
+                <i class="bi bi-gear text-body-secondary"></i>
+                <span>Settings</span>
+              </button>
+            </nav>
+          </div>
+        </aside>
+
+        <!-- Tool Workspace Panel -->
+        <main class="flex-grow-1 overflow-y-auto p-4 bg-body-tertiary" id="tool-workspace">
           
-          <!-- Shared File Selection Card (For single file tools) -->
+          <!-- Shared File Selection Card -->
           <div class="card mb-3 shadow-sm border-secondary-subtle" id="shared-input-card">
             <div class="card-header bg-body py-2 px-3">
               <span class="fw-semibold small text-body-secondary">Input File</span>
@@ -467,8 +461,8 @@
             </div>
           </div>
 
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   </body>
 </html>

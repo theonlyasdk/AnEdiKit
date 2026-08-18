@@ -10,7 +10,6 @@ The interface follows a simple and predictable workflow, making tools easy to di
 
 AnEditKit also supports on-device neural processing for features such as background removal and image upscaling, allowing these operations to run locally without requiring files to be uploaded to external services. This keeps creator data on the user's device while providing advanced processing capabilities.
 
-
 Tech:
 - Application Type: Desktop app (Tauri v2)
 - Frontend: HTML5, CSS3, JavaScript
@@ -41,6 +40,9 @@ Avoid:
 - No icons that don't clearly match their meaning
 - No excessive use of emojis
 - Don't use emojis as a replacement for real icons
+- No version tags like v0.1 or build badges in UI
+- No random monospace badges or decorative status pills
+- Keep a clean table-like grid layout (fixed sidebar on left, unified top bar spanning across sidebar header and main tool titlebar in a crisp grid alignment)
 - No floating pills or badges like "AI Powered" or "Trusted by 10k+ teams" unless useful
 - No "modern", "innovative", or "next-gen" styling without a reason
 - No purposeless whitespace or uniform padding everywhere
