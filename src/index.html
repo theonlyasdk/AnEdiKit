@@ -441,12 +441,16 @@
                 </div>
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-ffmpeg-bin">FFmpeg Executable</label>
-                    <input type="text" class="form-control form-control-sm" id="set-ffmpeg-bin" value="ffmpeg (System PATH)" readonly />
+                    <div class="p-2 px-3 border rounded bg-body d-flex justify-content-between align-items-center">
+                      <span class="small fw-medium">FFmpeg Engine</span>
+                      <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ffmpeg-installed">Installed</span>
+                    </div>
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-ffprobe-bin">FFprobe Executable</label>
-                    <input type="text" class="form-control form-control-sm" id="set-ffprobe-bin" value="ffprobe (System PATH)" readonly />
+                    <div class="p-2 px-3 border rounded bg-body d-flex justify-content-between align-items-center">
+                      <span class="small fw-medium">FFprobe Analyzer</span>
+                      <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ffprobe-installed">Installed</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -516,8 +520,8 @@
       </footer>
     </div>
 
-    <!-- Manage Tools Dialog (Center Modal with iOS Bounce Animation) -->
-    <div class="modal fade ios-bounce" id="manage-tools-modal" tabindex="-1" aria-labelledby="manageToolsModalLabel" aria-hidden="true">
+    <!-- Manage Tools Dialog (Center Modal with Smooth Two-Way Zoom) -->
+    <div class="modal fade" id="manage-tools-modal" tabindex="-1" aria-labelledby="manageToolsModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">

@@ -96,6 +96,24 @@ export async function refreshToolsUI() {
 
   if (elFfmpegLocal) elFfmpegLocal.textContent = localInfo.ffmpeg_installed || "Not Found";
   if (elFfmpegLatest) elFfmpegLatest.textContent = latestInfo.ffmpeg_latest || "Unknown";
+
+  // Update Settings Executables status badges
+  const statusFfmpeg = document.getElementById("status-ffmpeg-installed");
+  const statusFfprobe = document.getElementById("status-ffprobe-installed");
+  if (statusFfmpeg) {
+    const isInstalled = localInfo.ffmpeg_installed && localInfo.ffmpeg_installed !== "Not Found";
+    statusFfmpeg.textContent = isInstalled ? "Installed" : "Not Installed";
+    statusFfmpeg.className = isInstalled
+      ? "badge text-bg-success-subtle text-success border border-success-subtle"
+      : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
+  }
+  if (statusFfprobe) {
+    const isInstalled = localInfo.ffprobe_installed && localInfo.ffprobe_installed !== "Not Found";
+    statusFfprobe.textContent = isInstalled ? "Installed" : "Not Installed";
+    statusFfprobe.className = isInstalled
+      ? "badge text-bg-success-subtle text-success border border-success-subtle"
+      : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
+  }
 }
 
 export function simulateToolUpdate(toolName, callback) {
@@ -132,6 +150,26 @@ export function simulateToolUpdate(toolName, callback) {
 }
 
 export function initToolsManager() {
+  // Initialize settings status badges on startup
+  checkLocalToolVersions().then((localInfo) => {
+    const statusFfmpeg = document.getElementById("status-ffmpeg-installed");
+    const statusFfprobe = document.getElementById("status-ffprobe-installed");
+    if (statusFfmpeg) {
+      const isInstalled = localInfo.ffmpeg_installed && localInfo.ffmpeg_installed !== "Not Found";
+      statusFfmpeg.textContent = isInstalled ? "Installed" : "Not Installed";
+      statusFfmpeg.className = isInstalled
+        ? "badge text-bg-success-subtle text-success border border-success-subtle"
+        : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
+    }
+    if (statusFfprobe) {
+      const isInstalled = localInfo.ffprobe_installed && localInfo.ffprobe_installed !== "Not Found";
+      statusFfprobe.textContent = isInstalled ? "Installed" : "Not Installed";
+      statusFfprobe.className = isInstalled
+        ? "badge text-bg-success-subtle text-success border border-success-subtle"
+        : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
+    }
+  });
+
   const modal = document.getElementById("manage-tools-modal");
   if (modal) {
     modal.addEventListener("show.bs.modal", () => {
