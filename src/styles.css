@@ -115,26 +115,26 @@ a:active,
   margin-left: 0.75rem;
 }
 
-/* View Transition Animations (Directional vertical slide + fade) */
-.tool-view {
+/* View Transition Animations (Directional vertical slide + fade for entire root view container) */
+.view-animated {
   animation-duration: 0.22s;
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
   animation-fill-mode: both;
   will-change: transform, opacity;
 }
 
-.tool-view.slide-from-bottom {
+.view-animated.slide-from-bottom {
   animation-name: viewSlideFromBottom;
 }
 
-.tool-view.slide-from-top {
+.view-animated.slide-from-top {
   animation-name: viewSlideFromTop;
 }
 
 @keyframes viewSlideFromBottom {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -145,7 +145,7 @@ a:active,
 @keyframes viewSlideFromTop {
   from {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(-14px);
   }
   to {
     opacity: 1;

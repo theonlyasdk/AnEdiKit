@@ -224,14 +224,19 @@ function updateToolView(toolId) {
   // Show/Hide tool views
   document.querySelectorAll(".tool-view").forEach((view) => {
     view.classList.add("d-none");
-    view.classList.remove("slide-from-bottom", "slide-from-top");
   });
 
   const activeView = document.getElementById(`view-${toolId}`);
   if (activeView) {
     activeView.classList.remove("d-none");
-    void activeView.offsetWidth;
-    activeView.classList.add(isDown ? "slide-from-bottom" : "slide-from-top");
+  }
+
+  // Trigger unified view transition animation on the entire root view container
+  const viewContainer = document.getElementById("tool-view-container");
+  if (viewContainer) {
+    viewContainer.classList.remove("slide-from-bottom", "slide-from-top");
+    void viewContainer.offsetWidth;
+    viewContainer.classList.add(isDown ? "slide-from-bottom" : "slide-from-top");
   }
 
   // Save active tool state to LocalStorage
