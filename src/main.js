@@ -213,6 +213,8 @@ function updateToolView(toolId) {
   const activeView = document.getElementById(`view-${toolId}`);
   if (activeView) {
     activeView.classList.remove("d-none");
+  }
+
   // Save active tool state to LocalStorage
   try {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_TOOL, toolId);

@@ -66,10 +66,9 @@ a:active,
   display: flex;
   align-items: center;
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 1rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: normal;
   color: var(--bs-secondary-color);
   padding: 0.5rem 0.5rem;
   margin-bottom: 0.25rem;
@@ -94,10 +93,9 @@ a:active,
 .section-divider-header {
   display: flex;
   align-items: center;
-  font-size: 0.75rem;
+  font-size: 1rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: normal;
   color: var(--bs-secondary-color);
   margin-bottom: 1rem;
 }
