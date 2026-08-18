@@ -309,9 +309,37 @@ a:active,
   .brand-header-btn:active {
     opacity: 0.75;
   }
-  .header-brand-col {
-    width: auto !important;
+  .header-brand-col,
+  .bottom-settings-col {
+    width: 160px !important;
     min-width: 140px;
+  }
+
+  .bottom-settings-col {
+    padding: 0.35rem 0.5rem !important;
+  }
+
+  .bottom-settings-col #settings-nav {
+    width: 100% !important;
+    height: 100% !important;
+    display: flex;
+    align-items: center;
+  }
+
+  .bottom-settings-col #settings-nav .nav-link {
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0.4rem 0.6rem !important;
+    border-radius: var(--bs-border-radius);
+    justify-content: center;
+  }
+
+  .bottom-settings-col #settings-indicator {
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: var(--bs-border-radius);
   }
 
   .sidebar {
@@ -341,10 +369,6 @@ a:active,
     background: rgba(0, 0, 0, 0.5);
     z-index: 1030;
     animation: fadeInBackdrop 0.2s ease forwards;
-  }
-
-  .bottom-settings-col {
-    width: auto !important;
   }
 }
 
