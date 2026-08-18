@@ -263,21 +263,31 @@
             <!-- TOOL 3: Trim & Cut -->
             <div class="tool-view d-none" id="view-trim">
               <div class="mb-4">
-                <div class="section-divider-header">Trim Range</div>
+                <div class="section-divider-header">Trim & Cut Parameters</div>
                 <div class="row g-3">
                   <div class="col-md-4">
-                    <label class="form-label small fw-medium" for="trim-start">Start Timestamp (HH:MM:SS.ms)</label>
-                    <input type="text" class="form-control form-control-sm" id="trim-start" value="00:00:00.000" />
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label class="form-label small fw-medium mb-0" for="trim-start">Start Timestamp</label>
+                      <button class="btn btn-link btn-sm text-decoration-none p-0 small text-body-secondary" type="button" id="btn-trim-set-start-0" title="Reset start timestamp to 00:00:00">00:00:00</button>
+                    </div>
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control font-sans" id="trim-start" value="00:00:00.000" placeholder="00:00:00.000" />
+                    </div>
                   </div>
                   <div class="col-md-4">
-                    <label class="form-label small fw-medium" for="trim-end">End Timestamp (HH:MM:SS.ms)</label>
-                    <input type="text" class="form-control form-control-sm" id="trim-end" value="00:01:00.000" />
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label class="form-label small fw-medium mb-0" for="trim-end">End Timestamp</label>
+                      <button class="btn btn-link btn-sm text-decoration-none p-0 small text-body-secondary" type="button" id="btn-trim-set-end-dur" title="Set end timestamp to full media duration">Set Duration</button>
+                    </div>
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control font-sans" id="trim-end" value="00:01:00.000" placeholder="00:01:00.000" />
+                    </div>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="trim-mode">Cut Mode</label>
                     <select class="form-select form-select-sm" id="trim-mode">
-                      <option value="copy" selected>Fast Lossless Copy (Keyframe accurate)</option>
-                      <option value="reencode">Accurate Re-encode (Frame accurate)</option>
+                      <option value="copy" selected>Fast Stream Copy (Lossless, cuts at nearest keyframe)</option>
+                      <option value="reencode">Accurate Cut (Frame-perfect re-encode with H.264/AAC)</option>
                     </select>
                   </div>
                 </div>

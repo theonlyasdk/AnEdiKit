@@ -75,6 +75,14 @@ export function updateAutoOutputFilename(force = false) {
   }
 }
 
+function syncMediaDurationToTools(mediaInfo) {
+  if (!mediaInfo || !mediaInfo.duration_string) return;
+  const trimEnd = document.getElementById("trim-end");
+  if (trimEnd && (trimEnd.value === "00:01:00.000" || !trimEnd.value)) {
+    trimEnd.value = `${mediaInfo.duration_string}.000`;
+  }
+}
+
 export function updateExecuteButtonState() {
   const btnExecute = document.getElementById("btn-execute");
   const activeTool = getCurrentActiveTool();
@@ -187,7 +195,8 @@ function bindFormEvents() {
     btnBrowseInput.addEventListener("click", async () => {
       const activeTool = getCurrentActiveTool();
       const filterMode = activeTool === "extract_audio" ? "audio" : "all";
-      await selectMediaFile(filterMode);
+      const info = await selectMediaFile(filterMode);
+      if (info) syncMediaDurationToTools(info);
       updateAutoOutputFilename(true);
       updateCommandPreview();
     });
@@ -245,6 +254,29 @@ function bindFormEvents() {
     });
   }
 
+  // Trim preset buttons
+  const btnTrimStart0 = document.getElementById("btn-trim-set-start-0");
+  const btnTrimEndDur = document.getElementById("btn-trim-set-end-dur");
+  const trimStartInput = document.getElementById("trim-start");
+  const trimEndInput = document.getElementById("trim-end");
+
+  if (btnTrimStart0 && trimStartInput) {
+    btnTrimStart0.addEventListener("click", () => {
+      trimStartInput.value = "00:00:00.000";
+      updateCommandPreview();
+    });
+  }
+
+  if (btnTrimEndDur && trimEndInput) {
+    btnTrimEndDur.addEventListener("click", () => {
+      const mediaInfo = getCurrentMediaInfo();
+      if (mediaInfo && mediaInfo.duration_string) {
+        trimEndInput.value = `${mediaInfo.duration_string}.000`;
+      }
+      updateCommandPreview();
+    });
+  }
+
   // Execute / Cancel Button
   const btnExecute = document.getElementById("btn-execute");
   if (btnExecute) {
@@ -254,7 +286,7 @@ function bindFormEvents() {
       } else {
         const cmdObj = updateCommandPreview();
         const mediaInfo = getCurrentMediaInfo();
-        const totalDuration = mediaInfo?.duration_seconds || 0.0;
+        const totalDuration = cmdObj?.duration || mediaInfo?.duration_seconds || 0.0;
         if (cmdObj) {
           executeFfmpegJob(cmdObj, totalDuration);
         }
@@ -276,6 +308,8 @@ function bindFormEvents() {
           }
         });
       }
+      const mediaInfo = getCurrentMediaInfo();
+      if (mediaInfo) syncMediaDurationToTools(mediaInfo);
       updateAutoOutputFilename(true);
       updateCommandPreview();
     });
@@ -425,11 +459,14 @@ document.addEventListener("DOMContentLoaded", () => {
   populateSettingsUI();
   initToolsManager();
   initDragAndDrop((mediaInfo) => {
+    if (mediaInfo) syncMediaDurationToTools(mediaInfo);
     updateAutoOutputFilename(true);
     updateCommandPreview();
   });
   bindFormEvents();
   initNavigation((toolId) => {
+    const mediaInfo = getCurrentMediaInfo();
+    if (mediaInfo) syncMediaDurationToTools(mediaInfo);
     updateAutoOutputFilename();
     updateCommandPreview();
   });

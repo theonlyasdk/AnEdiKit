@@ -185,6 +185,18 @@ export function buildAudioExtractCommand(inputFile, outputDir, settings = {}) {
   };
 }
 
+export function parseTimestampToSeconds(ts) {
+  if (!ts) return 0;
+  const parts = ts.trim().split(":");
+  if (parts.length === 3) {
+    return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+  }
+  if (parts.length === 2) {
+    return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+  }
+  return parseFloat(ts) || 0;
+}
+
 export function buildTrimCommand(inputFile, outputDir, settings = {}) {
   const args = ["-y"];
   const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
@@ -194,30 +206,48 @@ export function buildTrimCommand(inputFile, outputDir, settings = {}) {
       .pop()
       ?.replace(/\.[^/.]+$/, "") || "output_trimmed";
   const ext = (src.split(".").pop() || "mp4").toLowerCase();
+  const isAudioOnly = ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aiff"].includes(ext);
 
-  const start = document.getElementById("trim-start")?.value || "00:00:00";
-  const end = document.getElementById("trim-end")?.value || "00:00:10";
+  const start = document.getElementById("trim-start")?.value?.trim() || "00:00:00.000";
+  const end = document.getElementById("trim-end")?.value?.trim() || "00:01:00.000";
   const mode = document.getElementById("trim-mode")?.value || "copy";
 
   const dst = resolveDestinationPath(`${baseName}_trimmed.${ext}`, settings);
 
-  args.push("-ss", start);
-  args.push("-to", end);
+  if (start && start !== "00:00:00" && start !== "00:00:00.000") {
+    args.push("-ss", start);
+  }
+  if (end) {
+    args.push("-to", end);
+  }
   args.push("-i", src);
 
   if (mode === "copy") {
     args.push("-c", "copy");
   } else {
-    args.push("-c:v", "libx264", "-crf", "20", "-c:a", "aac", "-b:a", "192k");
+    if (isAudioOnly) {
+      args.push("-c:a", ext === "flac" ? "flac" : ext === "wav" ? "pcm_s16le" : "aac");
+      if (ext !== "flac" && ext !== "wav") args.push("-b:a", "192k");
+    } else {
+      args.push("-c:v", "libx264", "-crf", "20", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k");
+    }
   }
+
+  // Preserve metadata
+  args.push("-map_metadata", "0");
 
   args.push("-progress", "pipe:1");
   args.push(dst);
+
+  const startSec = parseTimestampToSeconds(start);
+  const endSec = parseTimestampToSeconds(end);
+  const duration = Math.max(1.0, endSec - startSec);
 
   return {
     executable: "ffmpeg",
     args,
     destination: dst,
+    duration,
     fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
   };
 }
