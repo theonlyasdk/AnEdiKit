@@ -175,7 +175,23 @@ function updateSidebarIndicator(activeBtn) {
   }
 }
 
+const toolOrder = [
+  "convert",
+  "extract_audio",
+  "trim",
+  "compress",
+  "merge",
+  "mute_replace",
+  "gif_frames",
+  "custom",
+  "settings"
+];
+
 function updateToolView(toolId) {
+  const prevIndex = toolOrder.indexOf(currentToolId);
+  const nextIndex = toolOrder.indexOf(toolId);
+  const isDown = nextIndex >= prevIndex;
+
   currentToolId = toolId;
   const meta = toolsMeta[toolId] || toolsMeta.convert;
 
@@ -208,11 +224,14 @@ function updateToolView(toolId) {
   // Show/Hide tool views
   document.querySelectorAll(".tool-view").forEach((view) => {
     view.classList.add("d-none");
+    view.classList.remove("slide-from-bottom", "slide-from-top");
   });
 
   const activeView = document.getElementById(`view-${toolId}`);
   if (activeView) {
     activeView.classList.remove("d-none");
+    void activeView.offsetWidth;
+    activeView.classList.add(isDown ? "slide-from-bottom" : "slide-from-top");
   }
 
   // Save active tool state to LocalStorage
