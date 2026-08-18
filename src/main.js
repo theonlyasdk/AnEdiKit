@@ -48,17 +48,91 @@ const toolsMeta = {
   }
 };
 
+const STORAGE_KEYS = {
+  ACTIVE_TOOL: "anedikit:active_tool",
+  SETTINGS: "anedikit:settings",
+  LAST_INPUT: "anedikit:last_input_file",
+  TOOL_PARAMS: "anedikit:tool_params:"
+};
+
 let currentToolId = "convert";
 let currentInputFile = "";
 let currentOutputDir = "C:\\Users\\User\\Videos";
 let mergeFiles = [];
 
 function initApp() {
+  loadSavedSettings();
   setupNavigation();
   setupInputs();
   setupCommandPreviewListeners();
-  updateToolView("convert");
+
+  const savedTool = localStorage.getItem(STORAGE_KEYS.ACTIVE_TOOL);
+  const initialTool = savedTool && toolsMeta[savedTool] ? savedTool : "convert";
+
+  updateToolView(initialTool);
   updateCommandPreview();
+}
+
+function loadSavedSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    if (!raw) return;
+    const settings = JSON.parse(raw);
+
+    if (settings.outputDir) {
+      currentOutputDir = settings.outputDir;
+      const el = document.getElementById("set-output-dir");
+      if (el) el.value = currentOutputDir;
+    }
+    if (settings.hwaccel) {
+      const el = document.getElementById("set-hwaccel");
+      if (el) el.value = settings.hwaccel;
+    }
+    if (settings.threads) {
+      const el = document.getElementById("set-threads");
+      if (el) el.value = settings.threads;
+    }
+    if (settings.defVcodec) {
+      const el = document.getElementById("set-def-vcodec");
+      if (el) el.value = settings.defVcodec;
+    }
+    if (settings.defSpeed) {
+      const el = document.getElementById("set-def-speed");
+      if (el) el.value = settings.defSpeed;
+    }
+    if (settings.defAformat) {
+      const el = document.getElementById("set-def-aformat");
+      if (el) el.value = settings.defAformat;
+    }
+    if (settings.defAbitrate) {
+      const el = document.getElementById("set-def-abitrate");
+      if (el) el.value = settings.defAbitrate;
+    }
+    if (typeof settings.promptOverwrite === "boolean") {
+      const el = document.getElementById("set-prompt-overwrite");
+      if (el) el.checked = settings.promptOverwrite;
+    }
+  } catch (e) {
+    console.warn("Failed to parse saved settings:", e);
+  }
+}
+
+function saveSettings() {
+  try {
+    const settings = {
+      outputDir: document.getElementById("set-output-dir")?.value || currentOutputDir,
+      promptOverwrite: document.getElementById("set-prompt-overwrite")?.checked ?? true,
+      hwaccel: document.getElementById("set-hwaccel")?.value || "auto",
+      threads: document.getElementById("set-threads")?.value || "0",
+      defVcodec: document.getElementById("set-def-vcodec")?.value || "libx264",
+      defSpeed: document.getElementById("set-def-speed")?.value || "medium",
+      defAformat: document.getElementById("set-def-aformat")?.value || "mp3",
+      defAbitrate: document.getElementById("set-def-abitrate")?.value || "256k"
+    };
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  } catch (e) {
+    console.warn("Failed to save settings:", e);
+  }
 }
 
 function setupNavigation() {
@@ -139,6 +213,11 @@ function updateToolView(toolId) {
   const activeView = document.getElementById(`view-${toolId}`);
   if (activeView) {
     activeView.classList.remove("d-none");
+  // Save active tool state to LocalStorage
+  try {
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_TOOL, toolId);
+  } catch (e) {
+    console.warn("Failed to persist active tool:", e);
   }
 
   updateCommandPreview();
@@ -266,8 +345,18 @@ function renderMergeList() {
 function setupCommandPreviewListeners() {
   const formElements = document.querySelectorAll("select, input");
   formElements.forEach((el) => {
-    el.addEventListener("input", updateCommandPreview);
-    el.addEventListener("change", updateCommandPreview);
+    el.addEventListener("input", () => {
+      if (el.closest("#view-settings")) {
+        saveSettings();
+      }
+      updateCommandPreview();
+    });
+    el.addEventListener("change", () => {
+      if (el.closest("#view-settings")) {
+        saveSettings();
+      }
+      updateCommandPreview();
+    });
   });
 }
 

@@ -87,6 +87,14 @@ Avoid:
 - Do not mix unrelated design systems with Bootstrap
 - When unsure, choose the closest Bootstrap 5 pattern instead of inventing a new one
 
+# LocalStorage Key System
+
+All localStorage keys must follow the `anedikit:` namespace convention:
+- `anedikit:active_tool`: Currently selected active sidebar tool ID (e.g. `convert`, `extract_audio`, `trim`, `compress`, `merge`, `mute_replace`, `gif_frames`, `custom`, `settings`).
+- `anedikit:settings`: Application settings JSON object (output directory, overwrite prompt, hardware acceleration engine, thread count, default video codec, default speed preset, default audio format, default audio bitrate).
+- `anedikit:last_input_file`: Path of the most recently chosen media file.
+- `anedikit:tool_params:<tool_id>`: Saved parameters per specific tool view.
+
 # Success criteria
 
 Good implementations:
