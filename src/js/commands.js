@@ -399,6 +399,65 @@ export function buildMergeCommand(mergeFiles = [], outputDir, settings = {}, con
   };
 }
 
+export function buildMuteReplaceCommand(inputFile, outputDir, settings = {}) {
+  const args = ["-y"];
+  const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
+  const baseName =
+    src
+      .split(/[/\\]/)
+      .pop()
+      ?.replace(/\.[^/.]+$/, "") || "output_video";
+  const ext = (src.split(".").pop() || "mp4").toLowerCase();
+
+  const action = document.getElementById("mute-action")?.value || "strip";
+  const secondAudio =
+    document.getElementById("second-audio-path")?.value?.trim() ||
+    "C:\\Users\\User\\Music\\background_audio.mp3";
+  const vol = document.getElementById("second-audio-vol")?.value || "1.0";
+
+  let suffix = "_muted";
+  if (action === "replace") suffix = "_audio_replaced";
+  else if (action === "mix") suffix = "_audio_mixed";
+
+  const dst = resolveDestinationPath(`${baseName}${suffix}.${ext}`, settings);
+
+  args.push("-i", src);
+
+  if (action === "strip") {
+    args.push("-an", "-c:v", "copy");
+  } else if (action === "replace") {
+    args.push("-i", secondAudio);
+    args.push("-map", "0:v:0", "-map", "1:a:0");
+    args.push("-c:v", "copy");
+    args.push("-c:a", "aac", "-b:a", "192k");
+    if (vol !== "1.0") {
+      args.push("-af", `volume=${vol}`);
+    }
+    args.push("-shortest");
+  } else if (action === "mix") {
+    args.push("-i", secondAudio);
+    const filter =
+      vol !== "1.0"
+        ? `[1:a]volume=${vol}[bg];[0:a][bg]amix=inputs=2:duration=first[a]`
+        : `[0:a][1:a]amix=inputs=2:duration=first[a]`;
+    args.push("-filter_complex", filter);
+    args.push("-map", "0:v:0", "-map", "[a]");
+    args.push("-c:v", "copy");
+    args.push("-c:a", "aac", "-b:a", "192k");
+  }
+
+  args.push("-map_metadata", "0");
+  args.push("-progress", "pipe:1");
+  args.push(dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
 export function buildCommandForTool(
   toolId,
   inputFile,
@@ -417,6 +476,8 @@ export function buildCommandForTool(
       return buildCompressCommand(inputFile, outputDir, settings);
     case "merge":
       return buildMergeCommand(extraParams.mergeFiles || [], outputDir, settings, extraParams.concatListPath);
+    case "mute_replace":
+      return buildMuteReplaceCommand(inputFile, outputDir, settings);
     default:
       return buildConvertCommand(inputFile, outputDir, settings);
   }

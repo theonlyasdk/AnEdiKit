@@ -392,22 +392,32 @@
             <!-- TOOL 6: Mute or Replace Audio -->
             <div class="tool-view d-none" id="view-mute_replace">
               <div class="mb-4">
-                <div class="section-divider-header">Audio Track Operation</div>
+                <div class="section-divider-header">Audio Track Operations</div>
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="mute-action">Action</label>
+                    <label class="form-label small fw-medium" for="mute-action">Operation</label>
                     <select class="form-select form-select-sm" id="mute-action">
-                      <option value="strip" selected>Mute / Strip Audio (Video Only)</option>
-                      <option value="replace">Replace Audio with New File</option>
-                      <option value="mix">Mix Background Audio with Existing Track</option>
+                      <option value="strip" selected>Mute / Strip Audio Track from Video</option>
+                      <option value="replace">Replace Audio Track with New Audio File</option>
+                      <option value="mix">Mix / Add Background Audio Track</option>
                     </select>
                   </div>
-                  <div class="col-md-6" id="second-audio-wrapper">
-                    <label class="form-label small fw-medium" for="second-audio-path">Replacement Audio File</label>
+                  <div class="col-md-6 d-none ui-zoom-in" id="second-audio-wrapper">
+                    <label class="form-label small fw-medium" for="second-audio-path">New / Background Audio File</label>
                     <div class="input-group input-group-sm">
-                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-audio" title="Select audio file">Browse...</button>
-                      <input type="text" class="form-control" id="second-audio-path" placeholder="Select audio file..." readonly />
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-audio" title="Select replacement or background audio file">Browse...</button>
+                      <input type="text" class="form-control" id="second-audio-path" placeholder="Choose audio file..." readonly />
                     </div>
+                  </div>
+                  <div class="col-md-6 d-none ui-zoom-in" id="second-audio-vol-wrapper">
+                    <label class="form-label small fw-medium" for="second-audio-vol">Background Audio Volume</label>
+                    <select class="form-select form-select-sm" id="second-audio-vol">
+                      <option value="1.0" selected>100% (Standard)</option>
+                      <option value="0.75">75%</option>
+                      <option value="0.5">50% (Background Ducking)</option>
+                      <option value="0.25">25% (Subtle Background)</option>
+                      <option value="1.5">150% (Boost)</option>
+                    </select>
                   </div>
                 </div>
               </div>

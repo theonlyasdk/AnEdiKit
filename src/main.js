@@ -419,17 +419,50 @@ function bindFormEvents() {
 
   // Mute / Replace tool toggle
   const muteAction = document.getElementById("mute-action");
-  const secondAudioWrapper = document.getElementById("mute-second-audio-wrapper");
-  if (muteAction && secondAudioWrapper) {
+  const secondAudioWrapper = document.getElementById("second-audio-wrapper");
+  const secondAudioVolWrapper = document.getElementById("second-audio-vol-wrapper");
+  const btnBrowseAudio = document.getElementById("btn-browse-audio");
+  const secondAudioPathInput = document.getElementById("second-audio-path");
+
+  if (muteAction) {
     muteAction.addEventListener("change", () => {
       const show = muteAction.value !== "strip";
-      secondAudioWrapper.classList.toggle("d-none", !show);
-      if (show) {
-        secondAudioWrapper.classList.remove("ui-zoom-in");
-        void secondAudioWrapper.offsetWidth;
-        secondAudioWrapper.classList.add("ui-zoom-in");
+      if (secondAudioWrapper) {
+        secondAudioWrapper.classList.toggle("d-none", !show);
+        if (show) {
+          secondAudioWrapper.classList.remove("ui-zoom-in");
+          void secondAudioWrapper.offsetWidth;
+          secondAudioWrapper.classList.add("ui-zoom-in");
+        }
+      }
+      if (secondAudioVolWrapper) {
+        secondAudioVolWrapper.classList.toggle("d-none", !show);
+        if (show) {
+          secondAudioVolWrapper.classList.remove("ui-zoom-in");
+          void secondAudioVolWrapper.offsetWidth;
+          secondAudioVolWrapper.classList.add("ui-zoom-in");
+        }
       }
       updateCommandPreview();
+    });
+  }
+
+  if (btnBrowseAudio && secondAudioPathInput) {
+    btnBrowseAudio.addEventListener("click", async () => {
+      if (window.__TAURI__?.core?.invoke) {
+        try {
+          const picked = await window.__TAURI__.core.invoke("pick_file", { filter_mode: "audio" });
+          if (picked) {
+            secondAudioPathInput.value = picked;
+            updateCommandPreview();
+          }
+        } catch (e) {
+          console.warn("pick_file audio error:", e);
+        }
+      } else {
+        secondAudioPathInput.value = "C:\\Users\\User\\Music\\background_track.mp3";
+        updateCommandPreview();
+      }
     });
   }
 
