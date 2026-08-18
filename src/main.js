@@ -15,6 +15,7 @@ import {
   isJobRunning,
 } from "./js/runner.js";
 import { initNavigation, getCurrentActiveTool } from "./js/navigation.js";
+import { initToolsManager } from "./js/tools_manager.js";
 
 let appSettings = loadSettings();
 let mergeFiles = [];
@@ -264,6 +265,7 @@ function syncSettingsFromUI() {
 // App Initialization
 document.addEventListener("DOMContentLoaded", () => {
   populateSettingsUI();
+  initToolsManager();
   initDragAndDrop((mediaInfo) => {
     updateCommandPreview();
   });

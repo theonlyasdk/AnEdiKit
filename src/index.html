@@ -433,7 +433,12 @@
 
               <!-- Section 4: Executables & Environment -->
               <div class="mb-4">
-                <div class="section-divider-header">Executables & Environment</div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Executables & Environment</div>
+                  <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-manage-tools" data-bs-toggle="modal" data-bs-target="#manage-tools-modal" title="Manage, update, and check binaries">
+                    <i class="bi bi-tools"></i> Manage Tools...
+                  </button>
+                </div>
                 <div class="row g-3">
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="set-ffmpeg-bin">FFmpeg Executable</label>
@@ -509,6 +514,97 @@
           </div>
         </div>
       </footer>
+    </div>
+
+    <!-- Manage Tools Dialog (Center Modal with iOS Bounce Animation) -->
+    <div class="modal fade ios-bounce" id="manage-tools-modal" tabindex="-1" aria-labelledby="manageToolsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
+              <i class="bi bi-tools text-primary"></i> Manage Tools & Binaries
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            
+            <!-- Tool 1: yt-dlp -->
+            <div class="p-3 border rounded mb-3 bg-body-tertiary">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <div class="fw-semibold text-body">yt-dlp</div>
+                  <div class="text-body-secondary small">Command-line media audio and video downloader engine.</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-ytdlp">
+                  <i class="bi bi-arrow-repeat"></i> Update yt-dlp
+                </button>
+              </div>
+              <div class="d-flex gap-4 mt-2 small">
+                <div>Installed: <span class="text-body fw-medium" id="ytdlp-local-ver"><span class="meta-loading-pulse">...</span></span></div>
+                <div>Latest: <span class="text-body fw-medium" id="ytdlp-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
+              </div>
+            </div>
+
+            <!-- Tool 2: Deno -->
+            <div class="p-3 border rounded mb-3 bg-body-tertiary">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <div class="fw-semibold text-body">Deno</div>
+                  <div class="text-body-secondary small">JavaScript/TypeScript runtime engine used for YouTube deciphering.</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-deno">
+                  <i class="bi bi-arrow-repeat"></i> Update Deno
+                </button>
+              </div>
+              <div class="d-flex gap-4 mt-2 small">
+                <div>Installed: <span class="text-body fw-medium" id="deno-local-ver"><span class="meta-loading-pulse">...</span></span></div>
+                <div>Latest: <span class="text-body fw-medium" id="deno-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
+              </div>
+            </div>
+
+            <!-- Tool 3: FFmpeg & FFprobe -->
+            <div class="p-3 border rounded mb-3 bg-body-tertiary">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <div class="fw-semibold text-body">FFmpeg & FFprobe</div>
+                  <div class="text-body-secondary small">Core video and audio transcoding, filtering, and media probing suite.</div>
+                </div>
+                <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-ffmpeg">
+                  <i class="bi bi-arrow-repeat"></i> Update FFmpeg
+                </button>
+              </div>
+              <div class="d-flex gap-4 mt-2 small">
+                <div>Installed: <span class="text-body fw-medium" id="ffmpeg-local-ver"><span class="meta-loading-pulse">...</span></span></div>
+                <div>Latest: <span class="text-body fw-medium" id="ffmpeg-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
+              </div>
+            </div>
+
+            <!-- Update progress banner (conditional) -->
+            <div class="mb-3 d-none ui-zoom-in" id="tool-update-progress-container">
+              <div class="d-flex justify-content-between small text-body-secondary mb-1">
+                <span id="tool-update-status">Downloading update...</span>
+                <span id="tool-update-pct">0%</span>
+              </div>
+              <div class="progress" style="height: 6px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" id="tool-update-bar" role="progressbar" style="width: 100%"></div>
+              </div>
+            </div>
+
+            <!-- About Tools Collapsible / Information Box -->
+            <div class="p-2 border rounded bg-body small text-body-secondary">
+              <div class="fw-medium text-body mb-1">About Installed Binaries</div>
+              <div>Binaries are stored in <code>%LOCALAPPDATA%\ASDK\Shared\bin</code> or system PATH. Updating downloads official verified release executables directly from GitHub releases.</div>
+            </div>
+
+          </div>
+          <div class="modal-footer border-top py-2 px-3 justify-content-between">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-check-all-updates">
+              <i class="bi bi-arrow-clockwise"></i> Check for Updates
+            </button>
+            <button type="button" class="btn btn-primary btn-sm px-3" data-bs-dismiss="modal">Done</button>
+          </div>
+        </div>
+      </div>
     </div>
   </body>
 </html>

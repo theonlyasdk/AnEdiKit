@@ -81,6 +81,99 @@ fn pick_folder() -> Option<String> {
         .map(|p| p.to_string_lossy().to_string())
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct ToolVersionsInfo {
+    pub ytdlp_installed: String,
+    pub deno_installed: String,
+    pub ffmpeg_installed: String,
+    pub ffprobe_installed: String,
+}
+
+#[tauri::command]
+fn check_tool_versions() -> ToolVersionsInfo {
+    let mut info = ToolVersionsInfo {
+        ytdlp_installed: "Not Found".into(),
+        deno_installed: "Not Found".into(),
+        ffmpeg_installed: "Not Found".into(),
+        ffprobe_installed: "Not Found".into(),
+    };
+
+    // yt-dlp
+    let ytdlp_bin = find_binary("yt-dlp");
+    let mut cmd = Command::new(&ytdlp_bin);
+    cmd.arg("--version");
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+    if let Ok(out) = cmd.output() {
+        if out.status.success() {
+            if let Ok(s) = String::from_utf8(out.stdout) {
+                info.ytdlp_installed = s.trim().to_string();
+            }
+        }
+    }
+
+    // Deno
+    let deno_bin = find_binary("deno");
+    let mut cmd = Command::new(&deno_bin);
+    cmd.arg("--version");
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+    if let Ok(out) = cmd.output() {
+        if out.status.success() {
+            if let Ok(s) = String::from_utf8(out.stdout) {
+                if let Some(line1) = s.lines().next() {
+                    let ver = line1.replace("deno", "").trim().to_string();
+                    info.deno_installed = if ver.is_empty() { line1.trim().to_string() } else { ver };
+                }
+            }
+        }
+    }
+
+    // FFmpeg
+    let ffmpeg_bin = find_binary("ffmpeg");
+    let mut cmd = Command::new(&ffmpeg_bin);
+    cmd.arg("-version");
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+    if let Ok(out) = cmd.output() {
+        if out.status.success() {
+            if let Ok(s) = String::from_utf8(out.stdout) {
+                if let Some(line1) = s.lines().next() {
+                    let parts: Vec<&str> = line1.split_whitespace().collect();
+                    if parts.len() >= 3 {
+                        info.ffmpeg_installed = parts[2].to_string();
+                    } else {
+                        info.ffmpeg_installed = line1.trim().to_string();
+                    }
+                }
+            }
+        }
+    }
+
+    // FFprobe
+    let ffprobe_bin = find_binary("ffprobe");
+    let mut cmd = Command::new(&ffprobe_bin);
+    cmd.arg("-version");
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+    if let Ok(out) = cmd.output() {
+        if out.status.success() {
+            if let Ok(s) = String::from_utf8(out.stdout) {
+                if let Some(line1) = s.lines().next() {
+                    let parts: Vec<&str> = line1.split_whitespace().collect();
+                    if parts.len() >= 3 {
+                        info.ffprobe_installed = parts[2].to_string();
+                    } else {
+                        info.ffprobe_installed = line1.trim().to_string();
+                    }
+                }
+            }
+        }
+    }
+
+    info
+}
+
 fn find_binary(bin: &str) -> String {
     let mut check_cmd = Command::new(bin);
     check_cmd.arg("-version");
@@ -411,7 +504,8 @@ pub fn run() {
             pick_folder,
             get_media_info,
             execute_ffmpeg,
-            cancel_ffmpeg
+            cancel_ffmpeg,
+            check_tool_versions
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
