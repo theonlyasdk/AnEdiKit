@@ -297,25 +297,48 @@ export function initThemeManager() {
   if (chkDisableAnim) {
     chkDisableAnim.checked = !!settings.disableAnimations;
     chkDisableAnim.addEventListener("change", () => {
-      const disabled = chkDisableAnim.checked;
-      setAnimationsEnabled(!disabled);
-      settings.disableAnimations = disabled;
-      saveSettings(settings);
+      const currentSettings = loadSettings();
+      currentSettings.disableAnimations = chkDisableAnim.checked;
+      setAnimationsEnabled(!chkDisableAnim.checked);
+      saveSettings(currentSettings);
     });
   }
 
-  // Preset Selector
+  // Preset Selector & Prev/Next Buttons
   const presetSelect = document.getElementById("theme-preset-pick");
+  const btnPrevPreset = document.getElementById("btn-theme-preset-prev");
+  const btnNextPreset = document.getElementById("btn-theme-preset-next");
+  const presetKeys = Object.keys(THEME_PRESETS);
+
+  const applyPresetByKey = (key) => {
+    if (THEME_PRESETS[key]) {
+      const th = THEME_PRESETS[key];
+      if (presetSelect) presetSelect.value = key;
+      syncInputsFromTheme(th);
+      applyTheme(th);
+      saveCurrentTheme(th);
+    }
+  };
+
   if (presetSelect) {
     presetSelect.addEventListener("change", () => {
-      const val = presetSelect.value;
-      if (THEME_PRESETS[val]) {
-        const th = THEME_PRESETS[val];
-        syncInputsFromTheme(th);
-        applyTheme(th);
-        saveCurrentTheme(th);
-      }
+      applyPresetByKey(presetSelect.value);
     });
+  }
+
+  const cyclePreset = (delta) => {
+    const curVal = presetSelect ? presetSelect.value : "default_dark";
+    let curIdx = presetKeys.indexOf(curVal);
+    if (curIdx === -1) curIdx = 0;
+    const nextIdx = (curIdx + delta + presetKeys.length) % presetKeys.length;
+    applyPresetByKey(presetKeys[nextIdx]);
+  };
+
+  if (btnPrevPreset) {
+    btnPrevPreset.addEventListener("click", () => cyclePreset(-1));
+  }
+  if (btnNextPreset) {
+    btnNextPreset.addEventListener("click", () => cyclePreset(1));
   }
 
   // Custom Color inputs linking (Color picker <-> Hex text)

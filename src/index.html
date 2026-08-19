@@ -1244,17 +1244,25 @@
             <!-- Preset Palettes -->
             <div class="mb-4">
               <label class="form-label small fw-medium" for="theme-preset-pick">Preset Color Palettes</label>
-              <select class="form-select form-select-sm" id="theme-preset-pick">
-                <option value="bootstrap_dark">Bootstrap 5 Dark (Default Navy Slate)</option>
-                <option value="default_dark" selected>Default Modern Dark (Blue & Charcoal)</option>
-                <option value="midnight_blue">Midnight Blue (Indigo & Deep Navy)</option>
-                <option value="emerald_matrix">Emerald Green (Cyber Green & Black)</option>
-                <option value="sunset_crimson">Sunset Crimson (Ruby Red & Obsidian)</option>
-                <option value="amber_gold">Amber Gold (Warm Ochre & Dark Slate)</option>
-                <option value="monokai_pro">Monokai Pro (Purple & Dark Umber)</option>
-                <option value="nordic_frost">Nordic Frost (Ice Cyan & Polar Grey)</option>
-                <option value="custom">Custom Theme</option>
-              </select>
+              <div class="input-group input-group-sm">
+                <select class="form-select" id="theme-preset-pick">
+                  <option value="bootstrap_dark">Bootstrap 5 Dark (Default Navy Slate)</option>
+                  <option value="default_dark" selected>Default Modern Dark (Blue & Charcoal)</option>
+                  <option value="midnight_blue">Midnight Blue (Indigo & Deep Navy)</option>
+                  <option value="emerald_matrix">Emerald Green (Cyber Green & Black)</option>
+                  <option value="sunset_crimson">Sunset Crimson (Ruby Red & Obsidian)</option>
+                  <option value="amber_gold">Amber Gold (Warm Ochre & Dark Slate)</option>
+                  <option value="monokai_pro">Monokai Pro (Purple & Dark Umber)</option>
+                  <option value="nordic_frost">Nordic Frost (Ice Cyan & Polar Grey)</option>
+                  <option value="custom">Custom Theme</option>
+                </select>
+                <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-prev" title="Previous Preset">
+                  <i class="bi bi-chevron-left"></i>
+                </button>
+                <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-next" title="Next Preset">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+              </div>
             </div>
 
             <!-- Custom Color Table View -->
@@ -1275,7 +1283,7 @@
                   </tr>
                   <tr>
                     <td>
-                      <div class="fw-medium text-body"><span class="badge bg-primary me-1">&bull;</span> Primary</div>
+                      <div class="fw-medium text-body">Primary</div>
                       <div class="text-body-secondary" style="font-size: 0.75rem;">Main action buttons, active indicator, links</div>
                     </td>
                     <td class="text-center">
@@ -1287,7 +1295,7 @@
                   </tr>
                   <tr>
                     <td>
-                      <div class="fw-medium text-body"><span class="badge bg-secondary me-1">&bull;</span> Secondary</div>
+                      <div class="fw-medium text-body">Secondary</div>
                       <div class="text-body-secondary" style="font-size: 0.75rem;">Secondary buttons, browse buttons, muted labels</div>
                     </td>
                     <td class="text-center">
@@ -1299,7 +1307,7 @@
                   </tr>
                   <tr>
                     <td>
-                      <div class="fw-medium text-body"><span class="badge bg-success me-1">&bull;</span> Success</div>
+                      <div class="fw-medium text-body">Success</div>
                       <div class="text-body-secondary" style="font-size: 0.75rem;">Success badges, checkmarks, completed toast</div>
                     </td>
                     <td class="text-center">
@@ -1311,7 +1319,7 @@
                   </tr>
                   <tr>
                     <td>
-                      <div class="fw-medium text-body"><span class="badge bg-danger me-1">&bull;</span> Danger</div>
+                      <div class="fw-medium text-body">Danger</div>
                       <div class="text-body-secondary" style="font-size: 0.75rem;">Cancel buttons, errors, reset actions</div>
                     </td>
                     <td class="text-center">
@@ -1323,7 +1331,7 @@
                   </tr>
                   <tr>
                     <td>
-                      <div class="fw-medium text-body"><span class="badge bg-warning text-dark me-1">&bull;</span> Warning</div>
+                      <div class="fw-medium text-body">Warning</div>
                       <div class="text-body-secondary" style="font-size: 0.75rem;">Update buttons, caution alerts</div>
                     </td>
                     <td class="text-center">
@@ -1335,7 +1343,7 @@
                   </tr>
                   <tr>
                     <td>
-                      <div class="fw-medium text-body"><span class="badge bg-info text-dark me-1">&bull;</span> Info</div>
+                      <div class="fw-medium text-body">Info</div>
                       <div class="text-body-secondary" style="font-size: 0.75rem;">Informational badges, tool status readouts</div>
                     </td>
                     <td class="text-center">

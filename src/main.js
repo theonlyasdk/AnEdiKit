@@ -668,6 +668,7 @@ function renderMergeList() {
 function populateSettingsUI() {
   const setOutDir = document.getElementById("set-output-dir");
   const setPromptOver = document.getElementById("set-prompt-overwrite");
+  const setDisableAnim = document.getElementById("set-disable-animations");
   const setHw = document.getElementById("set-hwaccel");
   const setThr = document.getElementById("set-threads");
   const setDefVc = document.getElementById("set-def-vcodec");
@@ -677,6 +678,7 @@ function populateSettingsUI() {
 
   if (setOutDir) setOutDir.value = appSettings.outputDir || "C:\\Users\\User\\Videos";
   if (setPromptOver) setPromptOver.checked = !!appSettings.promptOverwrite;
+  if (setDisableAnim) setDisableAnim.checked = !!appSettings.disableAnimations;
   if (setHw) setHw.value = appSettings.hwAccel || "auto";
   if (setThr) setThr.value = appSettings.threads || "0";
   if (setDefVc) setDefVc.value = appSettings.defVCodec || "libx264";
@@ -688,6 +690,7 @@ function populateSettingsUI() {
 function syncSettingsFromUI() {
   const setOutDir = document.getElementById("set-output-dir");
   const setPromptOver = document.getElementById("set-prompt-overwrite");
+  const setDisableAnim = document.getElementById("set-disable-animations");
   const setHw = document.getElementById("set-hwaccel");
   const setThr = document.getElementById("set-threads");
   const setDefVc = document.getElementById("set-def-vcodec");
@@ -697,6 +700,7 @@ function syncSettingsFromUI() {
 
   if (setOutDir) appSettings.outputDir = setOutDir.value;
   if (setPromptOver) appSettings.promptOverwrite = setPromptOver.checked;
+  if (setDisableAnim) appSettings.disableAnimations = setDisableAnim.checked;
   if (setHw) appSettings.hwAccel = setHw.value;
   if (setThr) appSettings.threads = setThr.value;
   if (setDefVc) appSettings.defVCodec = setDefVc.value;

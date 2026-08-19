@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
 export const DEFAULT_SETTINGS = {
   outputDir: "C:\\Users\\User\\Videos",
   promptOverwrite: true,
+  disableAnimations: false,
   hwAccel: "auto",
   threads: "0",
   defVCodec: "libx264",
