@@ -219,6 +219,9 @@ export function applyTheme(themeObj) {
     root.style.setProperty("--bs-border-color", themeObj.border_color);
     root.style.setProperty("--bs-border-color-translucent", themeObj.border_color);
   }
+  if (themeObj.font_family !== undefined) {
+    applyFontFamily(themeObj.font_family);
+  }
 }
 
 export function applyFontFamily(fontName) {
@@ -247,7 +250,7 @@ export function loadSavedTheme() {
   } catch (e) {
     console.warn("loadSavedTheme error:", e);
   }
-  return THEME_PRESETS.bootstrap_dark;
+  return { ...THEME_PRESETS.bootstrap_dark, font_family: "" };
 }
 
 export function saveCurrentTheme(themeObj) {
@@ -263,6 +266,7 @@ export function serializeThemeToText(themeObj) {
     "# AnEditKit Theme Configuration File",
     `# Name: ${themeObj.name || "Custom Theme"}`,
     `# Generated: ${new Date().toISOString()}`,
+    `font_family=${themeObj.font_family || ""}`,
     `primary=${themeObj.primary || "#0d6efd"}`,
     `secondary=${themeObj.secondary || "#6c757d"}`,
     `success=${themeObj.success || "#198754"}`,
@@ -278,7 +282,7 @@ export function serializeThemeToText(themeObj) {
 }
 
 export function parseThemeFromText(text) {
-  const theme = { name: "Imported Theme" };
+  const theme = { name: "Imported Theme", font_family: "" };
   const lines = text.split(/\r?\n/);
   for (const line of lines) {
     const trimmed = line.trim();
@@ -287,7 +291,7 @@ export function parseThemeFromText(text) {
     if (idx > 0) {
       const key = trimmed.substring(0, idx).trim();
       const val = trimmed.substring(idx + 1).trim();
-      if (key && val) {
+      if (key) {
         theme[key] = val;
       }
     }
@@ -301,7 +305,6 @@ export function initThemeManager() {
 
   const settings = loadSettings();
   setAnimationsEnabled(!settings.disableAnimations);
-  applyFontFamily(settings.customFont);
 
   // Sync inputs inside modal
   const syncInputsFromTheme = (th) => {
@@ -326,30 +329,37 @@ export function initThemeManager() {
       if (inColor && th[field]) inColor.value = th[field];
       if (inHex && th[field]) inHex.value = th[field];
     });
+
+    const fontInput = document.getElementById("theme-font-family");
+    if (fontInput) {
+      fontInput.value = th.font_family || "";
+    }
   };
 
   syncInputsFromTheme(currentTheme);
 
-  // Custom Font Input Handlers
-  const fontInput = document.getElementById("set-custom-font");
-  const btnResetFont = document.getElementById("btn-reset-font");
+  // Custom Font Input inside Custom Theme Dialog
+  const fontInput = document.getElementById("theme-font-family");
+  const btnResetFont = document.getElementById("btn-theme-reset-font");
   if (fontInput) {
-    fontInput.value = settings.customFont || "";
+    fontInput.value = currentTheme.font_family || "";
     fontInput.addEventListener("input", () => {
       const val = fontInput.value.trim();
-      const curSettings = loadSettings();
-      curSettings.customFont = val;
-      applyFontFamily(val);
-      saveSettings(curSettings);
+      const th = loadSavedTheme();
+      th.font_family = val;
+      th.name = "Custom";
+      applyTheme(th);
+      saveCurrentTheme(th);
+      if (presetSelect) presetSelect.value = "custom";
     });
   }
   if (btnResetFont && fontInput) {
     btnResetFont.addEventListener("click", () => {
       fontInput.value = "";
-      const curSettings = loadSettings();
-      curSettings.customFont = "";
-      applyFontFamily("");
-      saveSettings(curSettings);
+      const th = loadSavedTheme();
+      th.font_family = "";
+      applyTheme(th);
+      saveCurrentTheme(th);
     });
   }
 
@@ -373,7 +383,7 @@ export function initThemeManager() {
 
   const applyPresetByKey = (key) => {
     if (THEME_PRESETS[key]) {
-      const th = THEME_PRESETS[key];
+      const th = { ...THEME_PRESETS[key], font_family: "" };
       if (presetSelect) presetSelect.value = key;
       syncInputsFromTheme(th);
       applyTheme(th);
@@ -449,7 +459,7 @@ export function initThemeManager() {
   const btnResetTheme = document.getElementById("btn-reset-theme");
   if (btnResetTheme) {
     btnResetTheme.addEventListener("click", () => {
-      const def = THEME_PRESETS.bootstrap_dark;
+      const def = { ...THEME_PRESETS.bootstrap_dark, font_family: "" };
       syncInputsFromTheme(def);
       applyTheme(def);
       saveCurrentTheme(def);

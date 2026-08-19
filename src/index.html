@@ -912,14 +912,6 @@
                       <label class="form-check-label small" for="set-disable-animations">Disable UI Animations & Transitions (Reduce Motion)</label>
                     </div>
                   </div>
-                  <div class="col-md-12">
-                    <label class="form-label small fw-medium" for="set-custom-font">UI Font Family</label>
-                    <div class="input-group input-group-sm">
-                      <input type="text" class="form-control" id="set-custom-font" placeholder='e.g. "Segoe UI", Inter, Roboto, "Fira Code", system-ui' />
-                      <button class="btn btn-outline-secondary" type="button" id="btn-reset-font" title="Reset font to system default">Default</button>
-                    </div>
-                    <div class="text-body-secondary small mt-1" style="font-size: 0.75rem;">Applies any locally installed font family across the entire user interface.</div>
-                  </div>
                 </div>
               </div>
 
@@ -1317,6 +1309,16 @@
                   <i class="bi bi-chevron-right"></i>
                 </button>
               </div>
+            </div>
+
+            <!-- UI Font Family -->
+            <div class="mb-3">
+              <label class="form-label small fw-medium" for="theme-font-family">UI Font Family</label>
+              <div class="input-group input-group-sm">
+                <input type="text" class="form-control" id="theme-font-family" placeholder='e.g. "Segoe UI", Inter, Roboto, "Fira Code", system-ui' />
+                <button class="btn btn-outline-secondary" type="button" id="btn-theme-reset-font" title="Reset font to system default">Default</button>
+              </div>
+              <div class="text-body-secondary small mt-1" style="font-size: 0.75rem;">Custom font name saved with your theme file and applied across the interface.</div>
             </div>
 
             <!-- Custom Color Table View -->
