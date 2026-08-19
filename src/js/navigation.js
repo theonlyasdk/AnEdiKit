@@ -67,11 +67,6 @@ const TOOL_METADATA = {
     desc: "Extract closed captions, auto-generated subtitles, cover thumbnails, and video metadata without re-downloading media.",
     viewId: "view-ytdlp_subtitles",
   },
-  ytdlp_custom: {
-    title: "Advanced & Cookies",
-    desc: "Download private or age-gated media using browser cookies, rate limits, SponsorBlock, and custom yt-dlp arguments.",
-    viewId: "view-ytdlp_custom",
-  },
   settings: {
     title: "Settings & Defaults",
     desc: "Configure default output folders, hardware acceleration engine, encoding threads, and system binaries.",
@@ -93,7 +88,6 @@ const TOOL_ORDER = [
   "ytdlp_playlist",
   "ytdlp_audio",
   "ytdlp_subtitles",
-  "ytdlp_custom",
   "settings",
 ];
 

@@ -676,6 +676,12 @@ function populateSettingsUI() {
   const setDefAf = document.getElementById("set-def-aformat");
   const setDefAb = document.getElementById("set-def-abitrate");
 
+  const setYtCookies = document.getElementById("set-ytdlp-cookies");
+  const setYtRate = document.getElementById("set-ytdlp-ratelimit");
+  const setYtSponsor = document.getElementById("set-ytdlp-sponsorblock");
+  const setYtGeo = document.getElementById("set-ytdlp-geo-bypass");
+  const setYtCustom = document.getElementById("set-ytdlp-custom-args");
+
   if (setOutDir) setOutDir.value = appSettings.outputDir || "C:\\Users\\User\\Videos";
   if (setPromptOver) setPromptOver.checked = !!appSettings.promptOverwrite;
   if (setDisableAnim) setDisableAnim.checked = !!appSettings.disableAnimations;
@@ -685,6 +691,12 @@ function populateSettingsUI() {
   if (setDefSp) setDefSp.value = appSettings.defSpeed || "medium";
   if (setDefAf) setDefAf.value = appSettings.defAFmt || "mp3";
   if (setDefAb) setDefAb.value = appSettings.defABitrate || "256k";
+
+  if (setYtCookies) setYtCookies.value = appSettings.ytdlpCookies || "none";
+  if (setYtRate) setYtRate.value = appSettings.ytdlpRateLimit || "none";
+  if (setYtSponsor) setYtSponsor.checked = !!appSettings.ytdlpSponsorblock;
+  if (setYtGeo) setYtGeo.checked = appSettings.ytdlpGeoBypass !== false;
+  if (setYtCustom) setYtCustom.value = appSettings.ytdlpCustomArgs || "";
 }
 
 function syncSettingsFromUI() {
@@ -698,6 +710,12 @@ function syncSettingsFromUI() {
   const setDefAf = document.getElementById("set-def-aformat");
   const setDefAb = document.getElementById("set-def-abitrate");
 
+  const setYtCookies = document.getElementById("set-ytdlp-cookies");
+  const setYtRate = document.getElementById("set-ytdlp-ratelimit");
+  const setYtSponsor = document.getElementById("set-ytdlp-sponsorblock");
+  const setYtGeo = document.getElementById("set-ytdlp-geo-bypass");
+  const setYtCustom = document.getElementById("set-ytdlp-custom-args");
+
   if (setOutDir) appSettings.outputDir = setOutDir.value;
   if (setPromptOver) appSettings.promptOverwrite = setPromptOver.checked;
   if (setDisableAnim) appSettings.disableAnimations = setDisableAnim.checked;
@@ -707,6 +725,12 @@ function syncSettingsFromUI() {
   if (setDefSp) appSettings.defSpeed = setDefSp.value;
   if (setDefAf) appSettings.defAFmt = setDefAf.value;
   if (setDefAb) appSettings.defABitrate = setDefAb.value;
+
+  if (setYtCookies) appSettings.ytdlpCookies = setYtCookies.value;
+  if (setYtRate) appSettings.ytdlpRateLimit = setYtRate.value;
+  if (setYtSponsor) appSettings.ytdlpSponsorblock = setYtSponsor.checked;
+  if (setYtGeo) appSettings.ytdlpGeoBypass = setYtGeo.checked;
+  if (setYtCustom) appSettings.ytdlpCustomArgs = setYtCustom.value;
 
   saveSettings(appSettings);
 }

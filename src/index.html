@@ -95,10 +95,6 @@
                 <i class="bi bi-card-image text-body-secondary"></i>
                 <span>Subtitles & Thumbnails</span>
               </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_custom" type="button" title="Browser cookies, rate limits, sponsorblock, and custom flags">
-                <i class="bi bi-sliders text-body-secondary"></i>
-                <span>Advanced & Cookies</span>
-              </button>
             </nav>
           </div>
           <!-- Mobile Sidebar Settings (Visible inside sidebar drawer in small width mode) -->
@@ -845,56 +841,6 @@
               </div>
             </div>
 
-            <!-- YT-DLP TOOL 5: Advanced & Cookies -->
-            <div class="tool-view d-none" id="view-ytdlp_custom">
-              <div class="mb-4">
-                <div class="section-divider-header">Authentication & Custom Parameters</div>
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="dl-cookie-browser">Browser Cookies (For Member / Age-Gated Content)</label>
-                    <select class="form-select form-select-sm" id="dl-cookie-browser">
-                      <option value="none" selected>None / Anonymous Download</option>
-                      <option value="firefox">Firefox</option>
-                      <option value="chrome">Google Chrome</option>
-                      <option value="edge">Microsoft Edge</option>
-                      <option value="brave">Brave Browser</option>
-                      <option value="opera">Opera</option>
-                      <option value="vivaldi">Vivaldi</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="dl-ratelimit">Download Speed Limit</label>
-                    <select class="form-select form-select-sm" id="dl-ratelimit">
-                      <option value="none" selected>Unlimited (Maximum Bandwidth)</option>
-                      <option value="50M">50 MB/s</option>
-                      <option value="20M">20 MB/s</option>
-                      <option value="10M">10 MB/s</option>
-                      <option value="5M">5 MB/s</option>
-                      <option value="2M">2 MB/s</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <div class="form-check form-switch pt-2">
-                      <input class="form-check-input" type="checkbox" role="switch" id="dl-sponsorblock" />
-                      <label class="form-check-label small" for="dl-sponsorblock">Auto-Remove Sponsored Segments (SponsorBlock)</label>
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="form-check form-switch pt-2">
-                      <input class="form-check-input" type="checkbox" role="switch" id="dl-geo-bypass" checked />
-                      <label class="form-check-label small" for="dl-geo-bypass">Bypass Geographic Restrictions</label>
-                    </div>
-                  </div>
-                </div>
-                <div class="mb-2">
-                  <label class="form-label small fw-medium" for="dl-custom-args">Additional yt-dlp Flags</label>
-                  <input type="text" class="form-control form-control-sm font-monospace" id="dl-custom-args" placeholder="--concurrent-fragments 5 --retries 10" />
-                </div>
-              </div>
-            </div>
-
             <!-- TOOL 9: Settings View -->
             <div class="tool-view d-none" id="view-settings">
               <!-- Section: Appearance & Interface -->
@@ -915,6 +861,55 @@
                 </div>
               </div>
 
+              <!-- Section: yt-dlp Downloader Configuration -->
+              <div class="mb-4">
+                <div class="section-divider-header">yt-dlp Downloader Configuration</div>
+                <div class="row g-3 mb-2">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-ytdlp-cookies">Browser Cookies Source (For Member / Age-Gated Content)</label>
+                    <select class="form-select form-select-sm" id="set-ytdlp-cookies">
+                      <option value="none" selected>None / Anonymous Download</option>
+                      <option value="chrome">Google Chrome</option>
+                      <option value="firefox">Mozilla Firefox</option>
+                      <option value="edge">Microsoft Edge</option>
+                      <option value="brave">Brave Browser</option>
+                      <option value="opera">Opera</option>
+                      <option value="vivaldi">Vivaldi</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="set-ytdlp-ratelimit">Download Speed Limit</label>
+                    <select class="form-select form-select-sm" id="set-ytdlp-ratelimit">
+                      <option value="none" selected>Unlimited (Maximum Bandwidth)</option>
+                      <option value="50M">50 MB/s</option>
+                      <option value="20M">20 MB/s</option>
+                      <option value="10M">10 MB/s</option>
+                      <option value="5M">5 MB/s</option>
+                      <option value="2M">2 MB/s</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row g-3 mb-2">
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="set-ytdlp-sponsorblock" />
+                      <label class="form-check-label small" for="set-ytdlp-sponsorblock">Auto-Remove Sponsored Segments (SponsorBlock)</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="set-ytdlp-geo-bypass" checked />
+                      <label class="form-check-label small" for="set-ytdlp-geo-bypass">Bypass Geographic Restrictions</label>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label small fw-medium" for="set-ytdlp-custom-args">Global Additional yt-dlp Flags</label>
+                  <input type="text" class="form-control form-control-sm font-monospace" id="set-ytdlp-custom-args" placeholder="--concurrent-fragments 5 --retries 10" />
+                  <div class="text-body-secondary small mt-1" style="font-size: 0.75rem;">Flags, cookies, and rate limits configured here automatically apply across all yt-dlp downloader operations.</div>
+                </div>
+              </div>
+
               <!-- Section 1: Storage and Paths -->
               <div class="mb-4">
                 <div class="section-divider-header">Storage and Directories</div>
@@ -922,8 +917,8 @@
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="set-output-dir">Default Output Directory</label>
                     <div class="input-group input-group-sm">
-                      <input type="text" class="form-control" id="set-output-dir" readonly />
-                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Select default output directory">Browse...</button>
+                      <input type="text" class="form-control" id="set-output-dir" value="C:\Users\User\Videos" readonly />
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Choose output folder">Browse...</button>
                     </div>
                   </div>
                   <div class="col-md-6 d-flex align-items-end">
@@ -1334,7 +1329,7 @@
                 <tbody class="small">
                   <!-- Bootstrap Semantic Colors -->
                   <tr class="table-secondary">
-                    <td colspan="3" class="fw-semibold text-uppercase py-1" style="font-size: 0.7rem; letter-spacing: -0.5px;">Bootstrap Semantic Palette</td>
+                    <td colspan="3" class="fw-semibold py-1" style="font-size: 1rem;">Bootstrap Semantic Palette</td>
                   </tr>
                   <tr>
                     <td>
@@ -1411,7 +1406,7 @@
 
                   <!-- Canvas & Layout Surfaces -->
                   <tr class="table-secondary">
-                    <td colspan="3" class="fw-semibold text-uppercase py-1" style="font-size: 0.7rem; letter-spacing: -0.5px;">Canvas & Surface Layout</td>
+                    <td colspan="3" class="fw-semibold py-1" style="font-size: 1rem;">Canvas & Surface Layout</td>
                   </tr>
                   <tr>
                     <td>

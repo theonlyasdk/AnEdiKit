@@ -17,6 +17,11 @@ export const DEFAULT_SETTINGS = {
   defSpeed: "medium",
   defAFmt: "mp3",
   defABitrate: "256k",
+  ytdlpCookies: "none",
+  ytdlpRateLimit: "none",
+  ytdlpSponsorblock: false,
+  ytdlpGeoBypass: true,
+  ytdlpCustomArgs: "",
   ffmpegBin: "ffmpeg (System PATH)",
   ffprobeBin: "ffprobe (System PATH)",
 };

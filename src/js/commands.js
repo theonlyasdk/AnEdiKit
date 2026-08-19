@@ -717,6 +717,38 @@ export function buildCustomCommand(inputFile, outputDir, settings = {}) {
   };
 }
 
+export function appendGlobalYtDlpArgs(args, settings = {}) {
+  const cookies = settings.ytdlpCookies || document.getElementById("set-ytdlp-cookies")?.value || "none";
+  if (cookies && cookies !== "none") {
+    args.push("--cookies-from-browser", cookies);
+  }
+
+  const ratelimit = settings.ytdlpRateLimit || document.getElementById("set-ytdlp-ratelimit")?.value || "none";
+  if (ratelimit && ratelimit !== "none") {
+    args.push("-r", ratelimit);
+  }
+
+  const sponsorblock = settings.ytdlpSponsorblock ?? document.getElementById("set-ytdlp-sponsorblock")?.checked;
+  if (sponsorblock) {
+    args.push("--sponsorblock-remove", "all");
+  }
+
+  const geoBypass = settings.ytdlpGeoBypass ?? document.getElementById("set-ytdlp-geo-bypass")?.checked ?? true;
+  if (geoBypass) {
+    args.push("--geo-bypass");
+  }
+
+  const customArgsStr = settings.ytdlpCustomArgs ?? document.getElementById("set-ytdlp-custom-args")?.value?.trim();
+  if (customArgsStr) {
+    const matches = customArgsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g);
+    if (matches) {
+      matches.forEach((m) => {
+        args.push(m.replace(/^['"]|['"]$/g, ""));
+      });
+    }
+  }
+}
+
 export function resolveYtDlpOutputDir(settings = {}) {
   const customOut = document.getElementById("ytdlp-output-dir")?.value?.trim();
   if (customOut) return customOut;
@@ -753,6 +785,8 @@ export function buildYtDlpVideoCommand(url, outputDir, settings = {}) {
     args.push("--embed-metadata", "--embed-chapters");
   }
 
+  appendGlobalYtDlpArgs(args, settings);
+
   args.push("-P", outDir);
   args.push("-o", "%(title)s [%(id)s].%(ext)s");
   args.push(targetUrl);
@@ -781,6 +815,8 @@ export function buildYtDlpAudioCommand(url, outputDir, settings = {}) {
   if (embedMeta) {
     args.push("--embed-metadata");
   }
+
+  appendGlobalYtDlpArgs(args, settings);
 
   args.push("-P", outDir);
   args.push("-o", "%(title)s [%(id)s].%(ext)s");
@@ -817,6 +853,8 @@ export function buildYtDlpPlaylistCommand(url, outputDir, settings = {}) {
   } else {
     args.push("-f", "bestvideo[height<=1080]+bestaudio/best", "--merge-output-format", "mp4", "--embed-thumbnail", "--embed-metadata");
   }
+
+  appendGlobalYtDlpArgs(args, settings);
 
   args.push("-P", outDir);
 
@@ -858,50 +896,7 @@ export function buildYtDlpSubtitlesCommand(url, outputDir, settings = {}) {
     args.push("--write-info-json", "--write-description");
   }
 
-  args.push("-P", outDir);
-  args.push("-o", "%(title)s [%(id)s].%(ext)s");
-  args.push(targetUrl);
-
-  return {
-    executable: "yt-dlp",
-    args,
-    destination: outDir,
-    fullString: `yt-dlp ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
-  };
-}
-
-export function buildYtDlpCustomCommand(url, outputDir, settings = {}) {
-  const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-  const outDir = resolveYtDlpOutputDir(settings);
-  const browser = document.getElementById("dl-cookie-browser")?.value || "none";
-  const ratelimit = document.getElementById("dl-ratelimit")?.value || "none";
-  const sponsorblock = document.getElementById("dl-sponsorblock")?.checked ?? false;
-  const geoBypass = document.getElementById("dl-geo-bypass")?.checked ?? true;
-  const customArgsStr = document.getElementById("dl-custom-args")?.value?.trim() || "";
-
-  const args = [];
-
-  if (browser !== "none") {
-    args.push("--cookies-from-browser", browser);
-  }
-  if (ratelimit !== "none") {
-    args.push("-r", ratelimit);
-  }
-  if (sponsorblock) {
-    args.push("--sponsorblock-remove", "all");
-  }
-  if (geoBypass) {
-    args.push("--geo-bypass");
-  }
-
-  if (customArgsStr) {
-    const matches = customArgsStr.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g);
-    if (matches) {
-      matches.forEach((m) => {
-        args.push(m.replace(/^['"]|['"]$/g, ""));
-      });
-    }
-  }
+  appendGlobalYtDlpArgs(args, settings);
 
   args.push("-P", outDir);
   args.push("-o", "%(title)s [%(id)s].%(ext)s");
@@ -949,8 +944,6 @@ export function buildCommandForTool(
       return buildYtDlpPlaylistCommand(extraParams.url, outputDir, settings);
     case "ytdlp_subtitles":
       return buildYtDlpSubtitlesCommand(extraParams.url, outputDir, settings);
-    case "ytdlp_custom":
-      return buildYtDlpCustomCommand(extraParams.url, outputDir, settings);
     default:
       return buildConvertCommand(inputFile, outputDir, settings);
   }
