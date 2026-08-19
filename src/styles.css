@@ -450,3 +450,66 @@ html.no-animations *::after {
 #tool-workspace {
   background-color: var(--anedikit-pane-bg, var(--bs-tertiary-bg)) !important;
 }
+
+/* Material Design 3 Toggle Switch */
+.form-check.form-switch {
+  padding-left: 3.5rem;
+  min-height: 1.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.form-check.form-switch .form-check-label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.form-check.form-switch .form-check-input {
+  width: 44px;
+  height: 24px;
+  margin-left: -3.5rem;
+  margin-top: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--bs-border-color);
+  background-color: var(--bs-body-bg);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='4.5' fill='%238a9096'/%3e%3c/svg%3e");
+  background-position: left 2px center;
+  background-size: 14px 14px;
+  background-repeat: no-repeat;
+  transition:
+    background-position 0.24s cubic-bezier(0.2, 0, 0, 1),
+    background-size 0.24s cubic-bezier(0.2, 0, 0, 1),
+    background-color 0.24s cubic-bezier(0.2, 0, 0, 1),
+    border-color 0.24s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.form-check.form-switch .form-check-input:hover {
+  border-color: rgba(var(--bs-primary-rgb), 0.6);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='4.5' fill='%23a2a8b0'/%3e%3c/svg%3e");
+}
+
+.form-check.form-switch .form-check-input:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.2);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='4.5' fill='%23a2a8b0'/%3e%3c/svg%3e");
+}
+
+.form-check.form-switch .form-check-input:checked {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+  background-position: right 2px center;
+  background-size: 18px 18px;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='5.5' fill='%23ffffff'/%3e%3c/svg%3e");
+}
+
+.form-check.form-switch .form-check-input:checked:hover {
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
+  filter: brightness(1.08);
+}
+
+.form-check.form-switch .form-check-input:checked:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='5.5' fill='%23ffffff'/%3e%3c/svg%3e");
+}
