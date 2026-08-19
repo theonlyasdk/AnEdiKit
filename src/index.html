@@ -901,17 +901,10 @@
                   </button>
                 </div>
                 <div class="row g-3">
-                  <div class="col-md-6">
-                    <div class="form-check form-switch pt-1">
+                  <div class="col-md-12">
+                    <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" role="switch" id="set-disable-animations" />
                       <label class="form-check-label small" for="set-disable-animations">Disable UI Animations & Transitions (Reduce Motion)</label>
-                    </div>
-                    <div class="text-body-secondary small mt-1">Instantly switches views and updates state without animated transitions.</div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="p-2 px-3 border rounded bg-body d-flex justify-content-between align-items-center">
-                      <span class="small fw-medium">Active Color Palette</span>
-                      <span class="badge text-bg-primary-subtle text-primary border border-primary-subtle" id="active-theme-badge">Default Modern Dark</span>
                     </div>
                   </div>
                 </div>
@@ -1307,31 +1300,17 @@
                 </button>
               </div>
             </div>
-
-            <!-- Theme File Export / Import Section -->
-            <div class="section-divider-header">Theme .txt File Management</div>
-            <div class="p-3 border rounded bg-body-tertiary">
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                <div>
-                  <div class="fw-semibold text-body small">Export & Share Theme Files</div>
-                  <div class="text-body-secondary small">Save your custom color scheme to a <code>.theme.txt</code> file or load an existing theme.</div>
-                </div>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-outline-primary btn-sm" type="button" id="btn-export-theme-file" title="Create and save theme .txt file">
-                    <i class="bi bi-file-earmark-arrow-down"></i> Export Theme...
-                  </button>
-                  <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-import-theme-file" title="Load theme from .txt file">
-                    <i class="bi bi-file-earmark-arrow-up"></i> Import Theme...
-                  </button>
-                  <input type="file" id="theme-file-input" class="d-none" accept=".txt" />
-                </div>
-              </div>
-              <div class="small text-body-secondary">
-                Format: Clean key-value pairs (e.g. <code>primary=#0d6efd</code>, <code>body_bg=#121212</code>).
-              </div>
-            </div>
           </div>
-          <div class="modal-footer border-top py-2 px-3 justify-content-end">
+          <div class="modal-footer border-top py-2 px-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-import-theme-file" title="Load theme from .txt file">
+                <i class="bi bi-file-earmark-arrow-up"></i> Import Theme...
+              </button>
+              <button class="btn btn-outline-primary btn-sm" type="button" id="btn-export-theme-file" title="Create and save theme .txt file">
+                <i class="bi bi-file-earmark-arrow-down"></i> Export Theme...
+              </button>
+              <input type="file" id="theme-file-input" class="d-none" accept=".txt" />
+            </div>
             <button type="button" class="btn btn-primary btn-sm px-4" data-bs-dismiss="modal">Done</button>
           </div>
         </div>
