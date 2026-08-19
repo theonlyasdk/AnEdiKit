@@ -1258,10 +1258,10 @@
             </div>
 
             <!-- Custom Color Table View -->
-            <div class="section-divider-header">Theme Color Values</div>
-            <div class="table-responsive border rounded mb-2">
+            <div class="section-divider-header">Bootstrap & Canvas Colors</div>
+            <div class="table-responsive border rounded mb-2" style="max-height: 380px; overflow-y: auto;">
               <table class="table table-hover align-middle mb-0">
-                <thead class="table-dark small">
+                <thead class="table-dark small sticky-top">
                   <tr>
                     <th scope="col" style="width: 45%;">Color Property</th>
                     <th scope="col" style="width: 15%;" class="text-center">Picker</th>
@@ -1269,17 +1269,86 @@
                   </tr>
                 </thead>
                 <tbody class="small">
+                  <!-- Bootstrap Semantic Colors -->
+                  <tr class="table-secondary">
+                    <td colspan="3" class="fw-semibold text-uppercase py-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Bootstrap Semantic Palette</td>
+                  </tr>
                   <tr>
                     <td>
-                      <div class="fw-medium text-body">Primary Accent</div>
-                      <div class="text-body-secondary" style="font-size: 0.75rem;">Buttons, highlights, active indicator</div>
+                      <div class="fw-medium text-body"><span class="badge bg-primary me-1">&bull;</span> Primary</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Main action buttons, active indicator, links</div>
                     </td>
                     <td class="text-center">
-                      <input type="color" class="form-control form-control-color mx-auto" id="theme-primary" value="#0d6efd" title="Primary Accent" />
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-primary" value="#0d6efd" title="Primary" />
                     </td>
                     <td>
                       <input type="text" class="form-control form-control-sm font-monospace" id="theme-primary-hex" value="#0d6efd" />
                     </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body"><span class="badge bg-secondary me-1">&bull;</span> Secondary</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Secondary buttons, browse buttons, muted labels</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-secondary" value="#6c757d" title="Secondary" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-secondary-hex" value="#6c757d" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body"><span class="badge bg-success me-1">&bull;</span> Success</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Success badges, checkmarks, completed toast</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-success" value="#198754" title="Success" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-success-hex" value="#198754" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body"><span class="badge bg-danger me-1">&bull;</span> Danger</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Cancel buttons, errors, reset actions</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-danger" value="#dc3545" title="Danger" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-danger-hex" value="#dc3545" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body"><span class="badge bg-warning text-dark me-1">&bull;</span> Warning</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Update buttons, caution alerts</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-warning" value="#ffc107" title="Warning" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-warning-hex" value="#ffc107" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body"><span class="badge bg-info text-dark me-1">&bull;</span> Info</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Informational badges, tool status readouts</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-info" value="#0dcaf0" title="Info" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-info-hex" value="#0dcaf0" />
+                    </td>
+                  </tr>
+
+                  <!-- Canvas & Layout Surfaces -->
+                  <tr class="table-secondary">
+                    <td colspan="3" class="fw-semibold text-uppercase py-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Canvas & Surface Layout</td>
                   </tr>
                   <tr>
                     <td>
@@ -1295,7 +1364,7 @@
                   </tr>
                   <tr>
                     <td>
-                      <div class="fw-medium text-body">Sidebar & Cards</div>
+                      <div class="fw-medium text-body">Sidebar & Cards (Tertiary)</div>
                       <div class="text-body-secondary" style="font-size: 0.75rem;">Left sidebar navigation, cards, and input panels</div>
                     </td>
                     <td class="text-center">

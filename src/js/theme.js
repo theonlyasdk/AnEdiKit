@@ -5,6 +5,11 @@ export const THEME_PRESETS = {
   bootstrap_dark: {
     name: "Bootstrap 5 Dark",
     primary: "#0d6efd",
+    secondary: "#6c757d",
+    success: "#198754",
+    danger: "#dc3545",
+    warning: "#ffc107",
+    info: "#0dcaf0",
     body_bg: "#212529",
     card_bg: "#2b3035",
     pane_bg: "#212529",
@@ -14,6 +19,11 @@ export const THEME_PRESETS = {
   default_dark: {
     name: "Default Modern Dark",
     primary: "#0d6efd",
+    secondary: "#6c757d",
+    success: "#20c997",
+    danger: "#e63946",
+    warning: "#ffb703",
+    info: "#00b4d8",
     body_bg: "#121212",
     card_bg: "#1e1e1e",
     pane_bg: "#181818",
@@ -23,6 +33,11 @@ export const THEME_PRESETS = {
   midnight_blue: {
     name: "Midnight Blue",
     primary: "#4f46e5",
+    secondary: "#64748b",
+    success: "#10b981",
+    danger: "#ef4444",
+    warning: "#f59e0b",
+    info: "#38bdf8",
     body_bg: "#0b0f19",
     card_bg: "#131b2e",
     pane_bg: "#0f172a",
@@ -32,6 +47,11 @@ export const THEME_PRESETS = {
   emerald_matrix: {
     name: "Emerald Green",
     primary: "#10b981",
+    secondary: "#64748b",
+    success: "#059669",
+    danger: "#e11d48",
+    warning: "#d97706",
+    info: "#06b6d4",
     body_bg: "#0a100d",
     card_bg: "#121d18",
     pane_bg: "#0e1713",
@@ -41,6 +61,11 @@ export const THEME_PRESETS = {
   sunset_crimson: {
     name: "Sunset Crimson",
     primary: "#f43f5e",
+    secondary: "#78716c",
+    success: "#10b981",
+    danger: "#e11d48",
+    warning: "#f97316",
+    info: "#06b6d4",
     body_bg: "#140a0c",
     card_bg: "#221217",
     pane_bg: "#1a0e11",
@@ -50,6 +75,11 @@ export const THEME_PRESETS = {
   amber_gold: {
     name: "Amber Gold",
     primary: "#f59e0b",
+    secondary: "#78716c",
+    success: "#16a34a",
+    danger: "#dc2626",
+    warning: "#d97706",
+    info: "#0284c7",
     body_bg: "#120f09",
     card_bg: "#211b12",
     pane_bg: "#17140e",
@@ -59,6 +89,11 @@ export const THEME_PRESETS = {
   monokai_pro: {
     name: "Monokai Pro",
     primary: "#a855f7",
+    secondary: "#71717a",
+    success: "#22c55e",
+    danger: "#f43f5e",
+    warning: "#eab308",
+    info: "#06b6d4",
     body_bg: "#18141c",
     card_bg: "#251f2b",
     pane_bg: "#1e1a23",
@@ -68,6 +103,11 @@ export const THEME_PRESETS = {
   nordic_frost: {
     name: "Nordic Frost",
     primary: "#06b6d4",
+    secondary: "#64748b",
+    success: "#10b981",
+    danger: "#f43f5e",
+    warning: "#f59e0b",
+    info: "#38bdf8",
     body_bg: "#0f172a",
     card_bg: "#1e293b",
     pane_bg: "#141e33",
@@ -98,12 +138,35 @@ export function applyTheme(themeObj) {
   if (!themeObj) return;
   const root = document.documentElement;
 
+  // Bootstrap Semantic Palette
   if (themeObj.primary) {
     root.style.setProperty("--bs-primary", themeObj.primary);
     root.style.setProperty("--bs-primary-rgb", hexToRgb(themeObj.primary));
     root.style.setProperty("--bs-link-color", themeObj.primary);
     root.style.setProperty("--bs-link-hover-color", themeObj.primary);
   }
+  if (themeObj.secondary) {
+    root.style.setProperty("--bs-secondary", themeObj.secondary);
+    root.style.setProperty("--bs-secondary-rgb", hexToRgb(themeObj.secondary));
+  }
+  if (themeObj.success) {
+    root.style.setProperty("--bs-success", themeObj.success);
+    root.style.setProperty("--bs-success-rgb", hexToRgb(themeObj.success));
+  }
+  if (themeObj.danger) {
+    root.style.setProperty("--bs-danger", themeObj.danger);
+    root.style.setProperty("--bs-danger-rgb", hexToRgb(themeObj.danger));
+  }
+  if (themeObj.warning) {
+    root.style.setProperty("--bs-warning", themeObj.warning);
+    root.style.setProperty("--bs-warning-rgb", hexToRgb(themeObj.warning));
+  }
+  if (themeObj.info) {
+    root.style.setProperty("--bs-info", themeObj.info);
+    root.style.setProperty("--bs-info-rgb", hexToRgb(themeObj.info));
+  }
+
+  // Canvas & Surfaces
   if (themeObj.body_bg) {
     root.style.setProperty("--bs-body-bg", themeObj.body_bg);
     root.style.setProperty("--bs-body-bg-rgb", hexToRgb(themeObj.body_bg));
@@ -111,6 +174,7 @@ export function applyTheme(themeObj) {
   if (themeObj.card_bg) {
     root.style.setProperty("--bs-body-tertiary-bg", themeObj.card_bg);
     root.style.setProperty("--bs-tertiary-bg", themeObj.card_bg);
+    root.style.setProperty("--bs-secondary-bg", themeObj.card_bg);
   }
   if (themeObj.pane_bg) {
     root.style.setProperty("--anedikit-pane-bg", themeObj.pane_bg);
@@ -163,6 +227,11 @@ export function serializeThemeToText(themeObj) {
     `# Name: ${themeObj.name || "Custom Theme"}`,
     `# Generated: ${new Date().toISOString()}`,
     `primary=${themeObj.primary || "#0d6efd"}`,
+    `secondary=${themeObj.secondary || "#6c757d"}`,
+    `success=${themeObj.success || "#198754"}`,
+    `danger=${themeObj.danger || "#dc3545"}`,
+    `warning=${themeObj.warning || "#ffc107"}`,
+    `info=${themeObj.info || "#0dcaf0"}`,
     `body_bg=${themeObj.body_bg || "#121212"}`,
     `card_bg=${themeObj.card_bg || "#1e1e1e"}`,
     `pane_bg=${themeObj.pane_bg || "#181818"}`,
@@ -198,36 +267,27 @@ export function initThemeManager() {
 
   // Sync inputs inside modal
   const syncInputsFromTheme = (th) => {
-    const inPrimary = document.getElementById("theme-primary");
-    const inPrimaryHex = document.getElementById("theme-primary-hex");
-    const inBodyBg = document.getElementById("theme-body-bg");
-    const inBodyBgHex = document.getElementById("theme-body-bg-hex");
-    const inCardBg = document.getElementById("theme-card-bg");
-    const inCardBgHex = document.getElementById("theme-card-bg-hex");
-    const inPaneBg = document.getElementById("theme-pane-bg");
-    const inPaneBgHex = document.getElementById("theme-pane-bg-hex");
-    const inText = document.getElementById("theme-text-color");
-    const inTextHex = document.getElementById("theme-text-color-hex");
-    const inBorder = document.getElementById("theme-border-color");
-    const inBorderHex = document.getElementById("theme-border-color-hex");
+    const fields = [
+      "primary",
+      "secondary",
+      "success",
+      "danger",
+      "warning",
+      "info",
+      "body_bg",
+      "card_bg",
+      "pane_bg",
+      "text_color",
+      "border_color",
+    ];
 
-    if (inPrimary && th.primary) inPrimary.value = th.primary;
-    if (inPrimaryHex && th.primary) inPrimaryHex.value = th.primary;
-
-    if (inBodyBg && th.body_bg) inBodyBg.value = th.body_bg;
-    if (inBodyBgHex && th.body_bg) inBodyBgHex.value = th.body_bg;
-
-    if (inCardBg && th.card_bg) inCardBg.value = th.card_bg;
-    if (inCardBgHex && th.card_bg) inCardBgHex.value = th.card_bg;
-
-    if (inPaneBg && th.pane_bg) inPaneBg.value = th.pane_bg;
-    if (inPaneBgHex && th.pane_bg) inPaneBgHex.value = th.pane_bg;
-
-    if (inText && th.text_color) inText.value = th.text_color;
-    if (inTextHex && th.text_color) inTextHex.value = th.text_color;
-
-    if (inBorder && th.border_color) inBorder.value = th.border_color;
-    if (inBorderHex && th.border_color) inBorderHex.value = th.border_color;
+    fields.forEach((field) => {
+      const idKey = field.replace(/_/g, "-");
+      const inColor = document.getElementById(`theme-${idKey}`);
+      const inHex = document.getElementById(`theme-${idKey}-hex`);
+      if (inColor && th[field]) inColor.value = th[field];
+      if (inHex && th[field]) inHex.value = th[field];
+    });
   };
 
   syncInputsFromTheme(currentTheme);
@@ -288,14 +348,20 @@ export function initThemeManager() {
     }
   };
 
+  // Bind all semantic and layout pairs
   bindPair("theme-primary", "theme-primary-hex", "primary");
+  bindPair("theme-secondary", "theme-secondary-hex", "secondary");
+  bindPair("theme-success", "theme-success-hex", "success");
+  bindPair("theme-danger", "theme-danger-hex", "danger");
+  bindPair("theme-warning", "theme-warning-hex", "warning");
+  bindPair("theme-info", "theme-info-hex", "info");
   bindPair("theme-body-bg", "theme-body-bg-hex", "body_bg");
   bindPair("theme-card-bg", "theme-card-bg-hex", "card_bg");
   bindPair("theme-pane-bg", "theme-pane-bg-hex", "pane_bg");
   bindPair("theme-text-color", "theme-text-color-hex", "text_color");
   bindPair("theme-border-color", "theme-border-color-hex", "border_color");
 
-  // Reset Button (now in modal footer)
+  // Reset Button (modal footer)
   const btnResetTheme = document.getElementById("btn-reset-theme");
   if (btnResetTheme) {
     btnResetTheme.addEventListener("click", () => {
