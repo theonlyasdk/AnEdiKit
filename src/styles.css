@@ -601,3 +601,29 @@ html.no-animations *::after {
 .env-tool-card:hover {
   border-color: rgba(var(--bs-primary-rgb), 0.5) !important;
 }
+
+/* Audio CD Spinner & Pulsing Gray Animation */
+@keyframes cdSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes grayPulse {
+  0%, 100% {
+    opacity: 1;
+    color: #6c757d;
+  }
+  50% {
+    opacity: 0.3;
+    color: #adb5bd;
+  }
+}
+
+.cd-loading-spin {
+  display: inline-block;
+  animation: cdSpin 2s linear infinite, grayPulse 1.5s ease-in-out infinite;
+}
