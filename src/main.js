@@ -44,6 +44,10 @@ export function getSmartOutputFileName(inputFile, toolId) {
     }
     case "compress":
       return `${baseName}_compressed.mp4`;
+    case "compress_audio": {
+      const fmt = document.getElementById("comp-aud-format")?.value || "opus";
+      return `${baseName}_compressed.${fmt}`;
+    }
     case "merge": {
       const fmt = document.getElementById("merge-format")?.value || "mp4";
       return `${baseName}_merged.${fmt}`;
@@ -185,7 +189,7 @@ function bindFormEvents() {
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
       }
-      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
+      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "comp-aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
         updateAutoOutputFilename();
       }
       updateCommandPreview();
@@ -197,7 +201,7 @@ function bindFormEvents() {
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
       }
-      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
+      if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "comp-aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
         updateAutoOutputFilename();
       }
       updateCommandPreview();
@@ -209,7 +213,7 @@ function bindFormEvents() {
   if (btnBrowseInput) {
     btnBrowseInput.addEventListener("click", async () => {
       const activeTool = getCurrentActiveTool();
-      const filterMode = activeTool === "extract_audio" ? "audio" : "all";
+      const filterMode = (activeTool === "extract_audio" || activeTool === "compress_audio") ? "audio" : "all";
       const info = await selectMediaFile(filterMode);
       if (info) syncMediaDurationToTools(info);
       updateAutoOutputFilename(true);
@@ -578,6 +582,38 @@ function bindFormEvents() {
         customArgsInput.value = customPresetSelect.value;
         updateCommandPreview();
       }
+    });
+  }
+
+  // Compress Video dynamic custom MB toggle
+  const compPreset = document.getElementById("comp-preset");
+  const compCustomWrapper = document.getElementById("comp-custom-wrapper");
+  if (compPreset && compCustomWrapper) {
+    compPreset.addEventListener("change", () => {
+      const isCustom = compPreset.value === "custom";
+      compCustomWrapper.classList.toggle("d-none", !isCustom);
+      if (isCustom) {
+        compCustomWrapper.classList.remove("ui-zoom-in");
+        void compCustomWrapper.offsetWidth;
+        compCustomWrapper.classList.add("ui-zoom-in");
+      }
+      updateCommandPreview();
+    });
+  }
+
+  // Compress Audio dynamic custom MB toggle
+  const compAudPreset = document.getElementById("comp-aud-preset");
+  const compAudCustomWrapper = document.getElementById("comp-aud-custom-wrapper");
+  if (compAudPreset && compAudCustomWrapper) {
+    compAudPreset.addEventListener("change", () => {
+      const isCustomMb = compAudPreset.value === "custom_mb";
+      compAudCustomWrapper.classList.toggle("d-none", !isCustomMb);
+      if (isCustomMb) {
+        compAudCustomWrapper.classList.remove("ui-zoom-in");
+        void compAudCustomWrapper.offsetWidth;
+        compAudCustomWrapper.classList.add("ui-zoom-in");
+      }
+      updateCommandPreview();
     });
   }
 }

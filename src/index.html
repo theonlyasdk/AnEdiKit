@@ -56,6 +56,10 @@
                 <i class="bi bi-file-earmark-zip text-body-secondary"></i>
                 <span>Compress Video</span>
               </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress_audio" type="button" title="Compress audio files with target sizes, bitrates, channels, and Opus/MP3/AAC codecs">
+                <i class="bi bi-soundwave text-body-secondary"></i>
+                <span>Compress Audio</span>
+              </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="merge" type="button" title="Combine multiple audio or video files">
                 <i class="bi bi-collection-play text-body-secondary"></i>
                 <span>Merge and Concat</span>
@@ -386,6 +390,81 @@
                 <!-- Live Bitrate Estimation Readout -->
                 <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="comp-estimate-box">
                   <div>Target: <strong class="text-body" id="comp-est-target">24 MB</strong> &bull; Est. Video Bitrate: <strong class="text-body" id="comp-est-vbitrate">~1,500 kbps</strong> &bull; Audio: <strong class="text-body" id="comp-est-abitrate">96 kbps</strong></div>
+                  <div class="text-body-secondary small">Calculated from media duration</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TOOL 4.5: Compress Audio -->
+            <div class="tool-view d-none" id="view-compress_audio">
+              <div class="mb-4">
+                <div class="section-divider-header">Audio Compression Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="comp-aud-preset">Preset / Target</label>
+                    <select class="form-select form-select-sm" id="comp-aud-preset">
+                      <option value="discord" selected>Discord Voice / Message (64 kbps Opus)</option>
+                      <option value="whatsapp">WhatsApp Audio Note (32 kbps Mono)</option>
+                      <option value="email">Email Attachment (5 MB Target)</option>
+                      <option value="reduce_50">50% Size Reduction</option>
+                      <option value="reduce_75">75% Size Reduction</option>
+                      <option value="custom_mb">Custom Target Size (MB)</option>
+                      <option value="custom_bitrate">Custom Bitrate</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 d-none ui-zoom-in" id="comp-aud-custom-wrapper">
+                    <label class="form-label small fw-medium" for="comp-aud-custom-mb">Custom Size (MB)</label>
+                    <input type="number" class="form-control form-control-sm" id="comp-aud-custom-mb" value="5" min="0.1" step="0.5" max="500" />
+                  </div>
+                  <div class="col-md-4" id="comp-aud-format-wrapper">
+                    <label class="form-label small fw-medium" for="comp-aud-format">Output Format / Codec</label>
+                    <select class="form-select form-select-sm" id="comp-aud-format">
+                      <option value="opus" selected>Opus (.opus - Supreme efficiency at low bitrates)</option>
+                      <option value="mp3">MP3 (.mp3 - Universal compatibility)</option>
+                      <option value="m4a">M4A / AAC (.m4a - High Quality)</option>
+                      <option value="ogg">OGG Vorbis (.ogg)</option>
+                      <option value="flac">FLAC (.flac - Compressed Lossless)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4" id="comp-aud-bitrate-wrapper">
+                    <label class="form-label small fw-medium" for="comp-aud-bitrate">Audio Bitrate</label>
+                    <select class="form-select form-select-sm" id="comp-aud-bitrate">
+                      <option value="auto" selected>Auto (Calculate from Preset / Target)</option>
+                      <option value="320k">320 kbps (Extreme Quality)</option>
+                      <option value="256k">256 kbps (High Quality)</option>
+                      <option value="192k">192 kbps (Standard Quality)</option>
+                      <option value="128k">128 kbps (Good / Medium)</option>
+                      <option value="96k">96 kbps (Compact)</option>
+                      <option value="64k">64 kbps (Voice / High Compression)</option>
+                      <option value="48k">48 kbps (Ultra Compact)</option>
+                      <option value="32k">32 kbps (Speech Optimized)</option>
+                      <option value="16k">16 kbps (Maximum Compression)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="comp-aud-channels">Channels</label>
+                    <select class="form-select form-select-sm" id="comp-aud-channels">
+                      <option value="original" selected>Keep Original Channels</option>
+                      <option value="1">Mono (1 Channel - Halves uncompressed data)</option>
+                      <option value="2">Stereo (2 Channels)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="comp-aud-samplerate">Sample Rate</label>
+                    <select class="form-select form-select-sm" id="comp-aud-samplerate">
+                      <option value="original" selected>Original Sample Rate</option>
+                      <option value="48000">48,000 Hz (Studio / Opus default)</option>
+                      <option value="44100">44,100 Hz (CD Audio standard)</option>
+                      <option value="32000">32,000 Hz</option>
+                      <option value="24000">24,000 Hz</option>
+                      <option value="16000">16,000 Hz (Speech / Voice Note Optimized)</option>
+                      <option value="8000">8,000 Hz (Telephone / Ultra Low)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="comp-aud-estimate-box">
+                  <div>Target: <strong class="text-body" id="comp-aud-est-target">64 kbps</strong> &bull; Est. Audio Bitrate: <strong class="text-body" id="comp-aud-est-bitrate">64 kbps</strong> &bull; Codec: <strong class="text-body" id="comp-aud-est-codec">Opus</strong></div>
                   <div class="text-body-secondary small">Calculated from media duration</div>
                 </div>
               </div>

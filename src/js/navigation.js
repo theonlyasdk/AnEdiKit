@@ -22,6 +22,11 @@ const TOOL_METADATA = {
     desc: "Reduce video file size for Discord (24 MB), WhatsApp (15 MB), Email (10 MB), or custom target size.",
     viewId: "view-compress",
   },
+  compress_audio: {
+    title: "Compress Audio",
+    desc: "Reduce audio file sizes for voice notes, podcasts, Discord, WhatsApp, or email attachments with Opus, MP3, and AAC codecs.",
+    viewId: "view-compress_audio",
+  },
   merge: {
     title: "Merge and Concatenate",
     desc: "Combine multiple video or audio files into a single seamless continuous media stream.",
@@ -79,6 +84,7 @@ const TOOL_ORDER = [
   "extract_audio",
   "trim",
   "compress",
+  "compress_audio",
   "merge",
   "mute_replace",
   "gif_frames",

@@ -369,6 +369,135 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
   };
 }
 
+export function buildCompressAudioCommand(inputFile, outputDir, settings = {}) {
+  const args = ["-y"];
+  const src = inputFile || "C:\\Users\\User\\Music\\audio_sample.mp3";
+  const baseName =
+    src
+      .split(/[/\\]/)
+      .pop()
+      ?.replace(/\.[^/.]+$/, "") || "output_compressed_audio";
+
+  const preset = document.getElementById("comp-aud-preset")?.value || "discord";
+  const customMbInput = document.getElementById("comp-aud-custom-mb");
+  const customMb = parseFloat(customMbInput?.value) || 5;
+  const format = document.getElementById("comp-aud-format")?.value || "opus";
+  const bitrateSelect = document.getElementById("comp-aud-bitrate")?.value || "auto";
+  const channels = document.getElementById("comp-aud-channels")?.value || "original";
+  const sampleRate = document.getElementById("comp-aud-samplerate")?.value || "original";
+
+  // Check source file size / duration from media element if available
+  const metaDurationEl = document.getElementById("meta-duration");
+  let durationSec = 180.0;
+  if (metaDurationEl && metaDurationEl.textContent && metaDurationEl.textContent !== "--:--:--") {
+    durationSec = parseTimestampToSeconds(metaDurationEl.textContent) || 180.0;
+  }
+
+  const metaSizeEl = document.getElementById("meta-size");
+  let srcSizeMb = 15.0;
+  if (metaSizeEl && metaSizeEl.textContent) {
+    const parsedMb = parseFloat(metaSizeEl.textContent);
+    if (!isNaN(parsedMb) && parsedMb > 0) srcSizeMb = parsedMb;
+  }
+
+  let targetMb = 5;
+  let targetBitrateK = 64;
+
+  if (preset === "discord") {
+    targetBitrateK = 64;
+    targetMb = Math.round(((64 * durationSec) / 8192) * 10) / 10;
+  } else if (preset === "whatsapp") {
+    targetBitrateK = 32;
+    targetMb = Math.round(((32 * durationSec) / 8192) * 10) / 10;
+  } else if (preset === "email") {
+    targetMb = 5;
+    targetBitrateK = Math.min(192, Math.max(16, Math.floor((targetMb * 8192 * 0.95) / Math.max(1.0, durationSec))));
+  } else if (preset === "reduce_50") {
+    targetMb = Math.max(0.5, Math.round(srcSizeMb * 0.5 * 10) / 10);
+    targetBitrateK = Math.min(192, Math.max(16, Math.floor((targetMb * 8192 * 0.95) / Math.max(1.0, durationSec))));
+  } else if (preset === "reduce_75") {
+    targetMb = Math.max(0.2, Math.round(srcSizeMb * 0.25 * 10) / 10);
+    targetBitrateK = Math.min(128, Math.max(16, Math.floor((targetMb * 8192 * 0.95) / Math.max(1.0, durationSec))));
+  } else if (preset === "custom_mb") {
+    targetMb = customMb;
+    targetBitrateK = Math.min(320, Math.max(16, Math.floor((targetMb * 8192 * 0.95) / Math.max(1.0, durationSec))));
+  } else if (preset === "custom_bitrate") {
+    targetBitrateK = bitrateSelect !== "auto" ? parseInt(bitrateSelect, 10) || 64 : 64;
+    targetMb = Math.round(((targetBitrateK * durationSec) / 8192) * 10) / 10;
+  }
+
+  if (bitrateSelect !== "auto" && preset !== "custom_bitrate") {
+    targetBitrateK = parseInt(bitrateSelect, 10) || targetBitrateK;
+  }
+
+  // Update estimation readout in UI
+  const estTarget = document.getElementById("comp-aud-est-target");
+  const estBitrate = document.getElementById("comp-aud-est-bitrate");
+  const estCodec = document.getElementById("comp-aud-est-codec");
+  if (estTarget) estTarget.textContent = `${targetMb} MB`;
+  if (estBitrate) estBitrate.textContent = `${targetBitrateK} kbps`;
+  if (estCodec) {
+    const codecNames = {
+      opus: "Opus",
+      mp3: "MP3 (LAME)",
+      m4a: "AAC (M4A)",
+      ogg: "OGG Vorbis",
+      flac: "FLAC",
+    };
+    estCodec.textContent = codecNames[format] || format.toUpperCase();
+  }
+
+  let ext = format;
+  if (format === "opus") ext = "opus";
+  else if (format === "mp3") ext = "mp3";
+  else if (format === "m4a") ext = "m4a";
+  else if (format === "ogg") ext = "ogg";
+  else if (format === "flac") ext = "flac";
+
+  const dst = resolveDestinationPath(`${baseName}_compressed.${ext}`, settings, src);
+
+  args.push("-i", src);
+
+  // Audio Codec Selection
+  if (format === "opus") {
+    args.push("-c:a", "libopus", "-b:a", `${targetBitrateK}k`);
+    args.push("-vbr", "on", "-compression_level", "10");
+  } else if (format === "mp3") {
+    args.push("-c:a", "libmp3lame", "-b:a", `${targetBitrateK}k`);
+  } else if (format === "m4a") {
+    args.push("-c:a", "aac", "-b:a", `${targetBitrateK}k`);
+  } else if (format === "ogg") {
+    args.push("-c:a", "libvorbis", "-b:a", `${targetBitrateK}k`);
+  } else if (format === "flac") {
+    args.push("-c:a", "flac", "-compression_level", "8");
+  }
+
+  // Channels
+  if (channels === "1") {
+    args.push("-ac", "1");
+  } else if (channels === "2") {
+    args.push("-ac", "2");
+  }
+
+  // Sample Rate
+  if (sampleRate !== "original") {
+    args.push("-ar", sampleRate);
+  }
+
+  // Preserve metadata
+  args.push("-map_metadata", "0");
+  args.push("-progress", "pipe:1");
+  args.push(dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    duration: durationSec,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
 export function buildMergeCommand(mergeFiles = [], outputDir, settings = {}, concatListPath = null) {
   const args = ["-y"];
   const engine = document.getElementById("merge-engine")?.value || "concat_demuxer";
@@ -793,6 +922,8 @@ export function buildCommandForTool(
       return buildTrimCommand(inputFile, outputDir, settings);
     case "compress":
       return buildCompressCommand(inputFile, outputDir, settings);
+    case "compress_audio":
+      return buildCompressAudioCommand(inputFile, outputDir, settings);
     case "merge":
       return buildMergeCommand(extraParams.mergeFiles || [], outputDir, settings, extraParams.concatListPath);
     case "mute_replace":
