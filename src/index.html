@@ -892,6 +892,31 @@
 
             <!-- TOOL 9: Settings View -->
             <div class="tool-view d-none" id="view-settings">
+              <!-- Section: Appearance & Interface -->
+              <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Appearance & Interface</div>
+                  <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-customize-theme" data-bs-toggle="modal" data-bs-target="#theme-customizer-modal" title="Customize application colors and export/import theme files">
+                    <i class="bi bi-palette"></i> Customize Theme...
+                  </button>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="set-disable-animations" />
+                      <label class="form-check-label small" for="set-disable-animations">Disable UI Animations & Transitions (Reduce Motion)</label>
+                    </div>
+                    <div class="text-body-secondary small mt-1">Instantly switches views and updates state without animated transitions.</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="p-2 px-3 border rounded bg-body d-flex justify-content-between align-items-center">
+                      <span class="small fw-medium">Active Color Palette</span>
+                      <span class="badge text-bg-primary-subtle text-primary border border-primary-subtle" id="active-theme-badge">Default Modern Dark</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Section 1: Storage and Paths -->
               <div class="mb-4">
                 <div class="section-divider-header">Storage and Directories</div>
@@ -1207,6 +1232,107 @@
           </div>
           <div class="modal-footer border-top py-2 px-3 justify-content-end">
             <button type="button" class="btn btn-primary btn-sm px-3" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme Customizer Modal -->
+    <div class="modal fade" id="theme-customizer-modal" tabindex="-1" aria-labelledby="themeCustomizerModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="themeCustomizerModalLabel">
+              <i class="bi bi-palette text-primary"></i> Customize Theme & Colors
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <!-- Preset Palettes -->
+            <div class="mb-4">
+              <label class="form-label small fw-medium" for="theme-preset-pick">Preset Color Palettes</label>
+              <select class="form-select form-select-sm" id="theme-preset-pick">
+                <option value="default_dark" selected>Default Modern Dark (Blue & Charcoal)</option>
+                <option value="midnight_blue">Midnight Blue (Indigo & Deep Navy)</option>
+                <option value="emerald_matrix">Emerald Green (Cyber Green & Black)</option>
+                <option value="sunset_crimson">Sunset Crimson (Ruby Red & Obsidian)</option>
+                <option value="amber_gold">Amber Gold (Warm Ochre & Dark Slate)</option>
+                <option value="monokai_pro">Monokai Pro (Purple & Dark Umber)</option>
+                <option value="nordic_frost">Nordic Frost (Ice Cyan & Polar Grey)</option>
+                <option value="custom">Custom Theme</option>
+              </select>
+            </div>
+
+            <!-- Custom Color Pickers Grid -->
+            <div class="section-divider-header">Theme Color Properties</div>
+            <div class="row g-3 mb-4">
+              <div class="col-md-6 col-lg-4">
+                <label class="form-label small fw-medium" for="theme-primary">Primary Accent</label>
+                <div class="input-group input-group-sm">
+                  <input type="color" class="form-control form-control-color" id="theme-primary" value="#0d6efd" title="Choose primary accent color" />
+                  <input type="text" class="form-control font-monospace" id="theme-primary-hex" value="#0d6efd" />
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <label class="form-label small fw-medium" for="theme-body-bg">Background Canvas</label>
+                <div class="input-group input-group-sm">
+                  <input type="color" class="form-control form-control-color" id="theme-body-bg" value="#121212" title="Choose main background color" />
+                  <input type="text" class="form-control font-monospace" id="theme-body-bg-hex" value="#121212" />
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <label class="form-label small fw-medium" for="theme-card-bg">Surface / Card Background</label>
+                <div class="input-group input-group-sm">
+                  <input type="color" class="form-control form-control-color" id="theme-card-bg" value="#1e1e1e" title="Choose card and sidebar background" />
+                  <input type="text" class="form-control font-monospace" id="theme-card-bg-hex" value="#1e1e1e" />
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <label class="form-label small fw-medium" for="theme-text-color">Text Color</label>
+                <div class="input-group input-group-sm">
+                  <input type="color" class="form-control form-control-color" id="theme-text-color" value="#f8f9fa" title="Choose text color" />
+                  <input type="text" class="form-control font-monospace" id="theme-text-color-hex" value="#f8f9fa" />
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <label class="form-label small fw-medium" for="theme-border-color">Border Color</label>
+                <div class="input-group input-group-sm">
+                  <input type="color" class="form-control form-control-color" id="theme-border-color" value="#343a40" title="Choose border color" />
+                  <input type="text" class="form-control font-monospace" id="theme-border-color-hex" value="#343a40" />
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4 d-flex align-items-end">
+                <button class="btn btn-outline-secondary btn-sm w-100" type="button" id="btn-reset-theme" title="Reset colors to default">
+                  <i class="bi bi-arrow-counterclockwise"></i> Reset to Default
+                </button>
+              </div>
+            </div>
+
+            <!-- Theme File Export / Import Section -->
+            <div class="section-divider-header">Theme .txt File Management</div>
+            <div class="p-3 border rounded bg-body-tertiary">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <div>
+                  <div class="fw-semibold text-body small">Export & Share Theme Files</div>
+                  <div class="text-body-secondary small">Save your custom color scheme to a <code>.theme.txt</code> file or load an existing theme.</div>
+                </div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-primary btn-sm" type="button" id="btn-export-theme-file" title="Create and save theme .txt file">
+                    <i class="bi bi-file-earmark-arrow-down"></i> Export Theme...
+                  </button>
+                  <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-import-theme-file" title="Load theme from .txt file">
+                    <i class="bi bi-file-earmark-arrow-up"></i> Import Theme...
+                  </button>
+                  <input type="file" id="theme-file-input" class="d-none" accept=".txt" />
+                </div>
+              </div>
+              <div class="small text-body-secondary">
+                Format: Clean key-value pairs (e.g. <code>primary=#0d6efd</code>, <code>body_bg=#121212</code>).
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 justify-content-end">
+            <button type="button" class="btn btn-primary btn-sm px-4" data-bs-dismiss="modal">Done</button>
           </div>
         </div>
       </div>

@@ -16,6 +16,7 @@ import {
 } from "./js/runner.js";
 import { initNavigation, getCurrentActiveTool } from "./js/navigation.js";
 import { initToolsManager } from "./js/tools_manager.js";
+import { initThemeManager } from "./js/theme.js";
 
 let appSettings = loadSettings();
 let mergeFiles = [];
@@ -708,6 +709,7 @@ function syncSettingsFromUI() {
 
 // App Initialization
 document.addEventListener("DOMContentLoaded", () => {
+  initThemeManager();
   populateSettingsUI();
   initToolsManager();
   initDragAndDrop((mediaInfo) => {

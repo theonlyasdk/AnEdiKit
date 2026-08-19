@@ -434,3 +434,14 @@ a:active,
     transform: translateX(0);
   }
 }
+
+/* Disable Animations Mode (Reduced Motion) */
+html.no-animations *,
+html.no-animations *::before,
+html.no-animations *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  animation-delay: 0ms !important;
+  transition-delay: 0ms !important;
+}
