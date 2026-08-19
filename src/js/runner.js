@@ -71,12 +71,14 @@ export function updateProgress(data) {
 }
 
 let activeJobInfo = null;
+let jobStartTime = 0;
 
 export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   if (isRunning) {
     return;
   }
 
+  jobStartTime = Date.now();
   activeJobInfo = {
     destination: commandObj.destination || "",
     toolName: commandObj.executable === "yt-dlp" ? "Download" : "Conversion",
@@ -244,22 +246,39 @@ export function onJobFinished(success, message) {
       pct: 100,
     });
 
+    const elapsedSeconds = jobStartTime > 0 ? ((Date.now() - jobStartTime) / 1000).toFixed(1) : "0.0";
     if (activeJobInfo && activeJobInfo.destination) {
-      showFinishedNotification(activeJobInfo.destination, activeJobInfo.toolName);
+      showFinishedNotification(activeJobInfo.destination, activeJobInfo.toolName, elapsedSeconds);
     }
   }
 }
 
-export function showFinishedNotification(destination, toolName = "Conversion") {
+export async function showFinishedNotification(destination, toolName = "Conversion", elapsedSeconds = "0.0") {
   if (!destination) return;
 
   const fileName = destination.split(/[/\\]/).pop() || destination;
 
+  // Query final file size
+  let finalSizeStr = "";
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      const info = await window.__TAURI__.core.invoke("get_media_info", { filePath: destination });
+      if (info && info.file_size_formatted) {
+        finalSizeStr = info.file_size_formatted;
+      }
+    } catch (e) {
+      console.warn("Failed to probe final file size:", e);
+    }
+  }
+
   // 1. Send native Windows system notification
   if (window.__TAURI__?.core?.invoke) {
+    const detailMsg = finalSizeStr
+      ? `Finished in ${elapsedSeconds}s (${finalSizeStr})`
+      : `Finished in ${elapsedSeconds}s`;
     window.__TAURI__.core.invoke("send_system_notification", {
       title: `${toolName} Completed`,
-      body: `Finished: ${fileName}`,
+      body: `${fileName} - ${detailMsg}`,
     }).catch((err) => console.warn("System notification error:", err));
   }
 
@@ -267,7 +286,7 @@ export function showFinishedNotification(destination, toolName = "Conversion") {
   try {
     if ("Notification" in window && Notification.permission === "granted") {
       new Notification(`${toolName} Completed`, {
-        body: `Finished: ${fileName}`,
+        body: `${fileName} (${elapsedSeconds}s)`,
       });
     }
   } catch (err) {
@@ -278,6 +297,7 @@ export function showFinishedNotification(destination, toolName = "Conversion") {
   const toastEl = document.getElementById("finished-toast");
   const toastTitle = document.getElementById("toast-title");
   const toastFileName = document.getElementById("toast-filename");
+  const toastMetaDetails = document.getElementById("toast-meta-details");
   const btnOpenFile = document.getElementById("toast-btn-open-file");
   const btnOpenFolder = document.getElementById("toast-btn-open-folder");
 
@@ -285,6 +305,11 @@ export function showFinishedNotification(destination, toolName = "Conversion") {
   if (toastFileName) {
     toastFileName.textContent = fileName;
     toastFileName.title = destination;
+  }
+
+  if (toastMetaDetails) {
+    const sizeText = finalSizeStr ? `Final size: <strong class="text-body fw-medium">${finalSizeStr}</strong>` : "";
+    toastMetaDetails.innerHTML = `Time taken: <strong class="text-body fw-medium">${elapsedSeconds}s</strong>${sizeText ? ` &bull; ${sizeText}` : ""}`;
   }
 
   if (btnOpenFile) {

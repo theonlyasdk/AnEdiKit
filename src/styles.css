@@ -398,3 +398,19 @@ a:active,
     opacity: 1;
   }
 }
+
+/* Actionable Notification Toast Slide-in */
+.toast-slide-in.show {
+  animation: toastSlideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes toastSlideInRight {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
