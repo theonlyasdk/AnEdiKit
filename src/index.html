@@ -910,6 +910,14 @@
                       <label class="form-check-label small" for="set-disable-animations">Disable UI Animations & Transitions (Reduce Motion)</label>
                     </div>
                   </div>
+                  <div class="col-md-12">
+                    <label class="form-label small fw-medium" for="set-custom-font">UI Font Family</label>
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control" id="set-custom-font" placeholder='e.g. "Segoe UI", Inter, Roboto, "Fira Code", system-ui' />
+                      <button class="btn btn-outline-secondary" type="button" id="btn-reset-font" title="Reset font to system default">Default</button>
+                    </div>
+                    <div class="text-body-secondary small mt-1" style="font-size: 0.75rem;">Applies any locally installed font family across the entire user interface.</div>
+                  </div>
                 </div>
               </div>
 
@@ -1288,14 +1296,16 @@
               <label class="form-label small fw-medium" for="theme-preset-pick">Preset Color Palettes</label>
               <div class="input-group input-group-sm">
                 <select class="form-select" id="theme-preset-pick">
-                  <option value="bootstrap_dark">Bootstrap 5 Dark</option>
-                  <option value="default_dark" selected>Default Modern Dark</option>
-                  <option value="midnight_blue">Midnight Blue</option>
-                  <option value="emerald_matrix">Emerald Green</option>
-                  <option value="sunset_crimson">Sunset Crimson</option>
-                  <option value="amber_gold">Amber Gold</option>
-                  <option value="monokai_pro">Monokai Pro</option>
-                  <option value="nordic_frost">Nordic Frost</option>
+                  <option value="bootstrap_dark" selected>Bootstrap 5 Dark</option>
+                  <option value="catppuccin_mocha">Catppuccin Mocha</option>
+                  <option value="tokyo_night">Tokyo Night</option>
+                  <option value="dracula">Dracula</option>
+                  <option value="nord">Nord</option>
+                  <option value="one_dark">One Dark Pro</option>
+                  <option value="gruvbox_dark">Gruvbox Dark</option>
+                  <option value="rose_pine">Rosé Pine</option>
+                  <option value="solarized_dark">Solarized Dark</option>
+                  <option value="synthwave_84">Synthwave '84</option>
                   <option value="custom">Custom Theme</option>
                 </select>
                 <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-prev" title="Previous Preset">

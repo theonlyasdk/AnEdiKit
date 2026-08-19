@@ -10,6 +10,7 @@ export const DEFAULT_SETTINGS = {
   outputDir: "C:\\Users\\User\\Videos",
   promptOverwrite: true,
   disableAnimations: false,
+  customFont: "",
   hwAccel: "auto",
   threads: "0",
   defVCodec: "libx264",

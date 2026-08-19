@@ -16,103 +16,131 @@ export const THEME_PRESETS = {
     text_color: "#dee2e6",
     border_color: "#495057",
   },
-  default_dark: {
-    name: "Default Modern Dark",
-    primary: "#0d6efd",
-    secondary: "#6c757d",
-    success: "#20c997",
-    danger: "#e63946",
-    warning: "#ffb703",
-    info: "#00b4d8",
-    body_bg: "#121212",
-    card_bg: "#1e1e1e",
-    pane_bg: "#181818",
-    text_color: "#f8f9fa",
-    border_color: "#343a40",
+  catppuccin_mocha: {
+    name: "Catppuccin Mocha",
+    primary: "#89b4fa",
+    secondary: "#6c7086",
+    success: "#a6e3a1",
+    danger: "#f38ba8",
+    warning: "#f9e2af",
+    info: "#94e2d5",
+    body_bg: "#1e1e2e",
+    card_bg: "#181825",
+    pane_bg: "#11111b",
+    text_color: "#cdd6f4",
+    border_color: "#313244",
   },
-  midnight_blue: {
-    name: "Midnight Blue",
-    primary: "#4f46e5",
-    secondary: "#64748b",
-    success: "#10b981",
-    danger: "#ef4444",
-    warning: "#f59e0b",
-    info: "#38bdf8",
-    body_bg: "#0b0f19",
-    card_bg: "#131b2e",
-    pane_bg: "#0f172a",
-    text_color: "#f1f5f9",
-    border_color: "#1e293b",
+  tokyo_night: {
+    name: "Tokyo Night",
+    primary: "#7aa2f7",
+    secondary: "#565f89",
+    success: "#9ece6a",
+    danger: "#f7768e",
+    warning: "#e0af68",
+    info: "#7dcfff",
+    body_bg: "#1a1b26",
+    card_bg: "#16161e",
+    pane_bg: "#1f2335",
+    text_color: "#a9b1d6",
+    border_color: "#292e42",
   },
-  emerald_matrix: {
-    name: "Emerald Green",
-    primary: "#10b981",
-    secondary: "#64748b",
-    success: "#059669",
-    danger: "#e11d48",
-    warning: "#d97706",
-    info: "#06b6d4",
-    body_bg: "#0a100d",
-    card_bg: "#121d18",
-    pane_bg: "#0e1713",
-    text_color: "#ecfdf5",
-    border_color: "#1e3a2b",
+  dracula: {
+    name: "Dracula",
+    primary: "#bd93f9",
+    secondary: "#6272a4",
+    success: "#50fa7b",
+    danger: "#ff5555",
+    warning: "#f1fa8c",
+    info: "#8be9fd",
+    body_bg: "#282a36",
+    card_bg: "#21222c",
+    pane_bg: "#191a21",
+    text_color: "#f8f8f2",
+    border_color: "#44475a",
   },
-  sunset_crimson: {
-    name: "Sunset Crimson",
-    primary: "#f43f5e",
-    secondary: "#78716c",
-    success: "#10b981",
-    danger: "#e11d48",
-    warning: "#f97316",
-    info: "#06b6d4",
-    body_bg: "#140a0c",
-    card_bg: "#221217",
-    pane_bg: "#1a0e11",
-    text_color: "#fff1f2",
-    border_color: "#3f1a24",
+  nord: {
+    name: "Nord",
+    primary: "#88c0d0",
+    secondary: "#4c566a",
+    success: "#a3be8c",
+    danger: "#bf616a",
+    warning: "#ebcb8b",
+    info: "#81a1c1",
+    body_bg: "#2e3440",
+    card_bg: "#3b4252",
+    pane_bg: "#242933",
+    text_color: "#eceff4",
+    border_color: "#434c5e",
   },
-  amber_gold: {
-    name: "Amber Gold",
-    primary: "#f59e0b",
-    secondary: "#78716c",
-    success: "#16a34a",
-    danger: "#dc2626",
-    warning: "#d97706",
-    info: "#0284c7",
-    body_bg: "#120f09",
-    card_bg: "#211b12",
-    pane_bg: "#17140e",
-    text_color: "#fffbeb",
-    border_color: "#3d321c",
+  one_dark: {
+    name: "One Dark Pro",
+    primary: "#61afef",
+    secondary: "#5c6370",
+    success: "#98c379",
+    danger: "#e06c75",
+    warning: "#e5c07b",
+    info: "#56b6c2",
+    body_bg: "#282c34",
+    card_bg: "#21252b",
+    pane_bg: "#1e2227",
+    text_color: "#abb2bf",
+    border_color: "#3e4451",
   },
-  monokai_pro: {
-    name: "Monokai Pro",
-    primary: "#a855f7",
-    secondary: "#71717a",
-    success: "#22c55e",
-    danger: "#f43f5e",
-    warning: "#eab308",
-    info: "#06b6d4",
-    body_bg: "#18141c",
-    card_bg: "#251f2b",
-    pane_bg: "#1e1a23",
-    text_color: "#faf5ff",
-    border_color: "#41364c",
+  gruvbox_dark: {
+    name: "Gruvbox Dark",
+    primary: "#d79921",
+    secondary: "#7c6f64",
+    success: "#98971a",
+    danger: "#cc241d",
+    warning: "#fabd2f",
+    info: "#458588",
+    body_bg: "#282828",
+    card_bg: "#1d2021",
+    pane_bg: "#32302f",
+    text_color: "#ebdbb2",
+    border_color: "#504945",
   },
-  nordic_frost: {
-    name: "Nordic Frost",
-    primary: "#06b6d4",
-    secondary: "#64748b",
-    success: "#10b981",
-    danger: "#f43f5e",
-    warning: "#f59e0b",
-    info: "#38bdf8",
-    body_bg: "#0f172a",
-    card_bg: "#1e293b",
-    pane_bg: "#141e33",
-    text_color: "#f8fafc",
-    border_color: "#334155",
+  rose_pine: {
+    name: "Rosé Pine",
+    primary: "#ebbcba",
+    secondary: "#6e6a86",
+    success: "#31748f",
+    danger: "#eb6f92",
+    warning: "#f6c177",
+    info: "#9ccfd8",
+    body_bg: "#191724",
+    card_bg: "#1f1d2e",
+    pane_bg: "#14121d",
+    text_color: "#e0def4",
+    border_color: "#26233a",
+  },
+  solarized_dark: {
+    name: "Solarized Dark",
+    primary: "#268bd2",
+    secondary: "#586e75",
+    success: "#859900",
+    danger: "#dc322f",
+    warning: "#b58900",
+    info: "#2aa198",
+    body_bg: "#002b36",
+    card_bg: "#073642",
+    pane_bg: "#00212b",
+    text_color: "#839496",
+    border_color: "#073642",
+  },
+  synthwave_84: {
+    name: "Synthwave '84",
+    primary: "#ff7edb",
+    secondary: "#614d79",
+    success: "#72f1b8",
+    danger: "#fe4450",
+    warning: "#fede5d",
+    info: "#03edf9",
+    body_bg: "#241b2f",
+    card_bg: "#1a1324",
+    pane_bg: "#2a1e38",
+    text_color: "#fff5f6",
+    border_color: "#3e2f5b",
   },
 };
 
@@ -193,6 +221,15 @@ export function applyTheme(themeObj) {
   }
 }
 
+export function applyFontFamily(fontName) {
+  const root = document.documentElement;
+  if (fontName && fontName.trim()) {
+    root.style.setProperty("--bs-body-font-family", `${fontName.trim()}, system-ui, -apple-system, sans-serif`);
+  } else {
+    root.style.setProperty("--bs-body-font-family", 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif');
+  }
+}
+
 export function setAnimationsEnabled(enabled) {
   if (enabled) {
     document.documentElement.classList.remove("no-animations");
@@ -210,7 +247,7 @@ export function loadSavedTheme() {
   } catch (e) {
     console.warn("loadSavedTheme error:", e);
   }
-  return THEME_PRESETS.default_dark;
+  return THEME_PRESETS.bootstrap_dark;
 }
 
 export function saveCurrentTheme(themeObj) {
@@ -232,11 +269,11 @@ export function serializeThemeToText(themeObj) {
     `danger=${themeObj.danger || "#dc3545"}`,
     `warning=${themeObj.warning || "#ffc107"}`,
     `info=${themeObj.info || "#0dcaf0"}`,
-    `body_bg=${themeObj.body_bg || "#121212"}`,
-    `card_bg=${themeObj.card_bg || "#1e1e1e"}`,
-    `pane_bg=${themeObj.pane_bg || "#181818"}`,
-    `text_color=${themeObj.text_color || "#f8f9fa"}`,
-    `border_color=${themeObj.border_color || "#343a40"}`,
+    `body_bg=${themeObj.body_bg || "#212529"}`,
+    `card_bg=${themeObj.card_bg || "#2b3035"}`,
+    `pane_bg=${themeObj.pane_bg || "#212529"}`,
+    `text_color=${themeObj.text_color || "#dee2e6"}`,
+    `border_color=${themeObj.border_color || "#495057"}`,
   ].join("\n");
 }
 
@@ -264,6 +301,7 @@ export function initThemeManager() {
 
   const settings = loadSettings();
   setAnimationsEnabled(!settings.disableAnimations);
+  applyFontFamily(settings.customFont);
 
   // Sync inputs inside modal
   const syncInputsFromTheme = (th) => {
@@ -291,6 +329,29 @@ export function initThemeManager() {
   };
 
   syncInputsFromTheme(currentTheme);
+
+  // Custom Font Input Handlers
+  const fontInput = document.getElementById("set-custom-font");
+  const btnResetFont = document.getElementById("btn-reset-font");
+  if (fontInput) {
+    fontInput.value = settings.customFont || "";
+    fontInput.addEventListener("input", () => {
+      const val = fontInput.value.trim();
+      const curSettings = loadSettings();
+      curSettings.customFont = val;
+      applyFontFamily(val);
+      saveSettings(curSettings);
+    });
+  }
+  if (btnResetFont && fontInput) {
+    btnResetFont.addEventListener("click", () => {
+      fontInput.value = "";
+      const curSettings = loadSettings();
+      curSettings.customFont = "";
+      applyFontFamily("");
+      saveSettings(curSettings);
+    });
+  }
 
   // Disable Animations Switch in Settings
   const chkDisableAnim = document.getElementById("set-disable-animations");
@@ -327,7 +388,7 @@ export function initThemeManager() {
   }
 
   const cyclePreset = (delta) => {
-    const curVal = presetSelect ? presetSelect.value : "default_dark";
+    const curVal = presetSelect ? presetSelect.value : "bootstrap_dark";
     let curIdx = presetKeys.indexOf(curVal);
     if (curIdx === -1) curIdx = 0;
     const nextIdx = (curIdx + delta + presetKeys.length) % presetKeys.length;
@@ -388,11 +449,11 @@ export function initThemeManager() {
   const btnResetTheme = document.getElementById("btn-reset-theme");
   if (btnResetTheme) {
     btnResetTheme.addEventListener("click", () => {
-      const def = THEME_PRESETS.default_dark;
+      const def = THEME_PRESETS.bootstrap_dark;
       syncInputsFromTheme(def);
       applyTheme(def);
       saveCurrentTheme(def);
-      if (presetSelect) presetSelect.value = "default_dark";
+      if (presetSelect) presetSelect.value = "bootstrap_dark";
     });
   }
 
@@ -441,4 +502,5 @@ export function initThemeManager() {
     });
   }
 }
+
 
