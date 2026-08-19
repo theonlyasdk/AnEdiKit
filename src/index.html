@@ -1011,77 +1011,65 @@
                 
                 <!-- Scrollable Cards Row with Edge Gradient Shading -->
                 <div class="scroll-cards-wrapper position-relative">
-                  <div class="scroll-cards-container d-flex flex-nowrap overflow-x-auto gap-3 py-2 px-1" id="executables-scroll-container">
+                  <div class="scroll-cards-container d-flex flex-nowrap overflow-x-auto py-2 px-1" id="executables-scroll-container" style="gap: 14px;">
                     <!-- Card 1: FFmpeg -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
-                      <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                          <i class="bi bi-film fs-5 text-primary"></i>
-                          <span class="small fw-semibold text-body">FFmpeg</span>
-                        </div>
-                        <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ffmpeg-installed">Installed</span>
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
+                      <div class="d-flex align-items-start justify-content-between">
+                        <i class="bi bi-film fs-2 text-primary lh-1"></i>
+                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" id="status-ffmpeg-installed" title="Installed"></i>
                       </div>
-                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Core Video & Audio Engine</div>
+                      <div class="mt-auto">
+                        <div class="fs-5 fw-light text-body lh-1 mb-1">FFmpeg</div>
+                        <div class="text-body-secondary small" style="font-size: 0.75rem;">Core Video & Audio Engine</div>
+                      </div>
                     </div>
 
                     <!-- Card 2: FFprobe -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
-                      <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                          <i class="bi bi-info-circle fs-5 text-info"></i>
-                          <span class="small fw-semibold text-body">FFprobe</span>
-                        </div>
-                        <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ffprobe-installed">Installed</span>
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
+                      <div class="d-flex align-items-start justify-content-between">
+                        <i class="bi bi-info-circle fs-2 text-info lh-1"></i>
+                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" id="status-ffprobe-installed" title="Installed"></i>
                       </div>
-                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Media Stream Analyzer</div>
+                      <div class="mt-auto">
+                        <div class="fs-5 fw-light text-body lh-1 mb-1">FFprobe</div>
+                        <div class="text-body-secondary small" style="font-size: 0.75rem;">Media Stream Analyzer</div>
+                      </div>
                     </div>
 
                     <!-- Card 3: yt-dlp -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
-                      <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                          <i class="bi bi-cloud-download fs-5 text-danger"></i>
-                          <span class="small fw-semibold text-body">yt-dlp</span>
-                        </div>
-                        <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ytdlp-installed">Installed</span>
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
+                      <div class="d-flex align-items-start justify-content-between">
+                        <i class="bi bi-cloud-download fs-2 text-danger lh-1"></i>
+                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" id="status-ytdlp-installed" title="Installed"></i>
                       </div>
-                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Media & Video Downloader</div>
+                      <div class="mt-auto">
+                        <div class="fs-5 fw-light text-body lh-1 mb-1">yt-dlp</div>
+                        <div class="text-body-secondary small" style="font-size: 0.75rem;">Media & Video Downloader</div>
+                      </div>
                     </div>
 
                     <!-- Card 4: Deno -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
-                      <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                          <i class="bi bi-cpu fs-5 text-success"></i>
-                          <span class="small fw-semibold text-body">Deno</span>
-                        </div>
-                        <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-deno-installed">Installed</span>
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
+                      <div class="d-flex align-items-start justify-content-between">
+                        <i class="bi bi-cpu fs-2 text-success lh-1"></i>
+                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" id="status-deno-installed" title="Installed"></i>
                       </div>
-                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Runtime & Script Runner</div>
+                      <div class="mt-auto">
+                        <div class="fs-5 fw-light text-body lh-1 mb-1">Deno</div>
+                        <div class="text-body-secondary small" style="font-size: 0.75rem;">Runtime & Script Runner</div>
+                      </div>
                     </div>
 
                     <!-- Card 5: Python -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
-                      <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                          <i class="bi bi-code-slash fs-5 text-warning"></i>
-                          <span class="small fw-semibold text-body">Python</span>
-                        </div>
-                        <span class="badge text-bg-success-subtle text-success border border-success-subtle">Available</span>
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
+                      <div class="d-flex align-items-start justify-content-between">
+                        <i class="bi bi-code-slash fs-2 text-warning lh-1"></i>
+                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" title="Available"></i>
                       </div>
-                      <div class="text-body-secondary small" style="font-size: 0.75rem;">AI & Image Neural Engine</div>
-                    </div>
-
-                    <!-- Card 6: Rust Core -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
-                      <div class="d-flex align-items-center justify-content-between mb-2">
-                        <div class="d-flex align-items-center gap-2">
-                          <i class="bi bi-shield-check fs-5 text-primary"></i>
-                          <span class="small fw-semibold text-body">Rust Core</span>
-                        </div>
-                        <span class="badge text-bg-success-subtle text-success border border-success-subtle">Native v2</span>
+                      <div class="mt-auto">
+                        <div class="fs-5 fw-light text-body lh-1 mb-1">Python</div>
+                        <div class="text-body-secondary small" style="font-size: 0.75rem;">AI & Image Neural Engine</div>
                       </div>
-                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Desktop Bridge & Process IO</div>
                     </div>
                   </div>
                 </div>

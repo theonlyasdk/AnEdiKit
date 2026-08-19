@@ -97,22 +97,21 @@ export async function refreshToolsUI() {
   if (elFfmpegLocal) elFfmpegLocal.textContent = localInfo.ffmpeg_installed || "Not Found";
   if (elFfmpegLatest) elFfmpegLatest.textContent = latestInfo.ffmpeg_latest || "Unknown";
 
-  // Update Settings Executables status badges
-  const updateBadge = (elId, ver) => {
+  // Update Settings Executables status checkmarks
+  const updateCheckmark = (elId, ver) => {
     const el = document.getElementById(elId);
     if (!el) return;
     const isInstalled = ver && ver !== "Not Found" && !ver.toLowerCase().includes("not");
-    el.textContent = isInstalled ? "Installed" : "Not Installed";
     el.className = isInstalled
-      ? "badge text-bg-success-subtle text-success border border-success-subtle"
-      : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
-    el.title = ver || "Not Found";
+      ? "bi bi-check2 text-success fs-5 flex-shrink-0"
+      : "bi bi-dash text-body-tertiary fs-5 flex-shrink-0";
+    el.title = isInstalled ? `Installed (${ver})` : "Not Installed";
   };
 
-  updateBadge("status-ffmpeg-installed", localInfo.ffmpeg_installed);
-  updateBadge("status-ffprobe-installed", localInfo.ffprobe_installed);
-  updateBadge("status-ytdlp-installed", localInfo.ytdlp_installed);
-  updateBadge("status-deno-installed", localInfo.deno_installed);
+  updateCheckmark("status-ffmpeg-installed", localInfo.ffmpeg_installed);
+  updateCheckmark("status-ffprobe-installed", localInfo.ffprobe_installed);
+  updateCheckmark("status-ytdlp-installed", localInfo.ytdlp_installed);
+  updateCheckmark("status-deno-installed", localInfo.deno_installed);
 
   // Update button labels: Install (if missing), Update (if new update available), Reinstall (if already latest)
   updateActionButton("btn-update-ytdlp", "yt-dlp", localInfo.ytdlp_installed, latestInfo.ytdlp_latest);
@@ -182,23 +181,22 @@ export function simulateToolUpdate(toolName, callback) {
 }
 
 export function initToolsManager() {
-  // Initialize settings status badges and buttons on startup
+  // Initialize settings status checkmarks and buttons on startup
   checkLocalToolVersions().then((localInfo) => {
-    const updateBadge = (elId, ver) => {
+    const updateCheckmark = (elId, ver) => {
       const el = document.getElementById(elId);
       if (!el) return;
       const isInstalled = ver && ver !== "Not Found" && !ver.toLowerCase().includes("not");
-      el.textContent = isInstalled ? "Installed" : "Not Installed";
       el.className = isInstalled
-        ? "badge text-bg-success-subtle text-success border border-success-subtle"
-        : "badge text-bg-secondary-subtle text-secondary border border-secondary-subtle";
-      el.title = ver || "Not Found";
+        ? "bi bi-check2 text-success fs-5 flex-shrink-0"
+        : "bi bi-dash text-body-tertiary fs-5 flex-shrink-0";
+      el.title = isInstalled ? `Installed (${ver})` : "Not Installed";
     };
 
-    updateBadge("status-ffmpeg-installed", localInfo.ffmpeg_installed);
-    updateBadge("status-ffprobe-installed", localInfo.ffprobe_installed);
-    updateBadge("status-ytdlp-installed", localInfo.ytdlp_installed);
-    updateBadge("status-deno-installed", localInfo.deno_installed);
+    updateCheckmark("status-ffmpeg-installed", localInfo.ffmpeg_installed);
+    updateCheckmark("status-ffprobe-installed", localInfo.ffprobe_installed);
+    updateCheckmark("status-ytdlp-installed", localInfo.ytdlp_installed);
+    updateCheckmark("status-deno-installed", localInfo.deno_installed);
 
     updateActionButton("btn-update-ytdlp", "yt-dlp", localInfo.ytdlp_installed);
     updateActionButton("btn-update-deno", "Deno", localInfo.deno_installed);
