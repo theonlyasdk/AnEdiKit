@@ -171,8 +171,64 @@ export function updateMetadataDisplay(info) {
   const metaInfo = document.getElementById("input-meta-info");
   const pathInput = document.getElementById("input-file-path");
 
+  // Media preview container elements
+  const videoWrapper = document.getElementById("video-preview-wrapper");
+  const videoEl = document.getElementById("media-video-preview");
+  const audioWrapper = document.getElementById("audio-preview-wrapper");
+  const audioTitle = document.getElementById("audio-art-title");
+  const audioEl = document.getElementById("media-audio-preview");
+  const previewEmpty = document.getElementById("media-preview-empty");
+
   if (pathInput) {
     pathInput.value = info ? info.file_path || currentInputFile : "";
+  }
+
+  if (info && info.file_path) {
+    const ext = (info.file_name || info.file_path).split(".").pop().toLowerCase();
+    const isAudio =
+      info.resolution === "N/A" ||
+      info.video_codec === "None" ||
+      ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac"].includes(ext);
+
+    const assetSrc =
+      window.__TAURI__?.core?.convertFileSrc && info.file_path
+        ? window.__TAURI__.core.convertFileSrc(info.file_path)
+        : "";
+
+    if (isAudio) {
+      if (videoWrapper) videoWrapper.classList.add("d-none");
+      if (videoEl) {
+        videoEl.pause();
+        videoEl.removeAttribute("src");
+      }
+      if (audioWrapper) audioWrapper.classList.remove("d-none");
+      if (audioTitle) audioTitle.textContent = info.file_name || "Audio Track";
+      if (audioEl && assetSrc) audioEl.src = assetSrc;
+      if (previewEmpty) previewEmpty.classList.add("d-none");
+    } else {
+      if (audioWrapper) audioWrapper.classList.add("d-none");
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.removeAttribute("src");
+      }
+      if (videoWrapper) videoWrapper.classList.remove("d-none");
+      if (videoEl && assetSrc) {
+        videoEl.src = assetSrc;
+      }
+      if (previewEmpty) previewEmpty.classList.add("d-none");
+    }
+  } else {
+    if (videoWrapper) videoWrapper.classList.add("d-none");
+    if (audioWrapper) audioWrapper.classList.add("d-none");
+    if (videoEl) {
+      videoEl.pause();
+      videoEl.removeAttribute("src");
+    }
+    if (audioEl) {
+      audioEl.pause();
+      audioEl.removeAttribute("src");
+    }
+    if (previewEmpty) previewEmpty.classList.remove("d-none");
   }
 
   if (!metaInfo) return;
