@@ -1245,6 +1245,7 @@
             <div class="mb-4">
               <label class="form-label small fw-medium" for="theme-preset-pick">Preset Color Palettes</label>
               <select class="form-select form-select-sm" id="theme-preset-pick">
+                <option value="bootstrap_dark">Bootstrap 5 Dark (Default Navy Slate)</option>
                 <option value="default_dark" selected>Default Modern Dark (Blue & Charcoal)</option>
                 <option value="midnight_blue">Midnight Blue (Indigo & Deep Navy)</option>
                 <option value="emerald_matrix">Emerald Green (Cyber Green & Black)</option>
@@ -1256,49 +1257,92 @@
               </select>
             </div>
 
-            <!-- Custom Color Pickers Grid -->
-            <div class="section-divider-header">Theme Color Properties</div>
-            <div class="row g-3 mb-4">
-              <div class="col-md-6 col-lg-4">
-                <label class="form-label small fw-medium" for="theme-primary">Primary Accent</label>
-                <div class="input-group input-group-sm">
-                  <input type="color" class="form-control form-control-color" id="theme-primary" value="#0d6efd" title="Choose primary accent color" />
-                  <input type="text" class="form-control font-monospace" id="theme-primary-hex" value="#0d6efd" />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-4">
-                <label class="form-label small fw-medium" for="theme-body-bg">Background Canvas</label>
-                <div class="input-group input-group-sm">
-                  <input type="color" class="form-control form-control-color" id="theme-body-bg" value="#121212" title="Choose main background color" />
-                  <input type="text" class="form-control font-monospace" id="theme-body-bg-hex" value="#121212" />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-4">
-                <label class="form-label small fw-medium" for="theme-card-bg">Surface / Card Background</label>
-                <div class="input-group input-group-sm">
-                  <input type="color" class="form-control form-control-color" id="theme-card-bg" value="#1e1e1e" title="Choose card and sidebar background" />
-                  <input type="text" class="form-control font-monospace" id="theme-card-bg-hex" value="#1e1e1e" />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-4">
-                <label class="form-label small fw-medium" for="theme-text-color">Text Color</label>
-                <div class="input-group input-group-sm">
-                  <input type="color" class="form-control form-control-color" id="theme-text-color" value="#f8f9fa" title="Choose text color" />
-                  <input type="text" class="form-control font-monospace" id="theme-text-color-hex" value="#f8f9fa" />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-4">
-                <label class="form-label small fw-medium" for="theme-border-color">Border Color</label>
-                <div class="input-group input-group-sm">
-                  <input type="color" class="form-control form-control-color" id="theme-border-color" value="#343a40" title="Choose border color" />
-                  <input type="text" class="form-control font-monospace" id="theme-border-color-hex" value="#343a40" />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-4 d-flex align-items-end">
-                <button class="btn btn-outline-secondary btn-sm w-100" type="button" id="btn-reset-theme" title="Reset colors to default">
-                  <i class="bi bi-arrow-counterclockwise"></i> Reset to Default
-                </button>
-              </div>
+            <!-- Custom Color Table View -->
+            <div class="section-divider-header">Theme Color Values</div>
+            <div class="table-responsive border rounded mb-2">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark small">
+                  <tr>
+                    <th scope="col" style="width: 45%;">Color Property</th>
+                    <th scope="col" style="width: 15%;" class="text-center">Picker</th>
+                    <th scope="col" style="width: 40%;">Hex Code</th>
+                  </tr>
+                </thead>
+                <tbody class="small">
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Primary Accent</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Buttons, highlights, active indicator</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-primary" value="#0d6efd" title="Primary Accent" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-primary-hex" value="#0d6efd" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Background Canvas</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Application background and base surface</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-body-bg" value="#121212" title="Background Canvas" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-body-bg-hex" value="#121212" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Sidebar & Cards</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Left sidebar navigation, cards, and input panels</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-card-bg" value="#1e1e1e" title="Sidebar & Cards" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-card-bg-hex" value="#1e1e1e" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Main Workspace Pane</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Main tool scrollable workspace background</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-pane-bg" value="#181818" title="Main Workspace Pane" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-pane-bg-hex" value="#181818" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Text Color</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Standard typography and form labels</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-text-color" value="#f8f9fa" title="Text Color" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-text-color-hex" value="#f8f9fa" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Border & Dividers</div>
+                      <div class="text-body-secondary" style="font-size: 0.75rem;">Panel outlines, input borders, and dividers</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-border-color" value="#343a40" title="Border & Dividers" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-border-color-hex" value="#343a40" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
           <div class="modal-footer border-top py-2 px-3 d-flex justify-content-between align-items-center">
@@ -1308,6 +1352,9 @@
               </button>
               <button class="btn btn-outline-primary btn-sm" type="button" id="btn-export-theme-file" title="Create and save theme .txt file">
                 <i class="bi bi-file-earmark-arrow-down"></i> Export Theme...
+              </button>
+              <button class="btn btn-outline-danger btn-sm" type="button" id="btn-reset-theme" title="Reset colors to default">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
               </button>
               <input type="file" id="theme-file-input" class="d-none" accept=".txt" />
             </div>

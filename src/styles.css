@@ -445,3 +445,8 @@ html.no-animations *::after {
   animation-delay: 0ms !important;
   transition-delay: 0ms !important;
 }
+
+/* Custom Theme Workspace Pane Background */
+#tool-workspace {
+  background-color: var(--anedikit-pane-bg, var(--bs-tertiary-bg)) !important;
+}

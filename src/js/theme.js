@@ -2,11 +2,21 @@
 import { loadSettings, saveSettings } from "./storage.js";
 
 export const THEME_PRESETS = {
+  bootstrap_dark: {
+    name: "Bootstrap 5 Dark",
+    primary: "#0d6efd",
+    body_bg: "#212529",
+    card_bg: "#2b3035",
+    pane_bg: "#212529",
+    text_color: "#dee2e6",
+    border_color: "#495057",
+  },
   default_dark: {
     name: "Default Modern Dark",
     primary: "#0d6efd",
     body_bg: "#121212",
     card_bg: "#1e1e1e",
+    pane_bg: "#181818",
     text_color: "#f8f9fa",
     border_color: "#343a40",
   },
@@ -15,6 +25,7 @@ export const THEME_PRESETS = {
     primary: "#4f46e5",
     body_bg: "#0b0f19",
     card_bg: "#131b2e",
+    pane_bg: "#0f172a",
     text_color: "#f1f5f9",
     border_color: "#1e293b",
   },
@@ -23,6 +34,7 @@ export const THEME_PRESETS = {
     primary: "#10b981",
     body_bg: "#0a100d",
     card_bg: "#121d18",
+    pane_bg: "#0e1713",
     text_color: "#ecfdf5",
     border_color: "#1e3a2b",
   },
@@ -31,6 +43,7 @@ export const THEME_PRESETS = {
     primary: "#f43f5e",
     body_bg: "#140a0c",
     card_bg: "#221217",
+    pane_bg: "#1a0e11",
     text_color: "#fff1f2",
     border_color: "#3f1a24",
   },
@@ -39,6 +52,7 @@ export const THEME_PRESETS = {
     primary: "#f59e0b",
     body_bg: "#120f09",
     card_bg: "#211b12",
+    pane_bg: "#17140e",
     text_color: "#fffbeb",
     border_color: "#3d321c",
   },
@@ -47,6 +61,7 @@ export const THEME_PRESETS = {
     primary: "#a855f7",
     body_bg: "#18141c",
     card_bg: "#251f2b",
+    pane_bg: "#1e1a23",
     text_color: "#faf5ff",
     border_color: "#41364c",
   },
@@ -55,12 +70,14 @@ export const THEME_PRESETS = {
     primary: "#06b6d4",
     body_bg: "#0f172a",
     card_bg: "#1e293b",
+    pane_bg: "#141e33",
     text_color: "#f8fafc",
     border_color: "#334155",
   },
 };
 
 function hexToRgb(hex) {
+  if (!hex) return "13, 110, 253";
   const clean = hex.replace("#", "");
   if (clean.length === 3) {
     const r = parseInt(clean[0] + clean[0], 16);
@@ -95,6 +112,13 @@ export function applyTheme(themeObj) {
     root.style.setProperty("--bs-body-tertiary-bg", themeObj.card_bg);
     root.style.setProperty("--bs-tertiary-bg", themeObj.card_bg);
   }
+  if (themeObj.pane_bg) {
+    root.style.setProperty("--anedikit-pane-bg", themeObj.pane_bg);
+    const workspace = document.getElementById("tool-workspace");
+    if (workspace) {
+      workspace.style.backgroundColor = themeObj.pane_bg;
+    }
+  }
   if (themeObj.text_color) {
     root.style.setProperty("--bs-body-color", themeObj.text_color);
     root.style.setProperty("--bs-body-color-rgb", hexToRgb(themeObj.text_color));
@@ -102,11 +126,6 @@ export function applyTheme(themeObj) {
   if (themeObj.border_color) {
     root.style.setProperty("--bs-border-color", themeObj.border_color);
     root.style.setProperty("--bs-border-color-translucent", themeObj.border_color);
-  }
-
-  const badge = document.getElementById("active-theme-badge");
-  if (badge) {
-    badge.textContent = themeObj.name || "Custom";
   }
 }
 
@@ -146,6 +165,7 @@ export function serializeThemeToText(themeObj) {
     `primary=${themeObj.primary || "#0d6efd"}`,
     `body_bg=${themeObj.body_bg || "#121212"}`,
     `card_bg=${themeObj.card_bg || "#1e1e1e"}`,
+    `pane_bg=${themeObj.pane_bg || "#181818"}`,
     `text_color=${themeObj.text_color || "#f8f9fa"}`,
     `border_color=${themeObj.border_color || "#343a40"}`,
   ].join("\n");
@@ -184,6 +204,8 @@ export function initThemeManager() {
     const inBodyBgHex = document.getElementById("theme-body-bg-hex");
     const inCardBg = document.getElementById("theme-card-bg");
     const inCardBgHex = document.getElementById("theme-card-bg-hex");
+    const inPaneBg = document.getElementById("theme-pane-bg");
+    const inPaneBgHex = document.getElementById("theme-pane-bg-hex");
     const inText = document.getElementById("theme-text-color");
     const inTextHex = document.getElementById("theme-text-color-hex");
     const inBorder = document.getElementById("theme-border-color");
@@ -197,6 +219,9 @@ export function initThemeManager() {
 
     if (inCardBg && th.card_bg) inCardBg.value = th.card_bg;
     if (inCardBgHex && th.card_bg) inCardBgHex.value = th.card_bg;
+
+    if (inPaneBg && th.pane_bg) inPaneBg.value = th.pane_bg;
+    if (inPaneBgHex && th.pane_bg) inPaneBgHex.value = th.pane_bg;
 
     if (inText && th.text_color) inText.value = th.text_color;
     if (inTextHex && th.text_color) inTextHex.value = th.text_color;
@@ -266,10 +291,11 @@ export function initThemeManager() {
   bindPair("theme-primary", "theme-primary-hex", "primary");
   bindPair("theme-body-bg", "theme-body-bg-hex", "body_bg");
   bindPair("theme-card-bg", "theme-card-bg-hex", "card_bg");
+  bindPair("theme-pane-bg", "theme-pane-bg-hex", "pane_bg");
   bindPair("theme-text-color", "theme-text-color-hex", "text_color");
   bindPair("theme-border-color", "theme-border-color-hex", "border_color");
 
-  // Reset Button
+  // Reset Button (now in modal footer)
   const btnResetTheme = document.getElementById("btn-reset-theme");
   if (btnResetTheme) {
     btnResetTheme.addEventListener("click", () => {
@@ -326,3 +352,4 @@ export function initThemeManager() {
     });
   }
 }
+
