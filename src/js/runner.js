@@ -70,10 +70,17 @@ export function updateProgress(data) {
   }
 }
 
-export async function executeFfmpegJob(commandObj, totalDuration = 0.0) {
+let activeJobInfo = null;
+
+export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   if (isRunning) {
     return;
   }
+
+  activeJobInfo = {
+    destination: commandObj.destination || "",
+    toolName: commandObj.executable === "yt-dlp" ? "Download" : "Conversion",
+  };
 
   const statusPanel = document.getElementById("execution-status-panel");
   const statusMsg = document.getElementById("status-message");
@@ -115,41 +122,41 @@ export async function executeFfmpegJob(commandObj, totalDuration = 0.0) {
 
   // Tauri IPC execution
   if (window.__TAURI__?.core?.invoke && window.__TAURI__?.event?.listen) {
-    try {
-      const { listen } = window.__TAURI__.event;
+    (async () => {
+      try {
+        const { listen } = window.__TAURI__.event;
 
-      currentProgressUnlisten = await listen("ffmpeg-progress", (event) => {
-        updateProgress(event.payload);
-      });
+        currentProgressUnlisten = await listen("ffmpeg-progress", (event) => {
+          updateProgress(event.payload);
+        });
 
-      currentLogUnlisten = await listen("ffmpeg-log", (event) => {
-        if (event.payload?.line) {
-          appendLog(event.payload.line);
+        currentLogUnlisten = await listen("ffmpeg-log", (event) => {
+          if (event.payload?.line) {
+            appendLog(event.payload.line);
+          }
+        });
+
+        currentFinishedUnlisten = await listen("ffmpeg-finished", (event) => {
+          const { success, message, exit_code } = event.payload;
+          onJobFinished(success, message);
+        });
+
+        if (commandObj.executable === "yt-dlp") {
+          await window.__TAURI__.core.invoke("execute_ytdlp", {
+            args: commandObj.args,
+          });
+        } else {
+          await window.__TAURI__.core.invoke("execute_ffmpeg", {
+            args: commandObj.args,
+            totalDuration: totalDuration || 0.0,
+          });
         }
-      });
-
-      currentFinishedUnlisten = await listen("ffmpeg-finished", (event) => {
-        const { success, message, exit_code } = event.payload;
-        onJobFinished(success, message);
-      });
-
-      if (commandObj.executable === "yt-dlp") {
-        await window.__TAURI__.core.invoke("execute_ytdlp", {
-          args: commandObj.args,
-        });
-      } else {
-        await window.__TAURI__.core.invoke("execute_ffmpeg", {
-          args: commandObj.args,
-          totalDuration: totalDuration || 0.0,
-        });
+      } catch (err) {
+        appendLog(`Execution error: ${err}`, true);
+        onJobFinished(false, `Error: ${err}`);
       }
-
-      return;
-    } catch (err) {
-      appendLog(`Execution error: ${err}`, true);
-      onJobFinished(false, `Error: ${err}`);
-      return;
-    }
+    })();
+    return;
   }
 
   // Browser Simulation Fallback
@@ -236,5 +243,88 @@ export function onJobFinished(success, message) {
       bitrate: "",
       pct: 100,
     });
+
+    if (activeJobInfo && activeJobInfo.destination) {
+      showFinishedNotification(activeJobInfo.destination, activeJobInfo.toolName);
+    }
+  }
+}
+
+export function showFinishedNotification(destination, toolName = "Conversion") {
+  if (!destination) return;
+
+  const fileName = destination.split(/[/\\]/).pop() || destination;
+
+  // 1. Send native Windows system notification
+  if (window.__TAURI__?.core?.invoke) {
+    window.__TAURI__.core.invoke("send_system_notification", {
+      title: `${toolName} Completed`,
+      body: `Finished: ${fileName}`,
+    }).catch((err) => console.warn("System notification error:", err));
+  }
+
+  // 2. Also try HTML5 Notification if supported
+  try {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(`${toolName} Completed`, {
+        body: `Finished: ${fileName}`,
+      });
+    }
+  } catch (err) {
+    console.warn("Web Notification error:", err);
+  }
+
+  // 3. Show actionable UI Toast in the application
+  const toastEl = document.getElementById("finished-toast");
+  const toastTitle = document.getElementById("toast-title");
+  const toastFileName = document.getElementById("toast-filename");
+  const btnOpenFile = document.getElementById("toast-btn-open-file");
+  const btnOpenFolder = document.getElementById("toast-btn-open-folder");
+
+  if (toastTitle) toastTitle.textContent = `${toolName} Completed`;
+  if (toastFileName) {
+    toastFileName.textContent = fileName;
+    toastFileName.title = destination;
+  }
+
+  if (btnOpenFile) {
+    btnOpenFile.onclick = () => {
+      openFile(destination);
+    };
+  }
+
+  if (btnOpenFolder) {
+    btnOpenFolder.onclick = () => {
+      showInFolder(destination);
+    };
+  }
+
+  if (toastEl && window.bootstrap?.Toast) {
+    const toast = window.bootstrap.Toast.getOrCreateInstance(toastEl);
+    toast.show();
+  }
+}
+
+export async function openFile(filePath) {
+  if (!filePath) return;
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      await window.__TAURI__.core.invoke("open_file", { filePath });
+    } catch (e) {
+      console.warn("open_file error:", e);
+    }
+  } else if (window.__TAURI__?.opener?.openPath) {
+    window.__TAURI__.opener.openPath(filePath);
+  }
+}
+
+export async function showInFolder(filePath) {
+  if (!filePath) return;
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      await window.__TAURI__.core.invoke("show_in_folder", { filePath });
+    } catch (e) {
+      console.warn("show_in_folder error:", e);
+    }
   }
 }

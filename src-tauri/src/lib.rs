@@ -723,6 +723,84 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
     Ok(())
 }
 
+#[tauri::command]
+fn open_file(file_path: String) -> Result<(), String> {
+    let path = std::path::Path::new(&file_path);
+    if !path.exists() {
+        return Err("File does not exist".into());
+    }
+    #[cfg(windows)]
+    {
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/C", "start", "", &file_path]);
+        cmd.creation_flags(0x08000000);
+        cmd.spawn().map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(windows))]
+    {
+        Command::new("xdg-open").arg(&file_path).spawn().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn show_in_folder(file_path: String) -> Result<(), String> {
+    let path = std::path::Path::new(&file_path);
+    #[cfg(windows)]
+    {
+        let mut cmd = Command::new("explorer");
+        if path.is_file() {
+            cmd.arg(format!("/select,{}", path.to_string_lossy()));
+        } else if path.is_dir() {
+            cmd.arg(path.to_string_lossy().to_string());
+        } else if let Some(parent) = path.parent() {
+            if parent.exists() {
+                cmd.arg(parent.to_string_lossy().to_string());
+            } else {
+                cmd.arg(".");
+            }
+        } else {
+            cmd.arg(".");
+        }
+        cmd.creation_flags(0x08000000);
+        cmd.spawn().map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open").args(["-R", &file_path]).spawn().map_err(|e| e.to_string())?;
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let parent = path.parent().unwrap_or(path);
+        Command::new("xdg-open").arg(parent).spawn().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn send_system_notification(title: String, body: String) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        let escaped_title = title.replace('"', "`\"");
+        let escaped_body = body.replace('"', "`\"");
+        let script = format!(
+            "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; \
+            $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); \
+            $textNodes = $template.GetElementsByTagName('text'); \
+            $textNodes.Item(0).AppendChild($template.CreateTextNode(\"{}\")) > $null; \
+            $textNodes.Item(1).AppendChild($template.CreateTextNode(\"{}\")) > $null; \
+            $toast = [Windows.UI.Notifications.ToastNotification]::new($template); \
+            [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('AnEditKit').Show($toast);",
+            escaped_title, escaped_body
+        );
+        let mut cmd = Command::new("powershell");
+        cmd.args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &script]);
+        cmd.creation_flags(0x08000000);
+        let _ = cmd.spawn();
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -736,7 +814,10 @@ pub fn run() {
             execute_ffmpeg,
             execute_ytdlp,
             cancel_ffmpeg,
-            check_tool_versions
+            check_tool_versions,
+            open_file,
+            show_in_folder,
+            send_system_notification
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
