@@ -57,6 +57,7 @@ Avoid:
 - No UI elements without a clear purpose
 - No screens designed without considering the full user flow
 - No buttons or links without a clear result
+- After copying text or commands to clipboard, temporarily change the copy button state to success (e.g. btn-success with checkmark icon) for clear user feedback before reverting
 - Keep interactions consistent across the app
 - Handle loading, empty, error, disabled, and success states
 - Check edge cases before implementing a feature

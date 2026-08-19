@@ -405,10 +405,8 @@ export function buildCompressAudioCommand(inputFile, outputDir, settings = {}) {
 
   if (preset === "discord") {
     targetBitrateK = 64;
-    targetMb = Math.round(((64 * durationSec) / 8192) * 10) / 10;
   } else if (preset === "whatsapp") {
     targetBitrateK = 32;
-    targetMb = Math.round(((32 * durationSec) / 8192) * 10) / 10;
   } else if (preset === "email") {
     targetMb = 5;
     targetBitrateK = Math.min(192, Math.max(16, Math.floor((targetMb * 8192 * 0.95) / Math.max(1.0, durationSec))));
@@ -423,11 +421,22 @@ export function buildCompressAudioCommand(inputFile, outputDir, settings = {}) {
     targetBitrateK = Math.min(320, Math.max(16, Math.floor((targetMb * 8192 * 0.95) / Math.max(1.0, durationSec))));
   } else if (preset === "custom_bitrate") {
     targetBitrateK = bitrateSelect !== "auto" ? parseInt(bitrateSelect, 10) || 64 : 64;
-    targetMb = Math.round(((targetBitrateK * durationSec) / 8192) * 10) / 10;
   }
 
-  if (bitrateSelect !== "auto" && preset !== "custom_bitrate") {
+  // If user explicitly selected a bitrate (not auto)
+  if (bitrateSelect !== "auto") {
     targetBitrateK = parseInt(bitrateSelect, 10) || targetBitrateK;
+  }
+
+  // Recalculate targetMb dynamically based on bitrate, channels, sample rate and format
+  if (format === "flac") {
+    const channelRatio = channels === "1" ? 0.5 : 1.0;
+    const rateRatio = sampleRate !== "original" ? Math.min(1.0, parseInt(sampleRate, 10) / 48000) : 1.0;
+    targetMb = Math.round(srcSizeMb * 0.6 * channelRatio * rateRatio * 100) / 100 || 0.5;
+    targetBitrateK = Math.round((targetMb * 8192) / Math.max(1.0, durationSec));
+  } else {
+    // Lossy compressed format
+    targetMb = Math.round(((targetBitrateK * durationSec) / 8192) * 100) / 100 || 0.1;
   }
 
   // Update estimation readout in UI
@@ -435,7 +444,7 @@ export function buildCompressAudioCommand(inputFile, outputDir, settings = {}) {
   const estBitrate = document.getElementById("comp-aud-est-bitrate");
   const estCodec = document.getElementById("comp-aud-est-codec");
   if (estTarget) estTarget.textContent = `${targetMb} MB`;
-  if (estBitrate) estBitrate.textContent = `${targetBitrateK} kbps`;
+  if (estBitrate) estBitrate.textContent = format === "flac" ? `~${targetBitrateK} kbps (Lossless)` : `${targetBitrateK} kbps`;
   if (estCodec) {
     const codecNames = {
       opus: "Opus",
