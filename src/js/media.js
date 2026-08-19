@@ -172,12 +172,13 @@ export function updateMetadataDisplay(info) {
   const pathInput = document.getElementById("input-file-path");
 
   // Media preview container elements
+  const inputsCol = document.getElementById("media-inputs-col");
+  const previewCol = document.getElementById("media-preview-col");
   const videoWrapper = document.getElementById("video-preview-wrapper");
   const videoEl = document.getElementById("media-video-preview");
   const audioWrapper = document.getElementById("audio-preview-wrapper");
   const audioTitle = document.getElementById("audio-art-title");
   const audioEl = document.getElementById("media-audio-preview");
-  const previewEmpty = document.getElementById("media-preview-empty");
 
   if (pathInput) {
     pathInput.value = info ? info.file_path || currentInputFile : "";
@@ -195,6 +196,17 @@ export function updateMetadataDisplay(info) {
         ? window.__TAURI__.core.convertFileSrc(info.file_path)
         : "";
 
+    if (inputsCol) {
+      inputsCol.className = "col-12 col-lg-8 col-xl-8 col-xxl-9";
+    }
+
+    if (previewCol) {
+      previewCol.classList.remove("d-none", "preview-slide-in");
+      previewCol.classList.add("d-flex");
+      void previewCol.offsetWidth; // reflow
+      previewCol.classList.add("preview-slide-in");
+    }
+
     if (isAudio) {
       if (videoWrapper) videoWrapper.classList.add("d-none");
       if (videoEl) {
@@ -204,7 +216,6 @@ export function updateMetadataDisplay(info) {
       if (audioWrapper) audioWrapper.classList.remove("d-none");
       if (audioTitle) audioTitle.textContent = info.file_name || "Audio Track";
       if (audioEl && assetSrc) audioEl.src = assetSrc;
-      if (previewEmpty) previewEmpty.classList.add("d-none");
     } else {
       if (audioWrapper) audioWrapper.classList.add("d-none");
       if (audioEl) {
@@ -215,9 +226,15 @@ export function updateMetadataDisplay(info) {
       if (videoEl && assetSrc) {
         videoEl.src = assetSrc;
       }
-      if (previewEmpty) previewEmpty.classList.add("d-none");
     }
   } else {
+    if (inputsCol) {
+      inputsCol.className = "col-12";
+    }
+    if (previewCol) {
+      previewCol.classList.remove("d-flex", "preview-slide-in");
+      previewCol.classList.add("d-none");
+    }
     if (videoWrapper) videoWrapper.classList.add("d-none");
     if (audioWrapper) audioWrapper.classList.add("d-none");
     if (videoEl) {
@@ -228,7 +245,6 @@ export function updateMetadataDisplay(info) {
       audioEl.pause();
       audioEl.removeAttribute("src");
     }
-    if (previewEmpty) previewEmpty.classList.remove("d-none");
   }
 
   if (!metaInfo) return;

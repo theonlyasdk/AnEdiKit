@@ -418,3 +418,19 @@ a:active,
   opacity: 0;
   transform: translateX(120%);
 }
+
+/* Media Preview Slide-in Animation */
+.preview-slide-in {
+  animation: previewSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes previewSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
