@@ -141,7 +141,7 @@ export function updateExecuteButtonState() {
           ? "Add at least 2 files to merge"
           : activeTool === "custom"
             ? "Enter custom arguments to execute"
-            : "Select a source media file to execute",
+            : "Select a file to execute operation",
     );
   } else {
     btnExecute.setAttribute(

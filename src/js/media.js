@@ -196,6 +196,10 @@ export function updateMetadataDisplay(info) {
         ? window.__TAURI__.core.convertFileSrc(info.file_path)
         : "";
 
+    const videoFallback = document.getElementById("video-preview-fallback");
+    const videoFallbackName = document.getElementById("video-fallback-filename");
+    const audioFormat = document.getElementById("audio-art-format");
+
     if (inputsCol) {
       inputsCol.className = "col-12 col-lg-8 col-xl-8 col-xxl-9";
     }
@@ -215,6 +219,7 @@ export function updateMetadataDisplay(info) {
       }
       if (audioWrapper) audioWrapper.classList.remove("d-none");
       if (audioTitle) audioTitle.textContent = info.file_name || "Audio Track";
+      if (audioFormat) audioFormat.textContent = `${(info.audio_codec || ext || "audio").toUpperCase()} Audio`;
       if (audioEl && assetSrc) audioEl.src = assetSrc;
     } else {
       if (audioWrapper) audioWrapper.classList.add("d-none");
@@ -223,8 +228,25 @@ export function updateMetadataDisplay(info) {
         audioEl.removeAttribute("src");
       }
       if (videoWrapper) videoWrapper.classList.remove("d-none");
-      if (videoEl && assetSrc) {
-        videoEl.src = assetSrc;
+      if (videoEl) {
+        if (assetSrc) {
+          videoEl.classList.remove("d-none");
+          if (videoFallback) videoFallback.classList.add("d-none");
+          videoEl.src = assetSrc;
+          videoEl.onerror = () => {
+            videoEl.classList.add("d-none");
+            if (videoFallback) {
+              videoFallback.classList.remove("d-none");
+              if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
+            }
+          };
+        } else {
+          videoEl.classList.add("d-none");
+          if (videoFallback) {
+            videoFallback.classList.remove("d-none");
+            if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
+          }
+        }
       }
     }
   } else {
