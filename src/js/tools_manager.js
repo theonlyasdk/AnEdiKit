@@ -233,15 +233,14 @@ export function initToolsManager() {
     });
   }
 
-    const btnUpdateFfmpeg = document.getElementById("btn-update-ffmpeg");
-    if (btnUpdateFfmpeg) {
-      btnUpdateFfmpeg.addEventListener("click", () => {
-        simulateToolUpdate("FFmpeg", refreshToolsUI);
-      });
-    }
+  const btnUpdateFfmpeg = document.getElementById("btn-update-ffmpeg");
+  if (btnUpdateFfmpeg) {
+    btnUpdateFfmpeg.addEventListener("click", () => {
+      simulateToolUpdate("FFmpeg", refreshToolsUI);
+    });
+  }
 
-    initScrollCardsOverflow();
-  });
+  initScrollCardsOverflow();
 }
 
 export function initScrollCardsOverflow() {
