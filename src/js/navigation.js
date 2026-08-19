@@ -244,6 +244,10 @@ export function switchTool(toolId, onToolChanged) {
   if (statusMsg) {
     if (toolId === "settings") {
       statusMsg.textContent = "Settings are saved automatically";
+      setTimeout(() => {
+        const scrollBox = document.getElementById("executables-scroll-container");
+        if (scrollBox) scrollBox.dispatchEvent(new Event("scroll"));
+      }, 50);
     } else if (statusMsg.textContent === "Settings are saved automatically") {
       statusMsg.textContent = "Ready";
     }

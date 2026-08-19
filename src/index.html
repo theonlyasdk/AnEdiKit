@@ -1000,7 +1000,7 @@
                 </div>
               </div>
 
-              <!-- Section 4: Executables & Environment -->
+              <!-- Section 4: Executables & Environment (Horizontal Scrolling Cards) -->
               <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <div class="section-divider-header flex-grow-1 mb-0 me-3">Executables & Environment</div>
@@ -1008,29 +1008,80 @@
                     <i class="bi bi-tools"></i> Manage Tools...
                   </button>
                 </div>
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <div class="p-2 px-3 border rounded bg-body d-flex justify-content-between align-items-center">
-                      <span class="small fw-medium">FFmpeg Engine</span>
-                      <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ffmpeg-installed">Installed</span>
+                
+                <!-- Scrollable Cards Row with Edge Gradient Shading -->
+                <div class="scroll-cards-wrapper position-relative">
+                  <div class="scroll-cards-container d-flex flex-nowrap overflow-x-auto gap-3 py-2 px-1" id="executables-scroll-container">
+                    <!-- Card 1: FFmpeg -->
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-film fs-5 text-primary"></i>
+                          <span class="small fw-semibold text-body">FFmpeg</span>
+                        </div>
+                        <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ffmpeg-installed">Installed</span>
+                      </div>
+                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Core Video & Audio Engine</div>
                     </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="p-2 px-3 border rounded bg-body d-flex justify-content-between align-items-center">
-                      <span class="small fw-medium">FFprobe Analyzer</span>
-                      <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ffprobe-installed">Installed</span>
+
+                    <!-- Card 2: FFprobe -->
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-info-circle fs-5 text-info"></i>
+                          <span class="small fw-semibold text-body">FFprobe</span>
+                        </div>
+                        <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ffprobe-installed">Installed</span>
+                      </div>
+                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Media Stream Analyzer</div>
                     </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="p-2 px-3 border rounded bg-body d-flex justify-content-between align-items-center">
-                      <span class="small fw-medium">yt-dlp Downloader</span>
-                      <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ytdlp-installed">Installed</span>
+
+                    <!-- Card 3: yt-dlp -->
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-cloud-download fs-5 text-danger"></i>
+                          <span class="small fw-semibold text-body">yt-dlp</span>
+                        </div>
+                        <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-ytdlp-installed">Installed</span>
+                      </div>
+                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Media & Video Downloader</div>
                     </div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="p-2 px-3 border rounded bg-body d-flex justify-content-between align-items-center">
-                      <span class="small fw-medium">Deno Runtime</span>
-                      <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-deno-installed">Installed</span>
+
+                    <!-- Card 4: Deno -->
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-cpu fs-5 text-success"></i>
+                          <span class="small fw-semibold text-body">Deno</span>
+                        </div>
+                        <span class="badge text-bg-success-subtle text-success border border-success-subtle" id="status-deno-installed">Installed</span>
+                      </div>
+                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Runtime & Script Runner</div>
+                    </div>
+
+                    <!-- Card 5: Python -->
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-code-slash fs-5 text-warning"></i>
+                          <span class="small fw-semibold text-body">Python</span>
+                        </div>
+                        <span class="badge text-bg-success-subtle text-success border border-success-subtle">Available</span>
+                      </div>
+                      <div class="text-body-secondary small" style="font-size: 0.75rem;">AI & Image Neural Engine</div>
+                    </div>
+
+                    <!-- Card 6: Rust Core -->
+                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card" style="width: 220px;">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-shield-check fs-5 text-primary"></i>
+                          <span class="small fw-semibold text-body">Rust Core</span>
+                        </div>
+                        <span class="badge text-bg-success-subtle text-success border border-success-subtle">Native v2</span>
+                      </div>
+                      <div class="text-body-secondary small" style="font-size: 0.75rem;">Desktop Bridge & Process IO</div>
                     </div>
                   </div>
                 </div>

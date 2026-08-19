@@ -531,3 +531,70 @@ html.no-animations *::after {
   transform: scale(1) !important;
   opacity: 1 !important;
 }
+
+/* Horizontal Scrolling Cards with Dynamic Gradient Shading */
+.scroll-cards-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.scroll-cards-wrapper::before,
+.scroll-cards-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 36px;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.scroll-cards-wrapper::before {
+  left: 0;
+  background: linear-gradient(to right, var(--bs-body-bg, #121212) 20%, transparent 100%);
+}
+
+.scroll-cards-wrapper::after {
+  right: 0;
+  background: linear-gradient(to left, var(--bs-body-bg, #121212) 20%, transparent 100%);
+}
+
+.scroll-cards-wrapper.has-overflow-left::before {
+  opacity: 1;
+}
+
+.scroll-cards-wrapper.has-overflow-right::after {
+  opacity: 1;
+}
+
+.scroll-cards-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bs-border-color) transparent;
+  scroll-behavior: smooth;
+}
+
+.scroll-cards-container::-webkit-scrollbar {
+  height: 5px;
+}
+
+.scroll-cards-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-cards-container::-webkit-scrollbar-thumb {
+  background-color: var(--bs-border-color);
+  border-radius: 4px;
+}
+
+.env-tool-card {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  user-select: none;
+}
+
+.env-tool-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(var(--bs-primary-rgb), 0.45) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}

@@ -233,10 +233,43 @@ export function initToolsManager() {
     });
   }
 
-  const btnUpdateFfmpeg = document.getElementById("btn-update-ffmpeg");
-  if (btnUpdateFfmpeg) {
-    btnUpdateFfmpeg.addEventListener("click", () => {
-      simulateToolUpdate("FFmpeg", refreshToolsUI);
-    });
-  }
+    const btnUpdateFfmpeg = document.getElementById("btn-update-ffmpeg");
+    if (btnUpdateFfmpeg) {
+      btnUpdateFfmpeg.addEventListener("click", () => {
+        simulateToolUpdate("FFmpeg", refreshToolsUI);
+      });
+    }
+
+    initScrollCardsOverflow();
+  });
 }
+
+export function initScrollCardsOverflow() {
+  const container = document.getElementById("executables-scroll-container");
+  if (!container) return;
+  const wrapper = container.closest(".scroll-cards-wrapper");
+  if (!wrapper) return;
+
+  const updateOverflow = () => {
+    const scrollLeft = container.scrollLeft;
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    if (scrollLeft > 4) {
+      wrapper.classList.add("has-overflow-left");
+    } else {
+      wrapper.classList.remove("has-overflow-left");
+    }
+
+    if (maxScroll - scrollLeft > 4) {
+      wrapper.classList.add("has-overflow-right");
+    } else {
+      wrapper.classList.remove("has-overflow-right");
+    }
+  };
+
+  container.addEventListener("scroll", updateOverflow, { passive: true });
+  window.addEventListener("resize", updateOverflow);
+  // Initial check after render
+  setTimeout(updateOverflow, 50);
+  setTimeout(updateOverflow, 300);
+}
+
