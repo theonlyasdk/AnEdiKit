@@ -1,4 +1,5 @@
 // FFmpeg Command Builder Module based on ffmpeg-tools-frontend.ps1
+import { getLastYtDlpOutDir } from "./storage.js";
 
 export function resolveDestinationPath(defaultFileName, settings = {}, inputFile = "") {
   const currentInput = inputFile || document.getElementById("input-file-path")?.value?.trim() || "";
@@ -752,6 +753,8 @@ export function appendGlobalYtDlpArgs(args, settings = {}) {
 export function resolveYtDlpOutputDir(settings = {}) {
   const customOut = document.getElementById("ytdlp-output-dir")?.value?.trim();
   if (customOut) return customOut;
+  const lastSaved = getLastYtDlpOutDir();
+  if (lastSaved) return lastSaved;
   return settings.outputDir || "C:\\Users\\User\\Downloads";
 }
 

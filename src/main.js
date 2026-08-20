@@ -1,5 +1,5 @@
 // AnEditKit - Modular Application Entry Point
-import { loadSettings, saveSettings } from "./js/storage.js";
+import { loadSettings, saveSettings, getLastYtDlpOutDir, saveLastYtDlpOutDir } from "./js/storage.js";
 import {
   selectMediaFile,
   selectOutputFolder,
@@ -13,6 +13,7 @@ import {
   executeFfmpegJob,
   cancelFfmpegJob,
   isJobRunning,
+  initJobRunner,
 } from "./js/runner.js";
 import { initNavigation, getCurrentActiveTool } from "./js/navigation.js";
 import { initToolsManager } from "./js/tools_manager.js";
@@ -279,6 +280,7 @@ function bindFormEvents() {
       const folder = await selectOutputFolder();
       if (folder) {
         if (ytdlpOutInput) ytdlpOutInput.value = folder;
+        saveLastYtDlpOutDir(folder);
         updateCommandPreview();
       }
     });
@@ -739,7 +741,14 @@ function syncSettingsFromUI() {
 document.addEventListener("DOMContentLoaded", () => {
   initThemeManager();
   populateSettingsUI();
+
+  const ytdlpOutInput = document.getElementById("ytdlp-output-dir");
+  if (ytdlpOutInput) {
+    ytdlpOutInput.value = getLastYtDlpOutDir() || appSettings.outputDir || "C:\\Users\\User\\Downloads";
+  }
+
   initToolsManager();
+  initJobRunner();
   initDragAndDrop((mediaInfo) => {
     if (mediaInfo) syncMediaDurationToTools(mediaInfo);
     updateAutoOutputFilename(true);

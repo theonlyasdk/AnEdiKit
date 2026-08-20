@@ -31,6 +31,9 @@ pub struct ProgressPayload {
     pub speed: String,
     pub bitrate: String,
     pub pct: u32,
+    pub playlist_item: Option<u32>,
+    pub playlist_total: Option<u32>,
+    pub current_item_title: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -484,6 +487,9 @@ fn execute_ffmpeg(
                             speed: cur_speed.clone(),
                             bitrate: cur_bitrate.clone(),
                             pct: cur_pct,
+                            playlist_item: None,
+                            playlist_total: None,
+                            current_item_title: None,
                         },
                     );
                 }
@@ -601,6 +607,9 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                 let mut cur_speed = "0 MiB/s".to_string();
                 let mut cur_eta = "--:--".to_string();
                 let mut cur_size = "".to_string();
+                let mut cur_item = 0u32;
+                let mut total_items = 0u32;
+                let mut current_item_name = String::new();
 
                 for line in reader.lines().flatten() {
                     if CANCEL_REQUESTED.load(Ordering::SeqCst) {
@@ -609,6 +618,41 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
 
                     // Emit log line
                     let _ = app_out.emit("ffmpeg-log", LogPayload { line: line.clone() });
+
+                    // Parse playlist / batch item progress: [download] Downloading item 3 of 12
+                    if let Some(item_idx) = line.find("Downloading item ")
+                        .or_else(|| line.find("Downloading video "))
+                        .or_else(|| line.find("Downloading playlist item ")) {
+                        let sub = &line[item_idx..];
+                        let parts: Vec<&str> = sub.split_whitespace().collect();
+                        if let Some(of_pos) = parts.iter().position(|&w| w == "of") {
+                            if of_pos > 0 && of_pos + 1 < parts.len() {
+                                if let (Ok(cur), Ok(tot)) = (parts[of_pos - 1].parse::<u32>(), parts[of_pos + 1].parse::<u32>()) {
+                                    cur_item = cur;
+                                    total_items = tot;
+                                }
+                            }
+                        }
+                    }
+
+                    // Parse destination / downloading item title
+                    if line.contains("[download] Destination: ") || line.contains("[ExtractAudio] Destination: ") {
+                        if let Some(idx) = line.find("Destination: ") {
+                            let path = line[idx + 13..].trim();
+                            if !path.is_empty() {
+                                let name = path.split(['/', '\\']).last().unwrap_or(path);
+                                current_item_name = name.to_string();
+                            }
+                        }
+                    } else if line.contains("[Merger] Merging formats into \"") {
+                        if let Some(idx) = line.find("into \"") {
+                            let path = line[idx + 6..].trim().trim_matches('"');
+                            if !path.is_empty() {
+                                let name = path.split(['/', '\\']).last().unwrap_or(path);
+                                current_item_name = name.to_string();
+                            }
+                        }
+                    }
 
                     // Parse download percentage: [download]  45.2% of  120.50MiB at 12.34MiB/s ETA 00:05
                     if line.contains("[download]") && line.contains('%') {
@@ -643,6 +687,9 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                                 speed: cur_speed.clone(),
                                 bitrate: cur_size.clone(),
                                 pct: cur_pct,
+                                playlist_item: if total_items > 0 { Some(cur_item) } else { None },
+                                playlist_total: if total_items > 0 { Some(total_items) } else { None },
+                                current_item_title: if !current_item_name.is_empty() { Some(current_item_name.clone()) } else { None },
                             },
                         );
                     } else if line.contains("100% of") || line.contains("[ExtractAudio]") {
@@ -655,6 +702,9 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                                 speed: "".to_string(),
                                 bitrate: "".to_string(),
                                 pct: 100,
+                                playlist_item: if total_items > 0 { Some(cur_item) } else { None },
+                                playlist_total: if total_items > 0 { Some(total_items) } else { None },
+                                current_item_title: if !current_item_name.is_empty() { Some(current_item_name.clone()) } else { None },
                             },
                         );
                     }
@@ -721,6 +771,18 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
     });
 
     Ok(())
+}
+
+#[tauri::command]
+fn is_job_active() -> bool {
+    let pid_lock = RUNNING_CHILD_PID.lock().unwrap();
+    pid_lock.is_some()
+}
+
+#[tauri::command]
+fn force_exit_app(app: tauri::AppHandle) {
+    let _ = cancel_ffmpeg();
+    app.exit(0);
 }
 
 #[tauri::command]
@@ -805,6 +867,18 @@ fn send_system_notification(title: String, body: String) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let is_active = {
+                    let pid_lock = RUNNING_CHILD_PID.lock().unwrap();
+                    pid_lock.is_some()
+                };
+                if is_active {
+                    api.prevent_close();
+                    let _ = window.emit("confirm-exit-requested", ());
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             pick_file,
             pick_files,
@@ -814,6 +888,8 @@ pub fn run() {
             execute_ffmpeg,
             execute_ytdlp,
             cancel_ffmpeg,
+            is_job_active,
+            force_exit_app,
             check_tool_versions,
             open_file,
             show_in_folder,

@@ -3,6 +3,7 @@ export const STORAGE_KEYS = {
   ACTIVE_TOOL: "anedikit:active_tool",
   SETTINGS: "anedikit:settings",
   LAST_INPUT_FILE: "anedikit:last_input_file",
+  YTDLP_LAST_DOWNLOAD_DIR: "anedikit:last_ytdlp_out_dir",
   TOOL_PARAMS_PREFIX: "anedikit:tool_params:",
 };
 
@@ -66,5 +67,17 @@ export function saveInputFile(path) {
     localStorage.setItem(STORAGE_KEYS.LAST_INPUT_FILE, path || "");
   } catch (err) {
     console.warn("Failed to save input file:", err);
+  }
+}
+
+export function getLastYtDlpOutDir() {
+  return localStorage.getItem(STORAGE_KEYS.YTDLP_LAST_DOWNLOAD_DIR) || "";
+}
+
+export function saveLastYtDlpOutDir(path) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.YTDLP_LAST_DOWNLOAD_DIR, path || "");
+  } catch (err) {
+    console.warn("Failed to save last yt-dlp out dir:", err);
   }
 }

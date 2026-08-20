@@ -1,5 +1,5 @@
 // Navigation & View Transitions Module
-import { saveActiveTool, getSavedActiveTool } from "./storage.js";
+import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings } from "./storage.js";
 
 const TOOL_METADATA = {
   convert: {
@@ -221,6 +221,12 @@ export function switchTool(toolId, onToolChanged) {
   }
   if (sharedUrlCard) {
     sharedUrlCard.classList.toggle("d-none", !isYtDlp || isSettings);
+    if (isYtDlp) {
+      const ytdlpOutInput = document.getElementById("ytdlp-output-dir");
+      if (ytdlpOutInput && !ytdlpOutInput.value) {
+        ytdlpOutInput.value = getLastYtDlpOutDir() || loadSettings().outputDir || "C:\\Users\\User\\Downloads";
+      }
+    }
   }
 
   // Toggle execute and reset buttons on settings view
@@ -236,14 +242,17 @@ export function switchTool(toolId, onToolChanged) {
   // Contextual status message for settings
   const statusMsg = document.getElementById("status-message");
   if (statusMsg) {
-    if (toolId === "settings") {
-      statusMsg.textContent = "Settings are saved automatically";
-      setTimeout(() => {
-        const scrollBox = document.getElementById("executables-scroll-container");
-        if (scrollBox) scrollBox.dispatchEvent(new Event("scroll"));
-      }, 50);
-    } else if (statusMsg.textContent === "Settings are saved automatically") {
-      statusMsg.textContent = "Ready";
+    const isRunning = btnExecute && btnExecute.textContent === "Cancel";
+    if (!isRunning) {
+      if (toolId === "settings") {
+        statusMsg.textContent = "Settings are saved automatically";
+        setTimeout(() => {
+          const scrollBox = document.getElementById("executables-scroll-container");
+          if (scrollBox) scrollBox.dispatchEvent(new Event("scroll"));
+        }, 50);
+      } else if (statusMsg.textContent === "Settings are saved automatically") {
+        statusMsg.textContent = "Ready";
+      }
     }
   }
 

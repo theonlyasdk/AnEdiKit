@@ -1097,6 +1097,23 @@
                   <div class="bg-black text-success-emphasis p-3 font-monospace small overflow-y-auto" style="height: 140px; font-size: 0.8rem;" id="log-console">
                     <div class="text-secondary">[Ready to process tasks]</div>
                   </div>
+
+                  <!-- Playlist / Batch Total Progress (Conditional) -->
+                  <div id="playlist-progress-wrapper" class="d-none px-3 py-2 border-top bg-body-tertiary">
+                    <div class="d-flex justify-content-between align-items-center mb-1 small">
+                      <span class="text-body-secondary"><i class="bi bi-collection-play me-1 text-primary"></i> Batch / Playlist Progress</span>
+                      <span class="fw-semibold text-body" id="playlist-progress-text">Item 0 of 0 (0%)</span>
+                    </div>
+                    <div class="progress rounded" style="height: 6px; background-color: var(--bs-border-color);">
+                      <div class="progress-bar bg-success" id="playlist-progress-bar" role="progressbar" style="width: 0%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- Currently Downloading Item (Conditional) -->
+                  <div id="current-item-wrapper" class="d-none text-truncate small text-primary fw-medium px-3 py-1 bg-body border-top">
+                    <i class="bi bi-arrow-down-circle me-1"></i> <span id="current-item-name">Downloading...</span>
+                  </div>
+
                   <!-- Status text in middle -->
                   <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-body small text-body-secondary border-top">
                     <div class="d-flex flex-wrap gap-3">
@@ -1264,6 +1281,31 @@
           </div>
           <div class="modal-footer border-top py-2 px-3 justify-content-end">
             <button type="button" class="btn btn-primary btn-sm px-3" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Exit Modal (Shows when closing window while background task is running) -->
+    <div class="modal fade" id="confirm-exit-modal" tabindex="-1" aria-labelledby="confirmExitModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-body border border-danger-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3 bg-danger-subtle text-danger-emphasis">
+            <h5 class="modal-title fs-6 fw-semibold d-flex align-items-center gap-2" id="confirmExitModalLabel">
+              <i class="bi bi-exclamation-triangle-fill text-danger"></i> Task in Progress
+            </h5>
+          </div>
+          <div class="modal-body p-4">
+            <p class="mb-2 text-body">A media processing or download operation is currently active in the background.</p>
+            <p class="mb-0 text-body-secondary small">Exiting will cancel and terminate all running child processes immediately. Are you sure you want to exit?</p>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 justify-content-between">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-cancel-exit" data-bs-dismiss="modal">
+              Continue Task
+            </button>
+            <button type="button" class="btn btn-danger btn-sm px-3" id="btn-confirm-force-exit">
+              Cancel Task & Exit
+            </button>
           </div>
         </div>
       </div>

@@ -10,12 +10,10 @@ export function isJobRunning() {
 
 export function setControlsDisabledState(disabled) {
   const elements = document.querySelectorAll(
-    "#tool-workspace input, #tool-workspace select, #tool-workspace button:not(#btn-execute), #tool-nav button, #ytdlp-nav button, #settings-nav button, #mobile-settings-nav button, #btn-reset, #btn-sidebar-toggle",
+    "#tool-workspace input, #tool-workspace select, #btn-reset",
   );
   elements.forEach((el) => {
-    if (el.id !== "btn-execute") {
-      el.disabled = disabled;
-    }
+    el.disabled = disabled;
   });
 
   const sharedInput = document.getElementById("shared-input-card");
@@ -43,13 +41,37 @@ export function clearLogs() {
 }
 
 export function updateProgress(data) {
-  const { time, fps, speed, bitrate, pct } = data;
+  const { time, fps, speed, bitrate, pct, playlist_item, playlist_total, current_item_title } = data;
   const bar = document.getElementById("job-progress-bar");
   const pctEl = document.getElementById("progress-pct");
   const statTime = document.getElementById("stat-time");
   const statFps = document.getElementById("stat-fps");
   const statSpeed = document.getElementById("stat-speed");
   const statBitrate = document.getElementById("stat-bitrate");
+
+  // Playlist / Batch total items progress
+  const playlistWrapper = document.getElementById("playlist-progress-wrapper");
+  const playlistText = document.getElementById("playlist-progress-text");
+  const playlistBar = document.getElementById("playlist-progress-bar");
+  if (playlist_total && playlist_total > 1) {
+    if (playlistWrapper) playlistWrapper.classList.remove("d-none");
+    const itemNum = playlist_item || 1;
+    const itemPct = Math.min(100, Math.max(0, Math.round((itemNum / playlist_total) * 100)));
+    if (playlistText) playlistText.textContent = `Item ${itemNum} of ${playlist_total} (${itemPct}%)`;
+    if (playlistBar) playlistBar.style.width = `${itemPct}%`;
+  } else if (!playlist_total && playlistWrapper && !isRunning) {
+    playlistWrapper.classList.add("d-none");
+  }
+
+  // Currently downloading item title
+  const currentItemWrapper = document.getElementById("current-item-wrapper");
+  const currentItemName = document.getElementById("current-item-name");
+  if (current_item_title) {
+    if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
+    if (currentItemName) currentItemName.textContent = current_item_title;
+  } else if (!current_item_title && currentItemWrapper && !isRunning) {
+    currentItemWrapper.classList.add("d-none");
+  }
 
   if (time && statTime) statTime.textContent = `Time: ${time}`;
   if (fps && statFps) statFps.textContent = `FPS: ${fps}`;
@@ -73,6 +95,32 @@ export function updateProgress(data) {
 let activeJobInfo = null;
 let jobStartTime = 0;
 
+export async function attachTauriListeners() {
+  if (!window.__TAURI__?.event?.listen) return;
+  const { listen } = window.__TAURI__.event;
+
+  if (!currentProgressUnlisten) {
+    currentProgressUnlisten = await listen("ffmpeg-progress", (event) => {
+      updateProgress(event.payload);
+    });
+  }
+
+  if (!currentLogUnlisten) {
+    currentLogUnlisten = await listen("ffmpeg-log", (event) => {
+      if (event.payload?.line) {
+        appendLog(event.payload.line);
+      }
+    });
+  }
+
+  if (!currentFinishedUnlisten) {
+    currentFinishedUnlisten = await listen("ffmpeg-finished", (event) => {
+      const { success, message } = event.payload;
+      onJobFinished(success, message);
+    });
+  }
+}
+
 export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   if (isRunning) {
     return;
@@ -87,6 +135,11 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   const statusPanel = document.getElementById("execution-status-panel");
   const statusMsg = document.getElementById("status-message");
   const btnExecute = document.getElementById("btn-execute");
+  const playlistWrapper = document.getElementById("playlist-progress-wrapper");
+  const currentItemWrapper = document.getElementById("current-item-wrapper");
+
+  if (playlistWrapper) playlistWrapper.classList.add("d-none");
+  if (currentItemWrapper) currentItemWrapper.classList.add("d-none");
 
   if (statusPanel) {
     statusPanel.classList.remove("d-none", "ui-zoom-in");
@@ -123,25 +176,10 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   }
 
   // Tauri IPC execution
-  if (window.__TAURI__?.core?.invoke && window.__TAURI__?.event?.listen) {
+  if (window.__TAURI__?.core?.invoke) {
     (async () => {
       try {
-        const { listen } = window.__TAURI__.event;
-
-        currentProgressUnlisten = await listen("ffmpeg-progress", (event) => {
-          updateProgress(event.payload);
-        });
-
-        currentLogUnlisten = await listen("ffmpeg-log", (event) => {
-          if (event.payload?.line) {
-            appendLog(event.payload.line);
-          }
-        });
-
-        currentFinishedUnlisten = await listen("ffmpeg-finished", (event) => {
-          const { success, message, exit_code } = event.payload;
-          onJobFinished(success, message);
-        });
+        await attachTauriListeners();
 
         if (commandObj.executable === "yt-dlp") {
           await window.__TAURI__.core.invoke("execute_ytdlp", {
@@ -352,4 +390,73 @@ export async function showInFolder(filePath) {
       console.warn("show_in_folder error:", e);
     }
   }
+}
+
+export async function initJobRunner() {
+  // Check if a background task is already executing (e.g. after page reload)
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      const active = await window.__TAURI__.core.invoke("is_job_active");
+      if (active) {
+        isRunning = true;
+        setControlsDisabledState(true);
+
+        const statusPanel = document.getElementById("execution-status-panel");
+        const statusMsg = document.getElementById("status-message");
+        const btnExecute = document.getElementById("btn-execute");
+
+        if (statusPanel) {
+          statusPanel.classList.remove("d-none");
+        }
+        if (statusMsg) statusMsg.textContent = "Processing task...";
+        if (btnExecute) {
+          btnExecute.textContent = "Cancel";
+          btnExecute.classList.remove("btn-primary");
+          btnExecute.classList.add("btn-danger");
+          btnExecute.disabled = false;
+        }
+
+        await attachTauriListeners();
+      }
+    } catch (e) {
+      console.warn("Check is_job_active error:", e);
+    }
+
+    // Listen for confirm-exit-requested from Rust backend
+    try {
+      if (window.__TAURI__?.event?.listen) {
+        await window.__TAURI__.event.listen("confirm-exit-requested", () => {
+          const modalEl = document.getElementById("confirm-exit-modal");
+          if (modalEl && window.bootstrap?.Modal) {
+            const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+          }
+        });
+      }
+    } catch (e) {
+      console.warn("Listen confirm-exit-requested error:", e);
+    }
+  }
+
+  // Bind Confirm Force Exit button
+  const btnForceExit = document.getElementById("btn-confirm-force-exit");
+  if (btnForceExit) {
+    btnForceExit.addEventListener("click", async () => {
+      if (window.__TAURI__?.core?.invoke) {
+        try {
+          await window.__TAURI__.core.invoke("force_exit_app");
+        } catch (e) {
+          console.warn("force_exit_app error:", e);
+        }
+      }
+    });
+  }
+
+  // Prevent accidental reload/unload when job is active
+  window.addEventListener("beforeunload", (e) => {
+    if (isRunning) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
 }
