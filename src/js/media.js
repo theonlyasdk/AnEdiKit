@@ -364,6 +364,24 @@ export async function selectMediaFile(filterMode = "all") {
   return await probeMedia(mockPath);
 }
 
+export async function selectMediaFiles(filterMode = "all") {
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      const selected = await window.__TAURI__.core.invoke("pick_files", {
+        filterMode,
+      });
+      if (selected && selected.length > 0) {
+        await addFilesToBatch(selected);
+        return selected;
+      }
+      return [];
+    } catch (err) {
+      console.warn("Tauri pick_files error:", err);
+    }
+  }
+  return [];
+}
+
 export async function selectOutputFolder(defaultPath = null) {
   if (window.__TAURI__?.core?.invoke) {
     try {
@@ -376,6 +394,341 @@ export async function selectOutputFolder(defaultPath = null) {
     }
   }
   return null;
+}
+
+// Batch Queue State & Management
+let batchQueue = [];
+
+export function getBatchQueue() {
+  return batchQueue;
+}
+
+export function clearBatchQueue() {
+  batchQueue = [];
+  renderBatchQueueUI();
+}
+
+export function removeBatchItem(index) {
+  if (index >= 0 && index < batchQueue.length) {
+    batchQueue.splice(index, 1);
+    renderBatchQueueUI();
+  }
+}
+
+export async function addFilesToBatch(paths) {
+  if (!paths || paths.length === 0) return;
+  for (const p of paths) {
+    if (!p) continue;
+    if (!batchQueue.some((item) => item.path === p)) {
+      const fileName = p.split(/[/\\]/).pop() || p;
+      batchQueue.push({
+        path: p,
+        name: fileName,
+        status: "pending", // pending, processing, done, error
+      });
+    }
+  }
+
+  if (batchQueue.length > 0) {
+    await probeMedia(batchQueue[0].path);
+  }
+
+  renderBatchQueueUI();
+}
+
+export function updateBatchItemStatus(index, status) {
+  if (index >= 0 && index < batchQueue.length) {
+    batchQueue[index].status = status;
+    renderBatchQueueUI();
+  }
+}
+
+export function renderBatchQueueUI() {
+  const container = document.getElementById("batch-queue-container");
+  const tbody = document.getElementById("batch-queue-tbody");
+  const countEl = document.getElementById("batch-queue-count");
+  const inputPathEl = document.getElementById("input-file-path");
+  const btnExecute = document.getElementById("btn-execute");
+
+  if (!container || !tbody) return;
+
+  if (batchQueue.length === 0) {
+    container.classList.add("d-none");
+    if (btnExecute && btnExecute.textContent.startsWith("Execute Batch")) {
+      btnExecute.textContent = "Execute";
+    }
+    return;
+  }
+
+  container.classList.remove("d-none");
+  if (countEl) countEl.textContent = batchQueue.length.toString();
+  if (inputPathEl && batchQueue.length > 1) {
+    inputPathEl.value = `[Batch Queue: ${batchQueue.length} files queued]`;
+  }
+
+  if (btnExecute && btnExecute.textContent !== "Cancel") {
+    btnExecute.textContent = `Execute Batch (${batchQueue.length} items)`;
+  }
+
+  tbody.innerHTML = "";
+  batchQueue.forEach((item, idx) => {
+    const tr = document.createElement("tr");
+
+    let statusBadge = `<span class="badge bg-secondary-subtle text-secondary-emphasis">Pending</span>`;
+    if (item.status === "processing") {
+      statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Active</span>`;
+    } else if (item.status === "done") {
+      statusBadge = `<span class="badge bg-success-subtle text-success-emphasis"><i class="bi bi-check2"></i> Done</span>`;
+    } else if (item.status === "error") {
+      statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-x"></i> Failed</span>`;
+    }
+
+    tr.innerHTML = `
+      <td class="text-center text-body-secondary">${idx + 1}</td>
+      <td class="text-truncate" style="max-width: 260px;" title="${item.path}">
+        <span class="text-body fw-medium">${item.name}</span>
+      </td>
+      <td>${statusBadge}</td>
+      <td class="text-center">
+        <button class="btn btn-link btn-sm text-danger p-0 border-0" type="button" data-remove-batch-idx="${idx}" title="Remove file from queue">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll("[data-remove-batch-idx]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute("data-remove-batch-idx"), 10);
+      removeBatchItem(idx);
+    });
+  });
+}
+
+// Trimmer Seekbar & Live Preview Controller
+export function formatSecondsToTimestamp(seconds) {
+  if (isNaN(seconds) || seconds < 0) seconds = 0;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds % 1) * 1000);
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}.${ms.toString().padStart(3, "0")}`;
+}
+
+export function parseTimestampToSeconds(ts) {
+  if (!ts) return 0;
+  const parts = ts.trim().split(":");
+  if (parts.length === 3) {
+    const h = parseFloat(parts[0]) || 0;
+    const m = parseFloat(parts[1]) || 0;
+    const s = parseFloat(parts[2]) || 0;
+    return h * 3600 + m * 60 + s;
+  }
+  if (parts.length === 2) {
+    const m = parseFloat(parts[0]) || 0;
+    const s = parseFloat(parts[1]) || 0;
+    return m * 60 + s;
+  }
+  return parseFloat(ts) || 0;
+}
+
+export function initTrimmerControls() {
+  const sliderStart = document.getElementById("trim-slider-start");
+  const sliderEnd = document.getElementById("trim-slider-end");
+  const rangeBar = document.getElementById("trim-selected-range-bar");
+  const inputStart = document.getElementById("trim-start");
+  const inputEnd = document.getElementById("trim-end");
+  const posDisplay = document.getElementById("trim-current-pos");
+  const clipDurBadge = document.getElementById("trim-clip-dur");
+  const videoEl = document.getElementById("media-video-preview");
+  const audioEl = document.getElementById("media-audio-preview");
+
+  const btnPlayPause = document.getElementById("btn-trim-play-pause");
+  const playIcon = document.getElementById("trim-play-icon");
+  const btnMarkStart = document.getElementById("btn-trim-mark-start");
+  const btnMarkEnd = document.getElementById("btn-trim-mark-end");
+  const btnStepBack1 = document.getElementById("btn-trim-step-back-1");
+  const btnStepBackFrame = document.getElementById("btn-trim-step-back-frame");
+  const btnStepFwdFrame = document.getElementById("btn-trim-step-fwd-frame");
+  const btnStepFwd1 = document.getElementById("btn-trim-step-fwd-1");
+  const btnPreviewSegment = document.getElementById("btn-trim-preview-segment");
+  const btnSetStart0 = document.getElementById("btn-trim-set-start-0");
+  const btnSetEndDur = document.getElementById("btn-trim-set-end-dur");
+
+  const getActiveMediaEl = () => {
+    if (videoEl && !videoEl.classList.contains("d-none") && videoEl.src) return videoEl;
+    if (audioEl && audioEl.src) return audioEl;
+    return null;
+  };
+
+  const updateRangeBarUI = (startSec, endSec, totalDur) => {
+    if (totalDur <= 0) totalDur = 1;
+    const startPct = Math.min(100, Math.max(0, (startSec / totalDur) * 100));
+    const endPct = Math.min(100, Math.max(0, (endSec / totalDur) * 100));
+    const widthPct = Math.max(0, endPct - startPct);
+
+    if (rangeBar) {
+      rangeBar.style.marginLeft = `${startPct}%`;
+      rangeBar.style.width = `${widthPct}%`;
+    }
+
+    if (sliderStart) sliderStart.value = startPct.toString();
+    if (sliderEnd) sliderEnd.value = endPct.toString();
+
+    const diff = Math.max(0, endSec - startSec);
+    if (clipDurBadge) clipDurBadge.textContent = formatSecondsToTimestamp(diff);
+  };
+
+  // Sync when sliders change
+  if (sliderStart && sliderEnd) {
+    sliderStart.addEventListener("input", () => {
+      const dur = currentMediaInfo?.duration_seconds || 120;
+      let startVal = parseFloat(sliderStart.value);
+      let endVal = parseFloat(sliderEnd.value);
+      if (startVal > endVal) {
+        startVal = endVal;
+        sliderStart.value = startVal.toString();
+      }
+      const startSec = (startVal / 100) * dur;
+      const endSec = (endVal / 100) * dur;
+
+      if (inputStart) inputStart.value = formatSecondsToTimestamp(startSec);
+      updateRangeBarUI(startSec, endSec, dur);
+
+      const media = getActiveMediaEl();
+      if (media) media.currentTime = startSec;
+      if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(startSec);
+    });
+
+    sliderEnd.addEventListener("input", () => {
+      const dur = currentMediaInfo?.duration_seconds || 120;
+      let startVal = parseFloat(sliderStart.value);
+      let endVal = parseFloat(sliderEnd.value);
+      if (endVal < startVal) {
+        endVal = startVal;
+        sliderEnd.value = endVal.toString();
+      }
+      const startSec = (startVal / 100) * dur;
+      const endSec = (endVal / 100) * dur;
+
+      if (inputEnd) inputEnd.value = formatSecondsToTimestamp(endSec);
+      updateRangeBarUI(startSec, endSec, dur);
+
+      const media = getActiveMediaEl();
+      if (media) media.currentTime = endSec;
+      if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(endSec);
+    });
+  }
+
+  // Sync when text inputs change
+  const onTimestampInputsChanged = () => {
+    const dur = currentMediaInfo?.duration_seconds || 120;
+    const startSec = parseTimestampToSeconds(inputStart?.value);
+    const endSec = parseTimestampToSeconds(inputEnd?.value) || dur;
+    updateRangeBarUI(startSec, endSec, dur);
+  };
+
+  if (inputStart) inputStart.addEventListener("input", onTimestampInputsChanged);
+  if (inputEnd) inputEnd.addEventListener("input", onTimestampInputsChanged);
+
+  // Playhead position updates from media player
+  const onTimeUpdate = (media) => {
+    if (!media) return;
+    if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(media.currentTime);
+  };
+
+  if (videoEl) videoEl.addEventListener("timeupdate", () => onTimeUpdate(videoEl));
+  if (audioEl) audioEl.addEventListener("timeupdate", () => onTimeUpdate(audioEl));
+
+  // Mark In & Mark Out
+  if (btnMarkStart) {
+    btnMarkStart.addEventListener("click", () => {
+      const media = getActiveMediaEl();
+      const cur = media ? media.currentTime : 0;
+      if (inputStart) inputStart.value = formatSecondsToTimestamp(cur);
+      onTimestampInputsChanged();
+    });
+  }
+
+  if (btnMarkEnd) {
+    btnMarkEnd.addEventListener("click", () => {
+      const media = getActiveMediaEl();
+      const dur = currentMediaInfo?.duration_seconds || 120;
+      const cur = media ? media.currentTime : dur;
+      if (inputEnd) inputEnd.value = formatSecondsToTimestamp(cur);
+      onTimestampInputsChanged();
+    });
+  }
+
+  // Quick reset buttons
+  if (btnSetStart0) {
+    btnSetStart0.addEventListener("click", () => {
+      if (inputStart) inputStart.value = "00:00:00.000";
+      onTimestampInputsChanged();
+      const media = getActiveMediaEl();
+      if (media) media.currentTime = 0;
+    });
+  }
+
+  if (btnSetEndDur) {
+    btnSetEndDur.addEventListener("click", () => {
+      const dur = currentMediaInfo?.duration_seconds || 60;
+      if (inputEnd) inputEnd.value = formatSecondsToTimestamp(dur);
+      onTimestampInputsChanged();
+    });
+  }
+
+  // Play / Pause
+  if (btnPlayPause) {
+    btnPlayPause.addEventListener("click", () => {
+      const media = getActiveMediaEl();
+      if (!media) return;
+      if (media.paused) {
+        media.play();
+        if (playIcon) playIcon.className = "bi bi-pause-fill";
+      } else {
+        media.pause();
+        if (playIcon) playIcon.className = "bi bi-play-fill";
+      }
+    });
+  }
+
+  // Frame Stepping
+  const stepMedia = (delta) => {
+    const media = getActiveMediaEl();
+    if (!media) return;
+    media.currentTime = Math.max(0, media.currentTime + delta);
+    if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(media.currentTime);
+  };
+
+  if (btnStepBack1) btnStepBack1.addEventListener("click", () => stepMedia(-1.0));
+  if (btnStepBackFrame) btnStepBackFrame.addEventListener("click", () => stepMedia(-0.1));
+  if (btnStepFwdFrame) btnStepFwdFrame.addEventListener("click", () => stepMedia(0.1));
+  if (btnStepFwd1) btnStepFwd1.addEventListener("click", () => stepMedia(1.0));
+
+  // Preview Segment
+  if (btnPreviewSegment) {
+    btnPreviewSegment.addEventListener("click", () => {
+      const media = getActiveMediaEl();
+      if (!media) return;
+      const startSec = parseTimestampToSeconds(inputStart?.value);
+      const endSec = parseTimestampToSeconds(inputEnd?.value) || (currentMediaInfo?.duration_seconds || 120);
+      media.currentTime = startSec;
+      media.play();
+      if (playIcon) playIcon.className = "bi bi-pause-fill";
+
+      const checkEnd = () => {
+        if (media.currentTime >= endSec) {
+          media.pause();
+          if (playIcon) playIcon.className = "bi bi-play-fill";
+          media.removeEventListener("timeupdate", checkEnd);
+        }
+      };
+      media.addEventListener("timeupdate", checkEnd);
+    });
+  }
 }
 
 export function initDragAndDrop(onFileSelected) {
@@ -441,11 +794,20 @@ export function initDragAndDrop(onFileSelected) {
       e.dataTransfer.files &&
       e.dataTransfer.files.length > 0
     ) {
-      const file = e.dataTransfer.files[0];
-      const filePath =
-        file.path || file.name || "C:\\Users\\User\\Videos\\dropped_media.mp4";
-      const info = await probeMedia(filePath, file);
-      if (onFileSelected) onFileSelected(info);
+      if (e.dataTransfer.files.length > 1) {
+        const filePaths = Array.from(e.dataTransfer.files).map(
+          (f) => f.path || f.name,
+        );
+        await addFilesToBatch(filePaths);
+        const info = await probeMedia(filePaths[0]);
+        if (onFileSelected) onFileSelected(info);
+      } else {
+        const file = e.dataTransfer.files[0];
+        const filePath =
+          file.path || file.name || "C:\\Users\\User\\Videos\\dropped_media.mp4";
+        const info = await probeMedia(filePath, file);
+        if (onFileSelected) onFileSelected(info);
+      }
     }
   });
 
@@ -465,8 +827,14 @@ export function initDragAndDrop(onFileSelected) {
           } else if (event.payload.type === "drop") {
             deactivatePulse();
             if (event.payload.paths && event.payload.paths.length > 0) {
-              const info = await probeMedia(event.payload.paths[0]);
-              if (onFileSelected) onFileSelected(info);
+              if (event.payload.paths.length > 1) {
+                await addFilesToBatch(event.payload.paths);
+                const info = await probeMedia(event.payload.paths[0]);
+                if (onFileSelected) onFileSelected(info);
+              } else {
+                const info = await probeMedia(event.payload.paths[0]);
+                if (onFileSelected) onFileSelected(info);
+              }
             }
           }
         });

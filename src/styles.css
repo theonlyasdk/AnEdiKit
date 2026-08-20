@@ -627,3 +627,48 @@ html.no-animations *::after {
   display: inline-block;
   animation: cdSpin 2s linear infinite, grayPulse 1.5s ease-in-out infinite;
 }
+
+/* Trimmer Visual Range Controls */
+.trim-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.trim-range-slider::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 10px;
+}
+
+.trim-range-slider::-moz-range-track {
+  background: transparent;
+  height: 10px;
+}
+
+.trim-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  cursor: ew-resize;
+  width: 14px;
+  height: 22px;
+  background-color: var(--bs-primary);
+  border: 2px solid var(--bs-body-bg);
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.trim-range-slider::-moz-range-thumb {
+  pointer-events: auto;
+  cursor: ew-resize;
+  width: 14px;
+  height: 22px;
+  background-color: var(--bs-primary);
+  border: 2px solid var(--bs-body-bg);
+  border-radius: 3px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}

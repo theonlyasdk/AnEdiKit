@@ -1,11 +1,19 @@
 // Task Execution Runner Module
+import { updateBatchItemStatus } from "./media.js";
+
 let isRunning = false;
+let isBatchRunning = false;
+let batchCancelRequested = false;
 let currentProgressUnlisten = null;
 let currentLogUnlisten = null;
 let currentFinishedUnlisten = null;
 
 export function isJobRunning() {
-  return isRunning;
+  return isRunning || isBatchRunning;
+}
+
+export function isBatchJobActive() {
+  return isBatchRunning;
 }
 
 export function setControlsDisabledState(disabled) {
@@ -234,7 +242,10 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
 }
 
 export async function cancelFfmpegJob() {
-  if (!isRunning) return;
+  if (isBatchRunning) {
+    batchCancelRequested = true;
+  }
+  if (!isRunning && !isBatchRunning) return;
 
   if (window.__TAURI__?.core?.invoke) {
     try {
@@ -244,7 +255,140 @@ export async function cancelFfmpegJob() {
     }
   }
 
-  onJobFinished(false, "Job cancelled by user");
+  if (!isBatchRunning) {
+    onJobFinished(false, "Job cancelled by user");
+  }
+}
+
+export async function executeBatchQueue(queue, toolId, settings, buildCommandFn) {
+  if (isRunning || isBatchRunning) return;
+  if (!queue || queue.length === 0) return;
+
+  isBatchRunning = true;
+  batchCancelRequested = false;
+  setControlsDisabledState(true);
+
+  const statusPanel = document.getElementById("execution-status-panel");
+  const statusMsg = document.getElementById("status-message");
+  const btnExecute = document.getElementById("btn-execute");
+  const playlistWrapper = document.getElementById("playlist-progress-wrapper");
+  const playlistText = document.getElementById("playlist-progress-text");
+  const playlistBar = document.getElementById("playlist-progress-bar");
+  const currentItemWrapper = document.getElementById("current-item-wrapper");
+  const currentItemName = document.getElementById("current-item-name");
+
+  if (statusPanel) {
+    statusPanel.classList.remove("d-none", "ui-zoom-in");
+    void statusPanel.offsetWidth;
+    statusPanel.classList.add("ui-zoom-in");
+  }
+
+  if (playlistWrapper) playlistWrapper.classList.remove("d-none");
+  if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
+
+  if (btnExecute) {
+    btnExecute.textContent = "Cancel Batch";
+    btnExecute.classList.remove("btn-primary");
+    btnExecute.classList.add("btn-danger");
+  }
+
+  clearLogs();
+  appendLog(`[Starting Batch Queue: ${queue.length} items]`);
+
+  for (let i = 0; i < queue.length; i++) {
+    if (batchCancelRequested) {
+      appendLog(`[Batch queue stopped by user at item ${i + 1}]`, true);
+      break;
+    }
+
+    const item = queue[i];
+    item.status = "processing";
+    updateBatchItemStatus(i, "processing");
+
+    const itemPct = Math.round(((i + 1) / queue.length) * 100);
+    if (playlistText) playlistText.textContent = `Item ${i + 1} of ${queue.length} (${itemPct}%)`;
+    if (playlistBar) playlistBar.style.width = `${itemPct}%`;
+    if (currentItemName) currentItemName.textContent = item.name;
+
+    const commandObj = buildCommandFn(toolId, item.path, settings.outputDir, settings);
+    appendLog(`[Item ${i + 1}/${queue.length}: Processing ${item.name}]`);
+
+    const result = await new Promise((resolve) => {
+      jobStartTime = Date.now();
+      activeJobInfo = {
+        destination: commandObj.destination || "",
+        toolName: commandObj.executable === "yt-dlp" ? "Download" : "Conversion",
+      };
+      isRunning = true;
+
+      if (window.__TAURI__?.core?.invoke) {
+        let unlistenProgress = null;
+        let unlistenLog = null;
+        let unlistenFinished = null;
+
+        (async () => {
+          try {
+            const { listen } = window.__TAURI__.event;
+            unlistenProgress = await listen("ffmpeg-progress", (ev) => {
+              updateProgress({
+                ...ev.payload,
+                playlist_item: i + 1,
+                playlist_total: queue.length,
+                current_item_title: item.name,
+              });
+            });
+            unlistenLog = await listen("ffmpeg-log", (ev) => {
+              if (ev.payload?.line) appendLog(ev.payload.line);
+            });
+            unlistenFinished = await listen("ffmpeg-finished", (ev) => {
+              if (unlistenProgress) unlistenProgress();
+              if (unlistenLog) unlistenLog();
+              if (unlistenFinished) unlistenFinished();
+              isRunning = false;
+              resolve(ev.payload.success);
+            });
+
+            if (commandObj.executable === "yt-dlp") {
+              await window.__TAURI__.core.invoke("execute_ytdlp", { args: commandObj.args });
+            } else {
+              await window.__TAURI__.core.invoke("execute_ffmpeg", { args: commandObj.args, totalDuration: commandObj.duration || 0.0 });
+            }
+          } catch (e) {
+            appendLog(`Item error: ${e}`, true);
+            isRunning = false;
+            resolve(false);
+          }
+        })();
+      } else {
+        setTimeout(() => {
+          isRunning = false;
+          resolve(true);
+        }, 1200);
+      }
+    });
+
+    if (result) {
+      item.status = "done";
+      updateBatchItemStatus(i, "done");
+      appendLog(`[Item ${i + 1}/${queue.length}: Done ${item.name}]`);
+    } else {
+      item.status = "error";
+      updateBatchItemStatus(i, "error");
+      appendLog(`[Item ${i + 1}/${queue.length}: Failed ${item.name}]`, true);
+    }
+  }
+
+  isBatchRunning = false;
+  isRunning = false;
+  setControlsDisabledState(false);
+
+  if (btnExecute) {
+    btnExecute.textContent = `Execute Batch (${queue.length} items)`;
+    btnExecute.classList.remove("btn-danger");
+    btnExecute.classList.add("btn-primary");
+  }
+  if (statusMsg) statusMsg.textContent = batchCancelRequested ? "Batch cancelled" : "Batch completed successfully";
+  appendLog(batchCancelRequested ? "[Batch queue stopped]" : "[Batch queue completed successfully]");
 }
 
 export function onJobFinished(success, message) {

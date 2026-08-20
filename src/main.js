@@ -2,15 +2,20 @@
 import { loadSettings, saveSettings, getLastYtDlpOutDir, saveLastYtDlpOutDir } from "./js/storage.js";
 import {
   selectMediaFile,
+  selectMediaFiles,
   selectOutputFolder,
   initDragAndDrop,
   getCurrentInputFile,
   getCurrentMediaInfo,
   probeMedia,
+  getBatchQueue,
+  clearBatchQueue,
+  initTrimmerControls,
 } from "./js/media.js";
 import { buildCommandForTool } from "./js/commands.js";
 import {
   executeFfmpegJob,
+  executeBatchQueue,
   cancelFfmpegJob,
   isJobRunning,
   initJobRunner,
@@ -223,6 +228,30 @@ function bindFormEvents() {
     });
   }
 
+  // Batch Queue Browse, Add More & Clear
+  const btnBrowseBatch = document.getElementById("btn-browse-batch");
+  const btnBatchAddMore = document.getElementById("btn-batch-add-more");
+  const btnBatchClear = document.getElementById("btn-batch-clear");
+
+  const onBatchPick = async () => {
+    const activeTool = getCurrentActiveTool();
+    const filterMode = (activeTool === "extract_audio" || activeTool === "compress_audio") ? "audio" : "all";
+    const picked = await selectMediaFiles(filterMode);
+    if (picked && picked.length > 0) {
+      updateAutoOutputFilename(true);
+      updateCommandPreview();
+    }
+  };
+
+  if (btnBrowseBatch) btnBrowseBatch.addEventListener("click", onBatchPick);
+  if (btnBatchAddMore) btnBatchAddMore.addEventListener("click", onBatchPick);
+  if (btnBatchClear) {
+    btnBatchClear.addEventListener("click", () => {
+      clearBatchQueue();
+      updateCommandPreview();
+    });
+  }
+
   // URL Paste, Clear & Download Output Folder
   const btnPasteUrl = document.getElementById("btn-paste-url");
   const btnClearUrl = document.getElementById("btn-clear-url");
@@ -369,6 +398,14 @@ function bindFormEvents() {
         cancelFfmpegJob();
       } else {
         const activeTool = getCurrentActiveTool();
+        const batchQueue = getBatchQueue();
+        const isYtDlp = activeTool.startsWith("ytdlp_");
+
+        if (!isYtDlp && activeTool !== "merge" && batchQueue.length > 0) {
+          executeBatchQueue(batchQueue, activeTool, appSettings, buildCommandForTool);
+          return;
+        }
+
         let cmdObj = null;
         if (activeTool === "merge" && document.getElementById("merge-engine")?.value === "concat_demuxer") {
           let concatPath = null;
@@ -749,6 +786,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initToolsManager();
   initJobRunner();
+  initTrimmerControls();
   initDragAndDrop((mediaInfo) => {
     if (mediaInfo) syncMediaDurationToTools(mediaInfo);
     updateAutoOutputFilename(true);
