@@ -654,21 +654,33 @@ html.no-animations *::after {
   appearance: none;
   pointer-events: auto;
   cursor: ew-resize;
-  width: 14px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   background-color: var(--bs-primary);
   border: 2px solid var(--bs-body-bg);
-  border-radius: 3px;
+  border-radius: 50%;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.trim-range-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .trim-range-slider::-moz-range-thumb {
   pointer-events: auto;
   cursor: ew-resize;
-  width: 14px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   background-color: var(--bs-primary);
   border: 2px solid var(--bs-body-bg);
-  border-radius: 3px;
+  border-radius: 50%;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.trim-range-slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
