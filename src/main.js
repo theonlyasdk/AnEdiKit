@@ -319,7 +319,7 @@ function bindFormEvents() {
   const btnClearInput = document.getElementById("btn-clear-input");
   if (btnClearInput) {
     btnClearInput.addEventListener("click", async () => {
-      await probeMedia("");
+      await clearBatchQueue();
       const outputNameInput = document.getElementById("output-file-name");
       if (outputNameInput) outputNameInput.value = "";
       userHasCustomOutputName = false;

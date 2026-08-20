@@ -347,21 +347,23 @@ export function updateMetadataDisplay(info) {
 export async function selectMediaFile(filterMode = "all") {
   if (window.__TAURI__?.core?.invoke) {
     try {
-      const selected = await window.__TAURI__.core.invoke("pick_file", {
+      const selected = await window.__TAURI__.core.invoke("pick_files", {
         filterMode,
       });
-      if (selected) {
-        return await probeMedia(selected);
+      if (selected && selected.length > 0) {
+        await addFilesToBatch(selected);
+        return currentMediaInfo;
       }
       return null;
     } catch (err) {
-      console.warn("Tauri pick_file error:", err);
+      console.warn("Tauri pick_files error:", err);
     }
   }
 
   // Web fallback simulation
   const mockPath = `C:\\Users\\User\\Videos\\sample_media_${Date.now().toString().slice(-4)}.mp4`;
-  return await probeMedia(mockPath);
+  await addFilesToBatch([mockPath]);
+  return currentMediaInfo;
 }
 
 export async function selectMediaFiles(filterMode = "all") {
@@ -413,17 +415,27 @@ export function setSelectedBatchIdx(idx) {
   renderBatchQueueUI();
 }
 
-export function clearBatchQueue() {
+export async function clearBatchQueue() {
   batchQueue = [];
   selectedBatchIdx = -1;
+  await probeMedia("");
   renderBatchQueueUI();
 }
 
-export function removeBatchItem(index) {
+export async function removeBatchItem(index) {
   if (index >= 0 && index < batchQueue.length) {
+    const wasActive = index === selectedBatchIdx;
     batchQueue.splice(index, 1);
-    if (selectedBatchIdx >= batchQueue.length) {
-      selectedBatchIdx = batchQueue.length - 1;
+    if (batchQueue.length === 0) {
+      selectedBatchIdx = -1;
+      await probeMedia("");
+    } else {
+      if (selectedBatchIdx >= batchQueue.length) {
+        selectedBatchIdx = batchQueue.length - 1;
+      }
+      if (wasActive || !currentInputFile) {
+        await probeMedia(batchQueue[selectedBatchIdx >= 0 ? selectedBatchIdx : 0].path);
+      }
     }
     renderBatchQueueUI();
   }
@@ -476,7 +488,10 @@ export async function addFilesToBatch(paths) {
   }
 
   if (batchQueue.length > 0) {
-    await probeMedia(batchQueue[0].path);
+    const targetIdx = selectedBatchIdx >= 0 && selectedBatchIdx < batchQueue.length
+      ? selectedBatchIdx
+      : 0;
+    await probeMedia(batchQueue[targetIdx].path);
   }
 
   renderBatchQueueUI();
@@ -525,8 +540,12 @@ export function renderBatchQueueUI() {
 
   if (headerActions) headerActions.classList.remove("d-none");
 
-  if (inputPathEl && batchQueue.length > 1) {
-    inputPathEl.value = `[Batch Queue: ${batchQueue.length} files queued]`;
+  if (inputPathEl) {
+    if (batchQueue.length === 1) {
+      inputPathEl.value = batchQueue[0].path;
+    } else {
+      inputPathEl.value = `[Batch Queue: ${batchQueue.length} files queued]`;
+    }
   }
 
   if (btnExecute && btnExecute.textContent !== "Cancel") {
@@ -568,10 +587,13 @@ export function renderBatchQueueUI() {
     .join("");
 
   list.querySelectorAll(".list-group-item-action").forEach((el) => {
-    el.addEventListener("click", (e) => {
+    el.addEventListener("click", async (e) => {
       if (e.target.closest("button")) return;
       const idx = parseInt(el.getAttribute("data-batch-idx"), 10);
       selectedBatchIdx = idx;
+      if (idx >= 0 && idx < batchQueue.length) {
+        await probeMedia(batchQueue[idx].path);
+      }
       renderBatchQueueUI();
     });
   });
@@ -888,20 +910,11 @@ export function initDragAndDrop(onFileSelected) {
       e.dataTransfer.files &&
       e.dataTransfer.files.length > 0
     ) {
-      if (e.dataTransfer.files.length > 1) {
-        const filePaths = Array.from(e.dataTransfer.files).map(
-          (f) => f.path || f.name,
-        );
-        await addFilesToBatch(filePaths);
-        const info = await probeMedia(filePaths[0]);
-        if (onFileSelected) onFileSelected(info);
-      } else {
-        const file = e.dataTransfer.files[0];
-        const filePath =
-          file.path || file.name || "C:\\Users\\User\\Videos\\dropped_media.mp4";
-        const info = await probeMedia(filePath, file);
-        if (onFileSelected) onFileSelected(info);
-      }
+      const filePaths = Array.from(e.dataTransfer.files).map(
+        (f) => f.path || f.name || "C:\\Users\\User\\Videos\\dropped_media.mp4",
+      );
+      await addFilesToBatch(filePaths);
+      if (onFileSelected) onFileSelected(currentMediaInfo);
     }
   });
 
@@ -921,14 +934,8 @@ export function initDragAndDrop(onFileSelected) {
           } else if (event.payload.type === "drop") {
             deactivatePulse();
             if (event.payload.paths && event.payload.paths.length > 0) {
-              if (event.payload.paths.length > 1) {
-                await addFilesToBatch(event.payload.paths);
-                const info = await probeMedia(event.payload.paths[0]);
-                if (onFileSelected) onFileSelected(info);
-              } else {
-                const info = await probeMedia(event.payload.paths[0]);
-                if (onFileSelected) onFileSelected(info);
-              }
+              await addFilesToBatch(event.payload.paths);
+              if (onFileSelected) onFileSelected(currentMediaInfo);
             }
           }
         });
