@@ -130,13 +130,18 @@
                       <div class="section-divider-header flex-grow-1 mb-0 me-3">
                         Batch Queue (<span id="batch-queue-count">0</span> items)
                       </div>
-                      <div class="btn-group btn-group-sm flex-shrink-0">
+                      <div class="btn-group btn-group-sm flex-shrink-0 d-none" id="batch-header-actions">
                         <button class="btn btn-outline-secondary" type="button" id="btn-batch-add" title="Add files to batch queue">Add to Queue...</button>
                         <button class="btn btn-outline-secondary" type="button" id="btn-batch-clear" title="Clear batch queue">Clear All</button>
                       </div>
                     </div>
                     <div class="list-group list-group-flush border rounded mb-2 small overflow-y-auto" style="max-height: 180px;" id="batch-queue-list">
-                      <div class="list-group-item text-body-secondary text-center py-4" id="batch-empty-msg">No files queued. Click Add to Queue... or drop multiple files here.</div>
+                      <div class="list-group-item text-body-secondary text-center py-4 d-flex flex-column align-items-center justify-content-center gap-2" id="batch-empty-msg">
+                        <span>No files queued.</span>
+                        <button class="btn btn-outline-primary btn-sm" type="button" id="btn-batch-add-empty" title="Add files to batch queue">
+                          <i class="bi bi-plus-lg"></i> Add to Queue...
+                        </button>
+                      </div>
                     </div>
                   </div>
 

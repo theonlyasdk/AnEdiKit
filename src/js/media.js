@@ -493,6 +493,7 @@ export function renderBatchQueueUI() {
   const container = document.getElementById("batch-queue-container");
   const list = document.getElementById("batch-queue-list");
   const countEl = document.getElementById("batch-queue-count");
+  const headerActions = document.getElementById("batch-header-actions");
   const inputPathEl = document.getElementById("input-file-path");
   const btnExecute = document.getElementById("btn-execute");
 
@@ -501,13 +502,28 @@ export function renderBatchQueueUI() {
   if (countEl) countEl.textContent = batchQueue.length.toString();
 
   if (batchQueue.length === 0) {
-    list.innerHTML =
-      '<div class="list-group-item text-body-secondary text-center py-4" id="batch-empty-msg">No files queued. Click Add to Queue... or drop multiple files here.</div>';
+    if (headerActions) headerActions.classList.add("d-none");
+    list.innerHTML = `
+      <div class="list-group-item text-body-secondary text-center py-4 d-flex flex-column align-items-center justify-content-center gap-2" id="batch-empty-msg">
+        <span>No files queued.</span>
+        <button class="btn btn-outline-primary btn-sm" type="button" id="btn-batch-add-empty" title="Add files to batch queue">
+          <i class="bi bi-plus-lg"></i> Add to Queue...
+        </button>
+      </div>
+    `;
+    const btnEmptyAdd = document.getElementById("btn-batch-add-empty");
+    if (btnEmptyAdd) {
+      btnEmptyAdd.addEventListener("click", async () => {
+        await selectMediaFiles("all");
+      });
+    }
     if (btnExecute && btnExecute.textContent.startsWith("Execute Batch")) {
       btnExecute.textContent = "Execute";
     }
     return;
   }
+
+  if (headerActions) headerActions.classList.remove("d-none");
 
   if (inputPathEl && batchQueue.length > 1) {
     inputPathEl.value = `[Batch Queue: ${batchQueue.length} files queued]`;
