@@ -398,19 +398,53 @@ export async function selectOutputFolder(defaultPath = null) {
 
 // Batch Queue State & Management
 let batchQueue = [];
+let selectedBatchIdx = -1;
 
 export function getBatchQueue() {
   return batchQueue;
 }
 
+export function getSelectedBatchIdx() {
+  return selectedBatchIdx;
+}
+
+export function setSelectedBatchIdx(idx) {
+  selectedBatchIdx = idx;
+  renderBatchQueueUI();
+}
+
 export function clearBatchQueue() {
   batchQueue = [];
+  selectedBatchIdx = -1;
   renderBatchQueueUI();
 }
 
 export function removeBatchItem(index) {
   if (index >= 0 && index < batchQueue.length) {
     batchQueue.splice(index, 1);
+    if (selectedBatchIdx >= batchQueue.length) {
+      selectedBatchIdx = batchQueue.length - 1;
+    }
+    renderBatchQueueUI();
+  }
+}
+
+export function moveBatchItemUp() {
+  if (selectedBatchIdx > 0 && selectedBatchIdx < batchQueue.length) {
+    const temp = batchQueue[selectedBatchIdx];
+    batchQueue[selectedBatchIdx] = batchQueue[selectedBatchIdx - 1];
+    batchQueue[selectedBatchIdx - 1] = temp;
+    selectedBatchIdx--;
+    renderBatchQueueUI();
+  }
+}
+
+export function moveBatchItemDown() {
+  if (selectedBatchIdx >= 0 && selectedBatchIdx < batchQueue.length - 1) {
+    const temp = batchQueue[selectedBatchIdx];
+    batchQueue[selectedBatchIdx] = batchQueue[selectedBatchIdx + 1];
+    batchQueue[selectedBatchIdx + 1] = temp;
+    selectedBatchIdx++;
     renderBatchQueueUI();
   }
 }
@@ -445,12 +479,12 @@ export function updateBatchItemStatus(index, status) {
 
 export function renderBatchQueueUI() {
   const container = document.getElementById("batch-queue-container");
-  const tbody = document.getElementById("batch-queue-tbody");
+  const list = document.getElementById("batch-queue-list");
   const countEl = document.getElementById("batch-queue-count");
   const inputPathEl = document.getElementById("input-file-path");
   const btnExecute = document.getElementById("btn-execute");
 
-  if (!container || !tbody) return;
+  if (!container || !list) return;
 
   if (batchQueue.length === 0) {
     container.classList.add("d-none");
@@ -470,38 +504,45 @@ export function renderBatchQueueUI() {
     btnExecute.textContent = `Execute Batch (${batchQueue.length} items)`;
   }
 
-  tbody.innerHTML = "";
-  batchQueue.forEach((item, idx) => {
-    const tr = document.createElement("tr");
+  list.innerHTML = batchQueue
+    .map((item, idx) => {
+      let statusBadge = `<span class="badge bg-secondary-subtle text-secondary-emphasis">Pending</span>`;
+      if (item.status === "processing") {
+        statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Active</span>`;
+      } else if (item.status === "done") {
+        statusBadge = `<span class="badge bg-success-subtle text-success-emphasis"><i class="bi bi-check2"></i> Done</span>`;
+      } else if (item.status === "error") {
+        statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-x"></i> Failed</span>`;
+      }
 
-    let statusBadge = `<span class="badge bg-secondary-subtle text-secondary-emphasis">Pending</span>`;
-    if (item.status === "processing") {
-      statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Active</span>`;
-    } else if (item.status === "done") {
-      statusBadge = `<span class="badge bg-success-subtle text-success-emphasis"><i class="bi bi-check2"></i> Done</span>`;
-    } else if (item.status === "error") {
-      statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-x"></i> Failed</span>`;
-    }
+      const isSelected = idx === selectedBatchIdx;
+      return `
+        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 ${isSelected ? 'active' : ''}" data-batch-idx="${idx}" style="cursor: pointer;">
+          <span class="text-truncate small"><strong class="me-2">${idx + 1}.</strong>${item.name}</span>
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            ${statusBadge}
+            <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-batch-del ${isSelected ? 'btn-outline-light' : ''}" data-del-batch-idx="${idx}" type="button" title="Remove file from queue">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
 
-    tr.innerHTML = `
-      <td class="text-center text-body-secondary">${idx + 1}</td>
-      <td class="text-truncate" style="max-width: 260px;" title="${item.path}">
-        <span class="text-body fw-medium">${item.name}</span>
-      </td>
-      <td>${statusBadge}</td>
-      <td class="text-center">
-        <button class="btn btn-link btn-sm text-danger p-0 border-0" type="button" data-remove-batch-idx="${idx}" title="Remove file from queue">
-          <i class="bi bi-trash"></i>
-        </button>
-      </td>
-    `;
-    tbody.appendChild(tr);
+  list.querySelectorAll(".list-group-item-action").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      if (e.target.closest(".btn-batch-del")) return;
+      const idx = parseInt(el.getAttribute("data-batch-idx"), 10);
+      selectedBatchIdx = idx;
+      renderBatchQueueUI();
+    });
   });
 
-  tbody.querySelectorAll("[data-remove-batch-idx]").forEach((btn) => {
+  list.querySelectorAll(".btn-batch-del").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const idx = parseInt(btn.getAttribute("data-remove-batch-idx"), 10);
+      const idx = parseInt(btn.getAttribute("data-del-batch-idx"), 10);
       removeBatchItem(idx);
     });
   });

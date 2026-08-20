@@ -10,6 +10,8 @@ import {
   probeMedia,
   getBatchQueue,
   clearBatchQueue,
+  moveBatchItemUp,
+  moveBatchItemDown,
   initTrimmerControls,
 } from "./js/media.js";
 import { buildCommandForTool } from "./js/commands.js";
@@ -228,9 +230,11 @@ function bindFormEvents() {
     });
   }
 
-  // Batch Queue Browse, Add More & Clear
+  // Batch Queue Browse, Add More, Reorder & Clear
   const btnBrowseBatch = document.getElementById("btn-browse-batch");
-  const btnBatchAddMore = document.getElementById("btn-batch-add-more");
+  const btnBatchAdd = document.getElementById("btn-batch-add");
+  const btnBatchUp = document.getElementById("btn-batch-up");
+  const btnBatchDown = document.getElementById("btn-batch-down");
   const btnBatchClear = document.getElementById("btn-batch-clear");
 
   const onBatchPick = async () => {
@@ -244,7 +248,9 @@ function bindFormEvents() {
   };
 
   if (btnBrowseBatch) btnBrowseBatch.addEventListener("click", onBatchPick);
-  if (btnBatchAddMore) btnBatchAddMore.addEventListener("click", onBatchPick);
+  if (btnBatchAdd) btnBatchAdd.addEventListener("click", onBatchPick);
+  if (btnBatchUp) btnBatchUp.addEventListener("click", moveBatchItemUp);
+  if (btnBatchDown) btnBatchDown.addEventListener("click", moveBatchItemDown);
   if (btnBatchClear) {
     btnBatchClear.addEventListener("click", () => {
       clearBatchQueue();
