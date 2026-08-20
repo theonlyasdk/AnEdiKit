@@ -219,6 +219,10 @@ export function switchTool(toolId, onToolChanged) {
   if (sharedInputCard) {
     sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings);
   }
+  const batchQueueContainer = document.getElementById("batch-queue-container");
+  if (batchQueueContainer) {
+    batchQueueContainer.classList.toggle("d-none", toolId === "merge" || isYtDlp || isSettings);
+  }
   if (sharedUrlCard) {
     sharedUrlCard.classList.toggle("d-none", !isYtDlp || isSettings);
     if (isYtDlp) {

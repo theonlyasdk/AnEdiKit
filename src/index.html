@@ -117,32 +117,26 @@
               <div class="row g-3 align-items-start">
                 <!-- Left Column: Input File, Metadata & Output File -->
                 <div class="col-12" id="media-inputs-col">
-                  <div class="section-divider-header">Input File & Queue</div>
+                  <div class="section-divider-header">Input Media</div>
                   <div class="input-group mb-2">
                     <button class="btn btn-outline-secondary" type="button" id="btn-browse-input" title="Select single media file">Browse...</button>
-                    <button class="btn btn-outline-secondary" type="button" id="btn-browse-batch" title="Add multiple files to batch queue">Batch / Queue...</button>
-                    <input type="text" class="form-control small" id="input-file-path" placeholder="Select or drop a source media file (or multiple for batch queue)..." readonly />
+                    <input type="text" class="form-control small" id="input-file-path" placeholder="Select or drop a source media file (or add to queue below)..." readonly />
                     <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection">Clear</button>
                   </div>
 
-                  <!-- Batch Queue Container (Matching Merge & Concat design) -->
-                  <div id="batch-queue-container" class="d-none mb-3 ui-zoom-in">
+                  <!-- Batch Queue Container -->
+                  <div id="batch-queue-container" class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                       <div class="section-divider-header flex-grow-1 mb-0 me-3">
                         Batch Queue (<span id="batch-queue-count">0</span> items)
                       </div>
                       <div class="btn-group btn-group-sm flex-shrink-0">
-                        <button class="btn btn-outline-secondary" type="button" id="btn-batch-add" title="Add files to batch queue">Add Files...</button>
-                        <button class="btn btn-outline-secondary" type="button" id="btn-batch-up" title="Move selected item up">Move Up</button>
-                        <button class="btn btn-outline-secondary" type="button" id="btn-batch-down" title="Move selected item down">Move Down</button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-batch-add" title="Add files to batch queue">Add to Queue...</button>
                         <button class="btn btn-outline-secondary" type="button" id="btn-batch-clear" title="Clear batch queue">Clear All</button>
                       </div>
                     </div>
                     <div class="list-group list-group-flush border rounded mb-2 small overflow-y-auto" style="max-height: 180px;" id="batch-queue-list">
-                      <div class="list-group-item text-body-secondary text-center py-4" id="batch-empty-msg">No files added. Click Add Files or drop files to queue items for batch processing.</div>
-                    </div>
-                    <div class="small text-body-secondary">
-                      Active tool parameters will be applied to all queued files sequentially.
+                      <div class="list-group-item text-body-secondary text-center py-4" id="batch-empty-msg">No files queued. Click Add to Queue... or drop multiple files here.</div>
                     </div>
                   </div>
 

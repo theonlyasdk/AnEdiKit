@@ -230,11 +230,8 @@ function bindFormEvents() {
     });
   }
 
-  // Batch Queue Browse, Add More, Reorder & Clear
-  const btnBrowseBatch = document.getElementById("btn-browse-batch");
+  // Batch Queue Add & Clear
   const btnBatchAdd = document.getElementById("btn-batch-add");
-  const btnBatchUp = document.getElementById("btn-batch-up");
-  const btnBatchDown = document.getElementById("btn-batch-down");
   const btnBatchClear = document.getElementById("btn-batch-clear");
 
   const onBatchPick = async () => {
@@ -247,10 +244,7 @@ function bindFormEvents() {
     }
   };
 
-  if (btnBrowseBatch) btnBrowseBatch.addEventListener("click", onBatchPick);
   if (btnBatchAdd) btnBatchAdd.addEventListener("click", onBatchPick);
-  if (btnBatchUp) btnBatchUp.addEventListener("click", moveBatchItemUp);
-  if (btnBatchDown) btnBatchDown.addEventListener("click", moveBatchItemDown);
   if (btnBatchClear) {
     btnBatchClear.addEventListener("click", () => {
       clearBatchQueue();

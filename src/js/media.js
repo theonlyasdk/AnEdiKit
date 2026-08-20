@@ -429,23 +429,35 @@ export function removeBatchItem(index) {
   }
 }
 
-export function moveBatchItemUp() {
-  if (selectedBatchIdx > 0 && selectedBatchIdx < batchQueue.length) {
-    const temp = batchQueue[selectedBatchIdx];
-    batchQueue[selectedBatchIdx] = batchQueue[selectedBatchIdx - 1];
-    batchQueue[selectedBatchIdx - 1] = temp;
-    selectedBatchIdx--;
+export function moveBatchIndexUp(idx) {
+  if (idx > 0 && idx < batchQueue.length) {
+    const temp = batchQueue[idx];
+    batchQueue[idx] = batchQueue[idx - 1];
+    batchQueue[idx - 1] = temp;
+    selectedBatchIdx = idx - 1;
     renderBatchQueueUI();
+  }
+}
+
+export function moveBatchIndexDown(idx) {
+  if (idx >= 0 && idx < batchQueue.length - 1) {
+    const temp = batchQueue[idx];
+    batchQueue[idx] = batchQueue[idx + 1];
+    batchQueue[idx + 1] = temp;
+    selectedBatchIdx = idx + 1;
+    renderBatchQueueUI();
+  }
+}
+
+export function moveBatchItemUp() {
+  if (selectedBatchIdx > 0) {
+    moveBatchIndexUp(selectedBatchIdx);
   }
 }
 
 export function moveBatchItemDown() {
   if (selectedBatchIdx >= 0 && selectedBatchIdx < batchQueue.length - 1) {
-    const temp = batchQueue[selectedBatchIdx];
-    batchQueue[selectedBatchIdx] = batchQueue[selectedBatchIdx + 1];
-    batchQueue[selectedBatchIdx + 1] = temp;
-    selectedBatchIdx++;
-    renderBatchQueueUI();
+    moveBatchIndexDown(selectedBatchIdx);
   }
 }
 
@@ -486,16 +498,17 @@ export function renderBatchQueueUI() {
 
   if (!container || !list) return;
 
+  if (countEl) countEl.textContent = batchQueue.length.toString();
+
   if (batchQueue.length === 0) {
-    container.classList.add("d-none");
+    list.innerHTML =
+      '<div class="list-group-item text-body-secondary text-center py-4" id="batch-empty-msg">No files queued. Click Add to Queue... or drop multiple files here.</div>';
     if (btnExecute && btnExecute.textContent.startsWith("Execute Batch")) {
       btnExecute.textContent = "Execute";
     }
     return;
   }
 
-  container.classList.remove("d-none");
-  if (countEl) countEl.textContent = batchQueue.length.toString();
   if (inputPathEl && batchQueue.length > 1) {
     inputPathEl.value = `[Batch Queue: ${batchQueue.length} files queued]`;
   }
@@ -506,7 +519,7 @@ export function renderBatchQueueUI() {
 
   list.innerHTML = batchQueue
     .map((item, idx) => {
-      let statusBadge = `<span class="badge bg-secondary-subtle text-secondary-emphasis">Pending</span>`;
+      let statusBadge = "";
       if (item.status === "processing") {
         statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Active</span>`;
       } else if (item.status === "done") {
@@ -519,10 +532,18 @@ export function renderBatchQueueUI() {
       return `
         <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 ${isSelected ? 'active' : ''}" data-batch-idx="${idx}" style="cursor: pointer;">
           <span class="text-truncate small"><strong class="me-2">${idx + 1}.</strong>${item.name}</span>
-          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+          <div class="d-flex align-items-center gap-1 flex-shrink-0">
             ${statusBadge}
-            <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-batch-del ${isSelected ? 'btn-outline-light' : ''}" data-del-batch-idx="${idx}" type="button" title="Remove file from queue">
-              <i class="bi bi-x"></i>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-secondary btn-sm py-0 px-2 btn-batch-item-up ${isSelected ? 'btn-outline-light' : ''}" data-up-batch-idx="${idx}" type="button" title="Move Up" ${idx === 0 ? 'disabled' : ''}>
+                <i class="bi bi-arrow-up"></i>
+              </button>
+              <button class="btn btn-outline-secondary btn-sm py-0 px-2 btn-batch-item-down ${isSelected ? 'btn-outline-light' : ''}" data-down-batch-idx="${idx}" type="button" title="Move Down" ${idx === batchQueue.length - 1 ? 'disabled' : ''}>
+                <i class="bi bi-arrow-down"></i>
+              </button>
+            </div>
+            <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-batch-del ${isSelected ? 'btn-outline-light' : ''}" data-del-batch-idx="${idx}" type="button" title="Delete file from queue">
+              <i class="bi bi-trash"></i>
             </button>
           </div>
         </div>
@@ -532,10 +553,26 @@ export function renderBatchQueueUI() {
 
   list.querySelectorAll(".list-group-item-action").forEach((el) => {
     el.addEventListener("click", (e) => {
-      if (e.target.closest(".btn-batch-del")) return;
+      if (e.target.closest("button")) return;
       const idx = parseInt(el.getAttribute("data-batch-idx"), 10);
       selectedBatchIdx = idx;
       renderBatchQueueUI();
+    });
+  });
+
+  list.querySelectorAll(".btn-batch-item-up").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute("data-up-batch-idx"), 10);
+      moveBatchIndexUp(idx);
+    });
+  });
+
+  list.querySelectorAll(".btn-batch-item-down").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.getAttribute("data-down-batch-idx"), 10);
+      moveBatchIndexDown(idx);
     });
   });
 
