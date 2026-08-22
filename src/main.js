@@ -317,7 +317,7 @@ export function updateAutoOutputFilename(force = false) {
 
   if (force || !userHasCustomOutputName || !getOutputFilePath().trim()) {
     const smartName = getSmartOutputFileName(currentInput, activeTool);
-    const settings = getSettings();
+    const settings = appSettings || loadSettings();
     let outDir = settings.outputDir || "C:\\Users\\User\\Videos";
     if (currentInput) {
       const lastSlash = Math.max(currentInput.lastIndexOf("\\"), currentInput.lastIndexOf("/"));
