@@ -401,20 +401,10 @@ export function updateMetadataDisplay(info) {
         audioEl.removeAttribute("src");
       }
       if (videoWrapper) videoWrapper.classList.remove("d-none");
-      if (videoFallback) {
-        videoFallback.classList.remove("d-none");
-        if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
-      }
 
       const videoOverlay = document.getElementById("video-overlay-info");
       const videoOverlayTitle = document.getElementById("video-overlay-title");
       const videoOverlayFormat = document.getElementById("video-overlay-format");
-      if (videoOverlay) videoOverlay.classList.add("d-none");
-
-      if (actionFrameImg) {
-        actionFrameImg.classList.add("d-none");
-        actionFrameImg.removeAttribute("src");
-      }
 
       if (videoEl) {
         if (assetSrc) {
@@ -424,32 +414,56 @@ export function updateMetadataDisplay(info) {
         }
       }
 
+      const activeTool = document.querySelector("#tool-nav .nav-link.active, #ytdlp-nav .nav-link.active")?.dataset?.tool || "trim";
+
+      if (activeTool === "trim") {
+        if (videoEl) videoEl.classList.remove("d-none");
+        if (actionFrameImg) actionFrameImg.classList.add("d-none");
+        if (videoFallback) videoFallback.classList.add("d-none");
+        if (videoOverlay) videoOverlay.classList.remove("d-none");
+      } else {
+        if (videoEl) videoEl.classList.add("d-none");
+        if (videoFallback) {
+          videoFallback.classList.remove("d-none");
+          if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
+        }
+        if (videoOverlay) videoOverlay.classList.add("d-none");
+        if (actionFrameImg) {
+          actionFrameImg.classList.add("d-none");
+          actionFrameImg.removeAttribute("src");
+        }
+      }
+
+      if (videoOverlayTitle) {
+        videoOverlayTitle.textContent = info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Video Track");
+      }
+      if (videoOverlayFormat) {
+        const codecStr = (info.video_codec || ext || "video").toUpperCase();
+        const resStr = info.resolution && info.resolution !== "--" && info.resolution !== "N/A" ? ` • ${info.resolution}` : "";
+        videoOverlayFormat.textContent = `${codecStr} Video${resStr}`;
+      }
+
       const fallbackIcon = document.getElementById("video-fallback-icon");
-      if (fallbackIcon) {
+      if (fallbackIcon && activeTool !== "trim") {
         fallbackIcon.classList.add("icon-loading-pulse");
       }
 
-      // Asynchronously extract and display action frame thumbnail
+      // Asynchronously extract and cache action frame thumbnail for non-trim views
       const targetVideoPath = info.file_path || currentInputFile;
       if (targetVideoPath) {
         extractActionFrameAsync(targetVideoPath, info.duration_seconds)
           .then((dataUri) => {
             if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
             if (dataUri && currentInputFile === targetVideoPath) {
+              const curTool = document.querySelector("#tool-nav .nav-link.active, #ytdlp-nav .nav-link.active")?.dataset?.tool || "trim";
               if (actionFrameImg) {
                 actionFrameImg.src = dataUri;
-                actionFrameImg.classList.remove("d-none");
+                if (curTool !== "trim") {
+                  actionFrameImg.classList.remove("d-none");
+                  if (videoFallback) videoFallback.classList.add("d-none");
+                  if (videoOverlay) videoOverlay.classList.remove("d-none");
+                }
               }
-              if (videoFallback) videoFallback.classList.add("d-none");
-              if (videoOverlayTitle) {
-                videoOverlayTitle.textContent = info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Video Track");
-              }
-              if (videoOverlayFormat) {
-                const codecStr = (info.video_codec || ext || "video").toUpperCase();
-                const resStr = info.resolution && info.resolution !== "--" && info.resolution !== "N/A" ? ` • ${info.resolution}` : "";
-                videoOverlayFormat.textContent = `${codecStr} Video${resStr}`;
-              }
-              if (videoOverlay) videoOverlay.classList.remove("d-none");
             }
           })
           .catch(() => {
@@ -458,12 +472,6 @@ export function updateMetadataDisplay(info) {
       }
     }
   } else {
-    currentWaveformPeaks = null;
-    const videoOverlay = document.getElementById("video-overlay-info");
-    if (videoOverlay) videoOverlay.classList.add("d-none");
-    const waveformCanvas = document.getElementById("trim-waveform-canvas");
-    if (waveformCanvas) {
-      waveformCanvas.classList.add("d-none");
     }
     if (inputsCol) {
       inputsCol.className = "col-12";
@@ -1151,6 +1159,68 @@ export function initTrimmerControls() {
 
   if (inputStart) inputStart.addEventListener("input", onTimestampInputsChanged);
   if (inputEnd) inputEnd.addEventListener("input", onTimestampInputsChanged);
+
+  // Interactive Playhead Dragging & Seeking on Timeline Track
+  const trackEl = document.getElementById("trim-timeline-track");
+  let isDraggingPlayhead = false;
+
+  const seekFromTrackPointer = (clientX) => {
+    if (!trackEl) return;
+    const rect = trackEl.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const clickX = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const pct = (clickX / rect.width) * 100;
+    const dur = currentMediaInfo?.duration_seconds || 120;
+    const targetTime = (pct / 100) * dur;
+
+    setMediaCurrentTime(targetTime);
+  };
+
+  if (trackEl) {
+    trackEl.addEventListener("mousedown", (e) => {
+      isDraggingPlayhead = true;
+      seekFromTrackPointer(e.clientX);
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (isDraggingPlayhead) {
+        seekFromTrackPointer(e.clientX);
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (isDraggingPlayhead) {
+        isDraggingPlayhead = false;
+      }
+    });
+
+    trackEl.addEventListener(
+      "touchstart",
+      (e) => {
+        if (e.touches && e.touches[0]) {
+          isDraggingPlayhead = true;
+          seekFromTrackPointer(e.touches[0].clientX);
+        }
+      },
+      { passive: true },
+    );
+
+    window.addEventListener(
+      "touchmove",
+      (e) => {
+        if (isDraggingPlayhead && e.touches && e.touches[0]) {
+          seekFromTrackPointer(e.touches[0].clientX);
+        }
+      },
+      { passive: true },
+    );
+
+    window.addEventListener("touchend", () => {
+      if (isDraggingPlayhead) {
+        isDraggingPlayhead = false;
+      }
+    });
+  }
 
   // Playhead position updates from media player
   const onTimeUpdate = (media) => {

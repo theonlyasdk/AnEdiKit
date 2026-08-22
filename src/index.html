@@ -180,7 +180,7 @@
                         <i class="bi bi-film fs-1 text-secondary mb-1" id="video-fallback-icon"></i>
                         <span class="small text-body-secondary text-truncate w-100" style="font-size: 0.75rem;" id="video-fallback-filename">Video Preview</span>
                       </div>
-                      <video id="media-video-preview" class="d-none" preload="metadata"></video>
+                      <video id="media-video-preview" class="d-none w-100 h-100 object-fit-contain position-absolute top-0 start-0 z-0" preload="metadata" playsinline></video>
                     </div>
 
                     <!-- Audio 1:1 Card Preview (Increased size with spinner and fallback icon) -->
@@ -410,8 +410,8 @@
                     </div>
 
                     <!-- Current Playhead Position Indicator Line -->
-                    <div id="trim-playhead" class="position-absolute top-0 h-100 z-3" style="left: 0%; width: 2px; background-color: #ff3b30; pointer-events: none; transform: translateX(-50%); display: none;">
-                      <div class="position-absolute top-0 start-50 translate-middle-x bg-danger" style="width: 8px; height: 8px; clip-path: polygon(0 0, 100% 0, 50% 100%);"></div>
+                    <div id="trim-playhead" class="position-absolute top-0 h-100 z-3" style="left: 0%; width: 2px; background-color: #ff3b30; cursor: ew-resize; transform: translateX(-50%); display: none;">
+                      <div class="position-absolute top-0 start-50 translate-middle-x bg-danger" style="width: 10px; height: 10px; clip-path: polygon(0 0, 100% 0, 50% 100%);"></div>
                     </div>
 
                     <!-- Range Sliders for Start & End Dragging -->

@@ -15,6 +15,7 @@ import {
   initTrimmerControls,
   initSavedBatchQueue,
   syncMediaDurationToTools,
+  syncVideoPreviewForActiveTool,
 } from "./js/media.js";
 import { buildCommandForTool } from "./js/commands.js";
 import {
@@ -974,14 +975,20 @@ document.addEventListener("DOMContentLoaded", () => {
   initTrimmerControls();
   initSavedBatchQueue();
   initDragAndDrop((mediaInfo) => {
-    if (mediaInfo) syncMediaDurationToTools(mediaInfo);
+    if (mediaInfo) {
+      syncMediaDurationToTools(mediaInfo);
+      syncVideoPreviewForActiveTool(getCurrentActiveTool());
+    }
     updateAutoOutputFilename(true);
     updateCommandPreview();
   });
   bindFormEvents();
   initNavigation((toolId) => {
     const mediaInfo = getCurrentMediaInfo();
-    if (mediaInfo) syncMediaDurationToTools(mediaInfo);
+    if (mediaInfo) {
+      syncMediaDurationToTools(mediaInfo);
+      syncVideoPreviewForActiveTool(toolId);
+    }
     const playlistPanel = document.getElementById("playlist-entries-panel");
     if (playlistPanel) {
       if (toolId === "ytdlp_playlist" && playlistVideos.length > 0) {
