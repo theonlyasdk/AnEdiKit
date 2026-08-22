@@ -1248,6 +1248,63 @@ fn fetch_playlist_videos(url: String) -> Result<Vec<PlaylistVideo>, String> {
     Ok(entries)
 }
 
+#[tauri::command]
+fn extract_timeline_frame(
+    file_path: String,
+    frame_index: usize,
+    timestamp_seconds: f64,
+) -> Result<String, String> {
+    let path = std::path::Path::new(&file_path);
+    if !path.exists() {
+        return Err("File does not exist".into());
+    }
+
+    let cache_dir = get_thumb_cache_dir("Timeline");
+    let hash = compute_file_hash(path);
+    let frame_file = cache_dir.join(format!("{}_{:03}.jpg", hash, frame_index));
+
+    use base64::Engine;
+
+    // Check disk cache first
+    if frame_file.exists() {
+        if let Ok(bytes) = std::fs::read(&frame_file) {
+            if !bytes.is_empty() {
+                let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                return Ok(format!("data:image/jpeg;base64,{}", b64));
+            }
+        }
+    }
+
+    let ffmpeg_bin = find_binary("ffmpeg");
+    let mut cmd = Command::new(&ffmpeg_bin);
+    cmd.args([
+        "-y",
+        "-ss",
+        &format!("{:.3}", timestamp_seconds.max(0.0)),
+        "-i",
+        &file_path,
+        "-vframes",
+        "1",
+        "-vf",
+        "scale=160:90:force_original_aspect_ratio=increase,crop=160:90",
+        "-q:v",
+        "3",
+        frame_file.to_string_lossy().as_ref(),
+    ]);
+
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+    let output = cmd.output().map_err(|e| format!("Failed to run ffmpeg: {}", e))?;
+    if !output.status.success() || !frame_file.exists() {
+        return Err("Failed to extract frame".into());
+    }
+
+    let bytes = std::fs::read(&frame_file).map_err(|e| format!("Failed to read frame: {}", e))?;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Ok(format!("data:image/jpeg;base64,{}", b64))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1273,6 +1330,7 @@ pub fn run() {
             extract_action_frame,
             extract_album_art,
             extract_timeline_thumbnails,
+            extract_timeline_frame,
             open_binaries_folder,
             fetch_playlist_videos,
             execute_ffmpeg,

@@ -886,46 +886,74 @@ export function refreshWaveformDisplay() {
   });
 }
 
+export function isAudioFile(filePath) {
+  if (!filePath) return false;
+  const ext = filePath.split(/[?#]/)[0].split(".").pop().toLowerCase();
+  return ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "aiff", "alac"].includes(ext);
+}
+
+export function isVideoFile(filePath) {
+  if (!filePath) return false;
+  return !isAudioFile(filePath);
+}
+
+let currentTimelineExtractToken = 0;
+
 export async function extractTimelineThumbnailsAsync(filePath, duration) {
   const container = document.getElementById("trim-filmstrip-container");
+  const waveformCanvas = document.getElementById("trim-waveform-canvas");
   if (!container || !filePath) return;
 
-  const isVideo = isVideoFile(filePath);
-  const waveformCanvas = document.getElementById("trim-waveform-canvas");
+  const thisToken = ++currentTimelineExtractToken;
+  const isAudio = isAudioFile(filePath) || currentMediaInfo?.video_codec === "None" || currentMediaInfo?.resolution === "N/A";
 
-  if (!isVideo) {
+  if (isAudio) {
     container.innerHTML = "";
-    if (waveformCanvas) waveformCanvas.classList.remove("d-none");
+    if (waveformCanvas) {
+      waveformCanvas.classList.remove("d-none");
+      refreshWaveformDisplay();
+    }
     return;
   }
 
   if (waveformCanvas) waveformCanvas.classList.add("d-none");
 
-  container.innerHTML = `
-    <div class="w-100 h-100 d-flex align-items-center justify-content-center small" id="trim-filmstrip-empty">
-      <span class="text-shimmer"><i class="bi bi-film me-2"></i> Preparing preview...</span>
-    </div>
-  `;
+  const frameCount = 12;
+  const dur = Math.max(0.5, duration || 10.0);
+
+  // Render individual frame slot placeholders for live progressive feedback
+  let slotsHtml = "";
+  for (let i = 0; i < frameCount; i++) {
+    slotsHtml += `
+      <div id="trim-slot-${i}" class="trim-timeline-frame-slot d-flex align-items-center justify-content-center bg-black bg-opacity-75 text-secondary position-relative overflow-hidden" style="flex: 1 1 0px; height: 100%; min-width: 0; border-right: 1px solid rgba(0,0,0,0.5);">
+        <span class="spinner-border spinner-border-sm opacity-25" style="width: 0.85rem; height: 0.85rem;"></span>
+      </div>
+    `;
+  }
+  container.innerHTML = slotsHtml;
 
   if (window.__TAURI__?.core?.invoke) {
-    try {
-      const thumbs = await window.__TAURI__.core.invoke("extract_timeline_thumbnails", {
+    // Extract frames with live progressive frame-by-frame updates
+    for (let i = 0; i < frameCount; i++) {
+      const ts = dur * ((i + 0.5) / frameCount);
+      window.__TAURI__.core.invoke("extract_timeline_frame", {
         filePath,
-        count: 12,
-        durationSeconds: duration || 10.0,
+        frameIndex: i + 1,
+        timestampSeconds: ts,
+      }).then((dataUri) => {
+        if (thisToken !== currentTimelineExtractToken) return;
+        const slotEl = document.getElementById(`trim-slot-${i}`);
+        if (slotEl && dataUri) {
+          slotEl.innerHTML = `<img class="trim-timeline-frame-item w-100 h-100 object-fit-cover" src="${dataUri}" alt="Frame ${i + 1}" />`;
+        }
+      }).catch((err) => {
+        console.warn(`Frame ${i + 1} extraction error:`, err);
       });
-      if (thumbs && thumbs.length > 0) {
-        container.innerHTML = thumbs
-          .map((src) => `<img class="trim-timeline-frame-item" src="${src}" alt="Timeline frame" />`)
-          .join("");
-        return;
-      }
-    } catch (err) {
-      console.warn("extract_timeline_thumbnails error:", err);
     }
+    return;
   }
 
-  // Fallback if extraction fails or in web mode
+  // Fallback if in web mode
   container.innerHTML = `
     <div class="w-100 h-100 d-flex align-items-center justify-content-center text-body-secondary small">
       <i class="bi bi-film me-2"></i> Video Timeline

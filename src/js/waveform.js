@@ -156,27 +156,28 @@ export function renderWaveformToCanvas(canvas, peaks, options = {}) {
   const mutedColor = options.mutedColor || computedStyle.getPropertyValue("--bs-secondary-color").trim() || "rgba(108, 117, 125, 0.4)";
   const activeColor = primaryColor;
 
-  const numBars = peaks.length;
-  // Precise equal slot and spacing distribution
-  const slotWidth = width / numBars;
-  const gap = options.gap !== undefined ? options.gap : Math.max(1.0, slotWidth * 0.28);
-  const barWidth = Math.max(1.5, slotWidth - gap);
-  const halfGap = gap / 2;
+  // High density: strictly 2px bar width with 1px equal gap
+  const barWidth = 2;
+  const gap = 1;
+  const barPitch = barWidth + gap;
+  const numBars = Math.max(10, Math.floor(width / barPitch));
+  const leftOffset = Math.max(0, (width - (numBars * barPitch - gap)) / 2);
 
   const centerY = height / 2;
-  const maxBarHalfHeight = (height / 2) - 4; // Clean padding from top and bottom boundaries
+  const maxBarHalfHeight = (height / 2) - 3;
 
   for (let i = 0; i < numBars; i++) {
-    const x = i * slotWidth + halfGap;
+    const x = leftOffset + i * barPitch;
     const barProgress = (i / (numBars - 1)) * 100;
     const isSelected = barProgress >= startPct && barProgress <= endPct;
 
-    const peak = peaks[i];
+    const peakIdx = Math.min(peaks.length - 1, Math.floor((i / numBars) * peaks.length));
+    const peak = peaks[peakIdx] || 0.08;
     const halfHeight = Math.max(2, peak * maxBarHalfHeight);
 
     ctx.fillStyle = isSelected ? activeColor : mutedColor;
 
-    // Draw symmetric 2px rounded vertical bar
+    // Draw symmetric 2px wide, 2px rounded vertical pill
     const barTop = centerY - halfHeight;
     const barH = halfHeight * 2;
 
@@ -184,7 +185,7 @@ export function renderWaveformToCanvas(canvas, peaks, options = {}) {
     if (typeof ctx.roundRect === "function") {
       ctx.roundRect(x, barTop, barWidth, barH, 2);
     } else {
-      const r = Math.min(2, barWidth / 2, barH / 2);
+      const r = 1;
       ctx.moveTo(x + r, barTop);
       ctx.arcTo(x + barWidth, barTop, x + barWidth, barTop + barH, r);
       ctx.arcTo(x + barWidth, barTop + barH, x, barTop + barH, r);
