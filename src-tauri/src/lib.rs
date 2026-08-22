@@ -894,6 +894,56 @@ fn send_system_notification(title: String, body: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Result<String, String> {
+    let path = std::path::Path::new(&file_path);
+    if !path.exists() {
+        return Err("File does not exist".into());
+    }
+
+    let ffmpeg_bin = find_binary("ffmpeg");
+    let dur = duration_seconds.unwrap_or(10.0);
+    // Seek into video to avoid black intro frames (~15% or 3s)
+    let target_time = if dur > 20.0 {
+        (dur * 0.15).min(15.0)
+    } else if dur > 2.0 {
+        1.0
+    } else {
+        0.0
+    };
+
+    let mut cmd = Command::new(&ffmpeg_bin);
+    cmd.args([
+        "-ss",
+        &format!("{:.3}", target_time),
+        "-i",
+        &file_path,
+        "-vframes",
+        "1",
+        "-vf",
+        "scale=640:-1",
+        "-q:v",
+        "3",
+        "-f",
+        "image2pipe",
+        "-vcodec",
+        "mjpeg",
+        "pipe:1",
+    ]);
+
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+    let output = cmd.output().map_err(|e| format!("Failed to run ffmpeg: {}", e))?;
+    if !output.status.success() || output.stdout.is_empty() {
+        return Err("Failed to extract action frame".into());
+    }
+
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&output.stdout);
+    Ok(format!("data:image/jpeg;base64,{}", b64))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -916,6 +966,7 @@ pub fn run() {
             pick_folder,
             write_temp_text_file,
             get_media_info,
+            extract_action_frame,
             execute_ffmpeg,
             execute_ytdlp,
             cancel_ffmpeg,

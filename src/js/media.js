@@ -236,6 +236,30 @@ function renderMarqueeSongTitle(titleText) {
   }
 }
 
+const actionFrameCache = new Map();
+
+export async function extractActionFrameAsync(filePath, durationSec = 10) {
+  if (!filePath) return null;
+  if (actionFrameCache.has(filePath)) {
+    return actionFrameCache.get(filePath);
+  }
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      const dataUri = await window.__TAURI__.core.invoke("extract_action_frame", {
+        filePath,
+        durationSeconds: durationSec || 10.0,
+      });
+      if (dataUri) {
+        actionFrameCache.set(filePath, dataUri);
+        return dataUri;
+      }
+    } catch (err) {
+      console.warn("extract_action_frame failed:", err);
+    }
+  }
+  return null;
+}
+
 export function updateMetadataDisplay(info) {
   const metaInfo = document.getElementById("input-meta-info");
   const pathInput = document.getElementById("input-file-path");
@@ -245,6 +269,7 @@ export function updateMetadataDisplay(info) {
   const previewCol = document.getElementById("media-preview-col");
   const videoWrapper = document.getElementById("video-preview-wrapper");
   const videoEl = document.getElementById("media-video-preview");
+  const actionFrameImg = document.getElementById("video-action-frame-img");
   const audioWrapper = document.getElementById("audio-preview-wrapper");
   const audioEl = document.getElementById("media-audio-preview");
 
@@ -284,6 +309,11 @@ export function updateMetadataDisplay(info) {
       if (videoEl) {
         videoEl.pause();
         videoEl.removeAttribute("src");
+        videoEl.removeAttribute("poster");
+      }
+      if (actionFrameImg) {
+        actionFrameImg.classList.add("d-none");
+        actionFrameImg.removeAttribute("src");
       }
       if (audioWrapper) audioWrapper.classList.remove("d-none");
       if (cdSpinner) cdSpinner.classList.add("d-none");
@@ -326,7 +356,13 @@ export function updateMetadataDisplay(info) {
         audioEl.removeAttribute("src");
       }
       if (videoWrapper) videoWrapper.classList.remove("d-none");
+      if (actionFrameImg) {
+        actionFrameImg.classList.add("d-none");
+        actionFrameImg.removeAttribute("src");
+      }
+
       if (videoEl) {
+        videoEl.removeAttribute("poster");
         if (assetSrc) {
           videoEl.classList.remove("d-none");
           if (videoFallback) videoFallback.classList.add("d-none");
@@ -345,6 +381,23 @@ export function updateMetadataDisplay(info) {
             if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
           }
         }
+      }
+
+      // Asynchronously extract and display action frame poster
+      const targetVideoPath = info.file_path || currentInputFile;
+      if (targetVideoPath) {
+        extractActionFrameAsync(targetVideoPath, info.duration_seconds).then((dataUri) => {
+          if (dataUri && currentInputFile === targetVideoPath) {
+            if (videoEl) {
+              videoEl.poster = dataUri;
+            }
+            if (actionFrameImg && videoEl && videoEl.classList.contains("d-none")) {
+              actionFrameImg.src = dataUri;
+              actionFrameImg.classList.remove("d-none");
+              if (videoFallback) videoFallback.classList.add("d-none");
+            }
+          }
+        });
       }
     }
   } else {
