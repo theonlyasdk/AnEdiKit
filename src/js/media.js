@@ -901,8 +901,8 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
   }
 
   container.innerHTML = `
-    <div class="w-100 h-100 d-flex align-items-center justify-content-center text-secondary small icon-loading-pulse">
-      <i class="bi bi-film me-2"></i> Generating timeline filmstrip...
+    <div class="w-100 h-100 d-flex align-items-center justify-content-center small" id="trim-filmstrip-empty">
+      <span class="text-shimmer"><i class="bi bi-film me-2"></i> Preparing preview...</span>
     </div>
   `;
 
