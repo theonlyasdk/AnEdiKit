@@ -14,6 +14,7 @@ import {
   moveBatchItemDown,
   initTrimmerControls,
   initSavedBatchQueue,
+  syncMediaDurationToTools,
 } from "./js/media.js";
 import { buildCommandForTool } from "./js/commands.js";
 import {
@@ -91,14 +92,6 @@ export function updateAutoOutputFilename(force = false) {
     const smartName = getSmartOutputFileName(currentInput, activeTool);
     outputNameInput.value = smartName;
     if (force) userHasCustomOutputName = false;
-  }
-}
-
-function syncMediaDurationToTools(mediaInfo) {
-  if (!mediaInfo || !mediaInfo.duration_string) return;
-  const trimEnd = document.getElementById("trim-end");
-  if (trimEnd && (trimEnd.value === "00:01:00.000" || !trimEnd.value)) {
-    trimEnd.value = `${mediaInfo.duration_string}.000`;
   }
 }
 

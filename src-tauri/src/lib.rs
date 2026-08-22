@@ -321,7 +321,13 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
                                 .and_then(|n| n.as_str())
                                 .unwrap_or("");
 
-                            if c_type == "video" && info.video_codec == "--" {
+                            let is_attached_pic = stream
+                                .get("disposition")
+                                .and_then(|d| d.get("attached_pic"))
+                                .and_then(|p| p.as_i64())
+                                .unwrap_or(0) == 1;
+
+                            if c_type == "video" && !is_attached_pic && info.video_codec == "--" {
                                 info.video_codec = c_name.to_string();
                                 if let (Some(w), Some(h)) = (
                                     stream.get("width").and_then(|w| w.as_i64()),
@@ -370,6 +376,31 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
                 }
             }
         }
+    }
+
+    // Audio file format / codec fallback if ffprobe didn't detect
+    let ext_lower = std::path::Path::new(&file_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    if info.audio_codec == "--" {
+        match ext_lower.as_str() {
+            "mp3" => info.audio_codec = "mp3".into(),
+            "flac" => info.audio_codec = "flac".into(),
+            "wav" => info.audio_codec = "pcm".into(),
+            "m4a" | "aac" => info.audio_codec = "aac".into(),
+            "ogg" => info.audio_codec = "vorbis".into(),
+            "opus" => info.audio_codec = "opus".into(),
+            "wma" => info.audio_codec = "wma".into(),
+            _ => {}
+        }
+    }
+
+    if info.video_codec == "--" && ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma"].contains(&ext_lower.as_str()) {
+        info.video_codec = "None".into();
+        info.resolution = "N/A".into();
     }
 
     Ok(info)

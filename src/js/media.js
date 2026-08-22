@@ -95,6 +95,7 @@ export async function probeMedia(filePath, fileObject = null) {
       if (info && (info.duration_seconds > 0 || info.file_path || info.file_name)) {
         currentMediaInfo = info;
         updateMetadataDisplay(info);
+        syncMediaDurationToTools(info);
         return info;
       }
     } catch (err) {
@@ -108,6 +109,7 @@ export async function probeMedia(filePath, fileObject = null) {
       const mediaInfo = await probeInBrowser(fileObject, filePath);
       currentMediaInfo = mediaInfo;
       updateMetadataDisplay(mediaInfo);
+      syncMediaDurationToTools(mediaInfo);
       return mediaInfo;
     } catch (e) {
       console.warn("Browser media probe error:", e);
@@ -117,7 +119,8 @@ export async function probeMedia(filePath, fileObject = null) {
   // Simulated fallback for demo/mock file paths
   const fileName = filePath.split(/[/\\]/).pop() || "sample_video.mp4";
   const ext = (fileName.split(".").pop() || "mp4").toLowerCase();
-  const isAudio = ["mp3", "wav", "flac", "m4a", "ogg", "opus"].includes(ext);
+  const isAudio = ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac"].includes(ext);
+  const detectedAudioCodec = ext === "mp3" ? "mp3" : ext === "flac" ? "flac" : ext === "wav" ? "pcm" : ext === "ogg" ? "vorbis" : ext === "opus" ? "opus" : ext === "wma" ? "wma" : "aac";
 
   const mockInfo = {
     file_path: filePath,
@@ -126,7 +129,7 @@ export async function probeMedia(filePath, fileObject = null) {
     duration_string: "00:02:15",
     resolution: isAudio ? "N/A" : "1920x1080",
     video_codec: isAudio ? "None" : ext === "webm" ? "vp9" : "h264",
-    audio_codec: ext === "flac" ? "flac" : ext === "wav" ? "pcm" : "aac",
+    audio_codec: detectedAudioCodec,
     file_size_mb: 42.5,
     file_size_formatted: "42.5 MB",
     bitrate_kbps: 2600,
@@ -136,6 +139,7 @@ export async function probeMedia(filePath, fileObject = null) {
   await new Promise((res) => setTimeout(res, 200));
   currentMediaInfo = mockInfo;
   updateMetadataDisplay(mockInfo);
+  syncMediaDurationToTools(mockInfo);
   return mockInfo;
 }
 
@@ -144,6 +148,8 @@ function probeInBrowser(file, filePath) {
     const isVideo = file.type.startsWith("video");
     const mediaEl = document.createElement(isVideo ? "video" : "audio");
     const objectUrl = URL.createObjectURL(file);
+    const ext = (file.name || filePath).split(".").pop().toLowerCase();
+    const browserAudioCodec = ext === "mp3" ? "mp3" : ext === "flac" ? "flac" : ext === "wav" ? "pcm" : ext === "ogg" ? "vorbis" : ext === "opus" ? "opus" : ext === "wma" ? "wma" : "aac";
 
     mediaEl.preload = "metadata";
     mediaEl.src = objectUrl;
@@ -168,7 +174,7 @@ function probeInBrowser(file, filePath) {
           ? `${mediaEl.videoWidth}x${mediaEl.videoHeight}`
           : "N/A",
         video_codec: isVideo ? "h264" : "None",
-        audio_codec: "aac",
+        audio_codec: browserAudioCodec,
         file_size_mb: parseFloat(sizeMb),
         file_size_formatted: `${sizeMb} MB`,
         bitrate_kbps: 0,
@@ -732,6 +738,33 @@ export function refreshWaveformDisplay() {
     startPct,
     endPct,
   });
+}
+
+export function syncMediaDurationToTools(mediaInfo) {
+  if (!mediaInfo) return;
+  const durStr = mediaInfo.duration_string || "00:01:00";
+  const formattedDur = durStr.includes(".") ? durStr : `${durStr}.000`;
+
+  const trimStart = document.getElementById("trim-start");
+  const trimEnd = document.getElementById("trim-end");
+  const trimPos = document.getElementById("trim-current-pos");
+  const trimDur = document.getElementById("trim-clip-dur");
+  const sliderStart = document.getElementById("trim-slider-start");
+  const sliderEnd = document.getElementById("trim-slider-end");
+  const rangeBar = document.getElementById("trim-selected-range-bar");
+
+  if (trimStart) trimStart.value = "00:00:00.000";
+  if (trimEnd) trimEnd.value = formattedDur;
+  if (trimPos) trimPos.textContent = "00:00:00.000";
+  if (trimDur) trimDur.textContent = formattedDur;
+  if (sliderStart) sliderStart.value = "0";
+  if (sliderEnd) sliderEnd.value = "100";
+  if (rangeBar) {
+    rangeBar.style.marginLeft = "0%";
+    rangeBar.style.width = "100%";
+  }
+
+  refreshWaveformDisplay();
 }
 
 export function initTrimmerControls() {
