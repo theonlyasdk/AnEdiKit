@@ -177,6 +177,12 @@ a:active,
   margin-right: -0.5rem;
 }
 
+/* Stop Output File and Batch Queue HRs cleanly at the end of the inputs column */
+#output-file-section .section-divider-header::after,
+#batch-queue-container .section-divider-header::after {
+  margin-right: 0 !important;
+}
+
 #media-preview-col .section-divider-header::before {
   margin-left: -0.5rem;
   width: auto;

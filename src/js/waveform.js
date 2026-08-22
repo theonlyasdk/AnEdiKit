@@ -20,7 +20,7 @@ function getAudioContext() {
 /**
  * Generate normalized waveform peaks (0.0 to 1.0) from an AudioBuffer.
  */
-export function extractPeaksFromAudioBuffer(audioBuffer, numSamples = 160) {
+export function extractPeaksFromAudioBuffer(audioBuffer, numSamples = 240) {
   if (!audioBuffer) return [];
   const numChannels = audioBuffer.numberOfChannels;
   const totalLength = audioBuffer.length;
@@ -59,7 +59,7 @@ export function extractPeaksFromAudioBuffer(audioBuffer, numSamples = 160) {
 /**
  * Synthetic waveform fallback for non-decodable audio or simulated previews.
  */
-export function generateSyntheticWaveform(numSamples = 160, seed = "anedikit") {
+export function generateSyntheticWaveform(numSamples = 240, seed = "anedikit") {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
     hash = (hash << 5) - hash + seed.charCodeAt(i);
@@ -81,7 +81,7 @@ export function generateSyntheticWaveform(numSamples = 160, seed = "anedikit") {
 /**
  * Fetch and decode audio to generate normalized waveform data.
  */
-export async function generateWaveformFromSource(urlOrPath, numSamples = 160) {
+export async function generateWaveformFromSource(urlOrPath, numSamples = 240) {
   if (!urlOrPath) return generateSyntheticWaveform(numSamples);
 
   if (waveformCache.has(urlOrPath)) {
@@ -132,10 +132,10 @@ export function renderWaveformToCanvas(canvas, peaks, options = {}) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = Math.max(2, window.devicePixelRatio || 1);
   const rect = canvas.getBoundingClientRect();
   const width = Math.max(10, rect.width || canvas.width || 300);
-  const height = Math.max(10, rect.height || canvas.height || 48);
+  const height = Math.max(10, rect.height || canvas.height || 68);
 
   if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
     canvas.width = Math.floor(width * dpr);
@@ -157,37 +157,48 @@ export function renderWaveformToCanvas(canvas, peaks, options = {}) {
   const activeColor = primaryColor;
 
   const numBars = peaks.length;
-  const gap = options.gap || 2;
-  const totalGapWidth = gap * (numBars - 1);
-  const barWidth = Math.max(1.5, (width - totalGapWidth) / numBars);
+  // Precise equal slot and spacing distribution
+  const slotWidth = width / numBars;
+  const gap = options.gap !== undefined ? options.gap : Math.max(1.0, slotWidth * 0.28);
+  const barWidth = Math.max(1.5, slotWidth - gap);
+  const halfGap = gap / 2;
 
   const centerY = height / 2;
-  const maxBarHalfHeight = (height / 2) - 2;
+  const maxBarHalfHeight = (height / 2) - 4; // Clean padding from top and bottom boundaries
 
   for (let i = 0; i < numBars; i++) {
-    const x = i * (barWidth + gap);
+    const x = i * slotWidth + halfGap;
     const barProgress = (i / (numBars - 1)) * 100;
     const isSelected = barProgress >= startPct && barProgress <= endPct;
 
     const peak = peaks[i];
-    const halfHeight = Math.max(1.5, peak * maxBarHalfHeight);
+    const halfHeight = Math.max(2, peak * maxBarHalfHeight);
 
     ctx.fillStyle = isSelected ? activeColor : mutedColor;
 
-    // Draw symmetric rounded vertical bar
+    // Draw symmetric 2px rounded vertical bar
     const barTop = centerY - halfHeight;
-    const barBottom = centerY + halfHeight;
-    const barH = barBottom - barTop;
+    const barH = halfHeight * 2;
 
     ctx.beginPath();
-    ctx.roundRect ? ctx.roundRect(x, barTop, barWidth, barH, [1]) : ctx.rect(x, barTop, barWidth, barH);
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(x, barTop, barWidth, barH, 2);
+    } else {
+      const r = Math.min(2, barWidth / 2, barH / 2);
+      ctx.moveTo(x + r, barTop);
+      ctx.arcTo(x + barWidth, barTop, x + barWidth, barTop + barH, r);
+      ctx.arcTo(x + barWidth, barTop + barH, x, barTop + barH, r);
+      ctx.arcTo(x, barTop + barH, x, barTop, r);
+      ctx.arcTo(x, barTop, x + barWidth, barTop, r);
+      ctx.closePath();
+    }
     ctx.fill();
   }
 
   // Draw playhead position if provided
   if (playheadPct >= 0 && playheadPct <= 100) {
     const playX = (playheadPct / 100) * width;
-    ctx.fillStyle = "#dc3545"; // Accent red playhead line
+    ctx.fillStyle = "#ff3b30";
     ctx.fillRect(playX - 1, 0, 2, height);
   }
 

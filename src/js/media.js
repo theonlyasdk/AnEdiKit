@@ -891,14 +891,15 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
   if (!container || !filePath) return;
 
   const isVideo = isVideoFile(filePath);
+  const waveformCanvas = document.getElementById("trim-waveform-canvas");
+
   if (!isVideo) {
-    container.innerHTML = `
-      <div class="w-100 h-100 d-flex align-items-center justify-content-center text-body-secondary small" style="background: rgba(0,0,0,0.6);">
-        <i class="bi bi-music-note-beamed me-2"></i> Audio Track Timeline
-      </div>
-    `;
+    container.innerHTML = "";
+    if (waveformCanvas) waveformCanvas.classList.remove("d-none");
     return;
   }
+
+  if (waveformCanvas) waveformCanvas.classList.add("d-none");
 
   container.innerHTML = `
     <div class="w-100 h-100 d-flex align-items-center justify-content-center small" id="trim-filmstrip-empty">
