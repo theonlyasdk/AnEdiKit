@@ -886,8 +886,55 @@ export function refreshWaveformDisplay() {
   });
 }
 
+export async function extractTimelineThumbnailsAsync(filePath, duration) {
+  const container = document.getElementById("trim-filmstrip-container");
+  if (!container || !filePath) return;
+
+  const isVideo = isVideoFile(filePath);
+  if (!isVideo) {
+    container.innerHTML = `
+      <div class="w-100 h-100 d-flex align-items-center justify-content-center text-body-secondary small" style="background: rgba(0,0,0,0.6);">
+        <i class="bi bi-music-note-beamed me-2"></i> Audio Track Timeline
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="w-100 h-100 d-flex align-items-center justify-content-center text-secondary small icon-loading-pulse">
+      <i class="bi bi-film me-2"></i> Generating timeline filmstrip...
+    </div>
+  `;
+
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      const thumbs = await window.__TAURI__.core.invoke("extract_timeline_thumbnails", {
+        filePath,
+        count: 12,
+        durationSeconds: duration || 10.0,
+      });
+      if (thumbs && thumbs.length > 0) {
+        container.innerHTML = thumbs
+          .map((src) => `<img class="trim-timeline-frame-item" src="${src}" alt="Timeline frame" />`)
+          .join("");
+        return;
+      }
+    } catch (err) {
+      console.warn("extract_timeline_thumbnails error:", err);
+    }
+  }
+
+  // Fallback if extraction fails or in web mode
+  container.innerHTML = `
+    <div class="w-100 h-100 d-flex align-items-center justify-content-center text-body-secondary small">
+      <i class="bi bi-film me-2"></i> Video Timeline
+    </div>
+  `;
+}
+
 export function syncMediaDurationToTools(mediaInfo) {
   if (!mediaInfo) return;
+  const durSec = mediaInfo.duration_seconds || 60;
   const durStr = mediaInfo.duration_string || "00:01:00";
   const formattedDur = durStr.includes(".") ? durStr : `${durStr}.000`;
 
@@ -897,7 +944,15 @@ export function syncMediaDurationToTools(mediaInfo) {
   const trimDur = document.getElementById("trim-clip-dur");
   const sliderStart = document.getElementById("trim-slider-start");
   const sliderEnd = document.getElementById("trim-slider-end");
-  const rangeBar = document.getElementById("trim-selected-range-bar");
+
+  const dimmerLeft = document.getElementById("trim-dimmer-left");
+  const dimmerRight = document.getElementById("trim-dimmer-right");
+  const selectionWindow = document.getElementById("trim-selection-window");
+  const playhead = document.getElementById("trim-playhead");
+
+  const scaleStart = document.getElementById("trim-scale-start");
+  const scaleMid = document.getElementById("trim-scale-mid");
+  const scaleEnd = document.getElementById("trim-scale-end");
 
   if (trimStart) trimStart.value = "00:00:00.000";
   if (trimEnd) trimEnd.value = formattedDur;
@@ -905,9 +960,24 @@ export function syncMediaDurationToTools(mediaInfo) {
   if (trimDur) trimDur.textContent = formattedDur;
   if (sliderStart) sliderStart.value = "0";
   if (sliderEnd) sliderEnd.value = "100";
-  if (rangeBar) {
-    rangeBar.style.marginLeft = "0%";
-    rangeBar.style.width = "100%";
+
+  if (dimmerLeft) dimmerLeft.style.width = "0%";
+  if (dimmerRight) dimmerRight.style.width = "0%";
+  if (selectionWindow) {
+    selectionWindow.style.left = "0%";
+    selectionWindow.style.width = "100%";
+  }
+  if (playhead) {
+    playhead.style.left = "0%";
+    playhead.style.display = "block";
+  }
+
+  if (scaleStart) scaleStart.textContent = "00:00:00.000";
+  if (scaleMid) scaleMid.textContent = formatSecondsToTimestamp(durSec / 2);
+  if (scaleEnd) scaleEnd.textContent = formattedDur;
+
+  if (mediaInfo.file_path) {
+    extractTimelineThumbnailsAsync(mediaInfo.file_path, durSec);
   }
 
   refreshWaveformDisplay();
@@ -916,7 +986,6 @@ export function syncMediaDurationToTools(mediaInfo) {
 export function initTrimmerControls() {
   const sliderStart = document.getElementById("trim-slider-start");
   const sliderEnd = document.getElementById("trim-slider-end");
-  const rangeBar = document.getElementById("trim-selected-range-bar");
   const inputStart = document.getElementById("trim-start");
   const inputEnd = document.getElementById("trim-end");
   const posDisplay = document.getElementById("trim-current-pos");
@@ -974,6 +1043,12 @@ export function initTrimmerControls() {
     if (posDisplay) {
       posDisplay.textContent = formatSecondsToTimestamp(fallbackCurrentTime);
     }
+    const playhead = document.getElementById("trim-playhead");
+    if (playhead && dur > 0) {
+      const pct = Math.min(100, Math.max(0, (fallbackCurrentTime / dur) * 100));
+      playhead.style.left = `${pct}%`;
+      playhead.style.display = "block";
+    }
   };
 
   const updateRangeBarUI = (startSec, endSec, totalDur) => {
@@ -982,9 +1057,15 @@ export function initTrimmerControls() {
     const endPct = Math.min(100, Math.max(0, (endSec / totalDur) * 100));
     const widthPct = Math.max(0, endPct - startPct);
 
-    if (rangeBar) {
-      rangeBar.style.marginLeft = `${startPct}%`;
-      rangeBar.style.width = `${widthPct}%`;
+    const dimmerLeft = document.getElementById("trim-dimmer-left");
+    const dimmerRight = document.getElementById("trim-dimmer-right");
+    const selectionWindow = document.getElementById("trim-selection-window");
+
+    if (dimmerLeft) dimmerLeft.style.width = `${startPct}%`;
+    if (dimmerRight) dimmerRight.style.width = `${Math.max(0, 100 - endPct)}%`;
+    if (selectionWindow) {
+      selectionWindow.style.left = `${startPct}%`;
+      selectionWindow.style.width = `${widthPct}%`;
     }
 
     if (sliderStart) sliderStart.value = startPct.toString();
@@ -1047,6 +1128,13 @@ export function initTrimmerControls() {
     if (!media || isNaN(media.currentTime)) return;
     fallbackCurrentTime = media.currentTime;
     if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(media.currentTime);
+    const dur = currentMediaInfo?.duration_seconds || 120;
+    const playhead = document.getElementById("trim-playhead");
+    if (playhead && dur > 0) {
+      const pct = Math.min(100, Math.max(0, (media.currentTime / dur) * 100));
+      playhead.style.left = `${pct}%`;
+      playhead.style.display = "block";
+    }
   };
 
   if (videoEl) {

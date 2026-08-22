@@ -666,7 +666,26 @@ html.no-animations *::after {
   animation: cdSpin 2s linear infinite, grayPulse 1.5s ease-in-out infinite;
 }
 
-/* Trimmer Visual Range Controls */
+/* Editor Timeline Format & Trimmer Controls */
+#trim-timeline-track {
+  background-color: #0d0e11;
+  border-color: var(--bs-border-color) !important;
+}
+
+.trim-timeline-frame-item {
+  flex: 1 1 0px;
+  height: 100%;
+  min-width: 0;
+  object-fit: cover;
+  border-right: 1px solid rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  display: block;
+}
+
+.trim-timeline-frame-item:last-child {
+  border-right: none;
+}
+
 .trim-range-slider {
   -webkit-appearance: none;
   appearance: none;
@@ -675,16 +694,17 @@ html.no-animations *::after {
   margin: 0;
   padding: 0;
   width: 100%;
+  height: 100%;
 }
 
 .trim-range-slider::-webkit-slider-runnable-track {
   background: transparent;
-  height: 10px;
+  height: 100%;
 }
 
 .trim-range-slider::-moz-range-track {
   background: transparent;
-  height: 10px;
+  height: 100%;
 }
 
 .trim-range-slider::-webkit-slider-thumb {
@@ -692,40 +712,39 @@ html.no-animations *::after {
   appearance: none;
   pointer-events: auto;
   cursor: ew-resize;
-  width: 18px;
-  height: 18px;
+  width: 12px;
+  height: 68px;
   background-color: var(--bs-primary);
-  border: 2px solid var(--bs-body-bg);
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.85);
+  transition: filter 0.1s ease;
 }
 
 .trim-range-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  filter: brightness(1.25);
 }
 
 .trim-range-slider::-moz-range-thumb {
   pointer-events: auto;
   cursor: ew-resize;
-  width: 18px;
-  height: 18px;
+  width: 12px;
+  height: 68px;
   background-color: var(--bs-primary);
-  border: 2px solid var(--bs-body-bg);
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.85);
+  transition: filter 0.1s ease;
 }
 
 .trim-range-slider::-moz-range-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  filter: brightness(1.25);
 }
 
-/* Remove easing transition from trimmer fill bar for immediate response */
-#trim-selected-range-bar,
-#trim-range-container .progress-bar {
+/* Remove easing transition from dimmer overlays for instantaneous scrubbing */
+#trim-dimmer-left,
+#trim-dimmer-right,
+#trim-selection-window {
   transition: none !important;
 }
 

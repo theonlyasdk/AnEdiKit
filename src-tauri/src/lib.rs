@@ -1069,6 +1069,103 @@ fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Res
 }
 
 #[tauri::command]
+fn extract_timeline_thumbnails(
+    file_path: String,
+    count: Option<usize>,
+    duration_seconds: Option<f64>,
+) -> Result<Vec<String>, String> {
+    let path = std::path::Path::new(&file_path);
+    if !path.exists() {
+        return Err("File does not exist".into());
+    }
+
+    let num_frames = count.unwrap_or(12).clamp(4, 24);
+    let cache_dir = get_thumb_cache_dir("Timeline");
+    let hash = compute_file_hash(path);
+
+    // Check if cached frames already exist on disk
+    let mut cached_results = Vec::new();
+    let mut all_exist = true;
+    use base64::Engine;
+
+    for i in 1..=num_frames {
+        let frame_file = cache_dir.join(format!("{}_{:03}.jpg", hash, i));
+        if frame_file.exists() {
+            if let Ok(bytes) = std::fs::read(&frame_file) {
+                if !bytes.is_empty() {
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                    cached_results.push(format!("data:image/jpeg;base64,{}", b64));
+                    continue;
+                }
+            }
+        }
+        all_exist = false;
+        break;
+    }
+
+    if all_exist && cached_results.len() == num_frames {
+        return Ok(cached_results);
+    }
+
+    // Generate thumbnails using FFmpeg
+    let ffmpeg_bin = find_binary("ffmpeg");
+    let dur = duration_seconds.unwrap_or(10.0).max(0.5);
+    let pattern = cache_dir.join(format!("{}_%03d.jpg", hash));
+
+    // fps = num_frames / dur
+    let fps_filter = format!(
+        "fps={:.5}/{},scale=160:90:force_original_aspect_ratio=increase,crop=160:90",
+        num_frames, dur
+    );
+
+    let mut cmd = Command::new(&ffmpeg_bin);
+    cmd.args([
+        "-y",
+        "-i",
+        &file_path,
+        "-vf",
+        &fps_filter,
+        "-vframes",
+        &num_frames.to_string(),
+        "-q:v",
+        "4",
+        pattern.to_string_lossy().as_ref(),
+    ]);
+
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+    let output = cmd.output().map_err(|e| format!("Failed to run ffmpeg: {}", e))?;
+    if !output.status.success() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        return Err(if err.trim().is_empty() {
+            "Failed to extract timeline thumbnails".into()
+        } else {
+            err.to_string()
+        });
+    }
+
+    let mut results = Vec::new();
+    for i in 1..=num_frames {
+        let frame_file = cache_dir.join(format!("{}_{:03}.jpg", hash, i));
+        if frame_file.exists() {
+            if let Ok(bytes) = std::fs::read(&frame_file) {
+                if !bytes.is_empty() {
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                    results.push(format!("data:image/jpeg;base64,{}", b64));
+                }
+            }
+        }
+    }
+
+    if results.is_empty() {
+        return Err("No timeline thumbnails generated".into());
+    }
+
+    Ok(results)
+}
+
+#[tauri::command]
 fn fetch_playlist_videos(url: String) -> Result<Vec<PlaylistVideo>, String> {
     if url.trim().is_empty() {
         return Err("Please enter a valid playlist or video URL".into());
@@ -1175,6 +1272,7 @@ pub fn run() {
             get_media_info,
             extract_action_frame,
             extract_album_art,
+            extract_timeline_thumbnails,
             open_binaries_folder,
             fetch_playlist_videos,
             execute_ffmpeg,
