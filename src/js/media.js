@@ -566,7 +566,7 @@ export function renderBatchQueueUI() {
       const isSelected = idx === selectedBatchIdx;
       return `
         <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 ${isSelected ? 'active' : ''}" data-batch-idx="${idx}" style="cursor: pointer;">
-          <span class="text-truncate small"><strong class="me-2">${idx + 1}.</strong>${item.name}</span>
+          <span class="text-truncate"><strong class="me-2">${idx + 1}.</strong>${item.name}</span>
           <div class="d-flex align-items-center gap-1 flex-shrink-0">
             ${statusBadge}
             <div class="btn-group btn-group-sm">
