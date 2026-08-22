@@ -5,6 +5,8 @@ import { generateWaveformFromSource, renderWaveformToCanvas } from "./waveform.j
 let currentInputFile = "";
 let currentMediaInfo = null;
 let currentWaveformPeaks = null;
+const mediaInfoCache = new Map();
+let activeProbeToken = 0;
 
 export function getCurrentInputFile() {
   return currentInputFile;
@@ -84,7 +86,18 @@ export async function probeMedia(filePath, fileObject = null) {
 
   currentInputFile = filePath;
   saveInputFile(filePath);
+
+  // Instant response if already cached
+  if (mediaInfoCache.has(filePath)) {
+    const cached = mediaInfoCache.get(filePath);
+    currentMediaInfo = cached;
+    updateMetadataDisplay(cached);
+    syncMediaDurationToTools(cached);
+    return cached;
+  }
+
   showMetadataLoading(filePath);
+  const thisToken = ++activeProbeToken;
 
   // Try Tauri IPC if available
   if (window.__TAURI__?.core?.invoke) {
@@ -92,7 +105,9 @@ export async function probeMedia(filePath, fileObject = null) {
       const info = await window.__TAURI__.core.invoke("get_media_info", {
         filePath,
       });
+      if (thisToken !== activeProbeToken) return null;
       if (info && (info.duration_seconds > 0 || info.file_path || info.file_name)) {
+        mediaInfoCache.set(filePath, info);
         currentMediaInfo = info;
         updateMetadataDisplay(info);
         syncMediaDurationToTools(info);
@@ -107,6 +122,8 @@ export async function probeMedia(filePath, fileObject = null) {
   if (fileObject instanceof Blob || fileObject instanceof File) {
     try {
       const mediaInfo = await probeInBrowser(fileObject, filePath);
+      if (thisToken !== activeProbeToken) return null;
+      mediaInfoCache.set(filePath, mediaInfo);
       currentMediaInfo = mediaInfo;
       updateMetadataDisplay(mediaInfo);
       syncMediaDurationToTools(mediaInfo);
@@ -135,11 +152,12 @@ export async function probeMedia(filePath, fileObject = null) {
     bitrate_kbps: 2600,
   };
 
-  // Small delay for smooth pulsing ellipsis appearance
-  await new Promise((res) => setTimeout(res, 200));
-  currentMediaInfo = mockInfo;
-  updateMetadataDisplay(mockInfo);
-  syncMediaDurationToTools(mockInfo);
+  if (thisToken === activeProbeToken) {
+    mediaInfoCache.set(filePath, mockInfo);
+    currentMediaInfo = mockInfo;
+    updateMetadataDisplay(mockInfo);
+    syncMediaDurationToTools(mockInfo);
+  }
   return mockInfo;
 }
 
@@ -665,14 +683,25 @@ export function renderBatchQueueUI() {
     .join("");
 
   list.querySelectorAll(".list-group-item-action").forEach((el) => {
-    el.addEventListener("click", async (e) => {
+    el.addEventListener("click", (e) => {
       if (e.target.closest("button")) return;
       const idx = parseInt(el.getAttribute("data-batch-idx"), 10);
+      if (idx === selectedBatchIdx) return;
       selectedBatchIdx = idx;
+
+      // Update UI active selection immediately (0ms latency)
+      list.querySelectorAll(".list-group-item-action").forEach((itemEl, i) => {
+        const isCurrent = i === idx;
+        itemEl.classList.toggle("active", isCurrent);
+        itemEl.querySelectorAll(".btn-batch-item-up, .btn-batch-item-down, .btn-batch-del").forEach((b) => {
+          b.classList.toggle("btn-outline-light", isCurrent);
+        });
+      });
+
+      // Asynchronously probe media in background without blocking UI
       if (idx >= 0 && idx < batchQueue.length) {
-        await probeMedia(batchQueue[idx].path);
+        probeMedia(batchQueue[idx].path);
       }
-      renderBatchQueueUI();
     });
   });
 
