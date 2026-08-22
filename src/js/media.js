@@ -374,18 +374,28 @@ export function updateMetadataDisplay(info) {
         }
       }
 
+      const fallbackIcon = document.getElementById("video-fallback-icon");
+      if (fallbackIcon) {
+        fallbackIcon.classList.add("icon-loading-pulse");
+      }
+
       // Asynchronously extract and display action frame thumbnail
       const targetVideoPath = info.file_path || currentInputFile;
       if (targetVideoPath) {
-        extractActionFrameAsync(targetVideoPath, info.duration_seconds).then((dataUri) => {
-          if (dataUri && currentInputFile === targetVideoPath) {
-            if (actionFrameImg) {
-              actionFrameImg.src = dataUri;
-              actionFrameImg.classList.remove("d-none");
+        extractActionFrameAsync(targetVideoPath, info.duration_seconds)
+          .then((dataUri) => {
+            if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
+            if (dataUri && currentInputFile === targetVideoPath) {
+              if (actionFrameImg) {
+                actionFrameImg.src = dataUri;
+                actionFrameImg.classList.remove("d-none");
+              }
+              if (videoFallback) videoFallback.classList.add("d-none");
             }
-            if (videoFallback) videoFallback.classList.add("d-none");
-          }
-        });
+          })
+          .catch(() => {
+            if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
+          });
       }
     }
   } else {

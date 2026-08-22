@@ -755,3 +755,23 @@ html.no-animations *::after {
     transform: translateX(-50%);
   }
 }
+
+/* Flashing / pulsing animation for video thumbnail extraction */
+@keyframes iconFlashPulse {
+  0% {
+    opacity: 0.25;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0.25;
+    transform: scale(0.95);
+  }
+}
+
+.icon-loading-pulse {
+  animation: iconFlashPulse 1.2s ease-in-out infinite;
+}
