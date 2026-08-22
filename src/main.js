@@ -202,6 +202,109 @@ export function getSmartOutputFileName(inputFile, toolId) {
   }
 }
 
+export function truncateMiddlePath(fullPath, maxChars = 45) {
+  if (!fullPath || typeof fullPath !== "string") return "";
+  if (fullPath.length <= maxChars) return fullPath;
+
+  const isWindows = fullPath.includes("\\") || /^[a-zA-Z]:/.test(fullPath);
+  const sep = isWindows ? "\\" : "/";
+  const parts = fullPath.split(/[/\\]/).filter(Boolean);
+
+  if (parts.length <= 1) {
+    const keep = Math.max(4, Math.floor((maxChars - 1) / 2));
+    return `${fullPath.slice(0, keep)}…${fullPath.slice(-keep)}`;
+  }
+
+  // Preserve the drive/root at start and the filename at end
+  const filename = parts[parts.length - 1];
+  const root =
+    isWindows && /^[a-zA-Z]:/.test(fullPath)
+      ? `${parts[0]}${sep}`
+      : fullPath.startsWith("/")
+        ? `/${parts[0]}`
+        : parts[0];
+
+  if (root.length + filename.length + 3 > maxChars) {
+    const availForFilename = Math.max(12, maxChars - root.length - 3);
+    const truncFilename =
+      filename.length > availForFilename
+        ? `…${filename.slice(-availForFilename)}`
+        : filename;
+    return `${root}${sep}…${sep}${truncFilename}`;
+  }
+
+  let leftParts = [root];
+  let rightParts = [filename];
+  let leftIdx = 1;
+  let rightIdx = parts.length - 2;
+
+  let currentLen = root.length + filename.length + 3;
+
+  while (leftIdx <= rightIdx) {
+    const rightPart = parts[rightIdx];
+    if (currentLen + rightPart.length + 1 <= maxChars) {
+      rightParts.unshift(rightPart);
+      currentLen += rightPart.length + 1;
+      rightIdx--;
+    } else {
+      break;
+    }
+
+    if (leftIdx <= rightIdx) {
+      const leftPart = parts[leftIdx];
+      if (currentLen + leftPart.length + 1 <= maxChars) {
+        leftParts.push(leftPart);
+        currentLen += leftPart.length + 1;
+        leftIdx++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  const leftStr = leftParts.join(sep);
+  const rightStr = rightParts.join(sep);
+
+  return `${leftStr}${leftStr.endsWith(sep) ? "" : sep}…${sep}${rightStr}`;
+}
+
+export function getAvailablePathChars(inputEl) {
+  if (!inputEl) return 45;
+  const width = inputEl.clientWidth || 300;
+  const avail = Math.floor((width - 24) / 7.8);
+  return Math.max(20, avail);
+}
+
+export function setOutputFilePath(fullPath) {
+  const outputInput = document.getElementById("output-file-name");
+  if (!outputInput) return;
+  outputInput.dataset.fullPath = fullPath;
+  outputInput.title = fullPath;
+
+  if (document.activeElement === outputInput) {
+    outputInput.value = fullPath;
+  } else {
+    const maxChars = getAvailablePathChars(outputInput);
+    outputInput.value = truncateMiddlePath(fullPath, maxChars);
+  }
+}
+
+export function getOutputFilePath() {
+  const outputInput = document.getElementById("output-file-name");
+  if (!outputInput) return "";
+  return outputInput.dataset.fullPath || outputInput.value || "";
+}
+
+export function refreshOutputFilePathDisplay() {
+  const outputInput = document.getElementById("output-file-name");
+  if (!outputInput || document.activeElement === outputInput) return;
+  const fullPath = outputInput.dataset.fullPath || outputInput.value;
+  if (fullPath) {
+    const maxChars = getAvailablePathChars(outputInput);
+    outputInput.value = truncateMiddlePath(fullPath, maxChars);
+  }
+}
+
 export function updateAutoOutputFilename(force = false) {
   const outputNameInput = document.getElementById("output-file-name");
   if (!outputNameInput) return;
@@ -209,9 +312,21 @@ export function updateAutoOutputFilename(force = false) {
   const currentInput = getCurrentInputFile();
   const activeTool = getCurrentActiveTool();
 
-  if (force || !userHasCustomOutputName || !outputNameInput.value.trim()) {
+  if (force || !userHasCustomOutputName || !getOutputFilePath().trim()) {
     const smartName = getSmartOutputFileName(currentInput, activeTool);
-    outputNameInput.value = smartName;
+    const settings = getSettings();
+    let outDir = settings.outputDir || "C:\\Users\\User\\Videos";
+    if (currentInput) {
+      const lastSlash = Math.max(currentInput.lastIndexOf("\\"), currentInput.lastIndexOf("/"));
+      if (lastSlash > 0) {
+        outDir = currentInput.substring(0, lastSlash);
+      }
+    }
+    const isWindows = outDir.includes("\\") || /^[a-zA-Z]:/.test(outDir);
+    const sep = isWindows ? "\\" : "/";
+    const fullPath = `${outDir.replace(/[/\\]+$/, "")}${sep}${smartName}`;
+
+    setOutputFilePath(fullPath);
     if (force) userHasCustomOutputName = false;
   }
 }
@@ -329,6 +444,25 @@ function updateCommandPreview() {
 }
 
 function bindFormEvents() {
+  const outputNameInput = document.getElementById("output-file-name");
+  if (outputNameInput) {
+    outputNameInput.addEventListener("focus", () => {
+      outputNameInput.value = outputNameInput.dataset.fullPath || outputNameInput.value;
+    });
+    outputNameInput.addEventListener("input", () => {
+      outputNameInput.dataset.fullPath = outputNameInput.value;
+      outputNameInput.title = outputNameInput.value;
+      userHasCustomOutputName = true;
+    });
+    outputNameInput.addEventListener("blur", () => {
+      refreshOutputFilePathDisplay();
+    });
+  }
+
+  window.addEventListener("resize", () => {
+    refreshOutputFilePathDisplay();
+  });
+
   // Update command preview whenever any form element changes
   const formElements = document.querySelectorAll("select, input");
   formElements.forEach((el) => {
@@ -497,8 +631,7 @@ function bindFormEvents() {
   if (btnClearInput) {
     btnClearInput.addEventListener("click", async () => {
       await clearBatchQueue();
-      const outputNameInput = document.getElementById("output-file-name");
-      if (outputNameInput) outputNameInput.value = "";
+      setOutputFilePath("");
       userHasCustomOutputName = false;
       updateCommandPreview();
     });
@@ -524,6 +657,17 @@ function bindFormEvents() {
         const setOutDirInput = document.getElementById("set-output-dir");
         if (setOutDirInput) setOutDirInput.value = folder;
         saveSettings(appSettings);
+
+        const curFullPath = getOutputFilePath();
+        const curFileName = curFullPath
+          ? curFullPath.split(/[/\\]/).pop()
+          : getSmartOutputFileName(currentInput, getCurrentActiveTool());
+        const isWindows = folder.includes("\\") || /^[a-zA-Z]:/.test(folder);
+        const sep = isWindows ? "\\" : "/";
+        const newFullPath = `${folder.replace(/[/\\]+$/, "")}${sep}${curFileName}`;
+        setOutputFilePath(newFullPath);
+        userHasCustomOutputName = true;
+
         updateCommandPreview();
       }
     });

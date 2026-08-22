@@ -24,7 +24,7 @@ export function resolveDestinationPath(defaultFileName, settings = {}, inputFile
   }
 
   const customNameInput = document.getElementById("output-file-name");
-  let targetName = customNameInput?.value?.trim() || "";
+  let targetName = customNameInput?.dataset?.fullPath || customNameInput?.value?.trim() || "";
 
   if (!targetName) {
     targetName = defaultFileName;
