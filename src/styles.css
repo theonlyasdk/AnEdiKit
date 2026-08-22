@@ -775,3 +775,21 @@ html.no-animations *::after {
 .icon-loading-pulse {
   animation: iconFlashPulse 1.2s ease-in-out infinite;
 }
+
+/* Heavy drop shadows for audio and video titles and filetypes in preview card */
+#audio-art-title,
+#audio-art-format,
+#audio-title-container,
+#audio-preview-wrapper .z-1,
+#video-fallback-filename,
+#video-overlay-title,
+#video-overlay-format,
+#video-preview-wrapper .z-1,
+.preview-card-text {
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 4px 14px rgba(0, 0, 0, 0.85), 0 1px 2px #000 !important;
+}
+
+#audio-preview-wrapper i,
+#video-preview-wrapper i {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
+}

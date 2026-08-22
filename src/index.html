@@ -172,6 +172,10 @@
                     <!-- Video 16:9 Card Preview (Purely Thumbnail / Action Frame without flashing raw video player) -->
                     <div class="w-100 card border overflow-hidden bg-black d-none position-relative mx-auto rounded-0 d-flex align-items-center justify-content-center" id="video-preview-wrapper" style="aspect-ratio: 16 / 9;">
                       <img id="video-action-frame-img" class="d-none w-100 h-100 object-fit-contain position-absolute top-0 start-0" alt="Video Action Frame" />
+                      <div class="position-absolute bottom-0 start-0 w-100 p-2 d-none d-flex flex-column z-1 text-start" id="video-overlay-info" style="background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);">
+                        <span class="small fw-medium text-white text-truncate w-100" id="video-overlay-title" style="font-size: 0.8rem;">Video Track</span>
+                        <span class="small text-white-50" id="video-overlay-format" style="font-size: 0.7rem;">Video Preview</span>
+                      </div>
                       <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-dark text-secondary p-2 text-center rounded-0" id="video-preview-fallback">
                         <i class="bi bi-film fs-1 text-secondary mb-1" id="video-fallback-icon"></i>
                         <span class="small text-body-secondary text-truncate w-100" style="font-size: 0.75rem;" id="video-fallback-filename">Video Preview</span>

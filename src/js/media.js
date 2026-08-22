@@ -406,6 +406,11 @@ export function updateMetadataDisplay(info) {
         if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
       }
 
+      const videoOverlay = document.getElementById("video-overlay-info");
+      const videoOverlayTitle = document.getElementById("video-overlay-title");
+      const videoOverlayFormat = document.getElementById("video-overlay-format");
+      if (videoOverlay) videoOverlay.classList.add("d-none");
+
       if (actionFrameImg) {
         actionFrameImg.classList.add("d-none");
         actionFrameImg.removeAttribute("src");
@@ -436,6 +441,15 @@ export function updateMetadataDisplay(info) {
                 actionFrameImg.classList.remove("d-none");
               }
               if (videoFallback) videoFallback.classList.add("d-none");
+              if (videoOverlayTitle) {
+                videoOverlayTitle.textContent = info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Video Track");
+              }
+              if (videoOverlayFormat) {
+                const codecStr = (info.video_codec || ext || "video").toUpperCase();
+                const resStr = info.resolution && info.resolution !== "--" && info.resolution !== "N/A" ? ` • ${info.resolution}` : "";
+                videoOverlayFormat.textContent = `${codecStr} Video${resStr}`;
+              }
+              if (videoOverlay) videoOverlay.classList.remove("d-none");
             }
           })
           .catch(() => {
@@ -445,6 +459,8 @@ export function updateMetadataDisplay(info) {
     }
   } else {
     currentWaveformPeaks = null;
+    const videoOverlay = document.getElementById("video-overlay-info");
+    if (videoOverlay) videoOverlay.classList.add("d-none");
     const waveformCanvas = document.getElementById("trim-waveform-canvas");
     if (waveformCanvas) {
       waveformCanvas.classList.add("d-none");
