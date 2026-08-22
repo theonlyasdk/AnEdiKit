@@ -472,7 +472,6 @@ export function updateMetadataDisplay(info) {
       }
     }
   } else {
-    }
     if (inputsCol) {
       inputsCol.className = "col-12";
     }
