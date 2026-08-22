@@ -676,6 +676,36 @@ html.no-animations *::after {
 #trim-timeline-track {
   background-color: #0d0e11;
   border-color: var(--bs-border-color) !important;
+  cursor: pointer;
+}
+
+.trim-drag-tooltip {
+  top: -27px;
+  transform: translateX(-50%);
+  background-color: #0f172a;
+  color: #f8fafc;
+  font-family: var(--bs-font-monospace);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  user-select: none;
+}
+
+.trim-drag-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
 }
 
 .trim-timeline-frame-item {

@@ -1150,12 +1150,28 @@ export function initTrimmerControls() {
     refreshWaveformDisplay();
   };
 
+  const tooltipStart = document.getElementById("trim-tooltip-start");
+  const tooltipEnd = document.getElementById("trim-tooltip-end");
+  const tooltipPlayhead = document.getElementById("trim-tooltip-playhead");
+
+  const showTooltip = (el, text, pct) => {
+    if (!el) return;
+    el.textContent = text;
+    el.style.left = `${pct}%`;
+    el.classList.remove("d-none");
+  };
+
+  const hideTooltip = (el) => {
+    if (!el) return;
+    el.classList.add("d-none");
+  };
+
   // Sync when sliders change
-  if (sliderStart && sliderEnd) {
+  if (sliderStart) {
     sliderStart.addEventListener("input", () => {
       const dur = currentMediaInfo?.duration_seconds || 120;
       let startVal = parseFloat(sliderStart.value);
-      let endVal = parseFloat(sliderEnd.value);
+      let endVal = parseFloat(sliderEnd ? sliderEnd.value : 100);
       if (startVal > endVal) {
         startVal = endVal;
         sliderStart.value = startVal.toString();
@@ -1166,11 +1182,23 @@ export function initTrimmerControls() {
       if (inputStart) inputStart.value = formatSecondsToTimestamp(startSec);
       updateRangeBarUI(startSec, endSec, dur);
       setMediaCurrentTime(startSec);
+      showTooltip(tooltipStart, formatSecondsToTimestamp(startSec), startVal);
     });
+    sliderStart.addEventListener("pointerdown", () => {
+      const dur = currentMediaInfo?.duration_seconds || 120;
+      const startVal = parseFloat(sliderStart.value);
+      const startSec = (startVal / 100) * dur;
+      showTooltip(tooltipStart, formatSecondsToTimestamp(startSec), startVal);
+    });
+    sliderStart.addEventListener("pointerup", () => hideTooltip(tooltipStart));
+    sliderStart.addEventListener("pointercancel", () => hideTooltip(tooltipStart));
+    sliderStart.addEventListener("blur", () => hideTooltip(tooltipStart));
+  }
 
+  if (sliderEnd) {
     sliderEnd.addEventListener("input", () => {
       const dur = currentMediaInfo?.duration_seconds || 120;
-      let startVal = parseFloat(sliderStart.value);
+      let startVal = parseFloat(sliderStart ? sliderStart.value : 0);
       let endVal = parseFloat(sliderEnd.value);
       if (endVal < startVal) {
         endVal = startVal;
@@ -1182,7 +1210,17 @@ export function initTrimmerControls() {
       if (inputEnd) inputEnd.value = formatSecondsToTimestamp(endSec);
       updateRangeBarUI(startSec, endSec, dur);
       setMediaCurrentTime(endSec);
+      showTooltip(tooltipEnd, formatSecondsToTimestamp(endSec), endVal);
     });
+    sliderEnd.addEventListener("pointerdown", () => {
+      const dur = currentMediaInfo?.duration_seconds || 120;
+      const endVal = parseFloat(sliderEnd.value);
+      const endSec = (endVal / 100) * dur;
+      showTooltip(tooltipEnd, formatSecondsToTimestamp(endSec), endVal);
+    });
+    sliderEnd.addEventListener("pointerup", () => hideTooltip(tooltipEnd));
+    sliderEnd.addEventListener("pointercancel", () => hideTooltip(tooltipEnd));
+    sliderEnd.addEventListener("blur", () => hideTooltip(tooltipEnd));
   }
 
   // Sync when text inputs change
@@ -1210,6 +1248,7 @@ export function initTrimmerControls() {
     const targetTime = (pct / 100) * dur;
 
     setMediaCurrentTime(targetTime);
+    showTooltip(tooltipPlayhead, formatSecondsToTimestamp(targetTime), pct);
   };
 
   if (trackEl) {
@@ -1227,6 +1266,7 @@ export function initTrimmerControls() {
     window.addEventListener("mouseup", () => {
       if (isDraggingPlayhead) {
         isDraggingPlayhead = false;
+        hideTooltip(tooltipPlayhead);
       }
     });
 
@@ -1254,6 +1294,7 @@ export function initTrimmerControls() {
     window.addEventListener("touchend", () => {
       if (isDraggingPlayhead) {
         isDraggingPlayhead = false;
+        hideTooltip(tooltipPlayhead);
       }
     });
   }
