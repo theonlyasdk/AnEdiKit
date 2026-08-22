@@ -873,11 +873,48 @@ html.no-animations *::after {
   transition: none !important;
 }
 
-/* Media Preview Cards - Centered, squared (no border radius), with deep drop shadow */
-#video-preview-wrapper,
-#audio-preview-wrapper {
+/* Morphing Media Preview Card - Smooth size and aspect-ratio interpolation */
+.media-preview-morpher {
   border-radius: 0 !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 16 / 9;
+  transition: max-width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              aspect-ratio 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.35s ease;
+  overflow: hidden;
+  position: relative;
+  margin: 0 auto;
+}
+
+.media-preview-morpher.video-mode {
+  max-width: 360px;
+  aspect-ratio: 16 / 9;
+}
+
+.media-preview-morpher.audio-mode {
+  max-width: 200px;
+  aspect-ratio: 1 / 1;
+}
+
+.media-preview-layer {
+  transition: opacity 0.35s ease-in-out, visibility 0.35s ease-in-out;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.media-preview-morpher.video-mode #video-preview-layer {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.media-preview-morpher.audio-mode #audio-preview-layer {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .media-thumb-fade {
@@ -889,34 +926,13 @@ html.no-animations *::after {
   opacity: 1;
 }
 
-#audio-preview-wrapper {
-  width: 200px;
-  height: 200px;
-}
-
-#video-preview-wrapper {
-  max-width: 360px;
-}
-
 @media (min-width: 1200px) {
-  #audio-preview-wrapper {
-    width: 220px;
-    height: 220px;
+  .media-preview-morpher.audio-mode {
+    max-width: 220px;
   }
 
-  #video-preview-wrapper {
+  .media-preview-morpher.video-mode {
     max-width: 420px;
-  }
-}
-
-@media (min-width: 1400px) {
-  #audio-preview-wrapper {
-    width: 240px;
-    height: 240px;
-  }
-
-  #video-preview-wrapper {
-    max-width: 480px;
   }
 }
 

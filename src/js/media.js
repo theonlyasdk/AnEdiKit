@@ -21,8 +21,7 @@ export function showMetadataLoading(filePath) {
   const pathInput = document.getElementById("input-file-path");
   const previewCol = document.getElementById("media-preview-col");
   const inputsCol = document.getElementById("media-inputs-col");
-  const videoWrapper = document.getElementById("video-preview-wrapper");
-  const audioWrapper = document.getElementById("audio-preview-wrapper");
+  const previewCard = document.getElementById("media-preview-card");
   const cdSpinner = document.getElementById("audio-cd-spinner");
   const audioFallbackIcon = document.getElementById("audio-fallback-icon");
   const audioArtImg = document.getElementById("audio-art-img");
@@ -45,14 +44,20 @@ export function showMetadataLoading(filePath) {
       previewCol.classList.add("preview-slide-in");
     }
 
-    if (isAudio && audioWrapper) {
-      if (videoWrapper) videoWrapper.classList.add("d-none");
-      audioWrapper.classList.remove("d-none");
-      if (cdSpinner) cdSpinner.classList.remove("d-none");
-      if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
-      if (audioArtImg) audioArtImg.classList.add("d-none");
-      renderMarqueeSongTitle(filePath.split(/[/\\]/).pop() || "Audio Track");
-      if (audioFormat) audioFormat.textContent = "Loading album art...";
+    if (previewCard) {
+      previewCard.classList.remove("d-none");
+      if (isAudio) {
+        previewCard.classList.remove("video-mode");
+        previewCard.classList.add("audio-mode");
+        if (cdSpinner) cdSpinner.classList.remove("d-none");
+        if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
+        if (audioArtImg) audioArtImg.classList.add("d-none");
+        renderMarqueeSongTitle(filePath.split(/[/\\]/).pop() || "Audio Track");
+        if (audioFormat) audioFormat.textContent = "Loading album art...";
+      } else {
+        previewCard.classList.remove("audio-mode");
+        previewCard.classList.add("video-mode");
+      }
     }
   }
 
@@ -364,11 +369,10 @@ export function updateMetadataDisplay(info) {
   // Media preview container elements
   const inputsCol = document.getElementById("media-inputs-col");
   const previewCol = document.getElementById("media-preview-col");
-  const videoWrapper = document.getElementById("video-preview-wrapper");
+  const previewCard = document.getElementById("media-preview-card");
   const videoEl = document.getElementById("media-video-preview");
   const actionFrameImg = document.getElementById("video-action-frame-img");
   const actionFramePrev = document.getElementById("video-action-frame-prev");
-  const audioWrapper = document.getElementById("audio-preview-wrapper");
   const audioEl = document.getElementById("media-audio-preview");
 
   if (pathInput) {
@@ -402,8 +406,15 @@ export function updateMetadataDisplay(info) {
       previewCol.className = "col-12 col-lg-5 col-xl-5 col-xxl-4 d-flex flex-column align-self-stretch preview-slide-in";
     }
 
+    if (previewCard) {
+      previewCard.classList.remove("d-none");
+    }
+
     if (isAudio) {
-      if (videoWrapper) videoWrapper.classList.add("d-none");
+      if (previewCard) {
+        previewCard.classList.remove("video-mode");
+        previewCard.classList.add("audio-mode");
+      }
       if (videoEl) {
         videoEl.pause();
         videoEl.removeAttribute("src");
@@ -415,7 +426,6 @@ export function updateMetadataDisplay(info) {
         actionFrameImg.classList.remove("thumb-visible");
       }
       if (actionFramePrev) actionFramePrev.classList.add("d-none");
-      if (audioWrapper) audioWrapper.classList.remove("d-none");
 
       const targetAudioPath = info.file_path || currentInputFile;
 
@@ -462,12 +472,14 @@ export function updateMetadataDisplay(info) {
       if (waveformCanvas) {
         waveformCanvas.classList.add("d-none");
       }
-      if (audioWrapper) audioWrapper.classList.add("d-none");
       if (audioEl) {
         audioEl.pause();
         audioEl.removeAttribute("src");
       }
-      if (videoWrapper) videoWrapper.classList.remove("d-none");
+      if (previewCard) {
+        previewCard.classList.remove("audio-mode");
+        previewCard.classList.add("video-mode");
+      }
 
       const videoOverlay = document.getElementById("video-overlay-info");
       const videoOverlayTitle = document.getElementById("video-overlay-title");
@@ -552,8 +564,9 @@ export function updateMetadataDisplay(info) {
       previewCol.classList.remove("d-flex", "preview-slide-in");
       previewCol.classList.add("d-none");
     }
-    if (videoWrapper) videoWrapper.classList.add("d-none");
-    if (audioWrapper) audioWrapper.classList.add("d-none");
+    if (previewCard) {
+      previewCard.classList.add("d-none");
+    }
     if (videoEl) {
       videoEl.pause();
       videoEl.removeAttribute("src");
@@ -594,7 +607,7 @@ export function updateMetadataDisplay(info) {
 }
 
 export function syncVideoPreviewForActiveTool(toolId) {
-  const videoWrapper = document.getElementById("video-preview-wrapper");
+  const previewCard = document.getElementById("media-preview-card");
   const videoEl = document.getElementById("media-video-preview");
   const actionFrameImg = document.getElementById("video-action-frame-img");
   const videoFallback = document.getElementById("video-preview-fallback");
@@ -602,8 +615,12 @@ export function syncVideoPreviewForActiveTool(toolId) {
 
   if (!currentMediaInfo || isAudioFile(currentMediaInfo.file_path)) return;
 
+  if (previewCard) {
+    previewCard.classList.remove("d-none", "audio-mode");
+    previewCard.classList.add("video-mode");
+  }
+
   if (toolId === "trim") {
-    if (videoWrapper) videoWrapper.classList.remove("d-none");
     if (actionFrameImg) actionFrameImg.classList.add("d-none");
     if (videoFallback) videoFallback.classList.add("d-none");
     if (videoOverlay) videoOverlay.classList.remove("d-none");
