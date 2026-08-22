@@ -397,15 +397,15 @@
                       <div class="position-absolute bottom-0 start-0 w-100 bg-primary" style="height: 3px;"></div>
                     </div>
 
-                    <!-- Current Playhead Position Indicator Line -->
-                    <div id="trim-playhead" class="position-absolute top-0 h-100 z-3" style="left: 0%; width: 2px; background-color: #ff3b30; cursor: ew-resize; transform: translateX(-50%); display: none;">
+                    <!-- Current Playhead Position Indicator Line (Rendered on top of trim handles) -->
+                    <div id="trim-playhead" class="position-absolute top-0 h-100" style="left: 0%; width: 2px; background-color: #ff3b30; cursor: ew-resize; transform: translateX(-50%); z-index: 6; pointer-events: auto; display: none;">
                       <div class="position-absolute top-0 start-50 translate-middle-x bg-danger" style="width: 10px; height: 10px; clip-path: polygon(0 0, 100% 0, 50% 100%);"></div>
                     </div>
 
                     <!-- Dragging Floating Timestamp Tooltips -->
-                    <div id="trim-tooltip-start" class="trim-drag-tooltip position-absolute d-none z-3" style="left: 0%;">00:00:00.000</div>
-                    <div id="trim-tooltip-end" class="trim-drag-tooltip position-absolute d-none z-3" style="left: 100%;">00:00:00.000</div>
-                    <div id="trim-tooltip-playhead" class="trim-drag-tooltip position-absolute d-none z-3" style="left: 0%;">00:00:00.000</div>
+                    <div id="trim-tooltip-start" class="trim-drag-tooltip position-absolute d-none" style="left: 0%; z-index: 7;">00:00:00.000</div>
+                    <div id="trim-tooltip-end" class="trim-drag-tooltip position-absolute d-none" style="left: 100%; z-index: 7;">00:00:00.000</div>
+                    <div id="trim-tooltip-playhead" class="trim-drag-tooltip position-absolute d-none" style="left: 0%; z-index: 7;">00:00:00.000</div>
 
                     <!-- Range Sliders for Start & End Dragging -->
                     <input type="range" class="form-range position-absolute top-0 start-0 w-100 h-100 trim-range-slider" id="trim-slider-start" min="0" max="100" step="0.01" value="0" style="z-index: 4;" />

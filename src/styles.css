@@ -841,13 +841,29 @@ html.no-animations *::after {
   filter: brightness(1.25);
 }
 
-/* Playhead with big but subtle soft shadow */
+/* Playhead with strong hover shadow and 75% active brightness */
 #trim-playhead {
   box-shadow: 0 0 20px 4px rgba(255, 59, 48, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.15s ease, filter 0.1s ease;
+  pointer-events: auto;
 }
 
 #trim-playhead > div {
   filter: drop-shadow(0 4px 10px rgba(255, 59, 48, 0.4));
+  transition: filter 0.15s ease;
+}
+
+#trim-playhead:hover {
+  box-shadow: 0 0 28px 8px rgba(255, 59, 48, 0.7), 0 8px 32px rgba(0, 0, 0, 0.65);
+}
+
+#trim-playhead:hover > div {
+  filter: drop-shadow(0 4px 14px rgba(255, 59, 48, 0.8));
+}
+
+#trim-playhead:active,
+#trim-playhead.active-drag {
+  filter: brightness(75%) !important;
 }
 
 /* Remove easing transition from dimmer overlays for instantaneous scrubbing */

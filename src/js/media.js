@@ -1252,6 +1252,8 @@ export function initTrimmerControls() {
   if (trackEl) {
     trackEl.addEventListener("mousedown", (e) => {
       isDraggingPlayhead = true;
+      const playheadEl = document.getElementById("trim-playhead");
+      if (playheadEl) playheadEl.classList.add("active-drag");
       seekFromTrackPointer(e.clientX);
     });
 
@@ -1264,6 +1266,8 @@ export function initTrimmerControls() {
     window.addEventListener("mouseup", () => {
       if (isDraggingPlayhead) {
         isDraggingPlayhead = false;
+        const playheadEl = document.getElementById("trim-playhead");
+        if (playheadEl) playheadEl.classList.remove("active-drag");
         hideTooltip(tooltipPlayhead);
       }
     });
@@ -1273,6 +1277,8 @@ export function initTrimmerControls() {
       (e) => {
         if (e.touches && e.touches[0]) {
           isDraggingPlayhead = true;
+          const playheadEl = document.getElementById("trim-playhead");
+          if (playheadEl) playheadEl.classList.add("active-drag");
           seekFromTrackPointer(e.touches[0].clientX);
         }
       },
@@ -1292,6 +1298,8 @@ export function initTrimmerControls() {
     window.addEventListener("touchend", () => {
       if (isDraggingPlayhead) {
         isDraggingPlayhead = false;
+        const playheadEl = document.getElementById("trim-playhead");
+        if (playheadEl) playheadEl.classList.remove("active-drag");
         hideTooltip(tooltipPlayhead);
       }
     });
