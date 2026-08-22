@@ -155,9 +155,9 @@ async function fetchPlaylistVideosHandler() {
 }
 
 export function getSmartOutputFileName(inputFile, toolId) {
-  if (!inputFile) return "";
+  const rawInput = inputFile || "output.mp4";
   const baseName =
-    inputFile
+    rawInput
       .split(/[/\\]/)
       .pop()
       ?.replace(/\.[^/.]+$/, "") || "output";
@@ -172,7 +172,7 @@ export function getSmartOutputFileName(inputFile, toolId) {
       return `${baseName}_extracted.${fmt}`;
     }
     case "trim": {
-      const ext = (inputFile.split(".").pop() || "mp4").toLowerCase();
+      const ext = (rawInput.split(".").pop() || "mp4").toLowerCase();
       return `${baseName}_trimmed.${ext}`;
     }
     case "compress":
@@ -203,7 +203,7 @@ export function getSmartOutputFileName(inputFile, toolId) {
   }
 }
 
-export function truncateMiddlePath(fullPath, maxChars = 45) {
+export function truncateMiddlePath(fullPath, maxChars = 50) {
   if (!fullPath || typeof fullPath !== "string") return "";
   if (fullPath.length <= maxChars) return fullPath;
 
@@ -216,35 +216,34 @@ export function truncateMiddlePath(fullPath, maxChars = 45) {
     return `${fullPath.slice(0, keep)}…${fullPath.slice(-keep)}`;
   }
 
-  // Preserve the drive/root at start and the filename at end
   const filename = parts[parts.length - 1];
-  const root =
-    isWindows && /^[a-zA-Z]:/.test(fullPath)
-      ? `${parts[0]}${sep}`
-      : fullPath.startsWith("/")
-        ? `/${parts[0]}`
-        : parts[0];
+  const driveOrRoot = isWindows && /^[a-zA-Z]:/.test(fullPath)
+    ? `${parts[0]}${sep}`
+    : fullPath.startsWith("/")
+      ? `/${parts[0]}`
+      : parts[0];
 
-  if (root.length + filename.length + 3 > maxChars) {
-    const availForFilename = Math.max(12, maxChars - root.length - 3);
+  const minNeeded = driveOrRoot.length + filename.length + 3;
+  if (minNeeded > maxChars) {
+    const availForFilename = Math.max(10, maxChars - driveOrRoot.length - 4);
     const truncFilename =
       filename.length > availForFilename
         ? `…${filename.slice(-availForFilename)}`
         : filename;
-    return `${root}${sep}…${sep}${truncFilename}`;
+    const prefix = driveOrRoot.endsWith(sep) ? driveOrRoot : `${driveOrRoot}${sep}`;
+    return `${prefix}…${sep}${truncFilename}`;
   }
 
-  let leftParts = [root];
-  let rightParts = [filename];
+  const leftSegments = [parts[0]];
+  const rightSegments = [filename];
   let leftIdx = 1;
   let rightIdx = parts.length - 2;
-
-  let currentLen = root.length + filename.length + 3;
+  let currentLen = driveOrRoot.length + filename.length + 3;
 
   while (leftIdx <= rightIdx) {
     const rightPart = parts[rightIdx];
     if (currentLen + rightPart.length + 1 <= maxChars) {
-      rightParts.unshift(rightPart);
+      rightSegments.unshift(rightPart);
       currentLen += rightPart.length + 1;
       rightIdx--;
     } else {
@@ -254,7 +253,7 @@ export function truncateMiddlePath(fullPath, maxChars = 45) {
     if (leftIdx <= rightIdx) {
       const leftPart = parts[leftIdx];
       if (currentLen + leftPart.length + 1 <= maxChars) {
-        leftParts.push(leftPart);
+        leftSegments.push(leftPart);
         currentLen += leftPart.length + 1;
         leftIdx++;
       } else {
@@ -263,17 +262,20 @@ export function truncateMiddlePath(fullPath, maxChars = 45) {
     }
   }
 
-  const leftStr = leftParts.join(sep);
-  const rightStr = rightParts.join(sep);
+  const leftPath = isWindows && /^[a-zA-Z]:/.test(fullPath)
+    ? (leftSegments.length === 1 ? `${leftSegments[0]}${sep}` : leftSegments.join(sep))
+    : (fullPath.startsWith("/") ? `/${leftSegments.join(sep)}` : leftSegments.join(sep));
 
-  return `${leftStr}${leftStr.endsWith(sep) ? "" : sep}…${sep}${rightStr}`;
+  const rightPath = rightSegments.join(sep);
+  const leftClean = leftPath.endsWith(sep) ? leftPath : `${leftPath}${sep}`;
+  return `${leftClean}…${sep}${rightPath}`;
 }
 
 export function getAvailablePathChars(inputEl) {
-  if (!inputEl) return 45;
+  if (!inputEl) return 50;
   const width = inputEl.clientWidth || 300;
-  const avail = Math.floor((width - 24) / 7.8);
-  return Math.max(20, avail);
+  const avail = Math.floor((width - 30) / 7.5);
+  return Math.max(25, avail);
 }
 
 export function setOutputFilePath(fullPath) {
@@ -564,7 +566,7 @@ function bindFormEvents() {
       }
       syncFormatSpecificUI();
       if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "comp-aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
-        updateAutoOutputFilename();
+        updateAutoOutputFilename(true);
       }
       updateCommandPreview();
     });
@@ -577,7 +579,7 @@ function bindFormEvents() {
       }
       syncFormatSpecificUI();
       if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "comp-aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
-        updateAutoOutputFilename();
+        updateAutoOutputFilename(true);
       }
       updateCommandPreview();
     });
