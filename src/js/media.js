@@ -80,12 +80,32 @@ export function showMetadataLoading(filePath) {
   }
 }
 
+const mediaChangeListeners = new Set();
+
+export function onMediaChange(callback) {
+  if (typeof callback === "function") {
+    mediaChangeListeners.add(callback);
+  }
+  return () => mediaChangeListeners.delete(callback);
+}
+
+function notifyMediaChanged(info, filePath) {
+  for (const listener of mediaChangeListeners) {
+    try {
+      listener(info, filePath);
+    } catch (e) {
+      console.warn("mediaChange listener error:", e);
+    }
+  }
+}
+
 export async function probeMedia(filePath, fileObject = null) {
   if (!filePath) {
     currentInputFile = "";
     currentMediaInfo = null;
     saveInputFile("");
     updateMetadataDisplay(null);
+    notifyMediaChanged(null, "");
     return null;
   }
 
@@ -98,6 +118,7 @@ export async function probeMedia(filePath, fileObject = null) {
     currentMediaInfo = cached;
     updateMetadataDisplay(cached);
     syncMediaDurationToTools(cached);
+    notifyMediaChanged(cached, filePath);
     return cached;
   }
 
@@ -116,6 +137,7 @@ export async function probeMedia(filePath, fileObject = null) {
         currentMediaInfo = info;
         updateMetadataDisplay(info);
         syncMediaDurationToTools(info);
+        notifyMediaChanged(info, filePath);
         return info;
       }
     } catch (err) {
@@ -132,6 +154,7 @@ export async function probeMedia(filePath, fileObject = null) {
       currentMediaInfo = mediaInfo;
       updateMetadataDisplay(mediaInfo);
       syncMediaDurationToTools(mediaInfo);
+      notifyMediaChanged(mediaInfo, filePath);
       return mediaInfo;
     } catch (e) {
       console.warn("Browser media probe error:", e);
@@ -162,6 +185,7 @@ export async function probeMedia(filePath, fileObject = null) {
     currentMediaInfo = mockInfo;
     updateMetadataDisplay(mockInfo);
     syncMediaDurationToTools(mockInfo);
+    notifyMediaChanged(mockInfo, filePath);
   }
   return mockInfo;
 }

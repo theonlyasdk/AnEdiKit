@@ -8,6 +8,7 @@ import {
   getCurrentInputFile,
   getCurrentMediaInfo,
   probeMedia,
+  onMediaChange,
   getBatchQueue,
   clearBatchQueue,
   moveBatchItemUp,
@@ -1217,6 +1218,10 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCommandPreview();
   });
   bindFormEvents();
+  onMediaChange(() => {
+    updateAutoOutputFilename(true);
+    updateCommandPreview();
+  });
   initNavigation((toolId) => {
     const mediaInfo = getCurrentMediaInfo();
     if (mediaInfo) {
@@ -1236,6 +1241,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCommandPreview();
   });
   syncFormatSpecificUI();
-  updateAutoOutputFilename();
+  updateAutoOutputFilename(true);
   updateCommandPreview();
 });
