@@ -35,7 +35,7 @@ export function showMetadataLoading(filePath) {
     const ext = filePath.split(".").pop().toLowerCase();
     const isAudio = ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac"].includes(ext);
 
-    if (inputsCol) inputsCol.className = "col-12 col-lg-8 col-xl-8 col-xxl-9";
+    if (inputsCol) inputsCol.className = "col-12 col-lg-7 col-xl-7 col-xxl-8";
     if (previewCol) {
       previewCol.classList.remove("d-none", "preview-slide-in");
       previewCol.classList.add("d-flex");
@@ -49,7 +49,7 @@ export function showMetadataLoading(filePath) {
       if (cdSpinner) cdSpinner.classList.remove("d-none");
       if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
       if (audioArtImg) audioArtImg.classList.add("d-none");
-      if (audioTitle) audioTitle.textContent = filePath.split(/[/\\]/).pop() || "Audio Track";
+      renderMarqueeSongTitle(filePath.split(/[/\\]/).pop() || "Audio Track");
       if (audioFormat) audioFormat.textContent = "Loading album art...";
     }
   }
@@ -196,6 +196,22 @@ function probeInBrowser(file, filePath) {
   });
 }
 
+function renderMarqueeSongTitle(titleText) {
+  const audioTitle = document.getElementById("audio-art-title");
+  if (!audioTitle) return;
+  const safeText = titleText || "Audio Track";
+  if (safeText.length > 20) {
+    audioTitle.innerHTML = `
+      <div class="marquee-scroll-wrap">
+        <span class="me-4">${safeText}</span>
+        <span class="me-4">${safeText}</span>
+      </div>
+    `;
+  } else {
+    audioTitle.textContent = safeText;
+  }
+}
+
 export function updateMetadataDisplay(info) {
   const metaInfo = document.getElementById("input-meta-info");
   const pathInput = document.getElementById("input-file-path");
@@ -206,7 +222,6 @@ export function updateMetadataDisplay(info) {
   const videoWrapper = document.getElementById("video-preview-wrapper");
   const videoEl = document.getElementById("media-video-preview");
   const audioWrapper = document.getElementById("audio-preview-wrapper");
-  const audioTitle = document.getElementById("audio-art-title");
   const audioEl = document.getElementById("media-audio-preview");
 
   if (pathInput) {
@@ -233,14 +248,11 @@ export function updateMetadataDisplay(info) {
     const audioArtImg = document.getElementById("audio-art-img");
 
     if (inputsCol) {
-      inputsCol.className = "col-12 col-lg-8 col-xl-8 col-xxl-9";
+      inputsCol.className = "col-12 col-lg-7 col-xl-7 col-xxl-8";
     }
 
     if (previewCol) {
-      previewCol.classList.remove("d-none", "preview-slide-in");
-      previewCol.classList.add("d-flex");
-      void previewCol.offsetWidth; // reflow
-      previewCol.classList.add("preview-slide-in");
+      previewCol.className = "col-12 col-lg-5 col-xl-5 col-xxl-4 d-flex flex-column align-self-stretch preview-slide-in";
     }
 
     if (isAudio) {
@@ -261,7 +273,7 @@ export function updateMetadataDisplay(info) {
         if (audioArtImg) audioArtImg.classList.add("d-none");
         if (audioFallbackIcon) audioFallbackIcon.classList.remove("d-none");
       }
-      if (audioTitle) audioTitle.textContent = info.file_name || "Audio Track";
+      renderMarqueeSongTitle(info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Audio Track"));
       if (audioFormat) audioFormat.textContent = `${(info.audio_codec || ext || "audio").toUpperCase()} Audio`;
       if (audioEl && assetSrc) audioEl.src = assetSrc;
 

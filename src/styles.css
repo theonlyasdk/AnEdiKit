@@ -697,3 +697,61 @@ html.no-animations *::after {
   border-radius: 0 !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
 }
+
+#audio-preview-wrapper {
+  width: 200px;
+  height: 200px;
+}
+
+#video-preview-wrapper {
+  max-width: 360px;
+}
+
+@media (min-width: 1200px) {
+  #audio-preview-wrapper {
+    width: 220px;
+    height: 220px;
+  }
+
+  #video-preview-wrapper {
+    max-width: 420px;
+  }
+}
+
+@media (min-width: 1400px) {
+  #audio-preview-wrapper {
+    width: 240px;
+    height: 240px;
+  }
+
+  #video-preview-wrapper {
+    max-width: 480px;
+  }
+}
+
+/* Marquee scrolling text for song / audio track name */
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  position: relative;
+}
+
+.marquee-scroll-wrap {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marqueeLinear 12s linear infinite;
+}
+
+.marquee-scroll-wrap:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marqueeLinear {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
