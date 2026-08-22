@@ -662,7 +662,6 @@ export function initTrimmerControls() {
   const audioEl = document.getElementById("media-audio-preview");
 
   const btnPlayPause = document.getElementById("btn-trim-play-pause");
-  const playIcon = document.getElementById("trim-play-icon");
   const btnMarkStart = document.getElementById("btn-trim-mark-start");
   const btnMarkEnd = document.getElementById("btn-trim-mark-end");
   const btnStepBack1 = document.getElementById("btn-trim-step-back-1");
@@ -673,10 +672,45 @@ export function initTrimmerControls() {
   const btnSetStart0 = document.getElementById("btn-trim-set-start-0");
   const btnSetEndDur = document.getElementById("btn-trim-set-end-dur");
 
+  let fallbackCurrentTime = 0;
+  let simPlayInterval = null;
+
   const getActiveMediaEl = () => {
-    if (videoEl && !videoEl.classList.contains("d-none") && videoEl.src) return videoEl;
+    if (videoEl && videoEl.src && !videoEl.classList.contains("d-none")) return videoEl;
+    if (audioEl && audioEl.src && !audioEl.classList.contains("d-none")) return audioEl;
+    if (videoEl && videoEl.src) return videoEl;
     if (audioEl && audioEl.src) return audioEl;
     return null;
+  };
+
+  const syncPlayIcon = (isPlaying) => {
+    if (btnPlayPause) {
+      btnPlayPause.innerHTML = isPlaying
+        ? '<i class="bi bi-pause-fill" id="trim-play-icon"></i> Pause'
+        : '<i class="bi bi-play-fill" id="trim-play-icon"></i> Play';
+    }
+  };
+
+  const getMediaCurrentTime = () => {
+    const media = getActiveMediaEl();
+    if (media && !isNaN(media.currentTime) && media.duration > 0) {
+      return media.currentTime;
+    }
+    return fallbackCurrentTime;
+  };
+
+  const setMediaCurrentTime = (timeInSec) => {
+    const dur = currentMediaInfo?.duration_seconds || 120;
+    fallbackCurrentTime = Math.max(0, Math.min(dur, timeInSec));
+    const media = getActiveMediaEl();
+    if (media && !isNaN(media.duration) && media.duration > 0) {
+      try {
+        media.currentTime = fallbackCurrentTime;
+      } catch (_) {}
+    }
+    if (posDisplay) {
+      posDisplay.textContent = formatSecondsToTimestamp(fallbackCurrentTime);
+    }
   };
 
   const updateRangeBarUI = (startSec, endSec, totalDur) => {
@@ -712,10 +746,7 @@ export function initTrimmerControls() {
 
       if (inputStart) inputStart.value = formatSecondsToTimestamp(startSec);
       updateRangeBarUI(startSec, endSec, dur);
-
-      const media = getActiveMediaEl();
-      if (media) media.currentTime = startSec;
-      if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(startSec);
+      setMediaCurrentTime(startSec);
     });
 
     sliderEnd.addEventListener("input", () => {
@@ -731,10 +762,7 @@ export function initTrimmerControls() {
 
       if (inputEnd) inputEnd.value = formatSecondsToTimestamp(endSec);
       updateRangeBarUI(startSec, endSec, dur);
-
-      const media = getActiveMediaEl();
-      if (media) media.currentTime = endSec;
-      if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(endSec);
+      setMediaCurrentTime(endSec);
     });
   }
 
@@ -751,18 +779,28 @@ export function initTrimmerControls() {
 
   // Playhead position updates from media player
   const onTimeUpdate = (media) => {
-    if (!media) return;
+    if (!media || isNaN(media.currentTime)) return;
+    fallbackCurrentTime = media.currentTime;
     if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(media.currentTime);
   };
 
-  if (videoEl) videoEl.addEventListener("timeupdate", () => onTimeUpdate(videoEl));
-  if (audioEl) audioEl.addEventListener("timeupdate", () => onTimeUpdate(audioEl));
+  if (videoEl) {
+    videoEl.addEventListener("timeupdate", () => onTimeUpdate(videoEl));
+    videoEl.addEventListener("play", () => syncPlayIcon(true));
+    videoEl.addEventListener("pause", () => syncPlayIcon(false));
+    videoEl.addEventListener("ended", () => syncPlayIcon(false));
+  }
+  if (audioEl) {
+    audioEl.addEventListener("timeupdate", () => onTimeUpdate(audioEl));
+    audioEl.addEventListener("play", () => syncPlayIcon(true));
+    audioEl.addEventListener("pause", () => syncPlayIcon(false));
+    audioEl.addEventListener("ended", () => syncPlayIcon(false));
+  }
 
   // Mark In & Mark Out
   if (btnMarkStart) {
     btnMarkStart.addEventListener("click", () => {
-      const media = getActiveMediaEl();
-      const cur = media ? media.currentTime : 0;
+      const cur = getMediaCurrentTime();
       if (inputStart) inputStart.value = formatSecondsToTimestamp(cur);
       onTimestampInputsChanged();
     });
@@ -770,9 +808,8 @@ export function initTrimmerControls() {
 
   if (btnMarkEnd) {
     btnMarkEnd.addEventListener("click", () => {
-      const media = getActiveMediaEl();
       const dur = currentMediaInfo?.duration_seconds || 120;
-      const cur = media ? media.currentTime : dur;
+      const cur = getMediaCurrentTime() || dur;
       if (inputEnd) inputEnd.value = formatSecondsToTimestamp(cur);
       onTimestampInputsChanged();
     });
@@ -783,8 +820,7 @@ export function initTrimmerControls() {
     btnSetStart0.addEventListener("click", () => {
       if (inputStart) inputStart.value = "00:00:00.000";
       onTimestampInputsChanged();
-      const media = getActiveMediaEl();
-      if (media) media.currentTime = 0;
+      setMediaCurrentTime(0);
     });
   }
 
@@ -797,26 +833,49 @@ export function initTrimmerControls() {
   }
 
   // Play / Pause
+  const startSimulatedPlayback = () => {
+    if (simPlayInterval) clearInterval(simPlayInterval);
+    syncPlayIcon(true);
+    const dur = currentMediaInfo?.duration_seconds || 120;
+    simPlayInterval = setInterval(() => {
+      let cur = getMediaCurrentTime() + 0.1;
+      if (cur >= dur) {
+        cur = dur;
+        clearInterval(simPlayInterval);
+        simPlayInterval = null;
+        syncPlayIcon(false);
+      }
+      setMediaCurrentTime(cur);
+    }, 100);
+  };
+
   if (btnPlayPause) {
     btnPlayPause.addEventListener("click", () => {
       const media = getActiveMediaEl();
-      if (!media) return;
-      if (media.paused) {
-        media.play();
-        if (playIcon) playIcon.className = "bi bi-pause-fill";
+      if (media && !media.error && media.readyState >= 1) {
+        if (media.paused) {
+          media.play().catch(() => {
+            startSimulatedPlayback();
+          });
+        } else {
+          media.pause();
+        }
       } else {
-        media.pause();
-        if (playIcon) playIcon.className = "bi bi-play-fill";
+        if (simPlayInterval) {
+          clearInterval(simPlayInterval);
+          simPlayInterval = null;
+          syncPlayIcon(false);
+        } else {
+          startSimulatedPlayback();
+        }
       }
     });
   }
 
   // Frame Stepping
   const stepMedia = (delta) => {
-    const media = getActiveMediaEl();
-    if (!media) return;
-    media.currentTime = Math.max(0, media.currentTime + delta);
-    if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(media.currentTime);
+    const cur = getMediaCurrentTime();
+    setMediaCurrentTime(cur + delta);
   };
 
   if (btnStepBack1) btnStepBack1.addEventListener("click", () => stepMedia(-1.0));
@@ -825,24 +884,42 @@ export function initTrimmerControls() {
   if (btnStepFwd1) btnStepFwd1.addEventListener("click", () => stepMedia(1.0));
 
   // Preview Segment
+  const startSimulatedSegment = (startSec, endSec) => {
+    if (simPlayInterval) clearInterval(simPlayInterval);
+    syncPlayIcon(true);
+    simPlayInterval = setInterval(() => {
+      let cur = getMediaCurrentTime() + 0.1;
+      if (cur >= endSec) {
+        cur = endSec;
+        clearInterval(simPlayInterval);
+        simPlayInterval = null;
+        syncPlayIcon(false);
+      }
+      setMediaCurrentTime(cur);
+    }, 100);
+  };
+
   if (btnPreviewSegment) {
     btnPreviewSegment.addEventListener("click", () => {
-      const media = getActiveMediaEl();
-      if (!media) return;
       const startSec = parseTimestampToSeconds(inputStart?.value);
       const endSec = parseTimestampToSeconds(inputEnd?.value) || (currentMediaInfo?.duration_seconds || 120);
-      media.currentTime = startSec;
-      media.play();
-      if (playIcon) playIcon.className = "bi bi-pause-fill";
+      setMediaCurrentTime(startSec);
 
-      const checkEnd = () => {
-        if (media.currentTime >= endSec) {
-          media.pause();
-          if (playIcon) playIcon.className = "bi bi-play-fill";
-          media.removeEventListener("timeupdate", checkEnd);
-        }
-      };
-      media.addEventListener("timeupdate", checkEnd);
+      const media = getActiveMediaEl();
+      if (media && !media.error && media.readyState >= 1) {
+        media.play().catch(() => {
+          startSimulatedSegment(startSec, endSec);
+        });
+        const checkEnd = () => {
+          if (media.currentTime >= endSec) {
+            media.pause();
+            media.removeEventListener("timeupdate", checkEnd);
+          }
+        };
+        media.addEventListener("timeupdate", checkEnd);
+      } else {
+        startSimulatedSegment(startSec, endSec);
+      }
     });
   }
 }

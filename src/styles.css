@@ -684,3 +684,16 @@ html.no-animations *::after {
   transform: scale(1.15);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
+
+/* Remove easing transition from trimmer fill bar for immediate response */
+#trim-selected-range-bar,
+#trim-range-container .progress-bar {
+  transition: none !important;
+}
+
+/* Media Preview Cards - Centered, squared (no border radius), with deep drop shadow */
+#video-preview-wrapper,
+#audio-preview-wrapper {
+  border-radius: 0 !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+}
