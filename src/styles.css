@@ -172,16 +172,26 @@ a:active,
   margin-right: -1.5rem;
 }
 
-/* Prevent divider lines inside split media columns from bleeding into adjacent column */
-#media-inputs-col .section-divider-header::after,
-#batch-queue-container .section-divider-header::after {
-  margin-right: 0;
+/* Connect Input Media right HR to Media Preview left HR across column gutter */
+#media-inputs-col > .section-divider-header::after {
+  margin-right: -0.5rem;
 }
 
 #media-preview-col .section-divider-header::before {
-  margin-left: 0;
+  margin-left: -0.5rem;
   width: auto;
   flex: 1;
+}
+
+/* Prevent HR lines from overlapping with right-side action buttons / controls */
+.d-flex > .section-divider-header,
+.section-divider-header.flex-grow-1 {
+  margin-right: 0.75rem !important;
+}
+
+.d-flex > .section-divider-header::after,
+.section-divider-header.flex-grow-1::after {
+  margin-right: 0 !important;
 }
 
 /* Material Zoom Transition for main workspace view (Pure zoom without opacity fade) */
