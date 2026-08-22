@@ -880,6 +880,15 @@ html.no-animations *::after {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
 }
 
+.media-thumb-fade {
+  opacity: 0;
+  transition: opacity 0.35s ease-in-out;
+}
+
+.media-thumb-fade.thumb-visible {
+  opacity: 1;
+}
+
 #audio-preview-wrapper {
   width: 200px;
   height: 200px;

@@ -282,6 +282,81 @@ export async function extractActionFrameAsync(filePath, durationSec = 10) {
   return null;
 }
 
+export function crossfadeVideoThumbnail(newSrc) {
+  const currentImg = document.getElementById("video-action-frame-img");
+  const prevImg = document.getElementById("video-action-frame-prev");
+  const fallback = document.getElementById("video-preview-fallback");
+  const overlay = document.getElementById("video-overlay-info");
+
+  if (!currentImg) return;
+
+  if (!newSrc) {
+    currentImg.classList.add("d-none");
+    currentImg.classList.remove("thumb-visible");
+    if (prevImg) prevImg.classList.add("d-none");
+    if (fallback) fallback.classList.remove("d-none");
+    return;
+  }
+
+  if (fallback) fallback.classList.add("d-none");
+  if (overlay) overlay.classList.remove("d-none");
+
+  const oldSrc = currentImg.getAttribute("src");
+  if (oldSrc && oldSrc !== newSrc && prevImg) {
+    prevImg.src = oldSrc;
+    prevImg.classList.remove("d-none");
+  }
+
+  currentImg.classList.remove("thumb-visible");
+  currentImg.classList.remove("d-none");
+  currentImg.src = newSrc;
+
+  requestAnimationFrame(() => {
+    currentImg.classList.add("thumb-visible");
+    setTimeout(() => {
+      if (prevImg) prevImg.classList.add("d-none");
+    }, 400);
+  });
+}
+
+export function crossfadeAudioThumbnail(newSrc) {
+  const currentImg = document.getElementById("audio-art-img");
+  const prevImg = document.getElementById("audio-art-prev");
+  const cdSpinner = document.getElementById("audio-cd-spinner");
+  const fallbackIcon = document.getElementById("audio-fallback-icon");
+
+  if (cdSpinner) cdSpinner.classList.add("d-none");
+
+  if (!currentImg) return;
+
+  if (!newSrc) {
+    currentImg.classList.add("d-none");
+    currentImg.classList.remove("thumb-visible");
+    if (prevImg) prevImg.classList.add("d-none");
+    if (fallbackIcon) fallbackIcon.classList.remove("d-none");
+    return;
+  }
+
+  if (fallbackIcon) fallbackIcon.classList.add("d-none");
+
+  const oldSrc = currentImg.getAttribute("src");
+  if (oldSrc && oldSrc !== newSrc && prevImg) {
+    prevImg.src = oldSrc;
+    prevImg.classList.remove("d-none");
+  }
+
+  currentImg.classList.remove("thumb-visible");
+  currentImg.classList.remove("d-none");
+  currentImg.src = newSrc;
+
+  requestAnimationFrame(() => {
+    currentImg.classList.add("thumb-visible");
+    setTimeout(() => {
+      if (prevImg) prevImg.classList.add("d-none");
+    }, 400);
+  });
+}
+
 export function updateMetadataDisplay(info) {
   const metaInfo = document.getElementById("input-meta-info");
   const pathInput = document.getElementById("input-file-path");
@@ -292,6 +367,7 @@ export function updateMetadataDisplay(info) {
   const videoWrapper = document.getElementById("video-preview-wrapper");
   const videoEl = document.getElementById("media-video-preview");
   const actionFrameImg = document.getElementById("video-action-frame-img");
+  const actionFramePrev = document.getElementById("video-action-frame-prev");
   const audioWrapper = document.getElementById("audio-preview-wrapper");
   const audioEl = document.getElementById("media-audio-preview");
 
@@ -336,40 +412,31 @@ export function updateMetadataDisplay(info) {
       if (actionFrameImg) {
         actionFrameImg.classList.add("d-none");
         actionFrameImg.removeAttribute("src");
+        actionFrameImg.classList.remove("thumb-visible");
       }
+      if (actionFramePrev) actionFramePrev.classList.add("d-none");
       if (audioWrapper) audioWrapper.classList.remove("d-none");
 
       const targetAudioPath = info.file_path || currentInputFile;
 
-      const setAlbumArtDisplay = (artUrl) => {
-        if (cdSpinner) cdSpinner.classList.add("d-none");
-        if (artUrl) {
-          if (audioArtImg) {
-            audioArtImg.src = artUrl;
-            audioArtImg.classList.remove("d-none");
-          }
-          if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
-        } else {
-          if (audioArtImg) audioArtImg.classList.add("d-none");
-          if (audioFallbackIcon) audioFallbackIcon.classList.remove("d-none");
-        }
-      };
-
       if (info.album_art_url) {
-        setAlbumArtDisplay(info.album_art_url);
+        crossfadeAudioThumbnail(info.album_art_url);
       } else if (targetAudioPath && albumArtCache.has(targetAudioPath)) {
-        setAlbumArtDisplay(albumArtCache.get(targetAudioPath));
+        crossfadeAudioThumbnail(albumArtCache.get(targetAudioPath));
       } else if (targetAudioPath) {
         if (cdSpinner) cdSpinner.classList.remove("d-none");
         if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
-        if (audioArtImg) audioArtImg.classList.add("d-none");
+        if (audioArtImg) {
+          audioArtImg.classList.add("d-none");
+          audioArtImg.classList.remove("thumb-visible");
+        }
         extractAlbumArtAsync(targetAudioPath).then((artUrl) => {
           if (currentInputFile === targetAudioPath) {
-            setAlbumArtDisplay(artUrl);
+            crossfadeAudioThumbnail(artUrl);
           }
         });
       } else {
-        setAlbumArtDisplay(null);
+        crossfadeAudioThumbnail(null);
       }
 
       renderMarqueeSongTitle(info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Audio Track"));
@@ -419,19 +486,12 @@ export function updateMetadataDisplay(info) {
       if (activeTool === "trim") {
         if (videoEl) videoEl.classList.remove("d-none");
         if (actionFrameImg) actionFrameImg.classList.add("d-none");
+        if (actionFramePrev) actionFramePrev.classList.add("d-none");
         if (videoFallback) videoFallback.classList.add("d-none");
         if (videoOverlay) videoOverlay.classList.remove("d-none");
       } else {
         if (videoEl) videoEl.classList.add("d-none");
-        if (videoFallback) {
-          videoFallback.classList.remove("d-none");
-          if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
-        }
         if (videoOverlay) videoOverlay.classList.add("d-none");
-        if (actionFrameImg) {
-          actionFrameImg.classList.add("d-none");
-          actionFrameImg.removeAttribute("src");
-        }
       }
 
       if (videoOverlayTitle) {
@@ -448,27 +508,40 @@ export function updateMetadataDisplay(info) {
         fallbackIcon.classList.add("icon-loading-pulse");
       }
 
-      // Asynchronously extract and cache action frame thumbnail for non-trim views
+      // Asynchronously extract and cache action frame thumbnail with smooth crossfade
       const targetVideoPath = info.file_path || currentInputFile;
       if (targetVideoPath) {
-        extractActionFrameAsync(targetVideoPath, info.duration_seconds)
-          .then((dataUri) => {
-            if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
-            if (dataUri && currentInputFile === targetVideoPath) {
-              const curTool = document.querySelector("#tool-nav .nav-link.active, #ytdlp-nav .nav-link.active")?.dataset?.tool || "trim";
-              if (actionFrameImg) {
-                actionFrameImg.src = dataUri;
+        if (actionFrameCache.has(targetVideoPath)) {
+          const cachedUri = actionFrameCache.get(targetVideoPath);
+          if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
+          const curTool = document.querySelector("#tool-nav .nav-link.active, #ytdlp-nav .nav-link.active")?.dataset?.tool || "trim";
+          if (curTool !== "trim") {
+            crossfadeVideoThumbnail(cachedUri);
+          }
+        } else {
+          if (actionFrameImg) {
+            actionFrameImg.classList.add("d-none");
+            actionFrameImg.removeAttribute("src");
+            actionFrameImg.classList.remove("thumb-visible");
+          }
+          if (videoFallback) {
+            videoFallback.classList.remove("d-none");
+            if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
+          }
+          extractActionFrameAsync(targetVideoPath, info.duration_seconds)
+            .then((dataUri) => {
+              if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
+              if (dataUri && currentInputFile === targetVideoPath) {
+                const curTool = document.querySelector("#tool-nav .nav-link.active, #ytdlp-nav .nav-link.active")?.dataset?.tool || "trim";
                 if (curTool !== "trim") {
-                  actionFrameImg.classList.remove("d-none");
-                  if (videoFallback) videoFallback.classList.add("d-none");
-                  if (videoOverlay) videoOverlay.classList.remove("d-none");
+                  crossfadeVideoThumbnail(dataUri);
                 }
               }
-            }
-          })
-          .catch(() => {
-            if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
-          });
+            })
+            .catch(() => {
+              if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
+            });
+        }
       }
     }
   } else {
@@ -1166,9 +1239,19 @@ export function initTrimmerControls() {
     el.classList.add("d-none");
   };
 
+  // Stop slider events from propagating to the underlying track
+  const stopSliderProp = (e) => {
+    e.stopPropagation();
+  };
+
   // Sync when sliders change
   if (sliderStart) {
-    sliderStart.addEventListener("input", () => {
+    sliderStart.addEventListener("mousedown", stopSliderProp);
+    sliderStart.addEventListener("touchstart", stopSliderProp, { passive: true });
+    sliderStart.addEventListener("pointerdown", stopSliderProp);
+
+    sliderStart.addEventListener("input", (e) => {
+      e.stopPropagation();
       const dur = currentMediaInfo?.duration_seconds || 120;
       let startVal = parseFloat(sliderStart.value);
       let endVal = parseFloat(sliderEnd ? sliderEnd.value : 100);
@@ -1195,7 +1278,12 @@ export function initTrimmerControls() {
   }
 
   if (sliderEnd) {
-    sliderEnd.addEventListener("input", () => {
+    sliderEnd.addEventListener("mousedown", stopSliderProp);
+    sliderEnd.addEventListener("touchstart", stopSliderProp, { passive: true });
+    sliderEnd.addEventListener("pointerdown", stopSliderProp);
+
+    sliderEnd.addEventListener("input", (e) => {
+      e.stopPropagation();
       const dur = currentMediaInfo?.duration_seconds || 120;
       let startVal = parseFloat(sliderStart ? sliderStart.value : 0);
       let endVal = parseFloat(sliderEnd.value);
@@ -1251,6 +1339,7 @@ export function initTrimmerControls() {
 
   if (trackEl) {
     trackEl.addEventListener("mousedown", (e) => {
+      if (e.target.classList.contains("trim-range-slider")) return;
       isDraggingPlayhead = true;
       const playheadEl = document.getElementById("trim-playhead");
       if (playheadEl) playheadEl.classList.add("active-drag");
@@ -1275,6 +1364,7 @@ export function initTrimmerControls() {
     trackEl.addEventListener(
       "touchstart",
       (e) => {
+        if (e.target.classList.contains("trim-range-slider")) return;
         if (e.touches && e.touches[0]) {
           isDraggingPlayhead = true;
           const playheadEl = document.getElementById("trim-playhead");
