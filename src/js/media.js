@@ -1,5 +1,5 @@
 // Media Probing & File Interaction Module
-import { saveInputFile, loadSavedBatchQueue, saveBatchQueue } from "./storage.js";
+import { saveInputFile, getSavedInputFile, loadSavedBatchQueue, saveBatchQueue } from "./storage.js";
 import { generateWaveformFromSource, renderWaveformToCanvas } from "./waveform.js";
 
 let currentInputFile = "";
@@ -92,12 +92,7 @@ export async function probeMedia(filePath, fileObject = null) {
       const info = await window.__TAURI__.core.invoke("get_media_info", {
         filePath,
       });
-      if (
-        info &&
-        (info.duration_seconds > 0 ||
-          info.resolution !== "--" ||
-          info.video_codec !== "--")
-      ) {
+      if (info && (info.duration_seconds > 0 || info.file_path || info.file_name)) {
         currentMediaInfo = info;
         updateMetadataDisplay(info);
         return info;
@@ -438,9 +433,32 @@ export function setSelectedBatchIdx(idx) {
 
 export async function initSavedBatchQueue() {
   batchQueue = loadSavedBatchQueue();
+  const lastInput = getSavedInputFile();
+
+  if (batchQueue.length === 0 && lastInput) {
+    const fileName = lastInput.split(/[/\\]/).pop() || lastInput;
+    batchQueue.push({
+      path: lastInput,
+      name: fileName,
+      status: "pending",
+    });
+    saveBatchQueue(batchQueue);
+  }
+
   if (batchQueue.length > 0) {
     selectedBatchIdx = 0;
-    await probeMedia(batchQueue[0].path);
+    const targetPath = batchQueue[0].path;
+    const info = await probeMedia(targetPath);
+    if (info) {
+      updateMetadataDisplay(info);
+    }
+  } else if (lastInput) {
+    const info = await probeMedia(lastInput);
+    if (info) {
+      updateMetadataDisplay(info);
+    }
+  } else {
+    updateMetadataDisplay(null);
   }
   renderBatchQueueUI();
 }
@@ -569,7 +587,7 @@ export function renderBatchQueueUI() {
         await selectMediaFiles("all");
       });
     }
-    if (btnExecute && btnExecute.textContent.startsWith("Execute Batch")) {
+    if (btnExecute && btnExecute.textContent !== "Cancel") {
       btnExecute.textContent = "Execute";
     }
     return;
@@ -586,7 +604,7 @@ export function renderBatchQueueUI() {
   }
 
   if (btnExecute && btnExecute.textContent !== "Cancel") {
-    btnExecute.textContent = `Execute Batch (${batchQueue.length} items)`;
+    btnExecute.textContent = batchQueue.length > 1 ? `Execute (${batchQueue.length})` : "Execute";
   }
 
   list.innerHTML = batchQueue

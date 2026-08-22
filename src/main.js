@@ -125,7 +125,14 @@ export function updateExecuteButtonState() {
     return;
   }
 
-  btnExecute.textContent = activeTool.startsWith("ytdlp_") ? "Download" : "Execute";
+  const queue = getBatchQueue();
+  if (activeTool.startsWith("ytdlp_")) {
+    btnExecute.textContent = "Download";
+  } else if (queue && queue.length > 1 && activeTool !== "merge" && activeTool !== "settings") {
+    btnExecute.textContent = `Execute (${queue.length})`;
+  } else {
+    btnExecute.textContent = "Execute";
+  }
   btnExecute.className = "btn btn-primary btn-sm px-4";
 
   let canExecute = false;

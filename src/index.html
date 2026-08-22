@@ -114,7 +114,7 @@
             
             <!-- Shared File Selection Section for FFmpeg Tools -->
             <div class="mb-4" id="shared-input-card">
-              <div class="row g-3 align-items-start">
+              <div class="row g-3 align-items-stretch">
                 <!-- Left Column: Input File, Metadata & Output File -->
                 <div class="col-12" id="media-inputs-col">
                   <div class="section-divider-header">Input Media</div>
@@ -166,9 +166,9 @@
                 </div>
 
                 <!-- Right Column: Media Preview (16:9 Video Card or 1:1 Audio Card) -->
-                <div class="col-12 col-lg-4 col-xl-4 col-xxl-3 d-none flex-column" id="media-preview-col">
+                <div class="col-12 col-lg-4 col-xl-4 col-xxl-3 d-none flex-column align-self-stretch" id="media-preview-col">
                   <div class="section-divider-header text-center w-100 mb-2">Media Preview</div>
-                  <div class="d-flex align-items-center justify-content-center w-100 flex-grow-1 my-auto" id="media-preview-container">
+                  <div class="d-flex flex-column align-items-center justify-content-center w-100 flex-grow-1 my-auto" id="media-preview-container">
                     <!-- Video 16:9 Card Preview -->
                     <div class="w-100 card border overflow-hidden bg-black d-none position-relative mx-auto rounded-0" id="video-preview-wrapper" style="aspect-ratio: 16 / 9;">
                       <video id="media-video-preview" controls preload="metadata" class="w-100 h-100 object-fit-contain"></video>
