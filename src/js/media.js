@@ -356,46 +356,34 @@ export function updateMetadataDisplay(info) {
         audioEl.removeAttribute("src");
       }
       if (videoWrapper) videoWrapper.classList.remove("d-none");
+      if (videoFallback) {
+        videoFallback.classList.remove("d-none");
+        if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
+      }
+
       if (actionFrameImg) {
         actionFrameImg.classList.add("d-none");
         actionFrameImg.removeAttribute("src");
       }
 
       if (videoEl) {
-        videoEl.removeAttribute("poster");
         if (assetSrc) {
-          videoEl.classList.remove("d-none");
-          if (videoFallback) videoFallback.classList.add("d-none");
           videoEl.src = assetSrc;
-          videoEl.onerror = () => {
-            videoEl.classList.add("d-none");
-            if (videoFallback) {
-              videoFallback.classList.remove("d-none");
-              if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
-            }
-          };
         } else {
-          videoEl.classList.add("d-none");
-          if (videoFallback) {
-            videoFallback.classList.remove("d-none");
-            if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
-          }
+          videoEl.removeAttribute("src");
         }
       }
 
-      // Asynchronously extract and display action frame poster
+      // Asynchronously extract and display action frame thumbnail
       const targetVideoPath = info.file_path || currentInputFile;
       if (targetVideoPath) {
         extractActionFrameAsync(targetVideoPath, info.duration_seconds).then((dataUri) => {
           if (dataUri && currentInputFile === targetVideoPath) {
-            if (videoEl) {
-              videoEl.poster = dataUri;
-            }
-            if (actionFrameImg && videoEl && videoEl.classList.contains("d-none")) {
+            if (actionFrameImg) {
               actionFrameImg.src = dataUri;
               actionFrameImg.classList.remove("d-none");
-              if (videoFallback) videoFallback.classList.add("d-none");
             }
+            if (videoFallback) videoFallback.classList.add("d-none");
           }
         });
       }

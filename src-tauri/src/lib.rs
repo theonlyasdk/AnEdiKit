@@ -894,11 +894,56 @@ fn send_system_notification(title: String, body: String) -> Result<(), String> {
     Ok(())
 }
 
+fn get_thumb_cache_dir() -> std::path::PathBuf {
+    let base = if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        std::path::PathBuf::from(local_app_data)
+            .join("ASDK")
+            .join("AnEdiKit")
+            .join("ThumbCache")
+    } else {
+        std::env::temp_dir().join("ASDK_AnEdiKit_ThumbCache")
+    };
+    let _ = std::fs::create_dir_all(&base);
+    base
+}
+
+fn compute_file_hash(path: &std::path::Path) -> String {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    let mut hasher = DefaultHasher::new();
+    path.to_string_lossy().hash(&mut hasher);
+
+    if let Ok(metadata) = std::fs::metadata(path) {
+        metadata.len().hash(&mut hasher);
+        if let Ok(modified) = metadata.modified() {
+            modified.hash(&mut hasher);
+        }
+    }
+
+    format!("{:016x}", hasher.finish())
+}
+
 #[tauri::command]
 fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Result<String, String> {
     let path = std::path::Path::new(&file_path);
     if !path.exists() {
         return Err("File does not exist".into());
+    }
+
+    let cache_dir = get_thumb_cache_dir();
+    let hash = compute_file_hash(path);
+    let cache_file = cache_dir.join(format!("{}.jpg", hash));
+
+    // Instant return if thumbnail exists in persistent disk cache
+    if cache_file.exists() {
+        if let Ok(bytes) = std::fs::read(&cache_file) {
+            if !bytes.is_empty() {
+                use base64::Engine;
+                let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                return Ok(format!("data:image/jpeg;base64,{}", b64));
+            }
+        }
     }
 
     let ffmpeg_bin = find_binary("ffmpeg");
@@ -914,6 +959,7 @@ fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Res
 
     let mut cmd = Command::new(&ffmpeg_bin);
     cmd.args([
+        "-y",
         "-ss",
         &format!("{:.3}", target_time),
         "-i",
@@ -924,23 +970,20 @@ fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Res
         "scale=640:-1",
         "-q:v",
         "3",
-        "-f",
-        "image2pipe",
-        "-vcodec",
-        "mjpeg",
-        "pipe:1",
+        cache_file.to_string_lossy().as_ref(),
     ]);
 
     #[cfg(windows)]
     cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
 
     let output = cmd.output().map_err(|e| format!("Failed to run ffmpeg: {}", e))?;
-    if !output.status.success() || output.stdout.is_empty() {
+    if !output.status.success() || !cache_file.exists() {
         return Err("Failed to extract action frame".into());
     }
 
+    let bytes = std::fs::read(&cache_file).map_err(|e| format!("Failed to read cached frame: {}", e))?;
     use base64::Engine;
-    let b64 = base64::engine::general_purpose::STANDARD.encode(&output.stdout);
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
     Ok(format!("data:image/jpeg;base64,{}", b64))
 }
 

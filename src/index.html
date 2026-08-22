@@ -169,14 +169,14 @@
                 <div class="col-12 col-lg-5 col-xl-5 col-xxl-4 d-none flex-column align-self-stretch" id="media-preview-col">
                   <div class="section-divider-header text-center w-100 mb-2">Media Preview</div>
                   <div class="d-flex flex-column align-items-center justify-content-center w-100 flex-grow-1 my-auto" id="media-preview-container">
-                    <!-- Video 16:9 Card Preview -->
-                    <div class="w-100 card border overflow-hidden bg-black d-none position-relative mx-auto rounded-0" id="video-preview-wrapper" style="aspect-ratio: 16 / 9;">
-                      <video id="media-video-preview" controls preload="metadata" class="w-100 h-100 object-fit-contain"></video>
-                      <img id="video-action-frame-img" class="d-none w-100 h-100 object-fit-contain position-absolute top-0 start-0" style="pointer-events: none;" alt="Video Action Frame" />
-                      <div class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-dark text-secondary p-2 text-center rounded-0" id="video-preview-fallback">
-                        <i class="bi bi-file-earmark-play fs-1 text-secondary mb-1"></i>
+                    <!-- Video 16:9 Card Preview (Purely Thumbnail / Action Frame without flashing raw video player) -->
+                    <div class="w-100 card border overflow-hidden bg-black d-none position-relative mx-auto rounded-0 d-flex align-items-center justify-content-center" id="video-preview-wrapper" style="aspect-ratio: 16 / 9;">
+                      <img id="video-action-frame-img" class="d-none w-100 h-100 object-fit-contain position-absolute top-0 start-0" alt="Video Action Frame" />
+                      <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-dark text-secondary p-2 text-center rounded-0" id="video-preview-fallback">
+                        <i class="bi bi-film fs-1 text-secondary mb-1"></i>
                         <span class="small text-body-secondary text-truncate w-100" style="font-size: 0.75rem;" id="video-fallback-filename">Video Preview</span>
                       </div>
+                      <video id="media-video-preview" class="d-none" preload="metadata"></video>
                     </div>
 
                     <!-- Audio 1:1 Card Preview (Increased size with spinner and fallback icon) -->
