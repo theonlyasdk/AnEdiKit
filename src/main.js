@@ -466,11 +466,11 @@ function bindFormEvents() {
     btnCopy.addEventListener("click", () => {
       const cmdText = document.getElementById("cmd-preview")?.textContent || "";
       navigator.clipboard.writeText(cmdText).then(() => {
-        btnCopy.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+        btnCopy.innerHTML = '<i class="bi bi-check2"></i>';
         btnCopy.classList.remove("btn-outline-secondary");
         btnCopy.classList.add("btn-success");
         setTimeout(() => {
-          btnCopy.innerHTML = '<i class="bi bi-clipboard"></i> Copy';
+          btnCopy.innerHTML = '<i class="bi bi-copy"></i>';
           btnCopy.classList.remove("btn-success");
           btnCopy.classList.add("btn-outline-secondary");
         }, 1500);
