@@ -48,10 +48,6 @@ export function buildConvertCommand(inputFile, outputDir, settings = {}) {
 
   const container =
     document.getElementById("cvt-container")?.value || "mp4";
-  const vcodec = document.getElementById("cvt-vcodec")?.value || "libx264";
-  const acodec = document.getElementById("cvt-acodec")?.value || "aac";
-  const crf = document.getElementById("cvt-crf")?.value || "23";
-  const preset = document.getElementById("cvt-preset")?.value || "medium";
   const scale = document.getElementById("cvt-scale")?.value || "original";
 
   const dst = resolveDestinationPath(`${baseName}_converted.${container}`, settings, src);
@@ -59,14 +55,16 @@ export function buildConvertCommand(inputFile, outputDir, settings = {}) {
   // Overwrite flag
   args.push("-y");
 
-  // Hardware acceleration
+  // Hardware acceleration (only for standard video formats, not GIF)
   const hwAccel = settings.hwAccel || "auto";
-  if (hwAccel === "cuda") {
-    args.push("-hwaccel", "cuda");
-  } else if (hwAccel === "qsv") {
-    args.push("-hwaccel", "qsv");
-  } else if (hwAccel === "amf") {
-    args.push("-hwaccel", "d3d11va");
+  if (container !== "gif" && container !== "webp") {
+    if (hwAccel === "cuda") {
+      args.push("-hwaccel", "cuda");
+    } else if (hwAccel === "qsv") {
+      args.push("-hwaccel", "qsv");
+    } else if (hwAccel === "amf") {
+      args.push("-hwaccel", "d3d11va");
+    }
   }
 
   // Encoding threads
@@ -78,41 +76,81 @@ export function buildConvertCommand(inputFile, outputDir, settings = {}) {
   // Input file
   args.push("-i", src);
 
-  // Video resolution filter
-  if (scale !== "original") {
-    const [w, h] = scale.split(":");
-    args.push(
-      "-vf",
-      `scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2`,
-    );
-  }
+  if (container === "gif") {
+    const fps = document.getElementById("cvt-gif-fps")?.value || "15";
+    const quality = document.getElementById("cvt-gif-quality")?.value || "palettegen";
+    let scaleFilter = scale !== "original"
+      ? (scale.includes(":") ? scale.split(":")[0] : scale)
+      : "480";
+    if (scaleFilter === "original") scaleFilter = "-1";
 
-  // Video Codec
-  if (vcodec === "copy") {
-    args.push("-c:v", "copy");
-  } else {
-    args.push("-c:v", vcodec);
-    args.push("-crf", crf);
-    args.push("-preset", preset);
-    if (vcodec === "libx264" || vcodec === "libx265") {
-      args.push("-pix_fmt", "yuv420p");
+    if (quality === "palettegen") {
+      args.push(
+        "-vf",
+        `fps=${fps},scale=${scaleFilter}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse`,
+      );
+    } else {
+      args.push("-vf", `fps=${fps},scale=${scaleFilter}:-1:flags=lanczos`);
     }
-  }
-
-  // Audio Codec
-  if (acodec === "copy") {
-    args.push("-c:a", "copy");
+    args.push("-an");
+  } else if (container === "webp") {
+    const fps = document.getElementById("cvt-webp-fps")?.value || "24";
+    const quality = document.getElementById("cvt-webp-quality")?.value || "75";
+    let vfList = [`fps=${fps}`];
+    if (scale !== "original") {
+      const [w, h] = scale.split(":");
+      vfList.push(`scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2`);
+    }
+    args.push("-vf", vfList.join(","));
+    args.push("-c:v", "libwebp", "-loop", "0");
+    if (quality === "lossless") {
+      args.push("-lossless", "1");
+    } else {
+      args.push("-q:v", quality);
+    }
+    args.push("-an");
   } else {
-    const audioCodecMap = {
-      aac: "aac",
-      mp3: "libmp3lame",
-      opus: "libopus",
-      flac: "flac",
-    };
-    const mappedAcodec = audioCodecMap[acodec] || "aac";
-    args.push("-c:a", mappedAcodec);
-    if (mappedAcodec !== "flac") {
-      args.push("-b:a", "192k");
+    const vcodec = document.getElementById("cvt-vcodec")?.value || "libx264";
+    const acodec = document.getElementById("cvt-acodec")?.value || "aac";
+    const crf = document.getElementById("cvt-crf")?.value || "23";
+    const preset = document.getElementById("cvt-preset")?.value || "medium";
+
+    // Video resolution filter
+    if (scale !== "original") {
+      const [w, h] = scale.split(":");
+      args.push(
+        "-vf",
+        `scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2`,
+      );
+    }
+
+    // Video Codec
+    if (vcodec === "copy") {
+      args.push("-c:v", "copy");
+    } else {
+      args.push("-c:v", vcodec);
+      args.push("-crf", crf);
+      args.push("-preset", preset);
+      if (vcodec === "libx264" || vcodec === "libx265") {
+        args.push("-pix_fmt", "yuv420p");
+      }
+    }
+
+    // Audio Codec
+    if (acodec === "copy") {
+      args.push("-c:a", "copy");
+    } else {
+      const audioCodecMap = {
+        aac: "aac",
+        mp3: "libmp3lame",
+        opus: "libopus",
+        flac: "flac",
+      };
+      const mappedAcodec = audioCodecMap[acodec] || "aac";
+      args.push("-c:a", mappedAcodec);
+      if (mappedAcodec !== "flac") {
+        args.push("-b:a", "192k");
+      }
     }
   }
 
@@ -140,6 +178,7 @@ export function buildAudioExtractCommand(inputFile, outputDir, settings = {}) {
       ?.replace(/\.[^/.]+$/, "") || "output_audio";
   const fmt = document.getElementById("aud-format")?.value || "mp3";
   const bitrate = document.getElementById("aud-bitrate")?.value || "256k";
+  const bitdepth = document.getElementById("aud-bitdepth")?.value || "16";
   const channels = document.getElementById("aud-channels")?.value || "original";
   const samplerate = document.getElementById("aud-samplerate")?.value || "original";
   const volume = document.getElementById("aud-volume")?.value || "none";
@@ -152,26 +191,32 @@ export function buildAudioExtractCommand(inputFile, outputDir, settings = {}) {
   if (bitrate === "copy") {
     args.push("-c:a", "copy");
   } else {
-    const codecMap = {
-      mp3: "libmp3lame",
-      m4a: "aac",
-      flac: "flac",
-      wav: "pcm_s16le",
-      ogg: "libvorbis",
-      opus: "libopus",
-      wma: "wmav2",
-      aiff: "pcm_s16be",
-      ac3: "ac3",
-      dts: "dca",
-      amr: "libopencore_amrnb",
-      mka: "flac",
-      mp2: "mp2",
-    };
+    let codec = "libmp3lame";
+    if (fmt === "wav") {
+      codec = bitdepth === "24" ? "pcm_s24le" : bitdepth === "32" ? "pcm_f32le" : "pcm_s16le";
+    } else if (fmt === "aiff") {
+      codec = bitdepth === "24" ? "pcm_s24be" : bitdepth === "32" ? "pcm_f32be" : "pcm_s16be";
+    } else if (fmt === "flac") {
+      codec = "flac";
+    } else {
+      const codecMap = {
+        mp3: "libmp3lame",
+        m4a: "aac",
+        ogg: "libvorbis",
+        opus: "libopus",
+        wma: "wmav2",
+        ac3: "ac3",
+        dts: "dca",
+        amr: "libopencore_amrnb",
+        mka: "flac",
+        mp2: "mp2",
+      };
+      codec = codecMap[fmt] || "libmp3lame";
+    }
 
-    const codec = codecMap[fmt] || "libmp3lame";
     args.push("-c:a", codec);
 
-    if (codec !== "flac" && codec !== "pcm_s16le" && codec !== "pcm_s16be") {
+    if (codec !== "flac" && !codec.startsWith("pcm_")) {
       args.push("-b:a", bitrate);
     }
 

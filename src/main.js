@@ -443,6 +443,94 @@ function updateCommandPreview() {
   return cmdObj;
 }
 
+export function syncFormatSpecificUI() {
+  // 1. Convert Video tool format sync
+  const cvtContainer = document.getElementById("cvt-container")?.value || "mp4";
+  const cvtVcodecWrapper = document.getElementById("cvt-vcodec-wrapper");
+  const cvtAcodecWrapper = document.getElementById("cvt-acodec-wrapper");
+  const cvtCrfWrapper = document.getElementById("cvt-crf-wrapper");
+  const cvtPresetWrapper = document.getElementById("cvt-preset-wrapper");
+  const cvtGifFpsWrapper = document.getElementById("cvt-gif-fps-wrapper");
+  const cvtGifQualityWrapper = document.getElementById("cvt-gif-quality-wrapper");
+  const cvtWebpFpsWrapper = document.getElementById("cvt-webp-fps-wrapper");
+  const cvtWebpQualityWrapper = document.getElementById("cvt-webp-quality-wrapper");
+  const cvtVcodec = document.getElementById("cvt-vcodec")?.value || "libx264";
+
+  if (cvtContainer === "gif") {
+    // For GIF: Hide video codec, audio codec, CRF, speed preset
+    if (cvtVcodecWrapper) cvtVcodecWrapper.classList.add("d-none");
+    if (cvtAcodecWrapper) cvtAcodecWrapper.classList.add("d-none");
+    if (cvtCrfWrapper) cvtCrfWrapper.classList.add("d-none");
+    if (cvtPresetWrapper) cvtPresetWrapper.classList.add("d-none");
+    // Show GIF-specific options
+    if (cvtGifFpsWrapper) cvtGifFpsWrapper.classList.remove("d-none");
+    if (cvtGifQualityWrapper) cvtGifQualityWrapper.classList.remove("d-none");
+    if (cvtWebpFpsWrapper) cvtWebpFpsWrapper.classList.add("d-none");
+    if (cvtWebpQualityWrapper) cvtWebpQualityWrapper.classList.add("d-none");
+  } else if (cvtContainer === "webp") {
+    // For WebP: Hide standard video/audio codec, CRF, speed preset
+    if (cvtVcodecWrapper) cvtVcodecWrapper.classList.add("d-none");
+    if (cvtAcodecWrapper) cvtAcodecWrapper.classList.add("d-none");
+    if (cvtCrfWrapper) cvtCrfWrapper.classList.add("d-none");
+    if (cvtPresetWrapper) cvtPresetWrapper.classList.add("d-none");
+    // Show WebP-specific options
+    if (cvtGifFpsWrapper) cvtGifFpsWrapper.classList.add("d-none");
+    if (cvtGifQualityWrapper) cvtGifQualityWrapper.classList.add("d-none");
+    if (cvtWebpFpsWrapper) cvtWebpFpsWrapper.classList.remove("d-none");
+    if (cvtWebpQualityWrapper) cvtWebpQualityWrapper.classList.remove("d-none");
+  } else {
+    // Standard video formats (MP4, MKV, WebM, MOV, AVI, etc.)
+    if (cvtVcodecWrapper) cvtVcodecWrapper.classList.remove("d-none");
+    if (cvtAcodecWrapper) cvtAcodecWrapper.classList.remove("d-none");
+    if (cvtGifFpsWrapper) cvtGifFpsWrapper.classList.add("d-none");
+    if (cvtGifQualityWrapper) cvtGifQualityWrapper.classList.add("d-none");
+    if (cvtWebpFpsWrapper) cvtWebpFpsWrapper.classList.add("d-none");
+    if (cvtWebpQualityWrapper) cvtWebpQualityWrapper.classList.add("d-none");
+
+    // If stream copy is selected for video, CRF and Preset don't apply
+    if (cvtVcodec === "copy") {
+      if (cvtCrfWrapper) cvtCrfWrapper.classList.add("d-none");
+      if (cvtPresetWrapper) cvtPresetWrapper.classList.add("d-none");
+    } else {
+      if (cvtCrfWrapper) cvtCrfWrapper.classList.remove("d-none");
+      if (cvtPresetWrapper) cvtPresetWrapper.classList.remove("d-none");
+    }
+  }
+
+  // 2. Extract Audio format sync
+  const audFormat = document.getElementById("aud-format")?.value || "mp3";
+  const audBitrateWrapper = document.getElementById("aud-bitrate-wrapper");
+  const audBitdepthWrapper = document.getElementById("aud-bitdepth-wrapper");
+
+  if (["flac", "wav", "aiff"].includes(audFormat)) {
+    if (audBitrateWrapper) audBitrateWrapper.classList.add("d-none");
+    if (audBitdepthWrapper) audBitdepthWrapper.classList.remove("d-none");
+  } else {
+    if (audBitrateWrapper) audBitrateWrapper.classList.remove("d-none");
+    if (audBitdepthWrapper) audBitdepthWrapper.classList.add("d-none");
+  }
+
+  // 3. GIF and Frames tool mode sync
+  const gifMode = document.getElementById("gif-mode")?.value || "gif_hq";
+  const gifFpsWrapper = document.getElementById("gif-fps-wrapper");
+  const gifDurWrapper = document.getElementById("gif-dur-wrapper");
+  const gifSnapWrapper = document.getElementById("gif-snap-wrapper");
+
+  if (gifMode === "snapshot") {
+    if (gifFpsWrapper) gifFpsWrapper.classList.add("d-none");
+    if (gifDurWrapper) gifDurWrapper.classList.add("d-none");
+    if (gifSnapWrapper) gifSnapWrapper.classList.remove("d-none");
+  } else if (gifMode === "frames_seq") {
+    if (gifFpsWrapper) gifFpsWrapper.classList.remove("d-none");
+    if (gifDurWrapper) gifDurWrapper.classList.remove("d-none");
+    if (gifSnapWrapper) gifSnapWrapper.classList.remove("d-none");
+  } else {
+    if (gifFpsWrapper) gifFpsWrapper.classList.remove("d-none");
+    if (gifDurWrapper) gifDurWrapper.classList.remove("d-none");
+    if (gifSnapWrapper) gifSnapWrapper.classList.add("d-none");
+  }
+}
+
 function bindFormEvents() {
   const outputNameInput = document.getElementById("output-file-name");
   if (outputNameInput) {
@@ -473,6 +561,7 @@ function bindFormEvents() {
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
       }
+      syncFormatSpecificUI();
       if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "comp-aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
         updateAutoOutputFilename();
       }
@@ -485,6 +574,7 @@ function bindFormEvents() {
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
       }
+      syncFormatSpecificUI();
       if (e.target.id === "cvt-container" || e.target.id === "aud-format" || e.target.id === "comp-aud-format" || e.target.id === "gif-mode" || e.target.id === "merge-format") {
         updateAutoOutputFilename();
       }
@@ -1141,9 +1231,11 @@ document.addEventListener("DOMContentLoaded", () => {
         playlistPanel.classList.add("d-none");
       }
     }
+    syncFormatSpecificUI();
     updateAutoOutputFilename();
     updateCommandPreview();
   });
+  syncFormatSpecificUI();
   updateAutoOutputFilename();
   updateCommandPreview();
 });
