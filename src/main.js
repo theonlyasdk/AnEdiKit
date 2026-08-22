@@ -13,6 +13,7 @@ import {
   moveBatchItemUp,
   moveBatchItemDown,
   initTrimmerControls,
+  initSavedBatchQueue,
 } from "./js/media.js";
 import { buildCommandForTool } from "./js/commands.js";
 import {
@@ -787,6 +788,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initToolsManager();
   initJobRunner();
   initTrimmerControls();
+  initSavedBatchQueue();
   initDragAndDrop((mediaInfo) => {
     if (mediaInfo) syncMediaDurationToTools(mediaInfo);
     updateAutoOutputFilename(true);

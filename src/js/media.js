@@ -1,5 +1,5 @@
 // Media Probing & File Interaction Module
-import { saveInputFile } from "./storage.js";
+import { saveInputFile, loadSavedBatchQueue, saveBatchQueue } from "./storage.js";
 
 let currentInputFile = "";
 let currentMediaInfo = null;
@@ -399,8 +399,8 @@ export async function selectOutputFolder(defaultPath = null) {
 }
 
 // Batch Queue State & Management
-let batchQueue = [];
-let selectedBatchIdx = -1;
+let batchQueue = loadSavedBatchQueue();
+let selectedBatchIdx = batchQueue.length > 0 ? 0 : -1;
 
 export function getBatchQueue() {
   return batchQueue;
@@ -415,9 +415,19 @@ export function setSelectedBatchIdx(idx) {
   renderBatchQueueUI();
 }
 
+export async function initSavedBatchQueue() {
+  batchQueue = loadSavedBatchQueue();
+  if (batchQueue.length > 0) {
+    selectedBatchIdx = 0;
+    await probeMedia(batchQueue[0].path);
+  }
+  renderBatchQueueUI();
+}
+
 export async function clearBatchQueue() {
   batchQueue = [];
   selectedBatchIdx = -1;
+  saveBatchQueue(batchQueue);
   await probeMedia("");
   renderBatchQueueUI();
 }
@@ -426,6 +436,7 @@ export async function removeBatchItem(index) {
   if (index >= 0 && index < batchQueue.length) {
     const wasActive = index === selectedBatchIdx;
     batchQueue.splice(index, 1);
+    saveBatchQueue(batchQueue);
     if (batchQueue.length === 0) {
       selectedBatchIdx = -1;
       await probeMedia("");
@@ -447,6 +458,7 @@ export function moveBatchIndexUp(idx) {
     batchQueue[idx] = batchQueue[idx - 1];
     batchQueue[idx - 1] = temp;
     selectedBatchIdx = idx - 1;
+    saveBatchQueue(batchQueue);
     renderBatchQueueUI();
   }
 }
@@ -457,6 +469,7 @@ export function moveBatchIndexDown(idx) {
     batchQueue[idx] = batchQueue[idx + 1];
     batchQueue[idx + 1] = temp;
     selectedBatchIdx = idx + 1;
+    saveBatchQueue(batchQueue);
     renderBatchQueueUI();
   }
 }
@@ -487,6 +500,8 @@ export async function addFilesToBatch(paths) {
     }
   }
 
+  saveBatchQueue(batchQueue);
+
   if (batchQueue.length > 0) {
     const targetIdx = selectedBatchIdx >= 0 && selectedBatchIdx < batchQueue.length
       ? selectedBatchIdx
@@ -500,6 +515,7 @@ export async function addFilesToBatch(paths) {
 export function updateBatchItemStatus(index, status) {
   if (index >= 0 && index < batchQueue.length) {
     batchQueue[index].status = status;
+    saveBatchQueue(batchQueue);
     renderBatchQueueUI();
   }
 }

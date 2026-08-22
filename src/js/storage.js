@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   SETTINGS: "anedikit:settings",
   LAST_INPUT_FILE: "anedikit:last_input_file",
   YTDLP_LAST_DOWNLOAD_DIR: "anedikit:last_ytdlp_out_dir",
+  BATCH_QUEUE: "anedikit:batch_queue",
   TOOL_PARAMS_PREFIX: "anedikit:tool_params:",
 };
 
@@ -79,5 +80,32 @@ export function saveLastYtDlpOutDir(path) {
     localStorage.setItem(STORAGE_KEYS.YTDLP_LAST_DOWNLOAD_DIR, path || "");
   } catch (err) {
     console.warn("Failed to save last yt-dlp out dir:", err);
+  }
+}
+
+export function loadSavedBatchQueue() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.BATCH_QUEUE);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    // Keep track of finished items and do not restore items with finished status
+    return list
+      .filter((item) => item && item.path && item.status !== "done")
+      .map((item) => ({
+        ...item,
+        status: item.status === "processing" ? "pending" : item.status,
+      }));
+  } catch (err) {
+    console.warn("Failed to load batch queue from storage:", err);
+    return [];
+  }
+}
+
+export function saveBatchQueue(queue) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.BATCH_QUEUE, JSON.stringify(queue || []));
+  } catch (err) {
+    console.warn("Failed to save batch queue:", err);
   }
 }
