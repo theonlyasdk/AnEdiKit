@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+meedia-studio
+__pycache__/
+*.pyc

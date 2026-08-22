@@ -37,6 +37,95 @@ export function resolveDestinationPath(defaultFileName, settings = {}, inputFile
   return `${outDir.replace(/[/\\]+$/, "")}\\${targetName}`;
 }
 
+let detectedHardwareInfo = null;
+
+export function setDetectedHardware(info) {
+  detectedHardwareInfo = info;
+}
+
+export function getResolvedHwaccel(settings = {}) {
+  const mode = settings.hwAccel || "auto";
+  if (mode === "auto") {
+    if (detectedHardwareInfo?.nvidia_gpu) return "cuda";
+    if (detectedHardwareInfo?.intel_gpu) return "qsv";
+    if (detectedHardwareInfo?.amd_gpu) return "amf";
+    return "cpu";
+  }
+  return mode;
+}
+
+export function mapHardwareEncoder(targetCodec, hwChoice) {
+  if (hwChoice === "cuda") {
+    if (targetCodec === "libx264" || targetCodec === "h264") return "h264_nvenc";
+    if (targetCodec === "libx265" || targetCodec === "hevc" || targetCodec === "h265") return "hevc_nvenc";
+    if (targetCodec === "libsvtav1" || targetCodec === "av1") return "av1_nvenc";
+  } else if (hwChoice === "qsv") {
+    if (targetCodec === "libx264" || targetCodec === "h264") return "h264_qsv";
+    if (targetCodec === "libx265" || targetCodec === "hevc" || targetCodec === "h265") return "hevc_qsv";
+    if (targetCodec === "libsvtav1" || targetCodec === "av1") return "av1_qsv";
+    if (targetCodec === "libvpx-vp9" || targetCodec === "vp9") return "vp9_qsv";
+  } else if (hwChoice === "amf") {
+    if (targetCodec === "libx264" || targetCodec === "h264") return "h264_amf";
+    if (targetCodec === "libx265" || targetCodec === "hevc" || targetCodec === "h265") return "hevc_amf";
+    if (targetCodec === "libsvtav1" || targetCodec === "av1") return "av1_amf";
+  }
+  return targetCodec;
+}
+
+export function applyVideoEncoderOptions(args, targetCodec, settings = {}, options = {}) {
+  const hwChoice = getResolvedHwaccel(settings);
+  const crf = options.crf || "23";
+  const preset = options.preset || "medium";
+  const bitrate = options.bitrate || null;
+
+  if (targetCodec === "copy") {
+    args.push("-c:v", "copy");
+    return;
+  }
+
+  const mappedEncoder = mapHardwareEncoder(targetCodec, hwChoice);
+  args.push("-c:v", mappedEncoder);
+
+  if (bitrate) {
+    args.push("-b:v", bitrate);
+    if (options.maxrate) args.push("-maxrate", options.maxrate);
+    if (options.bufsize) args.push("-bufsize", options.bufsize);
+  }
+
+  if (mappedEncoder.endsWith("_nvenc")) {
+    if (!bitrate) {
+      args.push("-cq", crf);
+    }
+    const nvPreset = preset === "ultrafast" ? "p1" : preset === "veryfast" ? "p2" : preset === "fast" ? "p3" : preset === "slow" ? "p6" : "p4";
+    args.push("-preset", nvPreset);
+    args.push("-pix_fmt", "yuv420p");
+  } else if (mappedEncoder.endsWith("_qsv")) {
+    if (!bitrate) {
+      args.push("-global_quality", crf);
+    }
+    args.push("-preset", preset);
+    args.push("-pix_fmt", "nv12");
+  } else if (mappedEncoder.endsWith("_amf")) {
+    if (!bitrate) {
+      args.push("-rc", "cqp", "-qp_i", crf, "-qp_p", crf);
+    }
+    args.push("-pix_fmt", "yuv420p");
+  } else {
+    // Software CPU Encoder
+    if (!bitrate) {
+      args.push("-crf", crf);
+    }
+    if (mappedEncoder === "libsvtav1") {
+      args.push("-preset", preset === "ultrafast" ? "8" : preset === "fast" ? "7" : preset === "slow" ? "4" : "6");
+    } else {
+      args.push("-preset", preset);
+    }
+    if (mappedEncoder === "libx264" || mappedEncoder === "libx265") {
+      args.push("-pix_fmt", "yuv420p");
+    }
+  }
+}
+
 export function buildConvertCommand(inputFile, outputDir, settings = {}) {
   const args = [];
   const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
@@ -56,13 +145,13 @@ export function buildConvertCommand(inputFile, outputDir, settings = {}) {
   args.push("-y");
 
   // Hardware acceleration (only for standard video formats, not GIF)
-  const hwAccel = settings.hwAccel || "auto";
+  const hwChoice = getResolvedHwaccel(settings);
   if (container !== "gif" && container !== "webp") {
-    if (hwAccel === "cuda") {
+    if (hwChoice === "cuda") {
       args.push("-hwaccel", "cuda");
-    } else if (hwAccel === "qsv") {
+    } else if (hwChoice === "qsv") {
       args.push("-hwaccel", "qsv");
-    } else if (hwAccel === "amf") {
+    } else if (hwChoice === "amf") {
       args.push("-hwaccel", "d3d11va");
     }
   }
@@ -124,17 +213,8 @@ export function buildConvertCommand(inputFile, outputDir, settings = {}) {
       );
     }
 
-    // Video Codec
-    if (vcodec === "copy") {
-      args.push("-c:v", "copy");
-    } else {
-      args.push("-c:v", vcodec);
-      args.push("-crf", crf);
-      args.push("-preset", preset);
-      if (vcodec === "libx264" || vcodec === "libx265") {
-        args.push("-pix_fmt", "yuv420p");
-      }
-    }
+    // Video Codec with hardware encoder mapping
+    applyVideoEncoderOptions(args, vcodec, settings, { crf, preset });
 
     // Audio Codec
     if (acodec === "copy") {
@@ -371,6 +451,15 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
 
   const dst = resolveDestinationPath(`${baseName}_compressed.mp4`, settings, src);
 
+  const hwChoice = getResolvedHwaccel(settings);
+  if (hwChoice === "cuda") {
+    args.push("-hwaccel", "cuda");
+  } else if (hwChoice === "qsv") {
+    args.push("-hwaccel", "qsv");
+  } else if (hwChoice === "amf") {
+    args.push("-hwaccel", "d3d11va");
+  }
+
   args.push("-i", src);
 
   // Resolution Filter
@@ -382,19 +471,13 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
     );
   }
 
-  // Video Codec & Bitrate Budgeting
-  args.push("-c:v", vcodec);
-  args.push("-b:v", `${videoBitrateK}k`);
-  args.push("-maxrate", `${Math.round(videoBitrateK * 1.4)}k`);
-  args.push("-bufsize", `${videoBitrateK * 2}k`);
-  
-  if (vcodec === "libx264") {
-    args.push("-preset", "medium", "-pix_fmt", "yuv420p");
-  } else if (vcodec === "libx265") {
-    args.push("-preset", "medium", "-tag:v", "hvc1");
-  } else if (vcodec === "libsvtav1") {
-    args.push("-preset", "6");
-  }
+  // Video Codec & Bitrate Budgeting with hardware encoder mapping
+  applyVideoEncoderOptions(args, vcodec, settings, {
+    bitrate: `${videoBitrateK}k`,
+    maxrate: `${Math.round(videoBitrateK * 1.4)}k`,
+    bufsize: `${videoBitrateK * 2}k`,
+    preset: "medium",
+  });
 
   // Audio Codec
   args.push("-c:a", "aac");
@@ -588,7 +671,8 @@ export function buildMergeCommand(mergeFiles = [], outputDir, settings = {}, con
     } else {
       const inputs = files.map((_, i) => `[${i}:v:0][${i}:a:0]`).join("");
       args.push("-filter_complex", `${inputs}concat=n=${count}:v=1:a=1[outv][outa]`, "-map", "[outv]", "-map", "[outa]");
-      args.push("-c:v", "libx264", "-crf", "22", "-preset", "medium", "-c:a", "aac", "-b:a", "192k");
+      applyVideoEncoderOptions(args, "libx264", settings, { crf: "22", preset: "medium" });
+      args.push("-c:a", "aac", "-b:a", "192k");
     }
   }
 
@@ -960,6 +1044,423 @@ export function buildYtDlpSubtitlesCommand(url, outputDir, settings = {}) {
   };
 }
 
+function buildAtempoFilter(speed) {
+  let remaining = speed;
+  const filters = [];
+  while (remaining > 2.0) {
+    filters.push("atempo=2.0");
+    remaining /= 2.0;
+  }
+  while (remaining < 0.5) {
+    filters.push("atempo=0.5");
+    remaining /= 0.5;
+  }
+  filters.push(`atempo=${remaining.toFixed(4)}`);
+  return filters.join(",");
+}
+
+export function buildSpeedMotionCommand(inputFile, outputDir, settings = {}, durationSec = null) {
+  const args = ["-y"];
+  const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "output";
+
+  const presetVal = document.getElementById("speed-preset")?.value || "2.0";
+  let speed = 2.0;
+  if (presetVal === "custom") {
+    speed = parseFloat(document.getElementById("speed-custom-val")?.value) || 2.0;
+  } else {
+    speed = parseFloat(presetVal) || 2.0;
+  }
+  if (speed <= 0) speed = 1.0;
+
+  const audioMode = document.getElementById("speed-audio-mode")?.value || "atempo";
+  const interpMode = document.getElementById("speed-interp")?.value || "none";
+  const container = document.getElementById("speed-container")?.value || "mp4";
+
+  const dst = resolveDestinationPath(`${baseName}_${speed}x.${container}`, settings, src);
+
+  const hwChoice = getResolvedHwaccel(settings);
+  if (hwChoice === "cuda") {
+    args.push("-hwaccel", "cuda");
+  } else if (hwChoice === "qsv") {
+    args.push("-hwaccel", "qsv");
+  } else if (hwChoice === "amf") {
+    args.push("-hwaccel", "d3d11va");
+  }
+
+  args.push("-i", src);
+
+  // Video Filter
+  const vFilters = [`setpts=${(1 / speed).toFixed(6)}*PTS`];
+  if (interpMode === "blend") {
+    vFilters.push("tblend=all_mode=average");
+  } else if (interpMode === "minterpolate") {
+    vFilters.push("minterpolate=mi_mode=mci:mc_mode=aobmc:search_param=8:scd=fdiff:fps=60");
+  }
+
+  // Audio filter handling
+  if (audioMode === "strip") {
+    args.push("-vf", vFilters.join(","), "-an");
+  } else if (audioMode === "drop") {
+    args.push("-vf", vFilters.join(","), "-c:a", "copy");
+  } else {
+    // Pitch corrected audio
+    const atempoStr = buildAtempoFilter(speed);
+    args.push("-filter_complex", `[0:v]${vFilters.join(",")}[v];[0:a]${atempoStr}[a]`, "-map", "[v]", "-map", "[a]");
+  }
+
+  applyVideoEncoderOptions(args, "libx264", settings, { crf: "22", preset: "medium" });
+  if (audioMode === "atempo") {
+    args.push("-c:a", "aac", "-b:a", "192k");
+  }
+
+  args.push("-progress", "pipe:1", dst);
+
+  const newDur = durationSec ? durationSec / speed : null;
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    duration: newDur,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") || a.includes("[") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildAspectCropCommand(inputFile, outputDir, settings = {}, durationSec = null) {
+  const args = ["-y"];
+  const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "output";
+
+  const ratio = document.getElementById("crop-ratio")?.value || "9:16";
+  const mode = document.getElementById("crop-mode")?.value || "center_crop";
+  const crf = document.getElementById("crop-crf")?.value || "23";
+  const container = document.getElementById("crop-container")?.value || "mp4";
+
+  const dst = resolveDestinationPath(`${baseName}_${ratio.replace(":", "x")}.${container}`, settings, src);
+
+  const hwChoice = getResolvedHwaccel(settings);
+  if (hwChoice === "cuda") {
+    args.push("-hwaccel", "cuda");
+  } else if (hwChoice === "qsv") {
+    args.push("-hwaccel", "qsv");
+  } else if (hwChoice === "amf") {
+    args.push("-hwaccel", "d3d11va");
+  }
+
+  args.push("-i", src);
+
+  // Ratio dimensions mapping
+  let [rw, rh] = ratio.split(":").map((v) => parseFloat(v));
+  if (!rw || !rh) { rw = 9; rh = 16; }
+
+  if (mode === "center_crop") {
+    args.push("-vf", `crop='min(iw,ih*(${rw}/${rh}))':'min(ih,iw*(${rh}/${rw}))'`);
+    applyVideoEncoderOptions(args, "libx264", settings, { crf, preset: "medium" });
+    args.push("-c:a", "copy");
+  } else if (mode === "pad_black") {
+    args.push("-vf", `pad='max(iw,ih*(${rw}/${rh}))':'max(ih,iw*(${rh}/${rw}))':(ow-iw)/2:(oh-ih)/2:black`);
+    applyVideoEncoderOptions(args, "libx264", settings, { crf, preset: "medium" });
+    args.push("-c:a", "copy");
+  } else if (mode === "pad_blur") {
+    let targetW = 1080;
+    let targetH = Math.round(targetW * (rh / rw));
+    if (targetH % 2 !== 0) targetH++;
+    args.push(
+      "-filter_complex",
+      `[0:v]scale=${targetW}:${targetH}:force_original_aspect_ratio=increase,crop=${targetW}:${targetH},boxblur=20:5[bg];[0:v]scale=${targetW}:${targetH}:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[v]`,
+      "-map", "[v]",
+      "-map", "0:a?",
+    );
+    applyVideoEncoderOptions(args, "libx264", settings, { crf, preset: "medium" });
+    args.push("-c:a", "copy");
+  } else {
+    let targetW = 1080;
+    let targetH = Math.round(targetW * (rh / rw));
+    if (targetH % 2 !== 0) targetH++;
+    args.push("-vf", `scale=${targetW}:${targetH}`);
+    applyVideoEncoderOptions(args, "libx264", settings, { crf, preset: "medium" });
+    args.push("-c:a", "copy");
+  }
+
+  args.push("-progress", "pipe:1", dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    duration: durationSec,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") || a.includes("[") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildStabilizeCommand(inputFile, outputDir, settings = {}, durationSec = null) {
+  const args = ["-y"];
+  const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "output";
+
+  const smooth = document.getElementById("stab-smooth")?.value || "medium";
+  const border = document.getElementById("stab-border")?.value || "crop";
+  const container = document.getElementById("stab-container")?.value || "mp4";
+
+  const dst = resolveDestinationPath(`${baseName}_stabilized.${container}`, settings, src);
+
+  const hwChoice = getResolvedHwaccel(settings);
+  if (hwChoice === "cuda") {
+    args.push("-hwaccel", "cuda");
+  } else if (hwChoice === "qsv") {
+    args.push("-hwaccel", "qsv");
+  } else if (hwChoice === "amf") {
+    args.push("-hwaccel", "d3d11va");
+  }
+
+  args.push("-i", src);
+
+  let rx = 32;
+  let ry = 32;
+  if (smooth === "low") { rx = 16; ry = 16; }
+  else if (smooth === "high") { rx = 64; ry = 64; }
+  else if (smooth === "tripod") { rx = 64; ry = 64; }
+
+  let edgeStr = border === "black" ? "blank" : "mirror";
+  let filterStr = `deshake=rx=${rx}:ry=${ry}:edge=${edgeStr}:blocksize=32:contrast=125:search=0`;
+  if (border === "crop") {
+    filterStr += ",crop=iw*0.92:ih*0.92,scale=iw:ih";
+  }
+
+  args.push("-vf", filterStr);
+  applyVideoEncoderOptions(args, "libx264", settings, { crf: "20", preset: "medium" });
+  args.push("-c:a", "copy", "-progress", "pipe:1", dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    duration: durationSec,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildNormalizeCommand(inputFile, outputDir, settings = {}, durationSec = null) {
+  const args = ["-y"];
+  const src = inputFile || "C:\\Users\\User\\Videos\\input_sample.mp4";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "output";
+
+  const target = document.getElementById("norm-target")?.value || "spotify_youtube";
+  const customLufs = document.getElementById("norm-custom-lufs")?.value || "-14";
+  const tp = document.getElementById("norm-tp")?.value || "-1.0";
+  const videoMode = document.getElementById("norm-video-mode")?.value || "copy";
+  const acodec = document.getElementById("norm-acodec")?.value || "aac";
+
+  let ext = "mp4";
+  if (videoMode === "strip") {
+    ext = acodec === "libmp3lame" ? "mp3" : acodec === "libopus" ? "opus" : acodec === "flac" ? "flac" : acodec === "pcm_s16le" ? "wav" : "m4a";
+  }
+
+  const dst = resolveDestinationPath(`${baseName}_normalized.${ext}`, settings, src);
+
+  args.push("-i", src);
+
+  let afFilter = `loudnorm=I=-14:TP=${tp}:LRA=11`;
+  if (target === "apple_podcast") {
+    afFilter = `loudnorm=I=-16:TP=${tp}:LRA=11`;
+  } else if (target === "ebu_r128") {
+    afFilter = `loudnorm=I=-23:TP=${tp}:LRA=11`;
+  } else if (target === "custom") {
+    afFilter = `loudnorm=I=${customLufs}:TP=${tp}:LRA=11`;
+  } else if (target === "dynaudnorm") {
+    afFilter = "dynaudnorm=f=150:g=15:p=0.95";
+  } else if (target === "peak") {
+    afFilter = "volume=0dB";
+  }
+
+  if (videoMode === "strip") {
+    args.push("-vn", "-af", afFilter, "-c:a", acodec);
+  } else {
+    args.push("-c:v", "copy", "-af", afFilter, "-c:a", acodec);
+  }
+
+  if (acodec === "aac" || acodec === "libmp3lame") {
+    args.push("-b:a", "256k");
+  }
+
+  args.push("-progress", "pipe:1", dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    duration: durationSec,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildBgRemoverCommand(inputFile, outputDir, settings = {}) {
+  const src = inputFile || "C:\\Users\\User\\Pictures\\photo.png";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "output";
+  const model = document.getElementById("bg-model")?.value || "u2net";
+  const outputMode = document.getElementById("bg-output-mode")?.value || "transparent";
+  const bgColor = document.getElementById("bg-color")?.value || "#ffffff";
+  const blurRadius = document.getElementById("bg-blur-radius")?.value || "25";
+  const shouldReplace = document.getElementById("ai-replace-source")?.checked || false;
+
+  const defaultOut = `${baseName}_nobg.png`;
+  const dst = shouldReplace ? src : resolveDestinationPath(defaultOut, settings, src);
+  const params = {
+    input_path: src,
+    output_path: dst,
+    model,
+    output_mode: outputMode,
+    bg_color: bgColor,
+    blur_radius: parseInt(blurRadius, 10),
+    replace_source: shouldReplace,
+  };
+
+  return {
+    executable: "image_ai",
+    task: "bg_remover",
+    params,
+    destination: dst,
+    fullString: `python src/py/image_ai_engine.py --task bg_remover --params "${JSON.stringify(params).replace(/"/g, '\\"')}"`,
+  };
+}
+
+export function buildAiUpscalerCommand(inputFile, outputDir, settings = {}) {
+  const src = inputFile || "C:\\Users\\User\\Pictures\\photo.png";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "output";
+  const scale = parseInt(document.getElementById("upscale-factor")?.value || "2", 10);
+  const model = document.getElementById("upscale-model")?.value || "realesrgan-x4plus";
+  const denoise = parseFloat(document.getElementById("upscale-denoise")?.value || "0");
+  const shouldReplace = document.getElementById("ai-replace-source")?.checked || false;
+
+  const ext = (src.split(".").pop() || "png").toLowerCase();
+  const defaultOut = `${baseName}_${scale}x_upscaled.${ext === "jpg" ? "png" : ext}`;
+  const dst = shouldReplace ? src : resolveDestinationPath(defaultOut, settings, src);
+  const params = {
+    input_path: src,
+    output_path: dst,
+    scale,
+    model,
+    denoise,
+    replace_source: shouldReplace,
+  };
+
+  return {
+    executable: "image_ai",
+    task: "ai_upscaler",
+    params,
+    destination: dst,
+    fullString: `python src/py/image_ai_engine.py --task ai_upscaler --params "${JSON.stringify(params).replace(/"/g, '\\"')}"`,
+  };
+}
+
+export function buildVectorizerCommand(inputFile, outputDir, settings = {}) {
+  const src = inputFile || "C:\\Users\\User\\Pictures\\graphic.png";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "output";
+  const mode = document.getElementById("vec-mode")?.value || "color";
+  const numColors = parseInt(document.getElementById("vec-colors")?.value || "8", 10);
+  const tolerance = parseFloat(document.getElementById("vec-tolerance")?.value || "1.0");
+  const monochromeColor = document.getElementById("vec-mono-color")?.value || "#000000";
+  const shouldReplace = document.getElementById("ai-replace-source")?.checked || false;
+
+  const defaultOut = `${baseName}_vector.svg`;
+  const dst = shouldReplace && src.toLowerCase().endsWith(".svg") ? src : resolveDestinationPath(defaultOut, settings, src);
+  const params = {
+    input_path: src,
+    output_path: dst,
+    mode,
+    num_colors: numColors,
+    tolerance,
+    monochrome_color: monochromeColor,
+    replace_source: shouldReplace,
+  };
+
+  return {
+    executable: "image_ai",
+    task: "vectorizer",
+    params,
+    destination: dst,
+    fullString: `python src/py/image_ai_engine.py --task vectorizer --params "${JSON.stringify(params).replace(/"/g, '\\"')}"`,
+  };
+}
+
+export function buildRestoreDenoiseCommand(inputFile, outputDir, settings = {}) {
+  const src = inputFile || "C:\\Users\\User\\Pictures\\photo.png";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "output";
+  const method = document.getElementById("rest-method")?.value || "nlmeans";
+  const strength = parseFloat(document.getElementById("rest-strength")?.value || "10");
+  const shouldReplace = document.getElementById("ai-replace-source")?.checked || false;
+
+  const ext = (src.split(".").pop() || "png").toLowerCase();
+  const defaultOut = `${baseName}_restored.${ext}`;
+  const dst = shouldReplace ? src : resolveDestinationPath(defaultOut, settings, src);
+  const params = {
+    input_path: src,
+    output_path: dst,
+    method,
+    strength,
+    replace_source: shouldReplace,
+  };
+
+  return {
+    executable: "image_ai",
+    task: "restore_denoise",
+    params,
+    destination: dst,
+    fullString: `python src/py/image_ai_engine.py --task restore_denoise --params "${JSON.stringify(params).replace(/"/g, '\\"')}"`,
+  };
+}
+
+export function buildIconGeneratorCommand(inputFile, outputDir, settings = {}) {
+  const src = inputFile || "C:\\Users\\User\\Pictures\\logo.png";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "app_icons";
+  const fitMode = document.getElementById("icon-fit-mode")?.value || "contain";
+  const bgColor = document.getElementById("icon-bg-color")?.value || "transparent";
+
+  const customOut = document.getElementById("output-file-name")?.dataset?.fullPath || "";
+  let outDir = customOut && !customOut.includes(".") ? customOut : `${settings.outputDir || "C:\\Users\\User\\Pictures"}\\${baseName}_icons`;
+
+  const params = {
+    input_path: src,
+    output_dir: outDir,
+    fit_mode: fitMode,
+    bg_color: bgColor,
+  };
+
+  return {
+    executable: "image_ai",
+    task: "icon_generator",
+    params,
+    destination: outDir,
+    fullString: `python src/py/image_ai_engine.py --task icon_generator --params "${JSON.stringify(params).replace(/"/g, '\\"')}"`,
+  };
+}
+
+export function buildMetadataCleanerCommand(inputFile, outputDir, settings = {}) {
+  const src = inputFile || "C:\\Users\\User\\Pictures\\photo.jpg";
+  const baseName = src.split(/[/\\]/).pop()?.replace(/\.[^/.]+$/, "") || "output";
+  const action = document.getElementById("meta-action")?.value || "strip_all";
+  const shouldReplace = document.getElementById("ai-replace-source")?.checked || false;
+
+  const ext = (src.split(".").pop() || "jpg").toLowerCase();
+  const defaultOut = `${baseName}_clean.${ext}`;
+  const dst = shouldReplace ? src : resolveDestinationPath(defaultOut, settings, src);
+  const params = {
+    input_path: src,
+    output_path: dst,
+    action,
+    replace_source: shouldReplace,
+  };
+
+  return {
+    executable: "image_ai",
+    task: "metadata_cleaner",
+    params,
+    destination: dst,
+    fullString: `python src/py/image_ai_engine.py --task metadata_cleaner --params "${JSON.stringify(params).replace(/"/g, '\\"')}"`,
+  };
+}
+
 export function buildCommandForTool(
   toolId,
   inputFile,
@@ -974,6 +1475,14 @@ export function buildCommandForTool(
       return buildAudioExtractCommand(inputFile, outputDir, settings);
     case "trim":
       return buildTrimCommand(inputFile, outputDir, settings);
+    case "speed_motion":
+      return buildSpeedMotionCommand(inputFile, outputDir, settings);
+    case "aspect_crop":
+      return buildAspectCropCommand(inputFile, outputDir, settings);
+    case "stabilize":
+      return buildStabilizeCommand(inputFile, outputDir, settings);
+    case "normalize":
+      return buildNormalizeCommand(inputFile, outputDir, settings);
     case "compress":
       return buildCompressCommand(inputFile, outputDir, settings);
     case "compress_audio":
@@ -984,6 +1493,18 @@ export function buildCommandForTool(
       return buildMuteReplaceCommand(inputFile, outputDir, settings);
     case "gif_frames":
       return buildGifFramesCommand(inputFile, outputDir, settings);
+    case "bg_remover":
+      return buildBgRemoverCommand(inputFile, outputDir, settings);
+    case "ai_upscaler":
+      return buildAiUpscalerCommand(inputFile, outputDir, settings);
+    case "vectorizer":
+      return buildVectorizerCommand(inputFile, outputDir, settings);
+    case "restore_denoise":
+      return buildRestoreDenoiseCommand(inputFile, outputDir, settings);
+    case "icon_generator":
+      return buildIconGeneratorCommand(inputFile, outputDir, settings);
+    case "metadata_cleaner":
+      return buildMetadataCleanerCommand(inputFile, outputDir, settings);
     case "custom":
       return buildCustomCommand(inputFile, outputDir, settings);
     case "ytdlp_video":

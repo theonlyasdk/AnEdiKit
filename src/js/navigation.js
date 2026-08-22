@@ -1,7 +1,8 @@
 // Navigation & View Transitions Module
 import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings } from "./storage.js";
+import { isJobRunning } from "./runner.js";
 
-const TOOL_METADATA = {
+export const TOOL_METADATA = {
   convert: {
     title: "Convert Video Formats",
     desc: "Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.",
@@ -16,6 +17,26 @@ const TOOL_METADATA = {
     title: "Trim and Cut Media",
     desc: "Cut video or audio clips instantly with lossless stream copy or accurate re-encode.",
     viewId: "view-trim",
+  },
+  speed_motion: {
+    title: "Speed & Motion Control",
+    desc: "Speed up, slow down, timelapse, hyperlapse, pitch correction, and optical flow frame interpolation.",
+    viewId: "view-speed_motion",
+  },
+  aspect_crop: {
+    title: "Aspect Ratio & Crop Framing",
+    desc: "Convert aspect ratios for TikTok 9:16, Square 1:1, Ultrawide 21:9 with center crop or blurred background.",
+    viewId: "view-aspect_crop",
+  },
+  stabilize: {
+    title: "Video Stabilization & Deshake",
+    desc: "Remove handheld camera shakes and stabilize action or drone footage using native FFmpeg algorithms.",
+    viewId: "view-stabilize",
+  },
+  normalize: {
+    title: "Volume Normalization & Loudness",
+    desc: "Standardize audio loudness to YouTube, Spotify, Podcasts, or broadcast EBU R128 standards.",
+    viewId: "view-normalize",
   },
   compress: {
     title: "Compress Video",
@@ -46,6 +67,36 @@ const TOOL_METADATA = {
     title: "Custom FFmpeg Command",
     desc: "Execute custom FFmpeg argument strings with live command preview and real-time execution logs.",
     viewId: "view-custom",
+  },
+  bg_remover: {
+    title: "AI Background Remover",
+    desc: "Remove background and extract subjects locally using on-device neural segmentation models.",
+    viewId: "view-bg_remover",
+  },
+  ai_upscaler: {
+    title: "AI Image Upscaler",
+    desc: "Super-resolution deep learning 2x, 3x, 4x image upscaling with edge sharpening and noise reduction.",
+    viewId: "view-ai_upscaler",
+  },
+  vectorizer: {
+    title: "Image Vectorizer (SVG)",
+    desc: "Convert raster images (PNG, JPG) into clean, scalable vector SVG layers and curves.",
+    viewId: "view-vectorizer",
+  },
+  restore_denoise: {
+    title: "Image Restoration & Denoise",
+    desc: "Remove photo noise, grain, and blur using Non-Local Means, Bilateral, and Unsharp Mask algorithms.",
+    viewId: "view-restore_denoise",
+  },
+  icon_generator: {
+    title: "Icon & Asset Generator",
+    desc: "Generate multi-resolution Windows .ico, Apple Touch icons, Android PWA assets, and web favicons.",
+    viewId: "view-icon_generator",
+  },
+  metadata_cleaner: {
+    title: "Metadata Viewer & Cleaner",
+    desc: "Inspect and strip EXIF tags, GPS coordinates, and camera metadata for photo privacy.",
+    viewId: "view-metadata_cleaner",
   },
   ytdlp_video: {
     title: "Download Video",
@@ -78,12 +129,22 @@ const TOOL_ORDER = [
   "convert",
   "compress",
   "trim",
+  "speed_motion",
+  "aspect_crop",
+  "stabilize",
+  "normalize",
   "mute_replace",
   "gif_frames",
   "extract_audio",
   "compress_audio",
   "merge",
   "custom",
+  "bg_remover",
+  "ai_upscaler",
+  "vectorizer",
+  "restore_denoise",
+  "icon_generator",
+  "metadata_cleaner",
   "ytdlp_video",
   "ytdlp_playlist",
   "ytdlp_audio",
@@ -130,6 +191,7 @@ export function updateSidebarIndicator(activeBtn, isSettings = false) {
 export function switchTool(toolId, onToolChanged) {
   if (!TOOL_METADATA[toolId]) return;
   if (toolId === currentActiveTool) return;
+  if (isJobRunning() && toolId !== "settings") return;
 
   const prevIndex = TOOL_ORDER.indexOf(currentActiveTool);
   const nextIndex = TOOL_ORDER.indexOf(toolId);
@@ -138,8 +200,8 @@ export function switchTool(toolId, onToolChanged) {
   currentActiveTool = toolId;
   saveActiveTool(toolId);
 
-  // Update nav buttons active states across tool-nav, ytdlp-nav, and settings-nav
-  const allToolButtons = document.querySelectorAll("#tool-nav .nav-link, #ytdlp-nav .nav-link");
+  // Update nav buttons active states across tool-nav, image-ai-nav, ytdlp-nav, and settings-nav
+  const allToolButtons = document.querySelectorAll("#tool-nav .nav-link, #image-ai-nav .nav-link, #ytdlp-nav .nav-link");
   const allSettingsButtons = document.querySelectorAll('button[data-tool="settings"]');
   const desktopSettingsBtn = document.querySelector("#settings-nav .nav-link");
 
@@ -210,18 +272,41 @@ export function switchTool(toolId, onToolChanged) {
     );
   }
 
-  // Toggle shared input cards (FFmpeg input file vs yt-dlp URL input)
+  // Toggle shared input cards (FFmpeg input file vs Image & AI queue vs yt-dlp URL input)
   const isYtDlp = toolId.startsWith("ytdlp_");
   const isSettings = toolId === "settings";
+  const isImageTool = [
+    "bg_remover",
+    "ai_upscaler",
+    "vectorizer",
+    "restore_denoise",
+    "icon_generator",
+    "metadata_cleaner",
+  ].includes(toolId);
+
   const sharedInputCard = document.getElementById("shared-input-card");
   const sharedUrlCard = document.getElementById("shared-url-card");
+  const imageAiWorkspaceCard = document.getElementById("image-ai-workspace-card");
+  const cmdPreviewCard = document.getElementById("command-preview-card");
 
   if (sharedInputCard) {
-    sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings);
+    sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings || isImageTool);
   }
+  if (imageAiWorkspaceCard) {
+    imageAiWorkspaceCard.classList.toggle("d-none", !isImageTool || isSettings);
+  }
+  if (cmdPreviewCard) {
+    cmdPreviewCard.classList.toggle("d-none", isSettings || isImageTool);
+  }
+
+  const aiReplaceSourceWrapper = document.getElementById("ai-replace-source-wrapper");
+  if (aiReplaceSourceWrapper) {
+    aiReplaceSourceWrapper.classList.toggle("d-none", !isImageTool || isSettings);
+  }
+
   const batchQueueContainer = document.getElementById("batch-queue-container");
   if (batchQueueContainer) {
-    batchQueueContainer.classList.toggle("d-none", toolId === "merge" || isYtDlp || isSettings);
+    batchQueueContainer.classList.toggle("d-none", toolId === "merge" || isYtDlp || isSettings || isImageTool);
   }
   if (sharedUrlCard) {
     sharedUrlCard.classList.toggle("d-none", !isYtDlp || isSettings);
@@ -298,24 +383,25 @@ export function initNavigation(onToolChanged) {
     });
   }
 
-  if (btnToggle) {
+  const brandCol = document.querySelector(".header-brand-col") || btnToggle;
+  if (brandCol) {
     let lastScrollTime = 0;
-    btnToggle.addEventListener(
+    brandCol.addEventListener(
       "wheel",
       (e) => {
         e.preventDefault();
-        const now = Date.now();
-        if (now - lastScrollTime < 100) return;
+        const now = performance.now();
+        if (now - lastScrollTime < 25) return;
         lastScrollTime = now;
 
         const curIdx = TOOL_ORDER.indexOf(currentActiveTool);
         if (curIdx === -1) return;
 
-        if (e.deltaY > 0) {
+        if (e.deltaY > 0 || e.deltaX > 0) {
           // Scroll down -> Next tool
           const nextIdx = (curIdx + 1) % TOOL_ORDER.length;
           switchTool(TOOL_ORDER[nextIdx], onToolChanged);
-        } else if (e.deltaY < 0) {
+        } else if (e.deltaY < 0 || e.deltaX < 0) {
           // Scroll up -> Previous tool
           const prevIdx = (curIdx - 1 + TOOL_ORDER.length) % TOOL_ORDER.length;
           switchTool(TOOL_ORDER[prevIdx], onToolChanged);
@@ -332,11 +418,67 @@ export function initNavigation(onToolChanged) {
   }
 
   allToolButtons.forEach((btn) => {
+    btn.addEventListener("mousemove", (e) => {
+      const rect = btn.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      btn.style.setProperty("--mouse-x", `${x}px`);
+      btn.style.setProperty("--mouse-y", `${y}px`);
+    });
+
+    btn.addEventListener("mousedown", (e) => {
+      const rect = btn.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const size = Math.max(rect.width, rect.height) * 1.5;
+
+      const ripple = document.createElement("span");
+      ripple.className = "fluent-ripple";
+      ripple.style.width = `${size}px`;
+      ripple.style.height = `${size}px`;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+
+      btn.appendChild(ripple);
+      ripple.addEventListener("animationend", () => {
+        ripple.remove();
+      });
+    });
+
     btn.addEventListener("click", () => {
       const tool = btn.dataset.tool;
       switchTool(tool, onToolChanged);
     });
   });
+
+  // Container-level proximity border tracking across adjacent sidebar items
+  const sidebarPanel = document.getElementById("sidebar-scroll-container");
+  if (sidebarPanel) {
+    sidebarPanel.addEventListener("mousemove", (e) => {
+      const proximityThreshold = 80;
+      allToolButtons.forEach((btn) => {
+        const rect = btn.getBoundingClientRect();
+        const withinX = e.clientX >= rect.left - proximityThreshold && e.clientX <= rect.right + proximityThreshold;
+        const withinY = e.clientY >= rect.top - proximityThreshold && e.clientY <= rect.bottom + proximityThreshold;
+
+        if (withinX && withinY) {
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          btn.style.setProperty("--mouse-x", `${x}px`);
+          btn.style.setProperty("--mouse-y", `${y}px`);
+          btn.classList.add("has-proximity");
+        } else {
+          btn.classList.remove("has-proximity");
+        }
+      });
+    });
+
+    sidebarPanel.addEventListener("mouseleave", () => {
+      allToolButtons.forEach((btn) => {
+        btn.classList.remove("has-proximity");
+      });
+    });
+  }
 
   const scrollContainer = document.getElementById("sidebar-scroll-container");
   if (scrollContainer) {

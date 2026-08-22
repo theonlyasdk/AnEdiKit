@@ -1,4 +1,4 @@
-// Theme & Appearance Management Module for AnEditKit
+// Theme & Appearance Management Module for AnEdiKit
 import { loadSettings, saveSettings } from "./storage.js";
 
 export const THEME_PRESETS = {
@@ -263,7 +263,7 @@ export function saveCurrentTheme(themeObj) {
 
 export function serializeThemeToText(themeObj) {
   return [
-    "# AnEditKit Theme Configuration File",
+    "# AnEdiKit Theme Configuration File",
     `# Name: ${themeObj.name || "Custom Theme"}`,
     `# Generated: ${new Date().toISOString()}`,
     `font_family=${themeObj.font_family || ""}`,

@@ -92,14 +92,104 @@ a:active,
   position: relative;
   z-index: 1;
   background-color: transparent !important;
-  transition: color 0.25s ease, background-color 0.25s ease;
+  transition: color 0.25s ease;
+  overflow: hidden;
 }
 
+/* Fluent UI Proximity Border Reveal Effect */
+.sidebar .nav-link::before,
+#settings-nav .nav-link::before,
+#mobile-settings-nav .nav-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--bs-border-radius);
+  padding: 1px;
+  background: radial-gradient(
+    160px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.45) 0%,
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.12) 50%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 2;
+}
+
+.sidebar .nav-link.has-proximity::before,
+.sidebar .nav-link:hover:not(.active)::before,
+#settings-nav .nav-link:hover:not(.active)::before,
+#mobile-settings-nav .nav-link:hover:not(.active)::before {
+  opacity: 1;
+}
+
+.sidebar .nav-link.active::before,
+#settings-nav .nav-link.active::before,
+#mobile-settings-nav .nav-link.active::before {
+  opacity: 0 !important;
+}
+
+/* Fluent UI Radial Gradient Glow Effect on Hover (High-Strength Plain Radial Circle) */
 .sidebar .nav-link:hover:not(.active),
 #settings-nav .nav-link:hover:not(.active),
 #mobile-settings-nav .nav-link:hover:not(.active) {
-  background-color: var(--bs-tertiary-bg) !important;
+  background: radial-gradient(
+    160px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    color-mix(in srgb, var(--bs-emphasis-color) 22%, var(--bs-tertiary-bg)) 0%,
+    rgba(var(--bs-body-color-rgb, 128, 128, 128), 0) 100%
+  ) !important;
   transition: none !important;
+}
+
+/* On Press: Background Gradient Circle Glows Out with Large Radius */
+.sidebar .nav-link:active:not(.active),
+#settings-nav .nav-link:active:not(.active),
+#mobile-settings-nav .nav-link:active:not(.active) {
+  background: radial-gradient(
+    280px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    color-mix(in srgb, var(--bs-emphasis-color) 28%, var(--bs-tertiary-bg)) 0%,
+    rgba(var(--bs-body-color-rgb, 128, 128, 128), 0) 100%
+  ) !important;
+}
+
+/* Mousedown Circle Expand Fade Effect (2s ease-in with zero-opacity start & end) */
+.fluent-ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  background: radial-gradient(
+    circle,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0) 0%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0) 10%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.02) 20%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.08) 32%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.18) 42%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.25) 50%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.18) 58%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.08) 68%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.02) 80%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0) 90%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0) 100%
+  );
+  pointer-events: none;
+  z-index: 3;
+  will-change: transform, opacity;
+  animation: fluentRippleExpand 2s ease-in forwards;
+}
+
+@keyframes fluentRippleExpand {
+  0% {
+    transform: translate(-50%, -50%) scale(0.15);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3.5);
+    opacity: 0;
+  }
 }
 
 .sidebar .nav-link.active,
@@ -187,6 +277,10 @@ a:active,
   margin-left: -0.5rem;
   width: auto;
   flex: 1;
+}
+
+#media-preview-col .section-divider-header::after {
+  margin-right: calc(-1.5rem - 0.5rem) !important;
 }
 
 /* Prevent HR lines from overlapping with right-side action buttons / controls */
@@ -1000,3 +1094,309 @@ html.no-animations *::after {
 #video-preview-wrapper i {
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
 }
+
+/* Transparency Checkerboard Pattern */
+.transparency-grid {
+  background-color: #121215;
+  background-image: 
+    linear-gradient(45deg, #1e1e24 25%, transparent 25%), 
+    linear-gradient(-45deg, #1e1e24 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #1e1e24 75%), 
+    linear-gradient(-45deg, transparent 75%, #1e1e24 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+[data-bs-theme="light"] .transparency-grid {
+  background-color: #ffffff;
+  background-image: 
+    linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+    linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+    linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+}
+
+/* Image & AI Queue UI Items */
+.image-queue-item {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.image-queue-item:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.image-queue-thumb-wrapper {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.image-queue-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-queue-thumb-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  color: #ffffff;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.image-queue-thumb-wrapper:hover .image-queue-thumb-overlay {
+  opacity: 1;
+}
+
+/* Hero Zoom Lightbox Overlay */
+.image-lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1070;
+  background-color: rgba(8, 8, 12, 0.88);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.image-lightbox-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.image-lightbox-card {
+  max-width: 88vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+.image-lightbox-img {
+  max-width: 80vw;
+  max-height: 75vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+}
+
+.image-drop-active {
+  border-color: var(--bs-primary) !important;
+  background-color: var(--bs-primary-bg-subtle) !important;
+  box-shadow: 0 0 16px rgba(var(--bs-primary-rgb), 0.25) !important;
+  transition: all 0.15s ease-in-out;
+}
+
+.image-drop-active i {
+  color: var(--bs-primary) !important;
+  opacity: 1 !important;
+  transform: scale(1.15);
+  transition: transform 0.15s ease-in-out;
+}
+
+.image-queue-drop-placeholder {
+  border: 2px dashed var(--bs-primary) !important;
+  background-color: var(--bs-primary-bg-subtle) !important;
+  color: var(--bs-primary) !important;
+  animation: dropPlaceholderPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes dropPlaceholderPulse {
+  0% {
+    background-color: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary);
+  }
+  100% {
+    background-color: rgba(var(--bs-primary-rgb), 0.22);
+    border-color: #0d6efd;
+    box-shadow: 0 0 12px rgba(var(--bs-primary-rgb), 0.35);
+  }
+}
+
+/* Fullscreen Sliding Window Image Comparison Modal */
+.image-comp-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1060;
+  background-color: rgba(10, 10, 14, 0.95);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+}
+
+.comp-header {
+  height: 54px;
+  border-bottom: 1px solid var(--bs-border-color);
+  background-color: var(--bs-body-bg);
+}
+
+.comp-stage-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+.comp-split-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.comp-split-image-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.comp-split-image-layer img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+.comp-split-divider-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--bs-primary);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.75), 0 0 4px var(--bs-primary);
+  cursor: ew-resize;
+  z-index: 20;
+  transform: translateX(-50%);
+}
+
+.comp-split-divider-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--bs-body-bg);
+  border: 2px solid var(--bs-primary);
+  color: var(--bs-body-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  cursor: ew-resize;
+}
+
+.comp-floating-toolbar {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  background-color: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  padding: 0.6rem 1.25rem;
+}
+
+/* iOS-style slide-in-from-bottom animation for comparison modal */
+.image-comp-modal-overlay {
+  animation: compModalSlideIn 0.4s cubic-bezier(.06, -0.04, .1, .99) forwards;
+}
+
+@keyframes compModalSlideIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.image-comp-modal-overlay.comp-closing {
+  animation: compModalSlideOut 0.3s cubic-bezier(.06, -0.04, .1, .99) forwards;
+}
+
+@keyframes compModalSlideOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* Execution Log Copy Button */
+.log-copy-btn {
+  opacity: 0.35;
+  transition: opacity 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  line-height: 1;
+  padding: 0.25rem 0.4rem;
+  color: var(--bs-secondary-color);
+}
+
+.log-copy-btn:hover,
+#execution-status-panel .card:hover .log-copy-btn,
+.log-copy-btn:focus-visible {
+  opacity: 0.95;
+  color: var(--bs-body-color) !important;
+}
+
+.log-copy-btn.copied {
+  opacity: 1 !important;
+  color: var(--bs-success) !important;
+}
+
+/* Command Preview Box Non-Overflowing Styling */
+#cmd-preview {
+  overflow-x: auto;
+  white-space: nowrap;
+  word-break: normal;
+  max-width: 100%;
+}
+
+
+

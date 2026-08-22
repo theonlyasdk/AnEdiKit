@@ -5,6 +5,8 @@ export const STORAGE_KEYS = {
   LAST_INPUT_FILE: "anedikit:last_input_file",
   YTDLP_LAST_DOWNLOAD_DIR: "anedikit:last_ytdlp_out_dir",
   BATCH_QUEUE: "anedikit:batch_queue",
+  IMAGE_AI_QUEUE: "anedikit:image_ai_queue",
+  AI_REPLACE_SOURCE: "anedikit:ai_replace_source",
   TOOL_PARAMS_PREFIX: "anedikit:tool_params:",
 };
 
@@ -109,3 +111,42 @@ export function saveBatchQueue(queue) {
     console.warn("Failed to save batch queue:", err);
   }
 }
+
+export function loadSavedImageAiQueue() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.IMAGE_AI_QUEUE);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((item) => item && item.path)
+      .map((item) => ({
+        ...item,
+        status: item.status === "processing" ? "pending" : (item.status || "pending"),
+      }));
+  } catch (err) {
+    console.warn("Failed to load Image AI queue from storage:", err);
+    return [];
+  }
+}
+
+export function saveImageAiQueue(queue) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.IMAGE_AI_QUEUE, JSON.stringify(queue || []));
+  } catch (err) {
+    console.warn("Failed to save Image AI queue:", err);
+  }
+}
+
+export function getSavedAiReplaceSource() {
+  return localStorage.getItem(STORAGE_KEYS.AI_REPLACE_SOURCE) === "true";
+}
+
+export function saveAiReplaceSource(val) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.AI_REPLACE_SOURCE, val ? "true" : "false");
+  } catch (err) {
+    console.warn("Failed to save AI replace source preference:", err);
+  }
+}
+

@@ -1,14 +1,14 @@
 # Project Overview - AnEdiKit
 
-AnEditKit is a lightweight, all-in-one toolkit for creators, combining a wide range of media utilities into a single desktop application. It includes FFmpeg-based video and audio tools, a yt-dlp frontend for downloading media, image extraction utilities, and other tools for common content creation workflows.
+AnEdiKit is a lightweight, all-in-one toolkit for creators, combining a wide range of media utilities into a single desktop application. It includes FFmpeg-based video and audio tools, a yt-dlp frontend for downloading media, image extraction utilities, and other tools for common content creation workflows.
 
 The application uses Tauri for its frontend, keeping the overall application size and resource usage relatively low compared to traditional desktop frameworks. Python is used as the backend for image processing and other tasks that benefit from its extensive ecosystem of media and machine-learning libraries.
 
-AnEditKit is designed around asynchronous processing, allowing long-running tasks such as encoding, downloading, image processing, and AI-based operations to run in the background without freezing the interface. Tasks can provide clear progress and status feedback while keeping the UI responsive.
+AnEdiKit is designed around asynchronous processing, allowing long-running tasks such as encoding, downloading, image processing, and AI-based operations to run in the background without freezing the interface. Tasks can provide clear progress and status feedback while keeping the UI responsive.
 
 The interface follows a simple and predictable workflow, making tools easy to discover and use without requiring users to navigate through unnecessary screens or complex settings. Common actions, inputs, outputs, progress states, and errors are presented consistently across the application.
 
-AnEditKit also supports on-device neural processing for features such as background removal and image upscaling, allowing these operations to run locally without requiring files to be uploaded to external services. This keeps creator data on the user's device while providing advanced processing capabilities.
+AnEdiKit also supports on-device neural processing for features such as background removal and image upscaling, allowing these operations to run locally without requiring files to be uploaded to external services. This keeps creator data on the user's device while providing advanced processing capabilities.
 
 Tech:
 - Application Type: Desktop app (Tauri v2)

@@ -28,16 +28,52 @@ export function setControlsDisabledState(disabled) {
   const sharedUrl = document.getElementById("shared-url-card");
   if (sharedInput) sharedInput.classList.toggle("opacity-75", disabled);
   if (sharedUrl) sharedUrl.classList.toggle("opacity-75", disabled);
+
+  // Disable and grey out all sidebar tool buttons except Settings
+  const allToolButtons = document.querySelectorAll("#tool-nav button, #ytdlp-nav button");
+  allToolButtons.forEach((btn) => {
+    btn.disabled = disabled;
+    btn.classList.toggle("opacity-50", disabled);
+    btn.style.pointerEvents = disabled ? "none" : "";
+    btn.style.cursor = disabled ? "not-allowed" : "";
+  });
+
+  // Settings button remains enabled and clickable at all times
+  const settingsButtons = document.querySelectorAll('button[data-tool="settings"], #settings-nav button');
+  settingsButtons.forEach((btn) => {
+    btn.disabled = false;
+    btn.classList.remove("opacity-50");
+    btn.style.pointerEvents = "";
+    btn.style.cursor = "";
+  });
 }
 
 export function appendLog(text, isError = false) {
   const logConsole = document.getElementById("log-console");
-  if (!logConsole) return;
+  if (!logConsole || !text) return;
 
   const lineEl = document.createElement("div");
-  lineEl.className = isError ? "text-danger" : "text-success-emphasis";
+  const isErr = isError || text.toLowerCase().includes("error") || text.toLowerCase().includes("failed");
+  const isWarn = !isErr && text.toLowerCase().includes("warning");
+  const isSuccess = !isErr && (text.toLowerCase().includes("success") || text.toLowerCase().includes("100%"));
+
+  if (isErr) {
+    lineEl.className = "text-danger";
+  } else if (isWarn) {
+    lineEl.className = "text-warning";
+  } else if (isSuccess) {
+    lineEl.className = "text-success";
+  } else {
+    lineEl.className = "text-body-secondary";
+  }
+
   lineEl.textContent = text;
   logConsole.appendChild(lineEl);
+
+  if (logConsole.childElementCount > 500) {
+    logConsole.removeChild(logConsole.firstElementChild);
+  }
+
   logConsole.scrollTop = logConsole.scrollHeight;
 }
 
@@ -49,52 +85,65 @@ export function clearLogs() {
 }
 
 export function updateProgress(data) {
-  const { time, fps, speed, bitrate, pct, playlist_item, playlist_total, current_item_title } = data;
+  const { time, eta, fps, speed, bitrate, pct, playlist_item, playlist_total, current_item_title } = data;
   const bar = document.getElementById("job-progress-bar");
   const pctEl = document.getElementById("progress-pct");
   const statTime = document.getElementById("stat-time");
+  const statEta = document.getElementById("stat-eta");
   const statFps = document.getElementById("stat-fps");
   const statSpeed = document.getElementById("stat-speed");
   const statBitrate = document.getElementById("stat-bitrate");
 
-  // Playlist / Batch total items progress
-  const playlistWrapper = document.getElementById("playlist-progress-wrapper");
-  const playlistText = document.getElementById("playlist-progress-text");
-  const playlistBar = document.getElementById("playlist-progress-bar");
-  if (playlist_total && playlist_total > 1) {
-    if (playlistWrapper) playlistWrapper.classList.remove("d-none");
-    const itemNum = playlist_item || 1;
-    const itemPct = Math.min(100, Math.max(0, Math.round((itemNum / playlist_total) * 100)));
-    if (playlistText) playlistText.textContent = `Item ${itemNum} of ${playlist_total} (${itemPct}%)`;
-    if (playlistBar) playlistBar.style.width = `${itemPct}%`;
-  } else if (!playlist_total && playlistWrapper && !isRunning) {
-    playlistWrapper.classList.add("d-none");
-  }
-
-  // Currently downloading item title
+  // Currently processing item and heading
   const currentItemWrapper = document.getElementById("current-item-wrapper");
+  const currentHeading = document.getElementById("current-processing-heading");
   const currentItemName = document.getElementById("current-item-name");
-  if (current_item_title) {
+
+  if (playlist_total && playlist_total > 1) {
+    const itemNum = playlist_item || 1;
     if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
-    if (currentItemName) currentItemName.textContent = current_item_title;
-  } else if (!current_item_title && currentItemWrapper && !isRunning) {
-    currentItemWrapper.classList.add("d-none");
+    if (currentHeading) currentHeading.textContent = `Currently processing: (${itemNum} of ${playlist_total})`;
+  } else if (current_item_title) {
+    if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
+    if (currentHeading) currentHeading.textContent = `Currently processing: (1 of 1)`;
+  } else if (isRunning) {
+    if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
+    if (currentHeading) currentHeading.textContent = `Currently processing: (1 of 1)`;
   }
 
-  if (time && statTime) statTime.textContent = `Time: ${time}`;
-  if (fps && statFps) statFps.textContent = `FPS: ${fps}`;
-  if (speed && statSpeed) statSpeed.textContent = `Speed: ${speed}`;
-  if (bitrate && statBitrate) statBitrate.textContent = `Bitrate: ${bitrate}`;
+  if (current_item_title && currentItemName) {
+    currentItemName.textContent = current_item_title;
+  }
+
+  if (time && statTime) statTime.textContent = time.startsWith("Time:") || time.startsWith("Size:") ? time : `Time: ${time}`;
+  if (statEta) {
+    if (eta) {
+      statEta.textContent = eta.startsWith("ETA:") || eta.startsWith("Remaining:") ? eta : `ETA: ${eta}`;
+      statEta.classList.remove("d-none");
+    } else if (pct >= 100) {
+      statEta.textContent = "ETA: 00:00:00";
+    } else {
+      statEta.textContent = "ETA: --:--:--";
+    }
+  }
+  if (fps && statFps) statFps.textContent = fps.startsWith("FPS:") ? fps : `FPS: ${fps}`;
+  if (speed && statSpeed) statSpeed.textContent = speed.startsWith("Speed:") ? speed : `Speed: ${speed}`;
+  if (bitrate && statBitrate) statBitrate.textContent = bitrate.startsWith("Bitrate:") ? bitrate : `Bitrate: ${bitrate}`;
 
   if (bar && pctEl) {
-    if (pct <= 0) {
-      pctEl.textContent = "0%";
+    const numPct = typeof pct === "number" ? pct : parseInt(pct, 10) || 0;
+    const clamped = Math.min(100, Math.max(0, numPct));
+    pctEl.textContent = `${clamped}%`;
+    if (clamped === 0) {
+      bar.classList.remove("bg-success", "bg-danger");
       bar.classList.add("progress-bar-striped", "progress-bar-animated");
+      bar.style.width = "4%";
+    } else if (clamped >= 100) {
+      bar.classList.remove("progress-bar-striped", "progress-bar-animated", "bg-danger");
+      bar.classList.add("bg-success");
       bar.style.width = "100%";
     } else {
-      const clamped = Math.min(100, Math.max(0, Math.round(pct)));
-      pctEl.textContent = `${clamped}%`;
-      bar.classList.remove("progress-bar-striped", "progress-bar-animated");
+      bar.classList.remove("progress-bar-striped", "progress-bar-animated", "bg-success", "bg-danger");
       bar.style.width = `${clamped}%`;
     }
   }
@@ -102,6 +151,7 @@ export function updateProgress(data) {
 
 let activeJobInfo = null;
 let jobStartTime = 0;
+let jobCompletionResolver = null;
 
 export async function attachTauriListeners() {
   if (!window.__TAURI__?.event?.listen) return;
@@ -131,23 +181,29 @@ export async function attachTauriListeners() {
 
 export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   if (isRunning) {
-    return;
+    return Promise.resolve(false);
   }
 
-  jobStartTime = Date.now();
-  activeJobInfo = {
-    destination: commandObj.destination || "",
-    toolName: commandObj.executable === "yt-dlp" ? "Download" : "Conversion",
-  };
+  return new Promise((resolve) => {
+    jobCompletionResolver = resolve;
+    jobStartTime = Date.now();
+    activeJobInfo = {
+      destination: commandObj.destination || "",
+      toolName: commandObj.executable === "yt-dlp" ? "Download" : "Conversion",
+    };
 
   const statusPanel = document.getElementById("execution-status-panel");
   const statusMsg = document.getElementById("status-message");
   const btnExecute = document.getElementById("btn-execute");
-  const playlistWrapper = document.getElementById("playlist-progress-wrapper");
   const currentItemWrapper = document.getElementById("current-item-wrapper");
+  const currentHeading = document.getElementById("current-processing-heading");
+  const currentItemName = document.getElementById("current-item-name");
 
-  if (playlistWrapper) playlistWrapper.classList.add("d-none");
-  if (currentItemWrapper) currentItemWrapper.classList.add("d-none");
+  if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
+  if (currentHeading) currentHeading.textContent = "Currently processing: (1 of 1)";
+  const srcFile = commandObj.args ? commandObj.args[commandObj.args.indexOf("-i") + 1] : "";
+  const displayName = srcFile ? srcFile.split(/[/\\]/).pop() : (commandObj.destination ? commandObj.destination.split(/[/\\]/).pop() : "Processing media file...");
+  if (currentItemName) currentItemName.textContent = displayName;
 
   if (statusPanel) {
     statusPanel.classList.remove("d-none", "ui-zoom-in");
@@ -157,12 +213,22 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
 
   clearLogs();
   appendLog(`[Starting job: ${commandObj.fullString}]`);
+  
+  const bar = document.getElementById("job-progress-bar");
+  if (bar) {
+    bar.classList.remove("bg-success", "bg-danger");
+    bar.classList.add("progress-bar-striped", "progress-bar-animated");
+    bar.style.width = "4%";
+  }
+
   updateProgress({
     time: "00:00:00",
+    eta: "--:--:--",
     fps: "0",
     speed: "0x",
     bitrate: "0 kbits/s",
     pct: 0,
+    current_item_title: displayName,
   });
 
   isRunning = true;
@@ -170,9 +236,10 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
 
   if (statusMsg) statusMsg.textContent = "Processing task...";
   if (btnExecute) {
+    btnExecute.disabled = false;
     btnExecute.textContent = "Cancel";
-    btnExecute.classList.remove("btn-primary");
-    btnExecute.classList.add("btn-danger");
+    btnExecute.className = "btn btn-danger btn-sm px-4";
+    btnExecute.title = "Cancel active task";
   }
 
   // Smoothly scroll workspace to bottom to view logs and status
@@ -182,6 +249,10 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
       workspace.scrollTo({ top: workspace.scrollHeight, behavior: "smooth" });
     }, 60);
   }
+  const logConsole = document.getElementById("log-console");
+  if (logConsole) {
+    logConsole.scrollTop = logConsole.scrollHeight;
+  }
 
   // Tauri IPC execution
   if (window.__TAURI__?.core?.invoke) {
@@ -189,7 +260,12 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
       try {
         await attachTauriListeners();
 
-        if (commandObj.executable === "yt-dlp") {
+        if (commandObj.executable === "image_ai" || commandObj.executable === "python") {
+          await window.__TAURI__.core.invoke("execute_image_ai", {
+            task: commandObj.task,
+            params: typeof commandObj.params === "string" ? commandObj.params : JSON.stringify(commandObj.params || {}),
+          });
+        } else if (commandObj.executable === "yt-dlp") {
           await window.__TAURI__.core.invoke("execute_ytdlp", {
             args: commandObj.args,
           });
@@ -226,6 +302,7 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
       speed: "2.4x",
       bitrate: "3200 kbits/s",
       pct: simPct,
+      current_item_title: displayName,
     });
     appendLog(
       `frame= ${simPct * 12} fps=60 q=-1.0 size= ${simPct * 80}kB time=${timeStr} bitrate=3200kbits/s speed=2.4x`,
@@ -239,29 +316,29 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
       );
     }
   }, 400);
+  });
 }
 
-export async function cancelFfmpegJob() {
-  if (isBatchRunning) {
-    batchCancelRequested = true;
-  }
+export function cancelFfmpegJob() {
   if (!isRunning && !isBatchRunning) return;
 
+  batchCancelRequested = true;
+  appendLog("[Cancelling operation...]");
+
   if (window.__TAURI__?.core?.invoke) {
-    try {
-      await window.__TAURI__.core.invoke("cancel_ffmpeg");
-    } catch (err) {
-      console.warn("Cancel invoke error:", err);
-    }
+    window.__TAURI__.core.invoke("cancel_ffmpeg").catch((err) => {
+      console.warn("Cancel ffmpeg error:", err);
+    });
+    window.__TAURI__.core.invoke("cancel_job").catch((err) => {
+      console.warn("Cancel job error:", err);
+    });
   }
 
-  if (!isBatchRunning) {
-    onJobFinished(false, "Job cancelled by user");
-  }
+  onJobFinished(false, "Job cancelled by user");
 }
 
 export async function executeBatchQueue(queue, toolId, settings, buildCommandFn) {
-  if (isRunning || isBatchRunning) return;
+  if (isBatchRunning || isRunning) return;
   if (!queue || queue.length === 0) return;
 
   isBatchRunning = true;
@@ -271,10 +348,8 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
   const statusPanel = document.getElementById("execution-status-panel");
   const statusMsg = document.getElementById("status-message");
   const btnExecute = document.getElementById("btn-execute");
-  const playlistWrapper = document.getElementById("playlist-progress-wrapper");
-  const playlistText = document.getElementById("playlist-progress-text");
-  const playlistBar = document.getElementById("playlist-progress-bar");
   const currentItemWrapper = document.getElementById("current-item-wrapper");
+  const currentHeading = document.getElementById("current-processing-heading");
   const currentItemName = document.getElementById("current-item-name");
 
   if (statusPanel) {
@@ -283,13 +358,20 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
     statusPanel.classList.add("ui-zoom-in");
   }
 
-  if (playlistWrapper) playlistWrapper.classList.remove("d-none");
   if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
 
   if (btnExecute) {
+    btnExecute.disabled = false;
     btnExecute.textContent = "Cancel Batch";
-    btnExecute.classList.remove("btn-primary");
-    btnExecute.classList.add("btn-danger");
+    btnExecute.className = "btn btn-danger btn-sm px-4";
+    btnExecute.title = "Cancel active batch operation";
+  }
+
+  const workspace = document.getElementById("tool-workspace");
+  if (workspace) {
+    setTimeout(() => {
+      workspace.scrollTo({ top: workspace.scrollHeight, behavior: "smooth" });
+    }, 60);
   }
 
   clearLogs();
@@ -305,9 +387,7 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
     item.status = "processing";
     updateBatchItemStatus(i, "processing");
 
-    const itemPct = Math.round(((i + 1) / queue.length) * 100);
-    if (playlistText) playlistText.textContent = `Item ${i + 1} of ${queue.length} (${itemPct}%)`;
-    if (playlistBar) playlistBar.style.width = `${itemPct}%`;
+    if (currentHeading) currentHeading.textContent = `Currently processing: (${i + 1} of ${queue.length})`;
     if (currentItemName) currentItemName.textContent = item.name;
 
     const commandObj = buildCommandFn(toolId, item.path, settings.outputDir, settings);
@@ -382,6 +462,21 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
   isRunning = false;
   setControlsDisabledState(false);
 
+  if (!batchCancelRequested) {
+    const bar = document.getElementById("job-progress-bar");
+    const pctEl = document.getElementById("progress-pct");
+    const statEta = document.getElementById("stat-eta");
+    const statTime = document.getElementById("stat-time");
+    if (bar && pctEl) {
+      bar.classList.remove("progress-bar-striped", "progress-bar-animated", "bg-danger");
+      bar.classList.add("bg-success");
+      bar.style.width = "100%";
+      pctEl.textContent = "100%";
+      if (statEta) statEta.textContent = "ETA: 00:00:00";
+      if (statTime) statTime.textContent = "Time: Completed";
+    }
+  }
+
   if (btnExecute) {
     btnExecute.textContent = `Execute Batch (${queue.length} items)`;
     btnExecute.classList.remove("btn-danger");
@@ -394,6 +489,26 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
 export function onJobFinished(success, message) {
   isRunning = false;
   setControlsDisabledState(false);
+
+  const bar = document.getElementById("job-progress-bar");
+  const pctEl = document.getElementById("progress-pct");
+  const statEta = document.getElementById("stat-eta");
+  const statTime = document.getElementById("stat-time");
+
+  if (bar && pctEl) {
+    bar.classList.remove("progress-bar-striped", "progress-bar-animated");
+    if (success) {
+      bar.classList.remove("bg-danger");
+      bar.classList.add("bg-success");
+      bar.style.width = "100%";
+      pctEl.textContent = "100%";
+      if (statEta) statEta.textContent = "ETA: 00:00:00";
+      if (statTime) statTime.textContent = "Time: Completed";
+    } else {
+      bar.classList.remove("bg-success");
+      bar.classList.add("bg-danger");
+    }
+  }
 
   if (currentProgressUnlisten) {
     currentProgressUnlisten();
@@ -417,17 +532,16 @@ export function onJobFinished(success, message) {
     btnExecute.classList.remove("btn-danger");
     btnExecute.classList.add("btn-primary");
   }
+  window.dispatchEvent(new CustomEvent("anedikit:job_finished"));
+
+  if (jobCompletionResolver) {
+    const resolver = jobCompletionResolver;
+    jobCompletionResolver = null;
+    resolver(success);
+  }
 
   appendLog(`[${message}]`, !success);
   if (success) {
-    updateProgress({
-      time: "",
-      fps: "",
-      speed: "",
-      bitrate: "",
-      pct: 100,
-    });
-
     const elapsedSeconds = jobStartTime > 0 ? ((Date.now() - jobStartTime) / 1000).toFixed(1) : "0.0";
     if (activeJobInfo && activeJobInfo.destination) {
       showFinishedNotification(activeJobInfo.destination, activeJobInfo.toolName, elapsedSeconds);
@@ -596,6 +710,9 @@ export async function initJobRunner() {
     });
   }
 
+  // Bind Log Copy button
+  initLogCopyButton();
+
   // Prevent accidental reload/unload when job is active
   window.addEventListener("beforeunload", (e) => {
     if (isRunning) {
@@ -604,3 +721,32 @@ export async function initJobRunner() {
     }
   });
 }
+
+export function initLogCopyButton() {
+  const btnCopy = document.getElementById("btn-copy-logs");
+  const logConsole = document.getElementById("log-console");
+  if (!btnCopy || !logConsole) return;
+
+  btnCopy.onclick = async () => {
+    try {
+      const textToCopy = logConsole.innerText || logConsole.textContent || "";
+      if (!textToCopy.trim()) return;
+
+      await navigator.clipboard.writeText(textToCopy);
+
+      const originalTitle = btnCopy.getAttribute("title") || "Copy execution log to clipboard";
+      btnCopy.classList.add("copied");
+      btnCopy.innerHTML = `<i class="bi bi-check2"></i>`;
+      btnCopy.setAttribute("title", "Copied to clipboard!");
+
+      setTimeout(() => {
+        btnCopy.classList.remove("copied");
+        btnCopy.innerHTML = `<i class="bi bi-clipboard"></i>`;
+        btnCopy.setAttribute("title", originalTitle);
+      }, 1800);
+    } catch (err) {
+      console.warn("Failed to copy execution logs to clipboard:", err);
+    }
+  };
+}
+

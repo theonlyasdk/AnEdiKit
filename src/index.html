@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AnEditKit</title>
+    <title>AnEdiKit</title>
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="styles.css" />
@@ -12,13 +12,13 @@
   </head>
 
   <body class="bg-body-tertiary">
-    <div class="d-flex flex-column vh-100 overflow-hidden">
+    <div class="d-flex flex-column vh-100 overflow-hidden" id="app-root">
       <!-- Unified Top Header Bar -->
       <header class="d-flex border-bottom bg-body flex-shrink-0" style="height: 56px;">
         <div class="d-flex align-items-center justify-content-center px-3 border-end flex-shrink-0 header-brand-col" style="width: 280px;">
-          <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn" id="btn-sidebar-toggle" title="AnEditKit - Click Logo for Credits / Scroll to Switch Tools">
+          <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn" id="btn-sidebar-toggle" title="AnEdiKit - Click Logo for Credits / Scroll to Switch Tools">
             <i class="bi bi-list text-primary fs-4 lh-1 d-md-none" id="brand-logo-icon" role="button" tabindex="0" title="Toggle Navigation"></i>
-            <h1 class="fs-4 mb-0 fw-light text-body user-select-none" id="brand-logo-title" role="button" tabindex="0" title="About AnEditKit Credits">AnEditKit</h1>
+            <h1 class="fs-4 mb-0 fw-light text-body user-select-none" id="brand-logo-title" role="button" tabindex="0" title="About AnEdiKit Credits">AnEdiKit</h1>
           </div>
         </div>
         <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden" style="min-width: 0;">
@@ -52,6 +52,22 @@
                 <i class="bi bi-scissors text-body-secondary"></i>
                 <span>Trim and Cut</span>
               </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="speed_motion" type="button" title="Speed up, slow down, timelapse, and optical flow interpolation">
+                <i class="bi bi-speedometer2 text-body-secondary"></i>
+                <span>Speed &amp; Motion</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="aspect_crop" type="button" title="Aspect ratio presets, vertical video crop, and background padding">
+                <i class="bi bi-aspect-ratio text-body-secondary"></i>
+                <span>Aspect &amp; Crop</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="stabilize" type="button" title="Remove shaky camera motion and stabilize handheld video">
+                <i class="bi bi-camera-reels text-body-secondary"></i>
+                <span>Video Stabilization</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="normalize" type="button" title="Standardize audio loudness to Spotify, YouTube, or EBU R128">
+                <i class="bi bi-sliders text-body-secondary"></i>
+                <span>Normalize Loudness</span>
+              </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="mute_replace" type="button" title="Mute or replace background audio">
                 <i class="bi bi-volume-mute text-body-secondary"></i>
                 <span>Mute or Replace Audio</span>
@@ -75,6 +91,33 @@
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="custom" type="button" title="Run custom FFmpeg commands with live preview">
                 <i class="bi bi-terminal text-body-secondary"></i>
                 <span>Custom Command</span>
+              </button>
+            </nav>
+            <div class="sidebar-section-header mt-3">Image &amp; AI Tools</div>
+            <nav class="nav nav-pills flex-column gap-1" id="image-ai-nav">
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="bg_remover" type="button" title="Remove background and extract subjects locally using on-device neural models">
+                <i class="bi bi-person-bounding-box text-body-secondary"></i>
+                <span>Background Remover</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ai_upscaler" type="button" title="Super-resolution deep learning 2x, 3x, 4x image upscaling and enhancement">
+                <i class="bi bi-arrows-angle-expand text-body-secondary"></i>
+                <span>AI Image Upscaler</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="vectorizer" type="button" title="Convert raster images (PNG, JPG) to scalable SVG vectors">
+                <i class="bi bi-bezier2 text-body-secondary"></i>
+                <span>Image Vectorizer</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="restore_denoise" type="button" title="Denoise, deblur, and restore low-light or degraded photos">
+                <i class="bi bi-magic text-body-secondary"></i>
+                <span>Restore &amp; Denoise</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="icon_generator" type="button" title="Generate Windows .ico, Apple .icns, Favicon and PWA icon sets">
+                <i class="bi bi-app-indicator text-body-secondary"></i>
+                <span>Icon Generator</span>
+              </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="metadata_cleaner" type="button" title="Inspect and sanitize EXIF, GPS, and camera metadata">
+                <i class="bi bi-shield-check text-body-secondary"></i>
+                <span>Metadata Cleaner</span>
               </button>
             </nav>
             <div class="sidebar-section-header mt-3">yt-dlp Downloader</div>
@@ -160,7 +203,10 @@
                       <div class="input-group mb-0">
                         <button class="btn btn-outline-secondary" type="button" id="btn-browse-output-dir" title="Choose output folder"><i class="bi bi-folder2-open"></i></button>
                         <input type="text" class="form-control small" id="output-file-name" placeholder="Auto-generated full output path..." spellcheck="false" autocomplete="off" />
-                        <button class="btn btn-outline-secondary" type="button" id="btn-autodetect-output-name" title="Auto-detect output filename from input and format">Auto-detect</button>
+                      </div>
+                      <!-- File Exists Warning Under Output File -->
+                      <div class="form-text text-warning small d-none ui-zoom-in mt-1" id="output-file-exists-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> A file with this name already exists in the target folder and will be overwritten.
                       </div>
                     </div>
                 </div>
@@ -198,8 +244,40 @@
                         <div class="small text-body-secondary z-1" id="audio-art-format" style="font-size: 0.72rem;">Audio Preview</div>
                         <audio id="media-audio-preview" class="d-none" preload="metadata"></audio>
                       </div>
+
+                      <!-- Image Layer (16:9 / Responsive with Transparency Grid) -->
+                      <div class="w-100 h-100 position-absolute top-0 start-0 d-none d-flex align-items-center justify-content-center transparency-grid media-preview-layer" id="image-preview-layer">
+                        <img id="media-image-preview" class="w-100 h-100 object-fit-contain position-absolute top-0 start-0 z-1" alt="Image Preview" />
+                        <div class="position-absolute bottom-0 start-0 w-100 p-2 d-flex flex-column z-2 text-start" id="image-overlay-info" style="background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);">
+                          <span class="small fw-medium text-white text-truncate w-100" id="image-overlay-title" style="font-size: 0.8rem;">Image Preview</span>
+                          <span class="small text-white-50" id="image-overlay-format" style="font-size: 0.7rem;">PNG Image</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dedicated Image & AI Tools Workspace (Batch List View without single file/output path noise) -->
+            <div class="mb-4 d-none" id="image-ai-workspace-card">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="section-divider-header flex-grow-1 mb-0 me-3">
+                  Image Queue (<span id="image-ai-queue-count">0</span>&nbsp;images)
+                </div>
+                <div class="btn-group btn-group-sm flex-shrink-0" id="image-ai-header-actions">
+                  <button class="btn btn-outline-primary" type="button" id="btn-image-add" title="Add images to queue"><i class="bi bi-plus-lg me-1"></i>Add Images...</button>
+                  <button class="btn btn-outline-secondary d-none" type="button" id="btn-image-clear" title="Clear image queue"><i class="bi bi-trash"></i></button>
+                </div>
+              </div>
+              <div id="image-ai-queue-list" class="mb-3">
+                <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="image-ai-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
+                  <i class="bi bi-images fs-2 text-secondary opacity-50 mb-1"></i>
+                  <span class="fw-medium text-body" id="image-drop-label">Drop images here or click to select</span>
+                  <span class="small text-body-secondary" id="image-drop-sublabel">Supports PNG, JPG, WebP, BMP, TIFF, SVG</span>
+                  <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-image-add-empty" title="Add images to queue">
+                    <i class="bi bi-folder2-open me-1"></i> Select Images
+                  </button>
                 </div>
               </div>
             </div>
@@ -348,6 +426,11 @@
                     </select>
                   </div>
                 </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="cvt-estimate-box">
+                  <div>Target: <strong class="text-body" id="cvt-est-target">MP4 (H.264 / AAC)</strong> &bull; Est. Video Bitrate: <strong class="text-body" id="cvt-est-vbitrate">~2,500 kbps</strong> &bull; Est. Size: <strong class="text-body" id="cvt-est-size">~42.5 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from media duration</div>
+                </div>
               </div>
             </div>
 
@@ -426,6 +509,11 @@
                       <option value="loudnorm">Normalize Volume (EBU R128 loudnorm)</option>
                     </select>
                   </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="aud-estimate-box">
+                  <div>Target: <strong class="text-body" id="aud-est-target">MP3 (256 kbps)</strong> &bull; Est. Audio Bitrate: <strong class="text-body" id="aud-est-bitrate">256 kbps</strong> &bull; Est. Size: <strong class="text-body" id="aud-est-size">~4.3 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from media duration</div>
                 </div>
               </div>
             </div>
@@ -546,6 +634,221 @@
                       <option value="reencode">Accurate Cut (Frame-perfect re-encode with H.264/AAC)</option>
                     </select>
                   </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="trim-estimate-box">
+                  <div>Clip Duration: <strong class="text-body" id="trim-est-duration">00:01:00</strong> &bull; Cut Mode: <strong class="text-body" id="trim-est-mode">Stream Copy (Lossless)</strong> &bull; Est. Size: <strong class="text-body" id="trim-est-size">~18.9 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from selected timestamps</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TOOL: Speed & Motion Control -->
+            <div class="tool-view d-none" id="view-speed_motion">
+              <div class="mb-4">
+                <div class="section-divider-header">Speed &amp; Motion Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="speed-preset">Speed Multiplier</label>
+                    <select class="form-select form-select-sm" id="speed-preset">
+                      <option value="0.25">0.25x (Super Slow-Mo 4x)</option>
+                      <option value="0.5">0.5x (Half Speed 2x)</option>
+                      <option value="0.75">0.75x (Slightly Slower)</option>
+                      <option value="1.25">1.25x (Faster Review)</option>
+                      <option value="1.5">1.5x (Speed Up 1.5x)</option>
+                      <option value="2.0" selected>2.0x (Double Speed / Fast Forward)</option>
+                      <option value="4.0">4.0x (Timelapse 4x)</option>
+                      <option value="8.0">8.0x (Timelapse 8x)</option>
+                      <option value="16.0">16.0x (Hyperlapse 16x)</option>
+                      <option value="custom">Custom Multiplier</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 d-none ui-zoom-in" id="speed-custom-wrapper">
+                    <label class="form-label small fw-medium" for="speed-custom-val">Custom Speed (0.1x to 100x)</label>
+                    <input type="number" class="form-control form-control-sm font-sans" id="speed-custom-val" value="2.0" min="0.1" max="100" step="0.1" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="speed-audio-mode">Audio Retiming</label>
+                    <select class="form-select form-select-sm" id="speed-audio-mode">
+                      <option value="atempo" selected>Pitch-Corrected Audio (atempo)</option>
+                      <option value="strip">Mute / Strip Audio Track</option>
+                      <option value="drop">Drop Audio Sync</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="speed-interp">Frame Smoothing / Interpolation</label>
+                    <select class="form-select form-select-sm" id="speed-interp">
+                      <option value="none" selected>None (Frame Drop / Duplicate - Instant)</option>
+                      <option value="blend">Frame Blending (Smooth Motion Blur - Fast)</option>
+                      <option value="minterpolate">Optical Flow Motion Interpolation (Optimized 60 FPS)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="speed-container">Output Format</label>
+                    <select class="form-select form-select-sm" id="speed-container">
+                      <option value="mp4" selected>MP4 (.mp4)</option>
+                      <option value="mkv">MKV (.mkv)</option>
+                      <option value="mov">MOV (.mov)</option>
+                      <option value="webm">WebM (.webm)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="speed-estimate-box">
+                  <div>Speed: <strong class="text-body" id="speed-est-factor">2.0x</strong> &bull; New Duration: <strong class="text-body" id="speed-est-duration">00:01:00</strong> &bull; Est. Size: <strong class="text-body" id="speed-est-size">~21.2 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from speed multiplier</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TOOL: Aspect Ratio & Crop Framing -->
+            <div class="tool-view d-none" id="view-aspect_crop">
+              <div class="mb-4">
+                <div class="section-divider-header">Aspect Ratio &amp; Crop Framing Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="crop-ratio">Target Aspect Ratio</label>
+                    <select class="form-select form-select-sm" id="crop-ratio">
+                      <option value="9:16" selected>9:16 Vertical (TikTok, Reels, Shorts)</option>
+                      <option value="1:1">1:1 Square (Instagram Posts)</option>
+                      <option value="4:5">4:5 Portrait (Instagram Feeds)</option>
+                      <option value="16:9">16:9 Landscape (YouTube, TV)</option>
+                      <option value="21:9">21:9 Ultrawide (Cinematic)</option>
+                      <option value="4:3">4:3 Classic TV</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="crop-mode">Framing &amp; Background Mode</label>
+                    <select class="form-select form-select-sm" id="crop-mode">
+                      <option value="center_crop" selected>Center Crop &amp; Fill (Zoom to fill, no black bars)</option>
+                      <option value="pad_blur">Blurred Video Background (Keep full video + blur bars)</option>
+                      <option value="pad_black">Letterbox / Pillarbox (Black borders)</option>
+                      <option value="fit_scale">Stretch to Fit</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="crop-crf">Output Quality (CRF)</label>
+                    <select class="form-select form-select-sm" id="crop-crf">
+                      <option value="18">CRF 18 (High Quality Studio)</option>
+                      <option value="23" selected>CRF 23 (Balanced Standard)</option>
+                      <option value="28">CRF 28 (Small File Size)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="crop-container">Target Format</label>
+                    <select class="form-select form-select-sm" id="crop-container">
+                      <option value="mp4" selected>MP4 (.mp4)</option>
+                      <option value="mkv">MKV (.mkv)</option>
+                      <option value="mov">MOV (.mov)</option>
+                      <option value="webm">WebM (.webm)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="crop-estimate-box">
+                  <div>Aspect Ratio: <strong class="text-body" id="crop-est-ratio">9:16 (Vertical)</strong> &bull; Mode: <strong class="text-body" id="crop-est-mode">Center Crop</strong> &bull; Est. Size: <strong class="text-body" id="crop-est-size">~38.5 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from resolution &amp; CRF</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TOOL: Video Stabilization & Deshake -->
+            <div class="tool-view d-none" id="view-stabilize">
+              <div class="mb-4">
+                <div class="section-divider-header">Stabilization &amp; Deshake Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="stab-engine">Stabilization Engine</label>
+                    <select class="form-select form-select-sm" id="stab-engine">
+                      <option value="deshake" selected>Native FFmpeg Deshake (Fast Single-Pass)</option>
+                      <option value="vidstab">VidStab Motion Vector Transform (High Accuracy)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="stab-smooth">Smoothness / Shakiness Level</label>
+                    <select class="form-select form-select-sm" id="stab-smooth">
+                      <option value="low">Subtle Smoothing (Minimal crop)</option>
+                      <option value="medium" selected>Medium / Handheld Standard (12 frames)</option>
+                      <option value="high">Aggressive Smoothing (Heavy shake / Action cam)</option>
+                      <option value="tripod">Tripod Emulation (Fixed camera)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="stab-border">Edge / Border Handling</label>
+                    <select class="form-select form-select-sm" id="stab-border">
+                      <option value="crop" selected>Auto Zoom &amp; Crop (Hide border artifacts)</option>
+                      <option value="black">Keep Black Motion Borders</option>
+                      <option value="mirror">Mirror Edge Pixels</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="stab-container">Output Format</label>
+                    <select class="form-select form-select-sm" id="stab-container">
+                      <option value="mp4" selected>MP4 (.mp4)</option>
+                      <option value="mkv">MKV (.mkv)</option>
+                      <option value="mov">MOV (.mov)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="stab-estimate-box">
+                  <div>Engine: <strong class="text-body" id="stab-est-engine">FFmpeg Deshake</strong> &bull; Smoothness: <strong class="text-body" id="stab-est-smooth">Medium</strong> &bull; Est. Size: <strong class="text-body" id="stab-est-size">~42.5 MB</strong></div>
+                  <div class="text-body-secondary small">Lossless audio stream preserved</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TOOL: Volume Normalization & Loudness -->
+            <div class="tool-view d-none" id="view-normalize">
+              <div class="mb-4">
+                <div class="section-divider-header">Loudness &amp; Normalization Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="norm-target">Loudness Target Standard</label>
+                    <select class="form-select form-select-sm" id="norm-target">
+                      <option value="spotify_youtube" selected>YouTube &amp; Spotify (-14 LUFS, -1.0 dBTP)</option>
+                      <option value="apple_podcast">Apple Music &amp; Podcasts (-16 LUFS, -1.0 dBTP)</option>
+                      <option value="ebu_r128">Broadcast EBU R128 (-23 LUFS, -1.0 dBTP)</option>
+                      <option value="dynaudnorm">Dynamic Audio Normalizer (Continuous equalization)</option>
+                      <option value="peak">Peak Normalization (Boost to 0 dB)</option>
+                      <option value="custom">Custom Target LUFS</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 d-none ui-zoom-in" id="norm-custom-wrapper">
+                    <label class="form-label small fw-medium" for="norm-custom-lufs">Target Integrated Loudness (LUFS)</label>
+                    <input type="number" class="form-control form-control-sm font-sans" id="norm-custom-lufs" value="-14" min="-30" max="-6" step="1" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="norm-tp">Maximum True Peak (dBTP)</label>
+                    <select class="form-select form-select-sm" id="norm-tp">
+                      <option value="-1.0" selected>-1.0 dBTP (Streaming Standard)</option>
+                      <option value="-1.5">-1.5 dBTP (Broadcast Safe)</option>
+                      <option value="-2.0">-2.0 dBTP</option>
+                      <option value="0.0">0.0 dBTP (Maximum Headroom)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="norm-video-mode">Video Stream</label>
+                    <select class="form-select form-select-sm" id="norm-video-mode">
+                      <option value="copy" selected>Stream Copy (Lossless, ultra-fast)</option>
+                      <option value="strip">Audio Only (Extract normalized audio)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="norm-acodec">Audio Codec</label>
+                    <select class="form-select form-select-sm" id="norm-acodec">
+                      <option value="aac" selected>AAC (High Quality)</option>
+                      <option value="libmp3lame">MP3 (320 kbps)</option>
+                      <option value="libopus">OPUS (Ultra High Fidelity)</option>
+                      <option value="flac">FLAC (Lossless)</option>
+                      <option value="pcm_s16le">WAV (Uncompressed PCM)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="norm-estimate-box">
+                  <div>Standard: <strong class="text-body" id="norm-est-target">-14 LUFS (YouTube/Spotify)</strong> &bull; Video: <strong class="text-body" id="norm-est-video">Stream Copy</strong> &bull; Est. Size: <strong class="text-body" id="norm-est-size">~42.5 MB</strong></div>
+                  <div class="text-body-secondary small">EBU R128 integrated loudness filter</div>
                 </div>
               </div>
             </div>
@@ -717,6 +1020,11 @@
                     </select>
                   </div>
                 </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="merge-estimate-box">
+                  <div>Files Queued: <strong class="text-body" id="merge-est-count">0 files</strong> &bull; Format: <strong class="text-body" id="merge-est-format">MP4</strong> &bull; Engine: <strong class="text-body" id="merge-est-engine">Fast Concat (Stream Copy)</strong></div>
+                  <div class="text-body-secondary small">Calculated from file sequence</div>
+                </div>
               </div>
             </div>
 
@@ -750,6 +1058,11 @@
                       <option value="1.5">150% (Boost)</option>
                     </select>
                   </div>
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="mute-estimate-box">
+                  <div>Operation: <strong class="text-body" id="mute-est-action">Mute / Strip Audio</strong> &bull; Video: <strong class="text-body" id="mute-est-video">Stream Copy</strong> &bull; Est. Size: <strong class="text-body" id="mute-est-size">~38.5 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from media duration</div>
                 </div>
               </div>
             </div>
@@ -804,6 +1117,11 @@
                     </select>
                   </div>
                 </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="gif-estimate-box">
+                  <div>Mode: <strong class="text-body" id="gif-est-mode">Animated GIF</strong> &bull; Frame Rate: <strong class="text-body" id="gif-est-fps">15 FPS</strong> &bull; Est. Size: <strong class="text-body" id="gif-est-size">~6.5 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from clip duration</div>
+                </div>
               </div>
             </div>
 
@@ -846,6 +1164,234 @@
                 </div>
                 <div class="text-body-secondary small">
                   Arguments are automatically wrapped with <code class="text-body-secondary">-i &lt;source_file&gt;</code> and destination path.
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="custom-estimate-box">
+                  <div>Output: <strong class="text-body" id="custom-est-format">.mp4</strong> &bull; Media Duration: <strong class="text-body" id="custom-est-duration">--:--:--</strong></div>
+                  <div class="text-body-secondary small">Calculated from custom arguments</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IMAGE AI TOOL 1: Background Remover -->
+            <div class="tool-view d-none" id="view-bg_remover">
+              <div class="mb-4">
+                <div class="section-divider-header">Neural Background Removal Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="bg-model">Segmentation Model</label>
+                    <select class="form-select form-select-sm" id="bg-model">
+                      <option value="u2net" selected>U2Net (General Purpose / Studio)</option>
+                      <option value="isnet-general-use">IS-Net (High Precision Boundaries)</option>
+                      <option value="birefnet-general">BiRefNet (Ultra-Fine Edge Detail)</option>
+                      <option value="silueta">Silueta (Fast Lightweight)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="bg-output-mode">Background Fill / Mode</label>
+                    <select class="form-select form-select-sm" id="bg-output-mode">
+                      <option value="transparent" selected>Transparent PNG (Cutout)</option>
+                      <option value="solid_color">Solid Color Background</option>
+                      <option value="blur_bg">Blurred Original Background</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 d-none ui-zoom-in" id="bg-color-wrapper">
+                    <label class="form-label small fw-medium" for="bg-color">Background Color</label>
+                    <div class="input-group input-group-sm">
+                      <input type="color" class="form-control form-control-color form-control-sm" id="bg-color-picker" value="#ffffff" title="Choose color" />
+                      <input type="text" class="form-control form-control-sm font-sans" id="bg-color" value="#ffffff" />
+                    </div>
+                  </div>
+                  <div class="col-md-4 d-none ui-zoom-in" id="bg-blur-wrapper">
+                    <label class="form-label small fw-medium" for="bg-blur-radius">Background Blur Radius (px)</label>
+                    <input type="number" class="form-control form-control-sm font-sans" id="bg-blur-radius" value="25" min="5" max="100" />
+                  </div>
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="bg-estimate-box">
+                  <div>Model: <strong class="text-body" id="bg-est-model">U2Net</strong> &bull; Output: <strong class="text-body" id="bg-est-mode">Transparent PNG</strong></div>
+                  <div class="text-body-secondary small">On-device neural inference</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IMAGE AI TOOL 2: AI Image Upscaler -->
+            <div class="tool-view d-none" id="view-ai_upscaler">
+              <div class="mb-4">
+                <div class="section-divider-header">Super-Resolution &amp; Upscaling Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="upscale-factor">Scale Multiplier</label>
+                    <select class="form-select form-select-sm" id="upscale-factor">
+                      <option value="2" selected>2x Upscale (Double Resolution)</option>
+                      <option value="3">3x Upscale</option>
+                      <option value="4">4x Upscale (Quadruple Resolution / Ultra HD)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="upscale-model">Enhancement Engine</label>
+                    <select class="form-select form-select-sm" id="upscale-model">
+                      <option value="realesrgan-x4plus" selected>Real-ESRGAN+ (Photos &amp; Real World)</option>
+                      <option value="realesr-animevideov3">Real-ESRGAN Anime (Illustration &amp; Art)</option>
+                      <option value="bicubic_sharp">Lanczos Edge-Preserving Sharp</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="upscale-denoise">Denoise &amp; Artifact Smoothing</label>
+                    <select class="form-select form-select-sm" id="upscale-denoise">
+                      <option value="0" selected>None (Retain Original Grain)</option>
+                      <option value="15">Low Denoising</option>
+                      <option value="30">Medium Denoising</option>
+                      <option value="50">Heavy Smoothing (Compressed Source)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="upscale-estimate-box">
+                  <div>Scale: <strong class="text-body" id="upscale-est-scale">2x</strong> &bull; Model: <strong class="text-body" id="upscale-est-model">Real-ESRGAN+</strong></div>
+                  <div class="text-body-secondary small">Perceptual high-frequency detail enhancement</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IMAGE AI TOOL 3: Image Vectorizer -->
+            <div class="tool-view d-none" id="view-vectorizer">
+              <div class="mb-4">
+                <div class="section-divider-header">Vectorization &amp; SVG Tracing Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="vec-mode">Vector Mode</label>
+                    <select class="form-select form-select-sm" id="vec-mode">
+                      <option value="color" selected>Color Quantized (Multi-Layer SVG)</option>
+                      <option value="monochrome">Monochrome Silhouette</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4" id="vec-colors-wrapper">
+                    <label class="form-label small fw-medium" for="vec-colors">Color Palette Count</label>
+                    <select class="form-select form-select-sm" id="vec-colors">
+                      <option value="4">4 Colors (Minimal Graphic)</option>
+                      <option value="8" selected>8 Colors (Standard Illustration)</option>
+                      <option value="16">16 Colors (High Fidelity)</option>
+                      <option value="32">32 Colors (Detailed Artwork)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 d-none ui-zoom-in" id="vec-mono-color-wrapper">
+                    <label class="form-label small fw-medium" for="vec-mono-color">Silhouette Color</label>
+                    <input type="color" class="form-control form-control-color form-control-sm w-100" id="vec-mono-color" value="#000000" title="Choose color" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="vec-tolerance">Path Curve Simplification</label>
+                    <select class="form-select form-select-sm" id="vec-tolerance">
+                      <option value="0.5">High Detail (Tight Polygons)</option>
+                      <option value="1.0" selected>Balanced (Clean Curves)</option>
+                      <option value="2.5">Smooth &amp; Simplified (Low Node Count)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="vec-estimate-box">
+                  <div>Output: <strong class="text-body" id="vec-est-output">Scalable SVG (.svg)</strong> &bull; Layers: <strong class="text-body" id="vec-est-layers">8 Colors</strong></div>
+                  <div class="text-body-secondary small">Infinite resolution vector paths</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IMAGE AI TOOL 4: Restore & Denoise -->
+            <div class="tool-view d-none" id="view-restore_denoise">
+              <div class="mb-4">
+                <div class="section-divider-header">Image Restoration &amp; Enhancement Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="rest-method">Restoration Algorithm</label>
+                    <select class="form-select form-select-sm" id="rest-method">
+                      <option value="nlmeans" selected>Non-Local Means (Best for Low-Light &amp; High ISO Noise)</option>
+                      <option value="bilateral">Bilateral Filter (Fast Edge-Preserving Smoothing)</option>
+                      <option value="deblur_sharpen">Unsharp Mask (Deblur &amp; Edge Sharpening)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="rest-strength">Filter Strength</label>
+                    <select class="form-select form-select-sm" id="rest-strength">
+                      <option value="8">Subtle (Preserve micro-textures)</option>
+                      <option value="15" selected>Standard (Balanced noise reduction)</option>
+                      <option value="25">Strong (Heavy grain / ISO 6400+)</option>
+                      <option value="40">Maximum Smoothing</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="rest-estimate-box">
+                  <div>Algorithm: <strong class="text-body" id="rest-est-method">NLMeans Denoising</strong> &bull; Strength: <strong class="text-body" id="rest-est-strength">Standard (15)</strong></div>
+                  <div class="text-body-secondary small">Local texture-aware restoration</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IMAGE AI TOOL 5: Icon Generator -->
+            <div class="tool-view d-none" id="view-icon_generator">
+              <div class="mb-4">
+                <div class="section-divider-header">Icon &amp; App Asset Package Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="icon-platform">Platform Target</label>
+                    <select class="form-select form-select-sm" id="icon-platform">
+                      <option value="all" selected>All Platforms (Windows, Web, iOS, Android)</option>
+                      <option value="windows">Windows ICO Only (16x16 to 256x256)</option>
+                      <option value="web">Web Favicon Bundle + Webmanifest</option>
+                      <option value="mobile">Apple Touch &amp; Android PWA Icons</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="icon-fit-mode">Framing / Fit Mode</label>
+                    <select class="form-select form-select-sm" id="icon-fit-mode">
+                      <option value="contain" selected>Contain &amp; Center (Preserve Aspect Ratio)</option>
+                      <option value="cover">Cover (Crop to Square)</option>
+                      <option value="stretch">Stretch to Square</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="icon-bg-color">Icon Padding Background</label>
+                    <select class="form-select form-select-sm" id="icon-bg-color">
+                      <option value="transparent" selected>Transparent (Alpha Channel)</option>
+                      <option value="#ffffff">Solid White</option>
+                      <option value="#000000">Solid Black</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="icon-estimate-box">
+                  <div>Outputs: <strong class="text-body" id="icon-est-target">Windows .ico, Favicons, Apple Touch, PWA Icons</strong></div>
+                  <div class="text-body-secondary small">Generates complete deployment package</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- IMAGE AI TOOL 6: Metadata Cleaner -->
+            <div class="tool-view d-none" id="view-metadata_cleaner">
+              <div class="mb-4">
+                <div class="section-divider-header">Photo Privacy &amp; EXIF Metadata Sanitization</div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="meta-action">Cleaning Mode</label>
+                    <select class="form-select form-select-sm" id="meta-action">
+                      <option value="strip_all" selected>Strip All EXIF, GPS &amp; Camera Tags (Full Privacy)</option>
+                      <option value="color_profile_only">Strip Tags but Keep Color Profile (sRGB)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="meta-out-format">Output Format</label>
+                    <select class="form-select form-select-sm" id="meta-out-format">
+                      <option value="original" selected>Keep Original Format (Lossless Retain)</option>
+                      <option value="jpg">Convert to Clean JPEG</option>
+                      <option value="png">Convert to Clean PNG</option>
+                      <option value="webp">Convert to Clean WebP</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="meta-estimate-box">
+                  <div>Privacy: <strong class="text-body" id="meta-est-privacy">GPS Coordinates &amp; Camera Hardware Removed</strong></div>
+                  <div class="text-body-secondary small">Sanitized for social sharing and web publishing</div>
                 </div>
               </div>
             </div>
@@ -1114,10 +1660,11 @@
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="set-hwaccel">Hardware Acceleration Engine</label>
                     <select class="form-select form-select-sm" id="set-hwaccel">
-                      <option value="auto" selected>Auto / CPU</option>
+                      <option value="auto" selected>Auto</option>
                       <option value="cuda">NVIDIA NVENC (CUDA)</option>
                       <option value="qsv">Intel QuickSync (QSV)</option>
                       <option value="amf">AMD AMF</option>
+                      <option value="cpu">CPU</option>
                     </select>
                   </div>
                   <div class="col-md-6">
@@ -1256,10 +1803,10 @@
             <!-- Execution Footer Panel (Command Preview & Conditional Execution Status/Logs) -->
             <div id="execution-footer-panel">
               <!-- Command Preview -->
-              <div class="mb-4">
+              <div class="mb-4" id="command-preview-card">
                 <div class="section-divider-header">Command Preview</div>
                 <div class="input-group">
-                  <div class="form-control small user-select-all text-body bg-body d-flex align-items-center" style="min-height: 38px;" id="cmd-preview">ffmpeg -i ...</div>
+                  <div class="form-control small user-select-all text-body bg-body font-monospace overflow-x-auto d-flex align-items-center" style="min-height: 38px; font-size: 0.8rem; white-space: nowrap;" id="cmd-preview">ffmpeg -i ...</div>
                   <button class="btn btn-outline-secondary" type="button" id="btn-copy-cmd" title="Copy command string">
                     <i class="bi bi-copy"></i>
                   </button>
@@ -1292,31 +1839,27 @@
               <div class="mb-3 d-none ui-zoom-in" id="execution-status-panel">
                 <div class="section-divider-header">Execution Status & Log Output</div>
                 <div class="card border-secondary-subtle overflow-hidden position-relative">
+                  <!-- Copy Log Button at Top Right Corner (faint, no background, visible on hover) -->
+                  <button type="button" class="btn btn-sm text-secondary border-0 bg-transparent position-absolute top-0 end-0 m-1 log-copy-btn" id="btn-copy-logs" title="Copy execution log to clipboard" style="z-index: 5;">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+
                   <!-- Log Box at top (full width, no gap from top) -->
-                  <div class="bg-black text-success-emphasis p-3 font-monospace small overflow-y-auto" style="height: 140px; font-size: 0.8rem;" id="log-console">
+                  <div class="bg-black text-success-emphasis p-3 pe-5 font-monospace small overflow-y-auto" style="height: 140px; font-size: 0.8rem;" id="log-console">
                     <div class="text-secondary">[Ready to process tasks]</div>
                   </div>
 
-                  <!-- Playlist / Batch Total Progress (Conditional) -->
-                  <div id="playlist-progress-wrapper" class="d-none px-3 py-2 border-top bg-body-tertiary">
-                    <div class="d-flex justify-content-between align-items-center mb-1 small">
-                      <span class="text-body-secondary"><i class="bi bi-collection-play me-1 text-primary"></i> Batch / Playlist Progress</span>
-                      <span class="fw-semibold text-body" id="playlist-progress-text">Item 0 of 0 (0%)</span>
-                    </div>
-                    <div class="progress rounded" style="height: 6px; background-color: var(--bs-border-color);">
-                      <div class="progress-bar bg-success" id="playlist-progress-bar" role="progressbar" style="width: 0%;"></div>
-                    </div>
-                  </div>
-
-                  <!-- Currently Downloading Item (Conditional) -->
-                  <div id="current-item-wrapper" class="d-none text-truncate small text-primary fw-medium px-3 py-1 bg-body border-top">
-                    <i class="bi bi-arrow-down-circle me-1"></i> <span id="current-item-name">Downloading...</span>
+                  <!-- Currently Processing Item Header -->
+                  <div id="current-item-wrapper" class="d-none px-3 py-2 bg-body border-top">
+                    <h3 class="h3 fw-semibold mb-1 text-body lh-1" id="current-processing-heading">Currently processing: (1 of 1)</h3>
+                    <div class="text-body-secondary small text-truncate" id="current-item-name">Processing...</div>
                   </div>
 
                   <!-- Status text in middle -->
                   <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-body small text-body-secondary border-top">
                     <div class="d-flex flex-wrap gap-3">
                       <span id="stat-time">Time: 00:00:00</span>
+                      <span id="stat-eta">ETA: --:--:--</span>
                       <span id="stat-fps">FPS: 0</span>
                       <span id="stat-speed">Speed: 0x</span>
                       <span id="stat-bitrate">Bitrate: 0 kbits/s</span>
@@ -1348,7 +1891,12 @@
         </div>
         <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1" id="bottom-control-bar">
           <div class="text-body-secondary small" id="status-message">Ready</div>
-          <div class="d-flex gap-2" id="bottom-action-buttons">
+          <div class="d-flex align-items-center gap-2" id="bottom-action-buttons">
+            <!-- Replace Source Toggle Switch (Visible in AI modes) -->
+            <div class="form-check form-switch mb-0 d-none d-flex align-items-center gap-2 me-1" id="ai-replace-source-wrapper" title="Overwrite and replace original source files with generated AI results">
+              <input class="form-check-input mt-0" type="checkbox" role="switch" id="ai-replace-source" style="cursor: pointer;" />
+              <label class="form-check-label small text-body-secondary user-select-none" for="ai-replace-source" style="font-size: 0.8rem; cursor: pointer; white-space: nowrap;">Replace Source</label>
+            </div>
             <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-reset" title="Reset current tool settings and inputs">Reset</button>
             <button class="btn btn-primary btn-sm px-4" type="button" id="btn-execute" title="Select a file to execute operation" disabled>Execute</button>
           </div>
@@ -1463,7 +2011,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-4 text-center">
-            <h4 class="fw-light mb-1 text-body">AnEditKit</h4>
+            <h4 class="fw-light mb-1 text-body">AnEdiKit</h4>
             <div class="text-body-secondary small mb-3">Lightweight All-in-One Creator Media Toolkit</div>
             
             <div class="p-3 border rounded bg-body-tertiary mb-3 text-start">
@@ -1761,6 +2309,136 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fullscreen Sliding Window Image Comparison Modal -->
+    <div class="image-comp-modal-overlay d-none" id="image-comparison-modal">
+      <!-- Top Control Bar -->
+      <div class="comp-header px-3 d-flex justify-content-between align-items-center flex-shrink-0">
+        <div class="d-flex align-items-center gap-3">
+          <div>
+            <h6 class="mb-0 fw-semibold text-body text-truncate" id="comp-modal-title">Comparison View</h6>
+            <div class="small text-body-secondary" id="comp-modal-subtitle" style="font-size: 0.72rem;">Review enhancement result</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <!-- View Modes -->
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary active" id="btn-comp-mode-split" title="Interactive Sliding Window Comparison">
+              <i class="bi bi-layout-split me-1"></i> Split Slider
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="btn-comp-mode-side" title="Side-by-Side Comparison">
+              <i class="bi bi-layout-three-columns me-1"></i> Side-by-Side
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="btn-comp-mode-fade" title="Opacity Crossfade / Onion Skin">
+              <i class="bi bi-layers me-1"></i> Onion Skin
+            </button>
+          </div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-close-x" title="Close comparison"><i class="bi bi-x-lg"></i></button>
+        </div>
+      </div>
+
+      <!-- Main Interactive Comparison Stage Area -->
+      <div class="comp-stage-wrapper transparency-grid flex-grow-1 position-relative" id="comp-stage-container">
+        
+        <!-- Mode 1: Split Slider (Sliding Window) -->
+        <div class="comp-split-container w-100 h-100" id="comp-view-split">
+          <div class="position-relative w-100 h-100 comp-zoomable" id="comp-split-wrapper" style="transition: transform 0.05s ease-out;">
+            <!-- Before Layer (Original) -->
+            <div class="comp-split-image-layer">
+              <img id="comp-split-before-img" src="" alt="Original Image" draggable="false" />
+              <div class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 start-0 m-3 py-1 px-2 border" style="z-index: 5;">Before</div>
+            </div>
+            <!-- After Layer (Processed - Clipped by Slider) -->
+            <div class="comp-split-image-layer" id="comp-split-after-wrapper" style="clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);">
+              <img id="comp-split-after-img" src="" alt="Enhanced Result" draggable="false" />
+              <div class="badge bg-primary text-white position-absolute top-0 end-0 m-3 py-1 px-2" style="z-index: 15;">After</div>
+            </div>
+            <!-- Sliding Divider Line & Handle -->
+            <div class="comp-split-divider-line" id="comp-split-divider" style="left: 50%;">
+              <div class="comp-split-divider-handle">
+                <i class="bi bi-chevron-left"></i><i class="bi bi-chevron-right"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 2: Side-by-Side Dual View -->
+        <div class="d-none w-100 h-100 p-3" id="comp-view-side">
+          <div class="row g-3 w-100 h-100 m-0">
+            <div class="col-6 h-100 position-relative d-flex flex-column align-items-center justify-content-center overflow-hidden transparency-grid">
+              <div class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 start-0 m-2 py-1 px-2 border z-2">Before</div>
+              <div class="w-100 h-100 d-flex align-items-center justify-content-center comp-zoomable">
+                <img id="comp-side-before-img" class="w-100 h-100 object-fit-contain" src="" alt="Original" draggable="false" />
+              </div>
+            </div>
+            <div class="col-6 h-100 position-relative d-flex flex-column align-items-center justify-content-center overflow-hidden transparency-grid">
+              <div class="badge bg-primary text-white position-absolute top-0 start-0 m-2 py-1 px-2 z-2">After</div>
+              <div class="w-100 h-100 d-flex align-items-center justify-content-center comp-zoomable">
+                <img id="comp-side-after-img" class="w-100 h-100 object-fit-contain" src="" alt="Processed" draggable="false" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 3: Onion Skin (Fade Layer) -->
+        <div class="d-none w-100 h-100 position-relative d-flex align-items-center justify-content-center" id="comp-view-fade">
+          <div class="position-relative w-100 h-100 comp-zoomable d-flex align-items-center justify-content-center">
+            <img id="comp-fade-before-img" class="position-absolute max-w-90 max-h-90 object-fit-contain" src="" alt="Original" draggable="false" />
+            <img id="comp-fade-after-img" class="position-absolute max-w-90 max-h-90 object-fit-contain" src="" alt="Processed" style="opacity: 0.5;" draggable="false" />
+          </div>
+        </div>
+
+        <!-- Floating Stage Toolbar (Zoom, Actions & Opacity) -->
+        <div class="comp-floating-toolbar p-2 d-flex align-items-center gap-3">
+          <!-- Zoom Controls -->
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-out" title="Zoom Out"><i class="bi bi-dash-lg"></i></button>
+            <span class="btn btn-outline-secondary py-1 px-2 disabled small font-monospace" id="comp-zoom-text">100%</span>
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-in" title="Zoom In"><i class="bi bi-plus-lg"></i></button>
+          </div>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-fit" title="Fit Image">Fit</button>
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-100" title="1:1 Pixel Scale">100%</button>
+          </div>
+
+          <!-- Onion Skin Slider (Conditional) -->
+          <div class="d-none align-items-center gap-2" id="comp-fade-ctrl-wrapper">
+            <span class="small text-body-secondary">Opacity:</span>
+            <input type="range" class="form-range" id="comp-fade-slider" min="0" max="100" value="50" style="width: 100px;" />
+          </div>
+
+          <div class="vr my-1"></div>
+
+          <!-- Action Buttons -->
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-copy" title="Copy result to clipboard">
+              <i class="bi bi-clipboard me-1"></i> Copy Result
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-show-folder" title="Show output file in File Explorer">
+              <i class="bi bi-folder2-open me-1"></i> Open Folder
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Hero Zoom Lightbox Modal -->
+    <div class="image-lightbox-overlay d-none" id="image-lightbox-modal">
+      <div class="position-absolute top-0 end-0 p-3" style="z-index: 20;">
+        <button type="button" class="btn btn-outline-light btn-sm rounded-circle d-flex align-items-center justify-content-center" id="btn-lightbox-close" style="width: 36px; height: 36px;" title="Close preview (Esc)">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="image-lightbox-card p-3" id="image-lightbox-card">
+        <div class="transparency-grid rounded p-2 border shadow-lg d-flex align-items-center justify-content-center overflow-hidden">
+          <img id="image-lightbox-img" class="image-lightbox-img" src="" alt="Full Preview" />
+        </div>
+        <div class="mt-3 text-center text-white" id="image-lightbox-meta">
+          <h6 class="mb-0 fw-medium text-truncate" id="image-lightbox-title" style="max-width: 70vw;">photo.png</h6>
+          <span class="small text-white-50" id="image-lightbox-details">Original Image</span>
         </div>
       </div>
     </div>

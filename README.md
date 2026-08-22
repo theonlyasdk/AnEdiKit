@@ -1,6 +1,6 @@
-# AnEditKit
+# AnEdiKit
 
-AnEditKit is a lightweight, all-in-one desktop toolkit for creators that integrates FFmpeg and yt-dlp media utilities into a responsive desktop application built with Tauri v2 and Rust.
+AnEdiKit is a lightweight, all-in-one desktop toolkit for creators that integrates FFmpeg and yt-dlp media utilities into a responsive desktop application built with Tauri v2 and Rust.
 
 ## Features
 

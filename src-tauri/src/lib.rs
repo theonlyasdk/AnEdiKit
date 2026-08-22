@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
-use std::io::{BufRead, BufReader};
+use std::io::{BufReader, Read};
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
-use tauri::Emitter;
+use std::sync::{Arc, Mutex};
+use tauri::{Emitter, Manager};
 
 static RUNNING_CHILD_PID: Mutex<Option<u32>> = Mutex::new(None);
 static CANCEL_REQUESTED: AtomicBool = AtomicBool::new(false);
@@ -28,6 +28,7 @@ pub struct MediaInfo {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProgressPayload {
     pub time: String,
+    pub eta: Option<String>,
     pub fps: String,
     pub speed: String,
     pub bitrate: String,
@@ -40,6 +41,15 @@ pub struct ProgressPayload {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct LogPayload {
     pub line: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct HardwareInfo {
+    pub cpu_name: Option<String>,
+    pub nvidia_gpu: Option<String>,
+    pub intel_gpu: Option<String>,
+    pub amd_gpu: Option<String>,
+    pub default_recommended: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -63,6 +73,12 @@ pub struct PlaylistVideo {
 fn pick_file(filter_mode: Option<String>) -> Option<String> {
     let mut dialog = rfd::FileDialog::new();
     match filter_mode.as_deref() {
+        Some("image") => {
+            dialog = dialog.add_filter(
+                "Image Files",
+                &["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg", "ico"],
+            );
+        }
         Some("audio") => {
             dialog = dialog.add_filter(
                 "Audio Files",
@@ -77,10 +93,10 @@ fn pick_file(filter_mode: Option<String>) -> Option<String> {
         }
         _ => {
             dialog = dialog.add_filter(
-                "Media Files",
+                "Media & Image Files",
                 &[
-                    "mp4", "mkv", "webm", "mov", "avi", "flv", "ts", "mp3", "wav", "flac", "m4a",
-                    "ogg", "opus",
+                    "mp4", "mkv", "webm", "mov", "avi", "flv", "ts", "wmv", "m4v", "mp3", "wav", "flac", "m4a",
+                    "ogg", "opus", "wma", "aiff", "png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg",
                 ],
             );
         }
@@ -92,6 +108,12 @@ fn pick_file(filter_mode: Option<String>) -> Option<String> {
 fn pick_files(filter_mode: Option<String>) -> Vec<String> {
     let mut dialog = rfd::FileDialog::new();
     match filter_mode.as_deref() {
+        Some("image") => {
+            dialog = dialog.add_filter(
+                "Image Files",
+                &["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg", "ico"],
+            );
+        }
         Some("audio") => {
             dialog = dialog.add_filter(
                 "Audio Files",
@@ -106,10 +128,10 @@ fn pick_files(filter_mode: Option<String>) -> Vec<String> {
         }
         _ => {
             dialog = dialog.add_filter(
-                "Media Files",
+                "Media & Image Files",
                 &[
                     "mp4", "mkv", "webm", "mov", "avi", "flv", "ts", "wmv", "m4v", "mp3", "wav", "flac", "m4a",
-                    "ogg", "opus", "wma", "aiff",
+                    "ogg", "opus", "wma", "aiff", "png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg",
                 ],
             );
         }
@@ -148,6 +170,12 @@ fn pick_folder(default_path: Option<String>) -> Option<String> {
         }
     }
     dialog.pick_folder().map(|p| p.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn check_file_exists(file_path: String) -> bool {
+    let p = std::path::Path::new(&file_path);
+    p.exists() && p.is_file()
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -440,6 +468,223 @@ fn cancel_ffmpeg() -> Result<(), String> {
 }
 
 #[tauri::command]
+fn cancel_job() -> Result<(), String> {
+    cancel_ffmpeg()
+}
+
+#[tauri::command]
+fn get_hardware_info() -> HardwareInfo {
+    let mut cpu_name: Option<String> = None;
+    let mut nvidia_gpu: Option<String> = None;
+    let mut intel_gpu: Option<String> = None;
+    let mut amd_gpu: Option<String> = None;
+
+    #[cfg(windows)]
+    {
+        // 1. Query CPU Name from Registry
+        let cpu_output = Command::new("reg")
+            .args(["query", r"HKLM\HARDWARE\DESCRIPTION\System\CentralProcessor\0", "/v", "ProcessorNameString"])
+            .creation_flags(0x08000000)
+            .output();
+
+        if let Ok(out) = cpu_output {
+            if let Ok(text) = String::from_utf8(out.stdout) {
+                for line in text.lines() {
+                    if line.contains("ProcessorNameString") {
+                        if let Some(idx) = line.find("REG_SZ") {
+                            let name = line[idx + 6..].trim();
+                            if !name.is_empty() {
+                                cpu_name = Some(name.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Query Display Adapters (GPUs) from Registry
+        let gpu_output = Command::new("reg")
+            .args([
+                "query",
+                r"HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}",
+                "/s",
+                "/v",
+                "DriverDesc",
+            ])
+            .creation_flags(0x08000000)
+            .output();
+
+        if let Ok(out) = gpu_output {
+            if let Ok(text) = String::from_utf8(out.stdout) {
+                for line in text.lines() {
+                    if line.contains("DriverDesc") {
+                        if let Some(idx) = line.find("REG_SZ") {
+                            let desc = line[idx + 6..].trim();
+                            let desc_lower = desc.to_lowercase();
+                            if desc_lower.contains("nvidia")
+                                || desc_lower.contains("geforce")
+                                || desc_lower.contains("quadro")
+                                || desc_lower.contains("rtx")
+                                || desc_lower.contains("gtx")
+                            {
+                                if nvidia_gpu.is_none() {
+                                    nvidia_gpu = Some(desc.to_string());
+                                }
+                            } else if desc_lower.contains("intel")
+                                || desc_lower.contains("arc ")
+                                || desc_lower.contains("iris")
+                                || desc_lower.contains("uhd graphics")
+                                || desc_lower.contains("hd graphics")
+                            {
+                                if intel_gpu.is_none() {
+                                    intel_gpu = Some(desc.to_string());
+                                }
+                            } else if desc_lower.contains("amd")
+                                || desc_lower.contains("radeon")
+                            {
+                                if amd_gpu.is_none() {
+                                    amd_gpu = Some(desc.to_string());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let default_recommended = if nvidia_gpu.is_some() {
+        "cuda".to_string()
+    } else if intel_gpu.is_some() {
+        "qsv".to_string()
+    } else if amd_gpu.is_some() {
+        "amf".to_string()
+    } else {
+        "cpu".to_string()
+    };
+
+    HardwareInfo {
+        cpu_name,
+        nvidia_gpu,
+        intel_gpu,
+        amd_gpu,
+        default_recommended,
+    }
+}
+
+fn strip_ansi_codes(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut in_escape = false;
+    for c in s.chars() {
+        if c == '\x1b' {
+            in_escape = true;
+        } else if in_escape {
+            if c.is_ascii_alphabetic() {
+                in_escape = false;
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
+fn extract_kv_value(line: &str, key: &str) -> Option<String> {
+    if let Some(idx) = line.find(key) {
+        let after_key = &line[idx + key.len()..];
+        let trimmed = after_key.trim_start();
+        let end = trimmed.find(|c: char| c.is_whitespace()).unwrap_or(trimmed.len());
+        let val = trimmed[..end].trim();
+        if !val.is_empty() && val != "N/A" {
+            return Some(val.to_string());
+        }
+    }
+    None
+}
+
+fn parse_duration_from_str(s: &str) -> Option<f64> {
+    let target = if let Some(idx) = s.find("Duration: ") {
+        let sub = &s[idx + 10..];
+        let end = sub.find(',').unwrap_or(sub.len());
+        sub[..end].trim()
+    } else {
+        s.trim()
+    };
+    if target.is_empty() || target == "N/A" {
+        return None;
+    }
+    let parts: Vec<&str> = target.split(':').collect();
+    if parts.len() == 3 {
+        let h = parts[0].trim().parse::<f64>().ok()?;
+        let m = parts[1].trim().parse::<f64>().ok()?;
+        let s = parts[2].trim().parse::<f64>().ok()?;
+        Some(h * 3600.0 + m * 60.0 + s)
+    } else if parts.len() == 2 {
+        let m = parts[0].trim().parse::<f64>().ok()?;
+        let s = parts[1].trim().parse::<f64>().ok()?;
+        Some(m * 60.0 + s)
+    } else if let Ok(sec) = target.parse::<f64>() {
+        Some(sec)
+    } else {
+        None
+    }
+}
+
+fn format_seconds_to_hms(sec: f64) -> String {
+    let s_total = sec.round() as u64;
+    let h = s_total / 3600;
+    let m = (s_total % 3600) / 60;
+    let s = s_total % 60;
+    if h > 0 {
+        format!("{:02}:{:02}:{:02}", h, m, s)
+    } else {
+        format!("00:{:02}:{:02}", m, s)
+    }
+}
+
+fn stream_lines<R: Read + Send + 'static, F: FnMut(String) + Send + 'static>(
+    reader: R,
+    mut on_line: F,
+) {
+    let mut buf = BufReader::new(reader);
+    let mut line_bytes = Vec::new();
+    let mut byte = [0u8; 1];
+
+    while let Ok(n) = buf.read(&mut byte) {
+        if n == 0 {
+            break;
+        }
+        if CANCEL_REQUESTED.load(Ordering::SeqCst) {
+            break;
+        }
+        let b = byte[0];
+        if b == b'\n' || b == b'\r' {
+            if !line_bytes.is_empty() {
+                if let Ok(s) = String::from_utf8(line_bytes.clone()) {
+                    let cleaned = strip_ansi_codes(&s);
+                    let trimmed = cleaned.trim();
+                    if !trimmed.is_empty() {
+                        on_line(trimmed.to_string());
+                    }
+                }
+                line_bytes.clear();
+            }
+        } else {
+            line_bytes.push(b);
+        }
+    }
+    if !line_bytes.is_empty() {
+        if let Ok(s) = String::from_utf8(line_bytes) {
+            let cleaned = strip_ansi_codes(&s);
+            let trimmed = cleaned.trim();
+            if !trimmed.is_empty() {
+                on_line(trimmed.to_string());
+            }
+        }
+    }
+}
+
+#[tauri::command]
 fn execute_ffmpeg(
     app: tauri::AppHandle,
     args: Vec<String>,
@@ -481,36 +726,40 @@ fn execute_ffmpeg(
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
 
+        let dur_arc = Arc::new(Mutex::new(total_duration));
+
         // Stdout reader for -progress pipe:1
         let app_out = app.clone();
+        let dur_out = dur_arc.clone();
         let out_handle = std::thread::spawn(move || {
             if let Some(out) = stdout {
-                let reader = BufReader::new(out);
                 let mut cur_time = "00:00:00".to_string();
                 let mut cur_fps = "0".to_string();
                 let mut cur_speed = "0x".to_string();
                 let mut cur_bitrate = "0 kbits/s".to_string();
                 let mut cur_pct = 0u32;
+                let mut cur_sec = 0.0f64;
 
-                for line in reader.lines().flatten() {
-                    if CANCEL_REQUESTED.load(Ordering::SeqCst) {
-                        break;
-                    }
-
+                stream_lines(out, move |line| {
                     if line.starts_with("out_time=") {
                         let t = line[9..].trim().to_string();
-                        cur_time = t.clone();
-                        // Parse timestamp HH:MM:SS.ms to seconds
-                        let parts: Vec<&str> = t.split(':').collect();
-                        if parts.len() == 3 {
-                            let h = parts[0].parse::<f64>().unwrap_or(0.0);
-                            let m = parts[1].parse::<f64>().unwrap_or(0.0);
-                            let s = parts[2].parse::<f64>().unwrap_or(0.0);
-                            let cur_sec = h * 3600.0 + m * 60.0 + s;
-                            if total_duration > 0.0 {
-                                let pct = ((cur_sec / total_duration) * 100.0).clamp(0.0, 99.0);
-                                cur_pct = pct.round() as u32;
+                        if !t.starts_with("N/A") {
+                            if let Some(s) = parse_duration_from_str(&t) {
+                                cur_sec = s;
+                                cur_time = format_seconds_to_hms(s);
+                            } else {
+                                cur_time = t.clone();
                             }
+                        }
+                    } else if line.starts_with("out_time_us=") {
+                        if let Ok(us) = line[12..].trim().parse::<f64>() {
+                            cur_sec = us / 1_000_000.0;
+                            cur_time = format_seconds_to_hms(cur_sec);
+                        }
+                    } else if line.starts_with("out_time_ms=") {
+                        if let Ok(val) = line[12..].trim().parse::<f64>() {
+                            cur_sec = if val > 1_000_000.0 { val / 1_000_000.0 } else { val / 1_000.0 };
+                            cur_time = format_seconds_to_hms(cur_sec);
                         }
                     } else if line.starts_with("fps=") {
                         cur_fps = line[4..].trim().to_string();
@@ -518,38 +767,107 @@ fn execute_ffmpeg(
                         cur_speed = line[6..].trim().to_string();
                     } else if line.starts_with("bitrate=") {
                         cur_bitrate = line[8..].trim().to_string();
-                    } else if line.starts_with("progress=end") {
-                        cur_pct = 100;
-                    }
+                    } else if line.starts_with("progress=") {
+                        let is_end = line.ends_with("end");
+                        let total_dur = *dur_out.lock().unwrap();
+                        let cur_eta = if is_end {
+                            Some("00:00:00".to_string())
+                        } else if total_dur > 0.0 && cur_sec > 0.0 {
+                            let rem = (total_dur - cur_sec).max(0.0);
+                            let sp = cur_speed.trim_end_matches('x').trim().parse::<f64>().unwrap_or(1.0).max(0.05);
+                            Some(format_seconds_to_hms(rem / sp))
+                        } else {
+                            None
+                        };
 
-                    let _ = app_out.emit(
-                        "ffmpeg-progress",
-                        ProgressPayload {
-                            time: cur_time.clone(),
-                            fps: cur_fps.clone(),
-                            speed: cur_speed.clone(),
-                            bitrate: cur_bitrate.clone(),
-                            pct: cur_pct,
-                            playlist_item: None,
-                            playlist_total: None,
-                            current_item_title: None,
-                        },
-                    );
-                }
+                        if is_end {
+                            cur_pct = 100;
+                        } else if total_dur > 0.0 && cur_sec > 0.0 {
+                            cur_pct = ((cur_sec / total_dur) * 100.0).clamp(0.0, 99.0).round() as u32;
+                        }
+
+                        let _ = app_out.emit(
+                            "ffmpeg-progress",
+                            ProgressPayload {
+                                time: cur_time.clone(),
+                                eta: cur_eta,
+                                fps: cur_fps.clone(),
+                                speed: cur_speed.clone(),
+                                bitrate: cur_bitrate.clone(),
+                                pct: cur_pct,
+                                playlist_item: None,
+                                playlist_total: None,
+                                current_item_title: None,
+                            },
+                        );
+                    }
+                });
             }
         });
 
-        // Stderr reader for FFmpeg console logs
+        // Stderr reader for FFmpeg console logs and fallback progress
         let app_err = app.clone();
+        let dur_err = dur_arc.clone();
         let err_handle = std::thread::spawn(move || {
             if let Some(err) = stderr {
-                let reader = BufReader::new(err);
-                for line in reader.lines().flatten() {
-                    if CANCEL_REQUESTED.load(Ordering::SeqCst) {
-                        break;
+                stream_lines(err, move |line| {
+                    // Check for Duration header in stderr: "Duration: 00:01:23.45"
+                    if line.contains("Duration:") {
+                        if let Some(d) = parse_duration_from_str(&line) {
+                            let mut d_lock = dur_err.lock().unwrap();
+                            if *d_lock <= 0.0 {
+                                *d_lock = d;
+                            }
+                        }
                     }
+
+                    // Progress parsing from stderr line e.g.:
+                    // frame=  120 fps= 30 q=28.0 size=    1024kB time=00:00:04.50 bitrate= 1864.0kbits/s speed= 1.5x
+                    if line.contains("time=") && (line.contains("frame=") || line.contains("size=") || line.contains("bitrate=") || line.contains("speed=")) {
+                        let parsed_time = extract_kv_value(&line, "time=");
+                        let parsed_fps = extract_kv_value(&line, "fps=").unwrap_or_default();
+                        let parsed_speed = extract_kv_value(&line, "speed=").unwrap_or_default();
+                        let parsed_bitrate = extract_kv_value(&line, "bitrate=").unwrap_or_default();
+
+                        if let Some(t_str) = parsed_time {
+                            let mut cur_sec = 0.0f64;
+                            let mut display_time = t_str.clone();
+                            if let Some(s) = parse_duration_from_str(&t_str) {
+                                cur_sec = s;
+                                display_time = format_seconds_to_hms(s);
+                            }
+
+                            let total_dur = *dur_err.lock().unwrap();
+                            let mut pct = 0u32;
+                            let cur_eta = if total_dur > 0.0 && cur_sec > 0.0 {
+                                let rem = (total_dur - cur_sec).max(0.0);
+                                let sp = parsed_speed.trim_end_matches('x').trim().parse::<f64>().unwrap_or(1.0).max(0.05);
+                                pct = ((cur_sec / total_dur) * 100.0).clamp(0.0, 99.0).round() as u32;
+                                Some(format_seconds_to_hms(rem / sp))
+                            } else {
+                                None
+                            };
+
+                            let _ = app_err.emit(
+                                "ffmpeg-progress",
+                                ProgressPayload {
+                                    time: display_time,
+                                    eta: cur_eta,
+                                    fps: parsed_fps,
+                                    speed: parsed_speed,
+                                    bitrate: parsed_bitrate,
+                                    pct,
+                                    playlist_item: None,
+                                    playlist_total: None,
+                                    current_item_title: None,
+                                },
+                            );
+                        }
+                    }
+
+                    // Emit log line
                     let _ = app_err.emit("ffmpeg-log", LogPayload { line });
-                }
+                });
             }
         });
 
@@ -574,6 +892,23 @@ fn execute_ffmpeg(
                 } else {
                     format!("FFmpeg exited with error code {}", code)
                 };
+
+                if success {
+                    let _ = app.emit(
+                        "ffmpeg-progress",
+                        ProgressPayload {
+                            time: "Completed".to_string(),
+                            eta: Some("00:00:00".to_string()),
+                            fps: "".to_string(),
+                            speed: "".to_string(),
+                            bitrate: "".to_string(),
+                            pct: 100,
+                            playlist_item: None,
+                            playlist_total: None,
+                            current_item_title: None,
+                        },
+                    );
+                }
 
                 let _ = app.emit(
                     "ffmpeg-finished",
@@ -607,8 +942,8 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
     std::thread::spawn(move || {
         let ytdlp_bin = find_binary("yt-dlp");
         let mut cmd = Command::new(&ytdlp_bin);
-        // Force newline mode for reliable stream progress parsing
-        let mut full_args = vec!["--newline".to_string()];
+        // Force newline and no-colors mode for reliable stream progress parsing
+        let mut full_args = vec!["--newline".to_string(), "--no-colors".to_string(), "--progress".to_string()];
         full_args.extend(args);
         cmd.args(&full_args);
         cmd.stdout(Stdio::piped());
@@ -645,7 +980,6 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
         let app_out = app.clone();
         let out_handle = std::thread::spawn(move || {
             if let Some(out) = stdout {
-                let reader = BufReader::new(out);
                 let mut cur_pct = 0u32;
                 let mut cur_speed = "0 MiB/s".to_string();
                 let mut cur_eta = "--:--".to_string();
@@ -654,9 +988,9 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                 let mut total_items = 0u32;
                 let mut current_item_name = String::new();
 
-                for line in reader.lines().flatten() {
+                stream_lines(out, move |line| {
                     if CANCEL_REQUESTED.load(Ordering::SeqCst) {
-                        break;
+                        return;
                     }
 
                     // Emit log line
@@ -698,10 +1032,13 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                     }
 
                     // Parse download percentage: [download]  45.2% of  120.50MiB at 12.34MiB/s ETA 00:05
+                    // Or: [download] 100% of 15.00MiB in 00:02
                     if line.contains("[download]") && line.contains('%') {
                         if let Some(pct_idx) = line.find('%') {
-                            let start = line[..pct_idx].rfind(' ').unwrap_or(0);
-                            if let Ok(pct) = line[start..pct_idx].trim().parse::<f64>() {
+                            let before = &line[..pct_idx];
+                            let num_str: String = before.chars().rev().take_while(|c| c.is_digit(10) || *c == '.' || *c == ' ').collect();
+                            let clean_num: String = num_str.chars().rev().collect();
+                            if let Ok(pct) = clean_num.trim().parse::<f64>() {
                                 cur_pct = pct.clamp(0.0, 100.0).round() as u32;
                             }
                         }
@@ -718,14 +1055,21 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
 
                         if let Some(of_idx) = line.find(" of ") {
                             let size_part = &line[of_idx + 4..];
-                            let end = size_part.find(" at ").unwrap_or(size_part.len());
+                            let end = size_part.find(" at ").or_else(|| size_part.find(" in ")).unwrap_or(size_part.len());
                             cur_size = size_part[..end].trim().to_string();
                         }
+
+                        let eta_val = if cur_eta != "--:--" && !cur_eta.is_empty() {
+                            Some(cur_eta.clone())
+                        } else {
+                            None
+                        };
 
                         let _ = app_out.emit(
                             "ffmpeg-progress",
                             ProgressPayload {
-                                time: format!("ETA: {}", cur_eta),
+                                time: format!("Size: {}", cur_size),
+                                eta: eta_val,
                                 fps: "".to_string(),
                                 speed: cur_speed.clone(),
                                 bitrate: cur_size.clone(),
@@ -735,15 +1079,16 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                                 current_item_title: if !current_item_name.is_empty() { Some(current_item_name.clone()) } else { None },
                             },
                         );
-                    } else if line.contains("100% of") || line.contains("[ExtractAudio]") {
+                    } else if line.contains("100% of") || line.contains("[ExtractAudio]") || line.contains("[Merger]") {
                         cur_pct = 100;
                         let _ = app_out.emit(
                             "ffmpeg-progress",
                             ProgressPayload {
                                 time: "Finishing...".to_string(),
+                                eta: Some("00:00:00".to_string()),
                                 fps: "".to_string(),
-                                speed: "".to_string(),
-                                bitrate: "".to_string(),
+                                speed: cur_speed.clone(),
+                                bitrate: cur_size.clone(),
                                 pct: 100,
                                 playlist_item: if total_items > 0 { Some(cur_item) } else { None },
                                 playlist_total: if total_items > 0 { Some(total_items) } else { None },
@@ -751,7 +1096,7 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                             },
                         );
                     }
-                }
+                });
             }
         });
 
@@ -759,13 +1104,9 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
         let app_err = app.clone();
         let err_handle = std::thread::spawn(move || {
             if let Some(err) = stderr {
-                let reader = BufReader::new(err);
-                for line in reader.lines().flatten() {
-                    if CANCEL_REQUESTED.load(Ordering::SeqCst) {
-                        break;
-                    }
+                stream_lines(err, move |line| {
                     let _ = app_err.emit("ffmpeg-log", LogPayload { line });
-                }
+                });
             }
         });
 
@@ -790,11 +1131,225 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                 } else {
                     format!("yt-dlp exited with code {}", exit_code)
                 };
+
+                if success {
+                    let _ = app.emit(
+                        "ffmpeg-progress",
+                        ProgressPayload {
+                            time: "Completed".to_string(),
+                            eta: Some("00:00:00".to_string()),
+                            fps: "".to_string(),
+                            speed: "".to_string(),
+                            bitrate: "".to_string(),
+                            pct: 100,
+                            playlist_item: None,
+                            playlist_total: None,
+                            current_item_title: None,
+                        },
+                    );
+                }
+
                 let _ = app.emit(
                     "ffmpeg-finished",
                     FinishPayload {
                         success,
                         exit_code,
+                        message: msg,
+                    },
+                );
+            }
+            Err(e) => {
+                let _ = app.emit(
+                    "ffmpeg-finished",
+                    FinishPayload {
+                        success: false,
+                        exit_code: -1,
+                        message: format!("Process error: {}", e),
+                    },
+                );
+            }
+        }
+    });
+
+    Ok(())
+}
+
+fn find_image_ai_script(app: &tauri::AppHandle) -> std::path::PathBuf {
+    let script_name = "image_ai_engine.py";
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let candidates = [
+        cwd.join("..").join("src").join("py").join(script_name),
+        cwd.join("src").join("py").join(script_name),
+        cwd.join("py").join(script_name),
+    ];
+    for p in &candidates {
+        if p.exists() {
+            return p.canonicalize().unwrap_or_else(|_| p.clone());
+        }
+    }
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            let exe_candidates = [
+                parent.join("..").join("..").join("..").join("src").join("py").join(script_name),
+                parent.join("..").join("..").join("src").join("py").join(script_name),
+                parent.join("src").join("py").join(script_name),
+                parent.join("py").join(script_name),
+                parent.join("resources").join("src").join("py").join(script_name),
+            ];
+            for p in &exe_candidates {
+                if p.exists() {
+                    return p.canonicalize().unwrap_or_else(|_| p.clone());
+                }
+            }
+        }
+    }
+
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let res_candidates = [
+            resource_dir.join("src").join("py").join(script_name),
+            resource_dir.join("py").join(script_name),
+            resource_dir.join(script_name),
+        ];
+        for p in &res_candidates {
+            if p.exists() {
+                return p.canonicalize().unwrap_or_else(|_| p.clone());
+            }
+        }
+    }
+
+    cwd.join("..").join("src").join("py").join(script_name)
+}
+
+#[tauri::command]
+fn execute_image_ai(app: tauri::AppHandle, task: String, params: String) -> Result<(), String> {
+    CANCEL_REQUESTED.store(false, Ordering::SeqCst);
+
+    let app_handle = app.clone();
+    std::thread::spawn(move || {
+        let python_bin = "python".to_string();
+        let script_path = find_image_ai_script(&app_handle);
+
+        let mut cmd = Command::new(&python_bin);
+        cmd.args(["-u", &script_path.to_string_lossy(), "--task", &task, "--params", &params]);
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+
+        #[cfg(windows)]
+        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+        let mut child = match cmd.spawn() {
+            Ok(c) => c,
+            Err(e) => {
+                let _ = app.emit(
+                    "ffmpeg-finished",
+                    FinishPayload {
+                        success: false,
+                        exit_code: -1,
+                        message: format!("Failed to spawn Python AI engine: {}", e),
+                    },
+                );
+                return;
+            }
+        };
+
+        let child_pid = child.id();
+        {
+            let mut pid_lock = RUNNING_CHILD_PID.lock().unwrap();
+            *pid_lock = Some(child_pid);
+        }
+
+        let stdout = child.stdout.take();
+        let stderr = child.stderr.take();
+
+        let app_out = app.clone();
+        let out_handle = std::thread::spawn(move || {
+            if let Some(out) = stdout {
+                stream_lines(out, move |line| {
+                    if CANCEL_REQUESTED.load(Ordering::SeqCst) {
+                        return;
+                    }
+
+                    if line.starts_with("ANEDIKIT_PROGRESS:") {
+                        let json_str = &line["ANEDIKIT_PROGRESS:".len()..];
+                        if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
+                            let pct = val.get("pct").and_then(|p| p.as_u64()).unwrap_or(0) as u32;
+                            let msg = val.get("msg").and_then(|m| m.as_str()).unwrap_or("").to_string();
+                            let _ = app_out.emit(
+                                "ffmpeg-progress",
+                                ProgressPayload {
+                                    time: msg,
+                                    eta: None,
+                                    fps: "".into(),
+                                    speed: "".into(),
+                                    bitrate: "".into(),
+                                    pct,
+                                    playlist_item: None,
+                                    playlist_total: None,
+                                    current_item_title: None,
+                                },
+                            );
+                        }
+                    } else if !line.starts_with("ANEDIKIT_RESULT:") {
+                        let _ = app_out.emit("ffmpeg-log", LogPayload { line });
+                    }
+                });
+            }
+        });
+
+        let app_err = app.clone();
+        let err_handle = std::thread::spawn(move || {
+            if let Some(err) = stderr {
+                stream_lines(err, move |line| {
+                    let _ = app_err.emit("ffmpeg-log", LogPayload { line });
+                });
+            }
+        });
+
+        let status = child.wait();
+        let _ = out_handle.join();
+        let _ = err_handle.join();
+
+        {
+            let mut pid_lock = RUNNING_CHILD_PID.lock().unwrap();
+            *pid_lock = None;
+        }
+
+        let was_cancelled = CANCEL_REQUESTED.load(Ordering::SeqCst);
+        match status {
+            Ok(s) => {
+                let code = s.code().unwrap_or(0);
+                let success = s.success() && !was_cancelled;
+                let msg = if was_cancelled {
+                    "Operation cancelled by user".to_string()
+                } else if success {
+                    "Task completed successfully".to_string()
+                } else {
+                    format!("AI engine exited with code {}", code)
+                };
+
+                if success {
+                    let _ = app.emit(
+                        "ffmpeg-progress",
+                        ProgressPayload {
+                            time: "Completed".to_string(),
+                            eta: Some("00:00:00".to_string()),
+                            fps: "".to_string(),
+                            speed: "".to_string(),
+                            bitrate: "".to_string(),
+                            pct: 100,
+                            playlist_item: None,
+                            playlist_total: None,
+                            current_item_title: None,
+                        },
+                    );
+                }
+
+                let _ = app.emit(
+                    "ffmpeg-finished",
+                    FinishPayload {
+                        success,
+                        exit_code: code,
                         message: msg,
                     },
                 );
@@ -907,7 +1462,7 @@ fn send_system_notification(title: String, body: String) -> Result<(), String> {
             $textNodes.Item(0).AppendChild($template.CreateTextNode(\"{}\")) > $null; \
             $textNodes.Item(1).AppendChild($template.CreateTextNode(\"{}\")) > $null; \
             $toast = [Windows.UI.Notifications.ToastNotification]::new($template); \
-            [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('AnEditKit').Show($toast);",
+            [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('AnEdiKit').Show($toast);",
             escaped_title, escaped_body
         );
         let mut cmd = Command::new("powershell");
@@ -1335,13 +1890,17 @@ pub fn run() {
             fetch_playlist_videos,
             execute_ffmpeg,
             execute_ytdlp,
+            execute_image_ai,
             cancel_ffmpeg,
+            cancel_job,
             is_job_active,
             force_exit_app,
             check_tool_versions,
             open_file,
             show_in_folder,
-            send_system_notification
+            send_system_notification,
+            check_file_exists,
+            get_hardware_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,12 @@
 // Media Probing & File Interaction Module
-import { saveInputFile, getSavedInputFile, loadSavedBatchQueue, saveBatchQueue } from "./storage.js";
+import {
+  saveInputFile,
+  getSavedInputFile,
+  loadSavedBatchQueue,
+  saveBatchQueue,
+  loadSavedImageAiQueue,
+  saveImageAiQueue,
+} from "./storage.js";
 import { generateWaveformFromSource, renderWaveformToCanvas } from "./waveform.js";
 
 let currentInputFile = "";
@@ -405,10 +412,12 @@ export function updateMetadataDisplay(info) {
 
   if (info && info.file_path) {
     const ext = (info.file_name || info.file_path).split(".").pop().toLowerCase();
+    const isImage = ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg", "ico"].includes(ext);
     const isAudio =
-      info.resolution === "N/A" ||
+      !isImage &&
+      (info.resolution === "N/A" ||
       info.video_codec === "None" ||
-      ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac"].includes(ext);
+      ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac"].includes(ext));
 
     const assetSrc =
       window.__TAURI__?.core?.convertFileSrc && info.file_path
@@ -421,6 +430,12 @@ export function updateMetadataDisplay(info) {
     const cdSpinner = document.getElementById("audio-cd-spinner");
     const audioFallbackIcon = document.getElementById("audio-fallback-icon");
     const audioArtImg = document.getElementById("audio-art-img");
+    const imageLayer = document.getElementById("image-preview-layer");
+    const imageEl = document.getElementById("media-image-preview");
+    const imageOverlayTitle = document.getElementById("image-overlay-title");
+    const imageOverlayFormat = document.getElementById("image-overlay-format");
+    const videoLayer = document.getElementById("video-preview-layer");
+    const audioLayer = document.getElementById("audio-preview-layer");
 
     if (inputsCol) {
       inputsCol.className = "col-12 col-lg-7 col-xl-7 col-xxl-8";
@@ -434,9 +449,34 @@ export function updateMetadataDisplay(info) {
       previewCard.classList.remove("d-none");
     }
 
-    if (isAudio) {
+    if (isImage) {
       if (previewCard) {
-        previewCard.classList.remove("video-mode");
+        previewCard.classList.remove("video-mode", "audio-mode");
+        previewCard.classList.add("image-mode");
+      }
+      if (imageLayer) imageLayer.classList.remove("d-none");
+      if (videoLayer) videoLayer.classList.add("d-none");
+      if (audioLayer) audioLayer.classList.add("d-none");
+      if (imageEl && assetSrc) imageEl.src = assetSrc;
+      if (imageOverlayTitle) imageOverlayTitle.textContent = info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Image Preview");
+      if (imageOverlayFormat) {
+        const resStr = info.resolution && info.resolution !== "--" && info.resolution !== "N/A" ? ` • ${info.resolution}` : "";
+        imageOverlayFormat.textContent = `${ext.toUpperCase()} Image${resStr}`;
+      }
+      if (videoEl) {
+        videoEl.pause();
+        videoEl.removeAttribute("src");
+      }
+      if (audioEl) {
+        audioEl.pause();
+        audioEl.removeAttribute("src");
+      }
+    } else if (isAudio) {
+      if (imageLayer) imageLayer.classList.add("d-none");
+      if (audioLayer) audioLayer.classList.remove("d-none");
+      if (videoLayer) videoLayer.classList.add("d-none");
+      if (previewCard) {
+        previewCard.classList.remove("video-mode", "image-mode");
         previewCard.classList.add("audio-mode");
       }
       if (videoEl) {
@@ -491,6 +531,9 @@ export function updateMetadataDisplay(info) {
           });
       }
     } else {
+      if (imageLayer) imageLayer.classList.add("d-none");
+      if (videoLayer) videoLayer.classList.remove("d-none");
+      if (audioLayer) audioLayer.classList.add("d-none");
       currentWaveformPeaks = null;
       const waveformCanvas = document.getElementById("trim-waveform-canvas");
       if (waveformCanvas) {
@@ -501,7 +544,7 @@ export function updateMetadataDisplay(info) {
         audioEl.removeAttribute("src");
       }
       if (previewCard) {
-        previewCard.classList.remove("audio-mode");
+        previewCard.classList.remove("audio-mode", "image-mode");
         previewCard.classList.add("video-mode");
       }
 
@@ -923,16 +966,22 @@ export function renderBatchQueueUI() {
       let statusBadge = "";
       if (item.status === "processing") {
         statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Active</span>`;
-      } else if (item.status === "done") {
-        statusBadge = `<span class="badge bg-success-subtle text-success-emphasis"><i class="bi bi-check2"></i> Done</span>`;
       } else if (item.status === "error") {
         statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-x"></i> Failed</span>`;
+      }
+
+      let leadingCheckBtn = "";
+      if (item.status === "done") {
+        leadingCheckBtn = `<button class="btn btn-success btn-sm py-0 px-2 disabled me-2 border-0 flex-shrink-0" type="button" tabindex="-1" style="pointer-events: none;"><i class="bi bi-check-lg"></i></button>`;
       }
 
       const isSelected = idx === selectedBatchIdx;
       return `
         <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 ${isSelected ? 'active' : ''}" data-batch-idx="${idx}" style="cursor: pointer;">
-          <span class="text-truncate"><strong class="me-2">${idx + 1}.</strong>${item.name}</span>
+          <div class="d-flex align-items-center text-truncate me-2 flex-grow-1">
+            ${leadingCheckBtn}
+            <span class="text-truncate"><strong class="me-2">${idx + 1}.</strong>${item.name}</span>
+          </div>
           <div class="d-flex align-items-center gap-1 flex-shrink-0">
             ${statusBadge}
             <div class="btn-group btn-group-sm">
@@ -1050,9 +1099,15 @@ export function isAudioFile(filePath) {
   return ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "aiff", "alac"].includes(ext);
 }
 
+export function isImageFile(filePath) {
+  if (!filePath) return false;
+  const ext = filePath.split(/[?#]/)[0].split(".").pop().toLowerCase();
+  return ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg", "ico"].includes(ext);
+}
+
 export function isVideoFile(filePath) {
   if (!filePath) return false;
-  return !isAudioFile(filePath);
+  return !isAudioFile(filePath) && !isImageFile(filePath);
 }
 
 let currentTimelineExtractToken = 0;
@@ -1064,6 +1119,13 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
 
   const thisToken = ++currentTimelineExtractToken;
   const isAudio = isAudioFile(filePath) || currentMediaInfo?.video_codec === "None" || currentMediaInfo?.resolution === "N/A";
+  const isImage = isImageFile(filePath);
+
+  if (isImage) {
+    container.innerHTML = "";
+    if (waveformCanvas) waveformCanvas.classList.add("d-none");
+    return;
+  }
 
   if (isAudio) {
     container.innerHTML = "";
@@ -1594,11 +1656,43 @@ export function initDragAndDrop(onFileSelected) {
   const activatePulse = () => {
     const group = document.querySelector("#shared-input-card .input-group");
     if (group) group.classList.add("input-drop-pulsing");
+
+    const imgEmptyMsg = document.getElementById("image-ai-empty-msg");
+    const imgDropLabel = document.getElementById("image-drop-label");
+    if (imgEmptyMsg) {
+      imgEmptyMsg.classList.add("image-drop-active");
+    }
+    if (imgDropLabel) {
+      imgDropLabel.textContent = "Drop here to import";
+    }
+
+    const placeholder = document.getElementById("image-queue-drop-placeholder");
+    if (placeholder) {
+      placeholder.classList.remove("d-none");
+      const listEl = document.getElementById("image-ai-queue-list");
+      if (listEl) {
+        listEl.scrollTo({ top: listEl.scrollHeight, behavior: "smooth" });
+      }
+    }
   };
 
   const deactivatePulse = () => {
     const group = document.querySelector("#shared-input-card .input-group");
     if (group) group.classList.remove("input-drop-pulsing");
+
+    const imgEmptyMsg = document.getElementById("image-ai-empty-msg");
+    const imgDropLabel = document.getElementById("image-drop-label");
+    if (imgEmptyMsg) {
+      imgEmptyMsg.classList.remove("image-drop-active");
+    }
+    if (imgDropLabel) {
+      imgDropLabel.textContent = "Drop images here or click to select";
+    }
+
+    const placeholder = document.getElementById("image-queue-drop-placeholder");
+    if (placeholder) {
+      placeholder.classList.add("d-none");
+    }
   };
 
   let dragCounter = 0;
@@ -1654,10 +1748,25 @@ export function initDragAndDrop(onFileSelected) {
       e.dataTransfer.files.length > 0
     ) {
       const filePaths = Array.from(e.dataTransfer.files).map(
-        (f) => f.path || f.name || "C:\\Users\\User\\Videos\\dropped_media.mp4",
-      );
-      await addFilesToBatch(filePaths);
-      if (onFileSelected) onFileSelected(currentMediaInfo);
+        (f) => f.path || f.name || "",
+      ).filter(Boolean);
+
+      const activeTool = document.querySelector("#tool-nav .nav-link.active, #image-ai-nav .nav-link.active")?.dataset?.tool;
+      const isImageTool = [
+        "bg_remover",
+        "ai_upscaler",
+        "vectorizer",
+        "restore_denoise",
+        "icon_generator",
+        "metadata_cleaner",
+      ].includes(activeTool);
+
+      if (isImageTool) {
+        await addImageFilesToQueue(filePaths);
+      } else {
+        await addFilesToBatch(filePaths);
+        if (onFileSelected) onFileSelected(currentMediaInfo);
+      }
     }
   });
 
@@ -1677,8 +1786,22 @@ export function initDragAndDrop(onFileSelected) {
           } else if (event.payload.type === "drop") {
             deactivatePulse();
             if (event.payload.paths && event.payload.paths.length > 0) {
-              await addFilesToBatch(event.payload.paths);
-              if (onFileSelected) onFileSelected(currentMediaInfo);
+              const activeTool = document.querySelector("#tool-nav .nav-link.active, #image-ai-nav .nav-link.active")?.dataset?.tool;
+              const isImageTool = [
+                "bg_remover",
+                "ai_upscaler",
+                "vectorizer",
+                "restore_denoise",
+                "icon_generator",
+                "metadata_cleaner",
+              ].includes(activeTool);
+
+              if (isImageTool) {
+                await addImageFilesToQueue(event.payload.paths);
+              } else {
+                await addFilesToBatch(event.payload.paths);
+                if (onFileSelected) onFileSelected(currentMediaInfo);
+              }
             }
           }
         });
@@ -1686,5 +1809,340 @@ export function initDragAndDrop(onFileSelected) {
     } catch (err) {
       console.warn("Tauri drag drop init error:", err);
     }
+  }
+}
+
+// Image AI Queue State & Management
+let imageAiQueue = loadSavedImageAiQueue();
+
+export function initSavedImageAiQueue() {
+  imageAiQueue = loadSavedImageAiQueue();
+  renderImageAiQueueUI();
+}
+
+export function getImageAiQueue() {
+  return imageAiQueue;
+}
+
+export function updateImageAiItemStatus(idx, status, resultPath = null) {
+  if (idx >= 0 && idx < imageAiQueue.length) {
+    imageAiQueue[idx].status = status; // "pending", "processing", "done", "error"
+    if (resultPath) {
+      imageAiQueue[idx].resultPath = resultPath;
+    }
+    saveImageAiQueue(imageAiQueue);
+    renderImageAiQueueUI();
+  }
+}
+
+export function removeImageAiQueueItem(idx) {
+  if (idx >= 0 && idx < imageAiQueue.length) {
+    imageAiQueue.splice(idx, 1);
+    saveImageAiQueue(imageAiQueue);
+    renderImageAiQueueUI();
+  }
+}
+
+export function clearImageAiQueue() {
+  imageAiQueue = [];
+  saveImageAiQueue(imageAiQueue);
+  renderImageAiQueueUI();
+}
+
+export async function addImageFilesToQueue(paths) {
+  if (!paths || paths.length === 0) return;
+  for (const p of paths) {
+    if (!p) continue;
+    if (!imageAiQueue.some((item) => item.path === p)) {
+      const fileName = p.split(/[/\\]/).pop() || p;
+      imageAiQueue.push({
+        path: p,
+        name: fileName,
+        status: "pending",
+        resultPath: null,
+      });
+    }
+  }
+  saveImageAiQueue(imageAiQueue);
+  renderImageAiQueueUI();
+}
+
+export function renderImageAiQueueUI() {
+  const countEl = document.getElementById("image-ai-queue-count");
+  const listEl = document.getElementById("image-ai-queue-list");
+  const btnClear = document.getElementById("btn-image-clear");
+  const btnExecute = document.getElementById("btn-execute");
+
+  if (countEl) countEl.textContent = imageAiQueue.length.toString();
+  if (btnClear) btnClear.classList.toggle("d-none", imageAiQueue.length === 0);
+
+  if (imageAiQueue.length === 0) {
+    listEl.className = "mb-3";
+    listEl.style.maxHeight = "";
+    listEl.style.overflowY = "visible";
+    listEl.innerHTML = `
+      <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="image-ai-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
+        <i class="bi bi-images fs-2 text-secondary opacity-50 mb-1"></i>
+        <span class="fw-medium text-body" id="image-drop-label">Drop images here or click to select</span>
+        <span class="small text-body-secondary" id="image-drop-sublabel">Supports PNG, JPG, WebP, BMP, TIFF, SVG</span>
+        <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-image-add-empty" title="Add images to queue">
+          <i class="bi bi-folder2-open me-1"></i> Select Images
+        </button>
+      </div>
+    `;
+    const btnEmpty = document.getElementById("btn-image-add-empty");
+    const emptyMsg = document.getElementById("image-ai-empty-msg");
+    const pickHandler = async () => {
+      const selected = await selectMediaFiles("image");
+      if (selected && selected.length > 0) {
+        await addImageFilesToQueue(selected);
+      }
+    };
+    if (btnEmpty) btnEmpty.addEventListener("click", pickHandler);
+    if (emptyMsg) emptyMsg.addEventListener("click", (e) => {
+      if (!e.target.closest("button")) pickHandler();
+    });
+
+    if (btnExecute && btnExecute.textContent !== "Cancel") {
+      btnExecute.textContent = "Execute";
+    }
+    return;
+  }
+
+  listEl.className = "list-group border rounded overflow-y-auto mb-3";
+  listEl.style.maxHeight = "260px";
+  listEl.style.overflowY = "auto";
+  listEl.style.overscrollBehavior = "contain";
+
+  if (btnExecute && btnExecute.textContent !== "Cancel") {
+    btnExecute.textContent = imageAiQueue.length > 1 ? `Execute (${imageAiQueue.length})` : "Execute";
+  }
+
+  const placeholderHtml = `
+    <div id="image-queue-drop-placeholder" class="list-group-item image-queue-drop-placeholder text-primary py-3 text-center d-flex align-items-center justify-content-center gap-2 d-none" style="cursor: pointer;">
+      <i class="bi bi-cloud-arrow-up-fill fs-5 text-primary"></i>
+      <span class="fw-semibold text-primary">Drop here to import</span>
+    </div>
+  `;
+
+  listEl.innerHTML = imageAiQueue
+    .map((item, idx) => {
+      const assetSrc = window.__TAURI__?.core?.convertFileSrc
+        ? window.__TAURI__.core.convertFileSrc(item.path)
+        : "";
+
+      let statusBadge = `<span class="badge bg-secondary-subtle text-secondary-emphasis">Ready</span>`;
+      let compareBtn = "";
+
+      if (item.status === "processing") {
+        statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Processing</span>`;
+      } else if (item.status === "done") {
+        statusBadge = `<span class="badge bg-success-subtle text-success-emphasis"><i class="bi bi-check-lg"></i> Done</span>`;
+        if (item.resultPath) {
+          compareBtn = `<button class="btn btn-primary btn-sm py-0 px-2 btn-image-compare me-1" data-comp-idx="${idx}" type="button" title="View sliding comparison"><i class="bi bi-layout-split me-1"></i> Compare</button>`;
+        }
+      } else if (item.status === "error") {
+        statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-x"></i> Failed</span>`;
+      }
+
+      return `
+        <div class="list-group-item image-queue-item d-flex justify-content-between align-items-center py-2 px-3">
+          <div class="d-flex align-items-center gap-3 text-truncate me-2 flex-grow-1 btn-image-preview-thumb" data-preview-idx="${idx}" style="cursor: pointer;" title="Click to expand preview">
+            <div class="image-queue-thumb-wrapper transparency-grid border flex-shrink-0">
+              <img class="image-queue-thumb" src="${assetSrc}" alt="${item.name}" />
+              <div class="image-queue-thumb-overlay">
+                <i class="bi bi-arrows-angle-expand"></i>
+              </div>
+            </div>
+            <div class="d-flex flex-column text-truncate">
+              <span class="fw-medium text-body text-truncate" style="font-size: 0.88rem;">${item.name}</span>
+              <span class="small text-body-secondary text-truncate" style="font-size: 0.75rem;">${item.path}</span>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            ${statusBadge}
+            ${compareBtn}
+            <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-image-del" data-del-img-idx="${idx}" type="button" title="Remove from queue">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .join("") + placeholderHtml;
+
+  const dropPlaceholder = document.getElementById("image-queue-drop-placeholder");
+  if (dropPlaceholder) {
+    dropPlaceholder.addEventListener("click", async () => {
+      const selected = await selectMediaFiles("image");
+      if (selected && selected.length > 0) {
+        await addImageFilesToQueue(selected);
+      }
+    });
+  }
+
+  // Event delegation for queue list interactions
+  listEl.onclick = (e) => {
+    // Preview click
+    const previewBtn = e.target.closest(".btn-image-preview-thumb");
+    if (previewBtn) {
+      e.stopPropagation();
+      const idx = parseInt(previewBtn.getAttribute("data-preview-idx"), 10);
+      const item = imageAiQueue[idx];
+      if (item && item.path) {
+        const thumbEl = previewBtn.querySelector(".image-queue-thumb-wrapper") || previewBtn;
+        openImageLightbox(item.path, item.name, thumbEl);
+      }
+      return;
+    }
+
+    // Delete click
+    const delBtn = e.target.closest(".btn-image-del");
+    if (delBtn) {
+      e.stopPropagation();
+      const idx = parseInt(delBtn.getAttribute("data-del-img-idx"), 10);
+      removeImageAiQueueItem(idx);
+      return;
+    }
+
+    // Compare click
+    const compBtn = e.target.closest(".btn-image-compare");
+    if (compBtn) {
+      e.stopPropagation();
+      const idx = parseInt(compBtn.getAttribute("data-comp-idx"), 10);
+      const item = imageAiQueue[idx];
+      if (item && item.resultPath) {
+        import("./comparison.js").then((mod) => {
+          mod.openComparisonModal(item.path, item.resultPath, "Enhanced Image");
+        });
+      }
+      return;
+    }
+  };
+}
+
+let lastHeroOrigin = { deltaX: 0, deltaY: 0 };
+let lightboxOpenTimestamp = 0;
+let isLightboxActive = false;
+
+export function initImageLightbox() {
+  const modal = document.getElementById("image-lightbox-modal");
+  const card = document.getElementById("image-lightbox-card");
+  const btnClose = document.getElementById("btn-lightbox-close");
+  if (!modal) return;
+
+  const closeModal = () => {
+    if (!isLightboxActive) return;
+    isLightboxActive = false;
+    modal.classList.remove("active");
+
+    if (card && card.animate) {
+      const anim = card.animate(
+        [
+          { transform: "translate(0px, 0px) scale(1)", opacity: 1 },
+          { transform: `translate(${lastHeroOrigin.deltaX}px, ${lastHeroOrigin.deltaY}px) scale(0.12)`, opacity: 0 }
+        ],
+        {
+          duration: 200,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          fill: "forwards"
+        }
+      );
+      anim.onfinish = () => {
+        modal.classList.add("d-none");
+        modal.style.cssText = "";
+      };
+    } else {
+      modal.classList.add("d-none");
+      modal.style.cssText = "";
+    }
+  };
+
+  if (btnClose) {
+    btnClose.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeModal();
+    });
+  }
+
+  modal.addEventListener("click", (e) => {
+    if (Date.now() - lightboxOpenTimestamp < 350) return;
+    if (e.target === modal || !e.target.closest("#image-lightbox-card")) {
+      closeModal();
+    }
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isLightboxActive) {
+      closeModal();
+    }
+  });
+}
+
+export function openImageLightbox(filePath, fileName = "Image Preview", sourceElement = null) {
+  try {
+    const modal = document.getElementById("image-lightbox-modal");
+    const card = document.getElementById("image-lightbox-card");
+    const imgEl = document.getElementById("image-lightbox-img");
+    const titleEl = document.getElementById("image-lightbox-title");
+    const detailsEl = document.getElementById("image-lightbox-details");
+
+    if (!modal || !imgEl) return;
+
+    lightboxOpenTimestamp = Date.now();
+    isLightboxActive = true;
+
+    const assetSrc = window.__TAURI__?.core?.convertFileSrc && filePath
+      ? window.__TAURI__.core.convertFileSrc(filePath)
+      : filePath;
+
+    imgEl.src = assetSrc;
+    if (titleEl) titleEl.textContent = fileName || (filePath ? filePath.split(/[/\\]/).pop() : "Image Preview");
+    if (detailsEl) {
+      const ext = (fileName || filePath).split(".").pop().toUpperCase();
+      detailsEl.textContent = `${ext} Image • ${filePath}`;
+    }
+
+    // Calculate Hero origin delta from source thumbnail
+    let deltaX = 0;
+    let deltaY = 0;
+    if (sourceElement) {
+      const rect = sourceElement.getBoundingClientRect();
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const thumbCenterX = rect.left + rect.width / 2;
+      const thumbCenterY = rect.top + rect.height / 2;
+      deltaX = Math.round(thumbCenterX - centerX);
+      deltaY = Math.round(thumbCenterY - centerY);
+    }
+    lastHeroOrigin = { deltaX, deltaY };
+
+    // Show modal overlay
+    modal.classList.remove("d-none");
+    modal.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background-color: rgba(8, 8, 12, 0.92) !important; z-index: 999999 !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; opacity: 1 !important; pointer-events: auto !important;";
+    modal.classList.add("active");
+
+    // Animate Card with Web Animations API
+    if (card && card.animate) {
+      card.animate(
+        [
+          {
+            transform: `translate(${deltaX}px, ${deltaY}px) scale(0.12)`,
+            opacity: 0.2
+          },
+          {
+            transform: "translate(0px, 0px) scale(1)",
+            opacity: 1
+          }
+        ],
+        {
+          duration: 320,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          fill: "forwards"
+        }
+      );
+    }
+  } catch (err) {
+    console.error("Failed to open image lightbox:", err);
   }
 }

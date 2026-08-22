@@ -10,7 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "AnEditKit",
+        "title": "AnEdiKit",
         "width": 1100,
         "height": 720
       }
