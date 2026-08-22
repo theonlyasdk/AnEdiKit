@@ -238,6 +238,23 @@ export function initToolsManager() {
     });
   }
 
+  const handleOpenBinFolder = async (e) => {
+    if (e) e.preventDefault();
+    if (window.__TAURI__?.core?.invoke) {
+      try {
+        await window.__TAURI__.core.invoke("open_binaries_folder");
+      } catch (err) {
+        console.warn("open_binaries_folder error:", err);
+      }
+    }
+  };
+
+  const btnOpenBin = document.getElementById("btn-open-bin-folder");
+  if (btnOpenBin) btnOpenBin.addEventListener("click", handleOpenBinFolder);
+
+  const linkOpenBin = document.getElementById("link-open-bin-folder");
+  if (linkOpenBin) linkOpenBin.addEventListener("click", handleOpenBinFolder);
+
   initScrollCardsOverflow();
 }
 

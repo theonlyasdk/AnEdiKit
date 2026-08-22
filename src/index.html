@@ -1325,8 +1325,13 @@
 
             <!-- About Tools Collapsible / Information Box -->
             <div class="p-2 border rounded bg-body small text-body-secondary">
-              <div class="fw-medium text-body mb-1">About Installed Binaries</div>
-              <div>Binaries are stored in <code>%LOCALAPPDATA%\ASDK\Shared\bin</code> or system PATH. Updating downloads official verified release executables directly from GitHub releases.</div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="fw-medium text-body">About Installed Binaries</div>
+                <button class="btn btn-link btn-sm p-0 text-decoration-none d-inline-flex align-items-center gap-1" type="button" id="btn-open-bin-folder" title="Open binaries folder in File Explorer">
+                  <i class="bi bi-folder2-open"></i> Open Folder
+                </button>
+              </div>
+              <div>Binaries are stored in <a href="#" role="button" class="text-primary text-decoration-underline" id="link-open-bin-folder" title="Open %LOCALAPPDATA%\ASDK\Shared\bin in File Explorer"><code>%LOCALAPPDATA%\ASDK\Shared\bin</code></a> or system PATH. Updating downloads official verified release executables directly from GitHub releases.</div>
             </div>
 
           </div>

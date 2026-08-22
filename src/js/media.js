@@ -237,6 +237,28 @@ function renderMarqueeSongTitle(titleText) {
 }
 
 const actionFrameCache = new Map();
+const albumArtCache = new Map();
+
+export async function extractAlbumArtAsync(filePath) {
+  if (!filePath) return null;
+  if (albumArtCache.has(filePath)) {
+    return albumArtCache.get(filePath);
+  }
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      const dataUri = await window.__TAURI__.core.invoke("extract_album_art", {
+        filePath,
+      });
+      if (dataUri) {
+        albumArtCache.set(filePath, dataUri);
+        return dataUri;
+      }
+    } catch (err) {
+      console.warn("extract_album_art failed:", err);
+    }
+  }
+  return null;
+}
 
 export async function extractActionFrameAsync(filePath, durationSec = 10) {
   if (!filePath) return null;
@@ -316,17 +338,40 @@ export function updateMetadataDisplay(info) {
         actionFrameImg.removeAttribute("src");
       }
       if (audioWrapper) audioWrapper.classList.remove("d-none");
-      if (cdSpinner) cdSpinner.classList.add("d-none");
-      if (info.album_art_url) {
-        if (audioArtImg) {
-          audioArtImg.src = info.album_art_url;
-          audioArtImg.classList.remove("d-none");
+
+      const targetAudioPath = info.file_path || currentInputFile;
+
+      const setAlbumArtDisplay = (artUrl) => {
+        if (cdSpinner) cdSpinner.classList.add("d-none");
+        if (artUrl) {
+          if (audioArtImg) {
+            audioArtImg.src = artUrl;
+            audioArtImg.classList.remove("d-none");
+          }
+          if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
+        } else {
+          if (audioArtImg) audioArtImg.classList.add("d-none");
+          if (audioFallbackIcon) audioFallbackIcon.classList.remove("d-none");
         }
+      };
+
+      if (info.album_art_url) {
+        setAlbumArtDisplay(info.album_art_url);
+      } else if (targetAudioPath && albumArtCache.has(targetAudioPath)) {
+        setAlbumArtDisplay(albumArtCache.get(targetAudioPath));
+      } else if (targetAudioPath) {
+        if (cdSpinner) cdSpinner.classList.remove("d-none");
         if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
-      } else {
         if (audioArtImg) audioArtImg.classList.add("d-none");
-        if (audioFallbackIcon) audioFallbackIcon.classList.remove("d-none");
+        extractAlbumArtAsync(targetAudioPath).then((artUrl) => {
+          if (currentInputFile === targetAudioPath) {
+            setAlbumArtDisplay(artUrl);
+          }
+        });
+      } else {
+        setAlbumArtDisplay(null);
       }
+
       renderMarqueeSongTitle(info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Audio Track"));
       if (audioFormat) audioFormat.textContent = `${(info.audio_codec || ext || "audio").toUpperCase()} Audio`;
       if (audioEl && assetSrc) audioEl.src = assetSrc;

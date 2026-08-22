@@ -22,6 +22,7 @@ pub struct MediaInfo {
     pub file_size_mb: f64,
     pub file_size_formatted: String,
     pub bitrate_kbps: u64,
+    pub album_art_url: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -289,6 +290,7 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
         file_size_mb,
         file_size_formatted,
         bitrate_kbps: 0,
+        album_art_url: None,
     };
 
     let probe_bin = find_binary("ffprobe");
@@ -768,22 +770,21 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
 
         let was_cancelled = CANCEL_REQUESTED.load(Ordering::SeqCst);
         match status {
-            Ok(exit_status) => {
-                let code = exit_status.code().unwrap_or(if was_cancelled { -1 } else { 0 });
-                let success = exit_status.success() && !was_cancelled;
+            Ok(s) => {
+                let success = s.success() && !was_cancelled;
+                let exit_code = s.code().unwrap_or(if was_cancelled { -999 } else { 0 });
                 let msg = if was_cancelled {
-                    "Download cancelled by user".to_string()
+                    "Download cancelled by user".into()
                 } else if success {
-                    "Download completed successfully".to_string()
+                    "Download completed successfully".into()
                 } else {
-                    format!("yt-dlp exited with code {}", code)
+                    format!("yt-dlp exited with code {}", exit_code)
                 };
-
                 let _ = app.emit(
                     "ffmpeg-finished",
                     FinishPayload {
                         success,
-                        exit_code: code,
+                        exit_code,
                         message: msg,
                     },
                 );
@@ -812,7 +813,21 @@ fn is_job_active() -> bool {
 
 #[tauri::command]
 fn force_exit_app(app: tauri::AppHandle) {
-    let _ = cancel_ffmpeg();
+    let mut pid_lock = RUNNING_CHILD_PID.lock().unwrap();
+    if let Some(pid) = *pid_lock {
+        #[cfg(windows)]
+        {
+            let _ = Command::new("taskkill")
+                .args(["/PID", &pid.to_string(), "/F", "/T"])
+                .creation_flags(0x08000000)
+                .output();
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = Command::new("kill").args(["-9", &pid.to_string()]).output();
+        }
+        *pid_lock = None;
+    }
     app.exit(0);
 }
 
@@ -824,14 +839,10 @@ fn open_file(file_path: String) -> Result<(), String> {
     }
     #[cfg(windows)]
     {
-        let mut cmd = Command::new("cmd");
-        cmd.args(["/C", "start", "", &file_path]);
-        cmd.creation_flags(0x08000000);
-        cmd.spawn().map_err(|e| e.to_string())?;
-    }
-    #[cfg(not(windows))]
-    {
-        Command::new("xdg-open").arg(&file_path).spawn().map_err(|e| e.to_string())?;
+        let _ = Command::new("cmd")
+            .args(["/C", "start", "", &file_path])
+            .creation_flags(0x08000000)
+            .spawn();
     }
     Ok(())
 }
@@ -839,33 +850,36 @@ fn open_file(file_path: String) -> Result<(), String> {
 #[tauri::command]
 fn show_in_folder(file_path: String) -> Result<(), String> {
     let path = std::path::Path::new(&file_path);
+    if !path.exists() {
+        return Err("Path does not exist".into());
+    }
     #[cfg(windows)]
     {
-        let mut cmd = Command::new("explorer");
-        if path.is_file() {
-            cmd.arg(format!("/select,{}", path.to_string_lossy()));
-        } else if path.is_dir() {
-            cmd.arg(path.to_string_lossy().to_string());
-        } else if let Some(parent) = path.parent() {
-            if parent.exists() {
-                cmd.arg(parent.to_string_lossy().to_string());
-            } else {
-                cmd.arg(".");
-            }
-        } else {
-            cmd.arg(".");
-        }
-        cmd.creation_flags(0x08000000);
-        cmd.spawn().map_err(|e| e.to_string())?;
+        let _ = Command::new("explorer")
+            .args(["/select,", &file_path])
+            .creation_flags(0x08000000)
+            .spawn();
     }
-    #[cfg(target_os = "macos")]
+    Ok(())
+}
+
+#[tauri::command]
+fn open_binaries_folder() -> Result<(), String> {
+    let bin_dir = if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        std::path::PathBuf::from(local_app_data)
+            .join("ASDK")
+            .join("Shared")
+            .join("bin")
+    } else {
+        std::path::PathBuf::from(r"C:\ffmpeg\bin")
+    };
+    let _ = std::fs::create_dir_all(&bin_dir);
+    #[cfg(windows)]
     {
-        Command::new("open").args(["-R", &file_path]).spawn().map_err(|e| e.to_string())?;
-    }
-    #[cfg(all(unix, not(target_os = "macos")))]
-    {
-        let parent = path.parent().unwrap_or(path);
-        Command::new("xdg-open").arg(parent).spawn().map_err(|e| e.to_string())?;
+        let _ = Command::new("explorer")
+            .arg(&bin_dir)
+            .creation_flags(0x08000000)
+            .spawn();
     }
     Ok(())
 }
@@ -894,14 +908,15 @@ fn send_system_notification(title: String, body: String) -> Result<(), String> {
     Ok(())
 }
 
-fn get_thumb_cache_dir() -> std::path::PathBuf {
+fn get_thumb_cache_dir(subfolder: &str) -> std::path::PathBuf {
     let base = if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
         std::path::PathBuf::from(local_app_data)
             .join("ASDK")
             .join("AnEdiKit")
             .join("ThumbCache")
+            .join(subfolder)
     } else {
-        std::env::temp_dir().join("ASDK_AnEdiKit_ThumbCache")
+        std::env::temp_dir().join("ASDK_AnEdiKit_ThumbCache").join(subfolder)
     };
     let _ = std::fs::create_dir_all(&base);
     base
@@ -924,6 +939,62 @@ fn compute_file_hash(path: &std::path::Path) -> String {
     format!("{:016x}", hasher.finish())
 }
 
+fn extract_album_art_internal(file_path: &str) -> Option<String> {
+    let path = std::path::Path::new(file_path);
+    if !path.exists() {
+        return None;
+    }
+
+    let cache_dir = get_thumb_cache_dir("Audio");
+    let hash = compute_file_hash(path);
+    let cache_file = cache_dir.join(format!("{}.jpg", hash));
+
+    if cache_file.exists() {
+        if let Ok(bytes) = std::fs::read(&cache_file) {
+            if !bytes.is_empty() {
+                use base64::Engine;
+                let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                return Some(format!("data:image/jpeg;base64,{}", b64));
+            }
+        }
+    }
+
+    let ffmpeg_bin = find_binary("ffmpeg");
+    let mut cmd = Command::new(&ffmpeg_bin);
+    cmd.args([
+        "-y",
+        "-i",
+        file_path,
+        "-an",
+        "-vcodec",
+        "mjpeg",
+        "-q:v",
+        "2",
+        cache_file.to_string_lossy().as_ref(),
+    ]);
+
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+
+    if let Ok(output) = cmd.output() {
+        if output.status.success() && cache_file.exists() {
+            if let Ok(bytes) = std::fs::read(&cache_file) {
+                if !bytes.is_empty() {
+                    use base64::Engine;
+                    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                    return Some(format!("data:image/jpeg;base64,{}", b64));
+                }
+            }
+        }
+    }
+    None
+}
+
+#[tauri::command]
+fn extract_album_art(file_path: String) -> Result<String, String> {
+    extract_album_art_internal(&file_path).ok_or_else(|| "No album art found".into())
+}
+
 #[tauri::command]
 fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Result<String, String> {
     let path = std::path::Path::new(&file_path);
@@ -931,7 +1002,7 @@ fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Res
         return Err("File does not exist".into());
     }
 
-    let cache_dir = get_thumb_cache_dir();
+    let cache_dir = get_thumb_cache_dir("Video");
     let hash = compute_file_hash(path);
     let cache_file = cache_dir.join(format!("{}.jpg", hash));
 
@@ -1010,6 +1081,8 @@ pub fn run() {
             write_temp_text_file,
             get_media_info,
             extract_action_frame,
+            extract_album_art,
+            open_binaries_folder,
             execute_ffmpeg,
             execute_ytdlp,
             cancel_ffmpeg,
