@@ -380,15 +380,17 @@
                     </div>
                   </div>
 
-                  <!-- Dual / Visual Range Slider Bar -->
-                  <div class="position-relative py-2 my-1" id="trim-range-container">
+                  <!-- Dual / Visual Range Slider Bar & Audio Waveform Container -->
+                  <div class="position-relative py-3 my-1" id="trim-range-container" style="min-height: 48px;">
+                    <!-- Waveform Canvas for Audio Selection -->
+                    <canvas id="trim-waveform-canvas" class="w-100 position-absolute top-0 start-0 h-100 d-none" style="pointer-events: none; z-index: 1;"></canvas>
                     <!-- Progress / Track background -->
-                    <div class="progress" style="height: 10px; background-color: var(--bs-border-color);">
+                    <div class="progress position-absolute top-50 start-0 w-100 translate-middle-y" style="height: 10px; background-color: var(--bs-border-color); z-index: 2;" id="trim-track-bg">
                       <div class="progress-bar bg-primary position-relative" id="trim-selected-range-bar" role="progressbar" style="margin-left: 0%; width: 100%;"></div>
                     </div>
                     <!-- Range Inputs (Start & End) -->
-                    <input type="range" class="form-range position-absolute top-50 start-0 translate-middle-y trim-range-slider" id="trim-slider-start" min="0" max="100" step="0.01" value="0" style="z-index: 3;" />
-                    <input type="range" class="form-range position-absolute top-50 start-0 translate-middle-y trim-range-slider" id="trim-slider-end" min="0" max="100" step="0.01" value="100" style="z-index: 4;" />
+                    <input type="range" class="form-range position-absolute top-50 start-0 translate-middle-y trim-range-slider" id="trim-slider-start" min="0" max="100" step="0.01" value="0" style="z-index: 4;" />
+                    <input type="range" class="form-range position-absolute top-50 start-0 translate-middle-y trim-range-slider" id="trim-slider-end" min="0" max="100" step="0.01" value="100" style="z-index: 5;" />
                   </div>
 
                   <!-- Trimmer Quick Control Buttons -->

@@ -1,8 +1,10 @@
 // Media Probing & File Interaction Module
 import { saveInputFile, loadSavedBatchQueue, saveBatchQueue } from "./storage.js";
+import { generateWaveformFromSource, renderWaveformToCanvas } from "./waveform.js";
 
 let currentInputFile = "";
 let currentMediaInfo = null;
+let currentWaveformPeaks = null;
 
 export function getCurrentInputFile() {
   return currentInputFile;
@@ -267,7 +269,21 @@ export function updateMetadataDisplay(info) {
       if (audioTitle) audioTitle.textContent = info.file_name || "Audio Track";
       if (audioFormat) audioFormat.textContent = `${(info.audio_codec || ext || "audio").toUpperCase()} Audio`;
       if (audioEl && assetSrc) audioEl.src = assetSrc;
+
+      const waveformCanvas = document.getElementById("trim-waveform-canvas");
+      if (waveformCanvas) {
+        waveformCanvas.classList.remove("d-none");
+        generateWaveformFromSource(filePath).then((peaks) => {
+          currentWaveformPeaks = peaks;
+          refreshWaveformDisplay();
+        });
+      }
     } else {
+      currentWaveformPeaks = null;
+      const waveformCanvas = document.getElementById("trim-waveform-canvas");
+      if (waveformCanvas) {
+        waveformCanvas.classList.add("d-none");
+      }
       if (audioWrapper) audioWrapper.classList.add("d-none");
       if (audioEl) {
         audioEl.pause();
@@ -296,6 +312,11 @@ export function updateMetadataDisplay(info) {
       }
     }
   } else {
+    currentWaveformPeaks = null;
+    const waveformCanvas = document.getElementById("trim-waveform-canvas");
+    if (waveformCanvas) {
+      waveformCanvas.classList.add("d-none");
+    }
     if (inputsCol) {
       inputsCol.className = "col-12";
     }
@@ -666,6 +687,23 @@ export function parseTimestampToSeconds(ts) {
   return parseFloat(ts) || 0;
 }
 
+export function refreshWaveformDisplay() {
+  const waveformCanvas = document.getElementById("trim-waveform-canvas");
+  if (!waveformCanvas || !currentWaveformPeaks) return;
+  const dur = currentMediaInfo?.duration_seconds || 120;
+  const inputStart = document.getElementById("trim-start");
+  const inputEnd = document.getElementById("trim-end");
+  const startSec = parseTimestampToSeconds(inputStart?.value);
+  const endSec = parseTimestampToSeconds(inputEnd?.value) || dur;
+  const startPct = Math.min(100, Math.max(0, (startSec / dur) * 100));
+  const endPct = Math.min(100, Math.max(0, (endSec / dur) * 100));
+
+  renderWaveformToCanvas(waveformCanvas, currentWaveformPeaks, {
+    startPct,
+    endPct,
+  });
+}
+
 export function initTrimmerControls() {
   const sliderStart = document.getElementById("trim-slider-start");
   const sliderEnd = document.getElementById("trim-slider-end");
@@ -745,6 +783,8 @@ export function initTrimmerControls() {
 
     const diff = Math.max(0, endSec - startSec);
     if (clipDurBadge) clipDurBadge.textContent = formatSecondsToTimestamp(diff);
+
+    refreshWaveformDisplay();
   };
 
   // Sync when sliders change
