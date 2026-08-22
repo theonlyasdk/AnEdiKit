@@ -172,6 +172,18 @@ a:active,
   margin-right: -1.5rem;
 }
 
+/* Prevent divider lines inside split media columns from bleeding into adjacent column */
+#media-inputs-col .section-divider-header::after,
+#batch-queue-container .section-divider-header::after {
+  margin-right: 0;
+}
+
+#media-preview-col .section-divider-header::before {
+  margin-left: 0;
+  width: auto;
+  flex: 1;
+}
+
 /* Material Zoom Transition for main workspace view (Pure zoom without opacity fade) */
 .view-material-zoom {
   animation-name: materialZoomIn;

@@ -58,8 +58,8 @@ const TOOL_METADATA = {
     viewId: "view-ytdlp_audio",
   },
   ytdlp_playlist: {
-    title: "Playlist & Batch Downloader",
-    desc: "Download complete playlists, video series, channels, or batch URL queues with index numbering.",
+    title: "Download Playlist",
+    desc: "Fetch and download complete playlists, video series, channels, or select specific videos to download.",
     viewId: "view-ytdlp_playlist",
   },
   ytdlp_subtitles: {
