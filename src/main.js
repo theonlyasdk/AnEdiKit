@@ -32,6 +32,126 @@ let appSettings = loadSettings();
 let mergeFiles = [];
 let userHasCustomOutputName = false;
 
+let playlistVideos = [];
+let isFetchingPlaylist = false;
+let fetchedPlaylistUrl = "";
+
+export function renderPlaylistEntries() {
+  const container = document.getElementById("playlist-entries-panel");
+  const list = document.getElementById("playlist-entries-list");
+  const selectedCountEl = document.getElementById("playlist-selected-count");
+  const totalCountEl = document.getElementById("playlist-total-count");
+  const toggleAllBtn = document.getElementById("btn-playlist-toggle-all");
+  const sortSelect = document.getElementById("playlist-sort-select");
+
+  if (!container || !list) return;
+
+  if (playlistVideos.length === 0) {
+    container.classList.add("d-none");
+    list.innerHTML = "";
+    return;
+  }
+
+  container.classList.remove("d-none");
+
+  const sortMode = sortSelect ? sortSelect.value : "original";
+  const sorted = [...playlistVideos].sort((a, b) => {
+    if (sortMode === "title_asc") return a.title.localeCompare(b.title);
+    if (sortMode === "title_desc") return b.title.localeCompare(a.title);
+    if (sortMode === "dur_asc") return (a.duration || 0) - (b.duration || 0);
+    if (sortMode === "dur_desc") return (b.duration || 0) - (a.duration || 0);
+    return a.index - b.index;
+  });
+
+  const selectedCount = playlistVideos.filter((v) => v.checked).length;
+  if (selectedCountEl) selectedCountEl.textContent = selectedCount;
+  if (totalCountEl) totalCountEl.textContent = playlistVideos.length;
+  if (toggleAllBtn) {
+    toggleAllBtn.textContent = selectedCount === playlistVideos.length ? "Deselect All" : "Select All";
+  }
+
+  list.innerHTML = sorted
+    .map(
+      (item) => `
+    <label class="list-group-item d-flex align-items-center gap-3 py-2 text-start" style="cursor: pointer;">
+      <input class="form-check-input flex-shrink-0 mt-0 playlist-item-check" type="checkbox" data-index="${item.index}" ${item.checked ? "checked" : ""} />
+      <div class="flex-grow-1 text-truncate">
+        <div class="d-flex align-items-center justify-content-between gap-2">
+          <div class="fw-medium text-body text-truncate mb-0" title="${item.title}">${item.index}. ${item.title}</div>
+          ${item.duration_string ? `<span class="badge text-bg-secondary flex-shrink-0 font-monospace">${item.duration_string}</span>` : ""}
+        </div>
+        <div class="text-body-secondary small text-truncate" style="font-size: 0.75rem;">${item.url}</div>
+      </div>
+    </label>
+  `,
+    )
+    .join("");
+
+  list.querySelectorAll(".playlist-item-check").forEach((chk) => {
+    chk.addEventListener("change", (e) => {
+      const idx = parseInt(e.target.dataset.index, 10);
+      const target = playlistVideos.find((v) => v.index === idx);
+      if (target) {
+        target.checked = e.target.checked;
+      }
+      const selCount = playlistVideos.filter((v) => v.checked).length;
+      if (selectedCountEl) selectedCountEl.textContent = selCount;
+      if (toggleAllBtn) {
+        toggleAllBtn.textContent = selCount === playlistVideos.length ? "Deselect All" : "Select All";
+      }
+      updateExecuteButtonState();
+      updateCommandPreview();
+    });
+  });
+}
+
+async function fetchPlaylistVideosHandler() {
+  const urlInput = document.getElementById("ytdlp-url-input");
+  const url = urlInput?.value?.trim();
+  if (!url) return;
+
+  isFetchingPlaylist = true;
+  updateExecuteButtonState();
+
+  const statusMsg = document.getElementById("status-message");
+  if (statusMsg) statusMsg.textContent = "Fetching playlist items...";
+
+  try {
+    if (window.__TAURI__?.core?.invoke) {
+      const results = await window.__TAURI__.core.invoke("fetch_playlist_videos", { url });
+      if (results && results.length > 0) {
+        playlistVideos = results.map((v) => ({ ...v, checked: true }));
+        fetchedPlaylistUrl = url;
+        renderPlaylistEntries();
+        if (statusMsg) statusMsg.textContent = `Found ${results.length} videos in playlist`;
+      } else {
+        if (statusMsg) statusMsg.textContent = "No videos found in playlist";
+      }
+    } else {
+      // Mock for web preview
+      playlistVideos = Array.from({ length: 8 }, (_, i) => ({
+        index: i + 1,
+        id: `vid_${i + 1}`,
+        title: `Video Item ${i + 1}: Sample Video Title for Download`,
+        url: `https://www.youtube.com/watch?v=sample_${i + 1}`,
+        duration: (i + 1) * 150,
+        duration_string: `0${i + 2}:30`,
+        checked: true,
+      }));
+      fetchedPlaylistUrl = url;
+      renderPlaylistEntries();
+      if (statusMsg) statusMsg.textContent = `Found 8 videos in playlist`;
+    }
+  } catch (err) {
+    console.warn("fetch_playlist_videos error:", err);
+    if (statusMsg) statusMsg.textContent = `Fetch error: ${err}`;
+  } finally {
+    isFetchingPlaylist = false;
+    updateExecuteButtonState();
+    updateCommandPreview();
+  }
+}
+
 export function getSmartOutputFileName(inputFile, toolId) {
   if (!inputFile) return "";
   const baseName =
@@ -119,43 +239,58 @@ export function updateExecuteButtonState() {
   }
 
   const queue = getBatchQueue();
-  if (activeTool.startsWith("ytdlp_")) {
+  let canExecute = false;
+
+  if (activeTool === "ytdlp_playlist") {
+    const isUrlChanged = currentUrl !== fetchedPlaylistUrl;
+    if (playlistVideos.length === 0 || isUrlChanged) {
+      btnExecute.textContent = isFetchingPlaylist ? "Fetching..." : "Fetch Playlist";
+      canExecute = currentUrl.length > 0 && !isFetchingPlaylist;
+    } else {
+      const selectedCount = playlistVideos.filter((v) => v.checked).length;
+      btnExecute.textContent = `Download (${selectedCount})`;
+      canExecute = selectedCount > 0;
+    }
+  } else if (activeTool.startsWith("ytdlp_")) {
     btnExecute.textContent = "Download";
+    canExecute = currentUrl.length > 0;
   } else if (queue && queue.length > 1 && activeTool !== "merge" && activeTool !== "settings") {
     btnExecute.textContent = `Execute (${queue.length})`;
+    canExecute = !!(currentInput && currentInput.trim().length > 0);
   } else {
     btnExecute.textContent = "Execute";
+    if (activeTool === "merge") {
+      canExecute = mergeFiles && mergeFiles.length >= 2;
+    } else if (activeTool === "custom") {
+      const cmdInput = document.getElementById("custom-args");
+      canExecute = !!(cmdInput && cmdInput.value.trim().length > 0);
+    } else {
+      canExecute = !!(currentInput && currentInput.trim().length > 0);
+    }
   }
+
   btnExecute.className = "btn btn-primary btn-sm px-4";
-
-  let canExecute = false;
-  if (activeTool.startsWith("ytdlp_")) {
-    canExecute = currentUrl.length > 0;
-  } else if (activeTool === "merge") {
-    canExecute = mergeFiles && mergeFiles.length >= 2;
-  } else if (activeTool === "custom") {
-    const cmdInput = document.getElementById("custom-args");
-    canExecute = !!(cmdInput && cmdInput.value.trim().length > 0);
-  } else {
-    canExecute = !!(currentInput && currentInput.trim().length > 0);
-  }
-
   btnExecute.disabled = !canExecute;
+
   if (!canExecute) {
     btnExecute.setAttribute(
       "title",
-      activeTool.startsWith("ytdlp_")
-        ? "Enter a valid media URL to download"
-        : activeTool === "merge"
-          ? "Add at least 2 files to merge"
-          : activeTool === "custom"
-            ? "Enter custom arguments to execute"
-            : "Select a file to execute operation",
+      activeTool === "ytdlp_playlist"
+        ? (playlistVideos.length > 0 ? "Select at least 1 video to download" : "Enter a playlist URL to fetch")
+        : activeTool.startsWith("ytdlp_")
+          ? "Enter a valid media URL to download"
+          : activeTool === "merge"
+            ? "Add at least 2 files to merge"
+            : activeTool === "custom"
+              ? "Enter custom arguments to execute"
+              : "Select a file to execute operation",
     );
   } else {
     btnExecute.setAttribute(
       "title",
-      activeTool.startsWith("ytdlp_") ? "Start download task" : "Run processing operation",
+      activeTool === "ytdlp_playlist"
+        ? (playlistVideos.length > 0 ? "Download selected playlist videos" : "Fetch videos from playlist URL")
+        : activeTool.startsWith("ytdlp_") ? "Start download task" : "Run processing operation",
     );
   }
 }
@@ -177,12 +312,16 @@ function updateCommandPreview() {
   }
   if (execFooter) execFooter.classList.remove("d-none");
 
+  const selectedIndices = activeTool === "ytdlp_playlist" && playlistVideos.length > 0
+    ? playlistVideos.filter((v) => v.checked).map((v) => v.index)
+    : null;
+
   const cmdObj = buildCommandForTool(
     activeTool,
     currentInput,
     appSettings.outputDir,
     appSettings,
-    { mergeFiles, url: currentUrl },
+    { mergeFiles, url: currentUrl, selectedIndices },
   );
   cmdPreviewEl.textContent = cmdObj.fullString;
   return cmdObj;
@@ -301,6 +440,42 @@ function bindFormEvents() {
   if (btnClearUrl && ytdlpUrlInput) {
     btnClearUrl.addEventListener("click", () => {
       ytdlpUrlInput.value = "";
+      playlistVideos = [];
+      fetchedPlaylistUrl = "";
+      const panel = document.getElementById("playlist-entries-panel");
+      if (panel) panel.classList.add("d-none");
+      updateCommandPreview();
+    });
+  }
+
+  if (ytdlpUrlInput) {
+    ytdlpUrlInput.addEventListener("input", () => {
+      const currentUrl = ytdlpUrlInput.value.trim();
+      if (currentUrl !== fetchedPlaylistUrl) {
+        playlistVideos = [];
+        fetchedPlaylistUrl = "";
+        const panel = document.getElementById("playlist-entries-panel");
+        if (panel) panel.classList.add("d-none");
+      }
+      updateCommandPreview();
+    });
+  }
+
+  // Playlist sorting & toggle all selection
+  const sortSelect = document.getElementById("playlist-sort-select");
+  if (sortSelect) {
+    sortSelect.addEventListener("change", () => {
+      renderPlaylistEntries();
+    });
+  }
+
+  const toggleAllBtn = document.getElementById("btn-playlist-toggle-all");
+  if (toggleAllBtn) {
+    toggleAllBtn.addEventListener("click", () => {
+      const allChecked = playlistVideos.length > 0 && playlistVideos.every((v) => v.checked);
+      playlistVideos.forEach((v) => (v.checked = !allChecked));
+      renderPlaylistEntries();
+      updateExecuteButtonState();
       updateCommandPreview();
     });
   }
@@ -401,6 +576,15 @@ function bindFormEvents() {
         const activeTool = getCurrentActiveTool();
         const batchQueue = getBatchQueue();
         const isYtDlp = activeTool.startsWith("ytdlp_");
+        const currentUrl = document.getElementById("ytdlp-url-input")?.value?.trim() || "";
+
+        if (activeTool === "ytdlp_playlist") {
+          const isUrlChanged = currentUrl !== fetchedPlaylistUrl;
+          if (playlistVideos.length === 0 || isUrlChanged) {
+            fetchPlaylistVideosHandler();
+            return;
+          }
+        }
 
         if (!isYtDlp && activeTool !== "merge" && batchQueue.length > 0) {
           executeBatchQueue(batchQueue, activeTool, appSettings, buildCommandForTool);
@@ -798,6 +982,14 @@ document.addEventListener("DOMContentLoaded", () => {
   initNavigation((toolId) => {
     const mediaInfo = getCurrentMediaInfo();
     if (mediaInfo) syncMediaDurationToTools(mediaInfo);
+    const playlistPanel = document.getElementById("playlist-entries-panel");
+    if (playlistPanel) {
+      if (toolId === "ytdlp_playlist" && playlistVideos.length > 0) {
+        playlistPanel.classList.remove("d-none");
+      } else {
+        playlistPanel.classList.add("d-none");
+      }
+    }
     updateAutoOutputFilename();
     updateCommandPreview();
   });

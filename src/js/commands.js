@@ -833,7 +833,7 @@ export function buildYtDlpAudioCommand(url, outputDir, settings = {}) {
   };
 }
 
-export function buildYtDlpPlaylistCommand(url, outputDir, settings = {}) {
+export function buildYtDlpPlaylistCommand(url, outputDir, settings = {}, selectedIndices = null) {
   const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/playlist?list=PL...";
   const outDir = resolveYtDlpOutputDir(settings);
   const mode = document.getElementById("dl-playlist-mode")?.value || "video";
@@ -847,7 +847,9 @@ export function buildYtDlpPlaylistCommand(url, outputDir, settings = {}) {
     args.push("-i");
   }
 
-  if (items && items.toLowerCase() !== "all") {
+  if (selectedIndices && selectedIndices.length > 0) {
+    args.push("--playlist-items", selectedIndices.join(","));
+  } else if (items && items.toLowerCase() !== "all") {
     args.push("--playlist-items", items);
   }
 
@@ -944,7 +946,7 @@ export function buildCommandForTool(
     case "ytdlp_audio":
       return buildYtDlpAudioCommand(extraParams.url, outputDir, settings);
     case "ytdlp_playlist":
-      return buildYtDlpPlaylistCommand(extraParams.url, outputDir, settings);
+      return buildYtDlpPlaylistCommand(extraParams.url, outputDir, settings, extraParams.selectedIndices);
     case "ytdlp_subtitles":
       return buildYtDlpSubtitlesCommand(extraParams.url, outputDir, settings);
     default:

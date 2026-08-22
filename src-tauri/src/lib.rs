@@ -49,6 +49,16 @@ pub struct FinishPayload {
     pub message: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PlaylistVideo {
+    pub index: usize,
+    pub id: String,
+    pub title: String,
+    pub url: String,
+    pub duration: Option<f64>,
+    pub duration_string: Option<String>,
+}
+
 #[tauri::command]
 fn pick_file(filter_mode: Option<String>) -> Option<String> {
     let mut dialog = rfd::FileDialog::new();
@@ -1058,6 +1068,89 @@ fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Res
     Ok(format!("data:image/jpeg;base64,{}", b64))
 }
 
+#[tauri::command]
+fn fetch_playlist_videos(url: String) -> Result<Vec<PlaylistVideo>, String> {
+    if url.trim().is_empty() {
+        return Err("Please enter a valid playlist or video URL".into());
+    }
+    let ytdlp_bin = find_binary("yt-dlp");
+    let mut cmd = Command::new(&ytdlp_bin);
+    cmd.args([
+        "--flat-playlist",
+        "--print",
+        "%(id)s\t%(title)s\t%(url)s\t%(duration)s",
+        "--no-warnings",
+        url.trim(),
+    ]);
+
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+
+    let output = cmd.output().map_err(|e| format!("Failed to run yt-dlp: {}", e))?;
+    if !output.status.success() {
+        let err = String::from_utf8_lossy(&output.stderr);
+        return Err(if err.trim().is_empty() { "Failed to fetch playlist items".into() } else { err.to_string() });
+    }
+
+    let stdout_str = String::from_utf8_lossy(&output.stdout);
+    let mut entries = Vec::new();
+    let mut idx = 1;
+
+    for line in stdout_str.lines() {
+        let line = line.trim();
+        if line.is_empty() { continue; }
+        let parts: Vec<&str> = line.split('\t').collect();
+        if !parts.is_empty() {
+            let id = parts[0].to_string();
+            let title = if parts.len() > 1 && !parts[1].is_empty() && parts[1] != "NA" {
+                parts[1].to_string()
+            } else {
+                format!("Video {}", idx)
+            };
+            let url_str = if parts.len() > 2 && !parts[2].is_empty() && parts[2] != "NA" {
+                parts[2].to_string()
+            } else if !id.is_empty() && !id.starts_with("http") {
+                format!("https://www.youtube.com/watch?v={}", id)
+            } else {
+                id.clone()
+            };
+            let dur = if parts.len() > 3 {
+                parts[3].parse::<f64>().ok()
+            } else {
+                None
+            };
+
+            let duration_string = dur.map(|d| {
+                let total_sec = d.round() as u64;
+                let h = total_sec / 3600;
+                let m = (total_sec % 3600) / 60;
+                let s = total_sec % 60;
+                if h > 0 {
+                    format!("{:02}:{:02}:{:02}", h, m, s)
+                } else {
+                    format!("{:02}:{:02}", m, s)
+                }
+            });
+
+            entries.push(PlaylistVideo {
+                index: idx,
+                id,
+                title,
+                url: url_str,
+                duration: dur,
+                duration_string,
+            });
+            idx += 1;
+        }
+    }
+
+    if entries.is_empty() {
+        return Err("No videos found in the specified URL / playlist".into());
+    }
+
+    Ok(entries)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1083,6 +1176,7 @@ pub fn run() {
             extract_action_frame,
             extract_album_art,
             open_binaries_folder,
+            fetch_playlist_videos,
             execute_ffmpeg,
             execute_ytdlp,
             cancel_ffmpeg,
