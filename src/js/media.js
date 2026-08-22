@@ -286,10 +286,15 @@ export function updateMetadataDisplay(info) {
       const waveformCanvas = document.getElementById("trim-waveform-canvas");
       if (waveformCanvas) {
         waveformCanvas.classList.remove("d-none");
-        generateWaveformFromSource(filePath).then((peaks) => {
-          currentWaveformPeaks = peaks;
-          refreshWaveformDisplay();
-        });
+        const targetAudioPath = info.file_path || currentInputFile;
+        generateWaveformFromSource(targetAudioPath)
+          .then((peaks) => {
+            currentWaveformPeaks = peaks;
+            refreshWaveformDisplay();
+          })
+          .catch((err) => {
+            console.warn("Waveform generation failed:", err);
+          });
       }
     } else {
       currentWaveformPeaks = null;
