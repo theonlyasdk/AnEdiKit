@@ -1181,7 +1181,6 @@ export function initTrimmerControls() {
 
       if (inputStart) inputStart.value = formatSecondsToTimestamp(startSec);
       updateRangeBarUI(startSec, endSec, dur);
-      setMediaCurrentTime(startSec);
       showTooltip(tooltipStart, formatSecondsToTimestamp(startSec), startVal);
     });
     sliderStart.addEventListener("pointerdown", () => {
@@ -1209,7 +1208,6 @@ export function initTrimmerControls() {
 
       if (inputEnd) inputEnd.value = formatSecondsToTimestamp(endSec);
       updateRangeBarUI(startSec, endSec, dur);
-      setMediaCurrentTime(endSec);
       showTooltip(tooltipEnd, formatSecondsToTimestamp(endSec), endVal);
     });
     sliderEnd.addEventListener("pointerdown", () => {
