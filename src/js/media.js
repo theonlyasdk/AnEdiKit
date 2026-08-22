@@ -520,6 +520,43 @@ export function updateMetadataDisplay(info) {
   }
 }
 
+export function syncVideoPreviewForActiveTool(toolId) {
+  const videoWrapper = document.getElementById("video-preview-wrapper");
+  const videoEl = document.getElementById("media-video-preview");
+  const actionFrameImg = document.getElementById("video-action-frame-img");
+  const videoFallback = document.getElementById("video-preview-fallback");
+  const videoOverlay = document.getElementById("video-overlay-info");
+
+  if (!currentMediaInfo || isAudioFile(currentMediaInfo.file_path)) return;
+
+  if (toolId === "trim") {
+    if (videoWrapper) videoWrapper.classList.remove("d-none");
+    if (actionFrameImg) actionFrameImg.classList.add("d-none");
+    if (videoFallback) videoFallback.classList.add("d-none");
+    if (videoOverlay) videoOverlay.classList.remove("d-none");
+    if (videoEl) {
+      videoEl.classList.remove("d-none");
+      const assetSrc =
+        window.__TAURI__?.core?.convertFileSrc && currentMediaInfo.file_path
+          ? window.__TAURI__.core.convertFileSrc(currentMediaInfo.file_path)
+          : "";
+      if (assetSrc && videoEl.src !== assetSrc) {
+        videoEl.src = assetSrc;
+      }
+    }
+  } else {
+    if (actionFrameImg && actionFrameImg.getAttribute("src")) {
+      actionFrameImg.classList.remove("d-none");
+      if (videoFallback) videoFallback.classList.add("d-none");
+      if (videoOverlay) videoOverlay.classList.remove("d-none");
+      if (videoEl) {
+        videoEl.pause();
+        videoEl.classList.add("d-none");
+      }
+    }
+  }
+}
+
 export async function selectMediaFile(filterMode = "all") {
   if (window.__TAURI__?.core?.invoke) {
     try {
