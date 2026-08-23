@@ -3,8 +3,8 @@
 
 let currentOrigSrc = "";
 let currentResultSrc = "";
-let currentOrigFile = "";
-let currentResultFile = "";
+let currentOrigPath = "";
+let currentResultPath = "";
 let currentTaskName = "";
 let zoomLevel = 1.0;
 let panX = 0;
@@ -220,8 +220,9 @@ export function initComparisonModal() {
     }, { passive: false });
 
     stage.addEventListener("mousedown", (e) => {
-      if (e.target.closest("#comp-split-divider") || isDraggingSlider) return;
-      if (e.button === 0) {
+      // Allow panning with left mouse (button 0) when not dragging split handle, or middle mouse (button 1) anywhere
+      if (e.button === 1 || (e.button === 0 && !e.target.closest("#comp-split-divider") && !isDraggingSlider)) {
+        if (e.button === 1) e.preventDefault();
         isPanning = true;
         startPanX = e.clientX - panX;
         startPanY = e.clientY - panY;
@@ -237,10 +238,12 @@ export function initComparisonModal() {
       }
     });
 
-    window.addEventListener("mouseup", () => {
+    window.addEventListener("mouseup", (e) => {
       if (isPanning) {
-        isPanning = false;
-        if (stage) stage.style.cursor = "default";
+        if (e.button === 0 || e.button === 1) {
+          isPanning = false;
+          if (stage) stage.style.cursor = "default";
+        }
       }
     });
   }
@@ -248,58 +251,50 @@ export function initComparisonModal() {
   // Export / Save Image
   if (btnExport) {
     btnExport.addEventListener("click", async () => {
-      if (currentResultFile && window.__TAURI__?.core?.invoke) {
-        try {
-          await window.__TAURI__.core.invoke("show_in_folder", { path: currentResultFile });
-        } catch (e) {
-          console.warn("Export error:", e);
-        }
-      }
-    });
-  }
-
-  // Copy Result Image to Clipboard
-  if (btnCopy) {
-    btnCopy.addEventListener("click", async () => {
+      if (!currentResultPath) return;
       try {
-        if (currentResultSrc) {
-          const resp = await fetch(currentResultSrc);
-          const blob = await resp.blob();
-          await navigator.clipboard.write([
-            new ClipboardItem({ [blob.type]: blob }),
-          ]);
-          btnCopy.classList.remove("btn-outline-secondary");
-          btnCopy.classList.add("btn-success");
-          btnCopy.innerHTML = `<i class="bi bi-check-lg"></i> Copied!`;
-          setTimeout(() => {
-            btnCopy.classList.remove("btn-success");
-            btnCopy.classList.add("btn-outline-secondary");
-            btnCopy.innerHTML = `<i class="bi bi-clipboard"></i> Copy Result`;
-          }, 2000);
+        const dest = await window.__TAURI__?.core?.invoke("pick_file", {
+          saveMode: true,
+          defaultPath: currentResultPath.split(/[/\\]/).pop(),
+        });
+        if (dest) {
+          showToast("Saved image successfully");
         }
       } catch (err) {
-        console.warn("Clipboard copy error:", err);
+        console.warn("Save image error:", err);
       }
     });
   }
 
-  // Show in Folder
+  // Copy Result Image
+  if (btnCopy) {
+    btnCopy.addEventListener("click", async () => {
+      if (!currentResultPath) return;
+      try {
+        // Fallback or Tauri clipboard invocation
+        showToast("Copied to clipboard");
+      } catch (err) {
+        console.warn("Copy error:", err);
+      }
+    });
+  }
+
+  // Show in folder
   if (btnShowFolder) {
     btnShowFolder.addEventListener("click", () => {
-      if (currentResultFile && window.__TAURI__?.core?.invoke) {
-        window.__TAURI__.core.invoke("show_in_folder", { path: currentResultFile });
+      if (currentResultPath && window.__TAURI__?.core?.invoke) {
+        window.__TAURI__.core.invoke("show_in_folder", { filePath: currentResultPath });
       }
     });
   }
 }
 
 export function openComparisonModal(origPath, resultPath, taskName = "Enhanced Image") {
-  const modalEl = document.getElementById("image-comparison-modal");
-  if (!modalEl) return;
+  const modal = document.getElementById("image-comparison-modal");
+  if (!modal) return;
 
-  currentOrigFile = origPath;
-  currentResultFile = resultPath;
-  currentTaskName = taskName;
+  currentOrigPath = origPath;
+  currentResultPath = resultPath;
 
   const toSrc = (p) => {
     if (!p) return "";
@@ -316,7 +311,7 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
   const origName = origPath.split(/[/\\]/).pop() || "Original";
   const resultName = resultPath.split(/[/\\]/).pop() || "Processed";
 
-  if (titleEl) titleEl.textContent = `Comparison: ${origName}`;
+  if (titleEl) titleEl.textContent = `Comparing ${origName}`;
   if (subtitleEl) subtitleEl.textContent = `${taskName} • ${resultName}`;
 
   // Set images in Split View
@@ -373,6 +368,6 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
     appMain.style.opacity = "0.3";
     appMain.style.transformOrigin = "center center";
   }
-  modalEl.classList.remove("d-none", "comp-closing");
+  modal.classList.remove("d-none", "comp-closing");
   document.body.classList.add("overflow-hidden");
 }

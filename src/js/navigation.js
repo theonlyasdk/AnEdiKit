@@ -304,6 +304,20 @@ export function switchTool(toolId, onToolChanged) {
     aiReplaceSourceWrapper.classList.toggle("d-none", !isImageTool || isSettings);
   }
 
+  const singleInputFileWrapper = document.getElementById("single-input-file-wrapper");
+  const mergeFilesContainer = document.getElementById("merge-files-container");
+  const inputMetaInfo = document.getElementById("input-meta-info");
+
+  if (singleInputFileWrapper) {
+    singleInputFileWrapper.classList.toggle("d-none", toolId === "merge" || isYtDlp || isSettings || isImageTool);
+  }
+  if (mergeFilesContainer) {
+    mergeFilesContainer.classList.toggle("d-none", toolId !== "merge");
+  }
+  if (inputMetaInfo && toolId === "merge") {
+    inputMetaInfo.classList.add("d-none");
+  }
+
   const batchQueueContainer = document.getElementById("batch-queue-container");
   if (batchQueueContainer) {
     batchQueueContainer.classList.toggle("d-none", toolId === "merge" || isYtDlp || isSettings || isImageTool);

@@ -622,7 +622,22 @@ export async function showFinishedNotification(destination, toolName = "Conversi
 
   if (toastEl && window.bootstrap?.Toast) {
     const toast = window.bootstrap.Toast.getOrCreateInstance(toastEl);
+    toastEl.classList.remove("toast-sliding-out");
     toast.show();
+
+    const closeBtn = toastEl.querySelector(".btn-close");
+    if (closeBtn && !closeBtn.dataset.slideBound) {
+      closeBtn.dataset.slideBound = "true";
+      closeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toastEl.classList.add("toast-sliding-out");
+        setTimeout(() => {
+          toastEl.classList.remove("toast-sliding-out");
+          toast.hide();
+        }, 350);
+      });
+    }
   }
 }
 

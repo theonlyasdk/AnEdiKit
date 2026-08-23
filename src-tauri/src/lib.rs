@@ -174,8 +174,41 @@ fn pick_folder(default_path: Option<String>) -> Option<String> {
 
 #[tauri::command]
 fn check_file_exists(file_path: String) -> bool {
-    let p = std::path::Path::new(&file_path);
+    let decoded = percent_decode_path(&file_path);
+    let p = std::path::Path::new(&decoded);
     p.exists() && p.is_file()
+}
+
+#[tauri::command]
+fn read_image_data(file_path: String) -> Result<String, String> {
+    let decoded = percent_decode_path(&file_path);
+    let p = std::path::Path::new(&decoded);
+    if !p.exists() || !p.is_file() {
+        return Err("Image file does not exist".into());
+    }
+
+    let bytes = std::fs::read(p).map_err(|e| format!("Failed to read image: {}", e))?;
+    let ext = p
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("png")
+        .to_lowercase();
+
+    let mime = match ext.as_str() {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "webp" => "image/webp",
+        "gif" => "image/gif",
+        "svg" => "image/svg+xml",
+        "bmp" => "image/bmp",
+        "ico" => "image/x-icon",
+        "tiff" | "tif" => "image/tiff",
+        _ => "image/png",
+    };
+
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Ok(format!("data:{};base64,{}", mime, b64))
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -301,9 +334,35 @@ fn find_binary(bin: &str) -> String {
     bin.to_string()
 }
 
+fn percent_decode_path(input: &str) -> String {
+    let mut clean = input;
+    if clean.starts_with("file:///") {
+        clean = &clean[8..];
+    } else if clean.starts_with("file://") {
+        clean = &clean[7..];
+    }
+
+    let bytes = clean.as_bytes();
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' && i + 2 < bytes.len() {
+            if let Ok(val) = u8::from_str_radix(std::str::from_utf8(&bytes[i + 1..=i + 2]).unwrap_or(""), 16) {
+                decoded.push(val);
+                i += 3;
+                continue;
+            }
+        }
+        decoded.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8(decoded).unwrap_or_else(|_| clean.to_string())
+}
+
 #[tauri::command]
 fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
-    let path = std::path::Path::new(&file_path);
+    let decoded_path = percent_decode_path(&file_path);
+    let path = std::path::Path::new(&decoded_path);
     if !path.exists() {
         return Err("Selected file does not exist".into());
     }
@@ -318,7 +377,7 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
     let file_size_formatted = format!("{:.2} MB", file_size_mb);
 
     let mut info = MediaInfo {
-        file_path: file_path.clone(),
+        file_path: decoded_path.clone(),
         file_name,
         duration_seconds: 0.0,
         duration_string: "--:--:--".into(),
@@ -340,7 +399,7 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
         "format=duration,bit_rate:stream=codec_type,codec_name,width,height,duration:stream_tags=DURATION",
         "-of",
         "json",
-        &file_path,
+        &decoded_path,
     ]);
 
     #[cfg(windows)]
@@ -419,7 +478,7 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
     }
 
     // Audio file format / codec fallback if ffprobe didn't detect
-    let ext_lower = std::path::Path::new(&file_path)
+    let ext_lower = std::path::Path::new(&decoded_path)
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
@@ -438,7 +497,15 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
         }
     }
 
-    if info.video_codec == "--" && ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma"].contains(&ext_lower.as_str()) {
+    let is_img = ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif", "svg", "ico", "avif", "heic"].contains(&ext_lower.as_str());
+    if is_img {
+        if info.video_codec == "--" {
+            info.video_codec = ext_lower.to_uppercase();
+        }
+        info.audio_codec = "None".into();
+        info.duration_seconds = 0.0;
+        info.duration_string = "--:--:--".into();
+    } else if info.video_codec == "--" && ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "alac", "aiff"].contains(&ext_lower.as_str()) {
         info.video_codec = "None".into();
         info.resolution = "N/A".into();
     }
@@ -1900,6 +1967,7 @@ pub fn run() {
             show_in_folder,
             send_system_notification,
             check_file_exists,
+            read_image_data,
             get_hardware_info
         ])
         .run(tauri::generate_context!())

@@ -26,3 +26,4 @@ dist-ssr
 meedia-studio
 __pycache__/
 *.pyc
+docs/todo.txt

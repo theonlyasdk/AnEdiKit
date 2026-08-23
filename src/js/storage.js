@@ -25,7 +25,9 @@ export const DEFAULT_SETTINGS = {
   ytdlpRateLimit: "none",
   ytdlpSponsorblock: false,
   ytdlpGeoBypass: true,
+  ytdlpAutoPaste: true,
   ytdlpCustomArgs: "",
+  ytdlpFilenameFormat: "%(title)s [%(id)s].%(ext)s",
   ffmpegBin: "ffmpeg (System PATH)",
   ffprobeBin: "ffprobe (System PATH)",
 };
@@ -62,12 +64,30 @@ export function saveActiveTool(toolId) {
 }
 
 export function getSavedInputFile() {
-  return localStorage.getItem(STORAGE_KEYS.LAST_INPUT_FILE) || "";
+  const raw = localStorage.getItem(STORAGE_KEYS.LAST_INPUT_FILE) || "";
+  if (!raw) return "";
+  try {
+    let clean = raw;
+    if (clean.includes("%") || clean.startsWith("file://")) {
+      if (clean.startsWith("file:///")) clean = clean.slice(8);
+      else if (clean.startsWith("file://")) clean = clean.slice(7);
+      clean = decodeURIComponent(clean);
+    }
+    return clean;
+  } catch (_) {
+    return raw;
+  }
 }
 
 export function saveInputFile(path) {
   try {
-    localStorage.setItem(STORAGE_KEYS.LAST_INPUT_FILE, path || "");
+    let clean = path || "";
+    if (clean.includes("%") || clean.startsWith("file://")) {
+      if (clean.startsWith("file:///")) clean = clean.slice(8);
+      else if (clean.startsWith("file://")) clean = clean.slice(7);
+      clean = decodeURIComponent(clean);
+    }
+    localStorage.setItem(STORAGE_KEYS.LAST_INPUT_FILE, clean);
   } catch (err) {
     console.warn("Failed to save input file:", err);
   }
@@ -94,10 +114,22 @@ export function loadSavedBatchQueue() {
     // Keep track of finished items and do not restore items with finished status
     return list
       .filter((item) => item && item.path && item.status !== "done")
-      .map((item) => ({
-        ...item,
-        status: item.status === "processing" ? "pending" : item.status,
-      }));
+      .map((item) => {
+        let p = item.path;
+        try {
+          if (p.includes("%") || p.startsWith("file://")) {
+            if (p.startsWith("file:///")) p = p.slice(8);
+            else if (p.startsWith("file://")) p = p.slice(7);
+            p = decodeURIComponent(p);
+          }
+        } catch (_) {}
+        return {
+          ...item,
+          path: p,
+          name: item.name && !item.name.includes("%") ? item.name : p.split(/[/\\]/).pop() || p,
+          status: item.status === "processing" ? "pending" : item.status,
+        };
+      });
   } catch (err) {
     console.warn("Failed to load batch queue from storage:", err);
     return [];

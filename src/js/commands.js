@@ -1,5 +1,5 @@
-// FFmpeg Command Builder Module based on ffmpeg-tools-frontend.ps1
 import { getLastYtDlpOutDir } from "./storage.js";
+import { getSavedYtDlpFormat } from "./ytdlp_format.js";
 
 export function resolveDestinationPath(defaultFileName, settings = {}, inputFile = "") {
   const currentInput = inputFile || document.getElementById("input-file-path")?.value?.trim() || "";
@@ -887,9 +887,16 @@ export function resolveYtDlpOutputDir(settings = {}) {
   return settings.outputDir || "C:\\Users\\User\\Downloads";
 }
 
+export function resolveYtDlpFilenameFormat(settings = {}) {
+  const customFmt = document.getElementById("ytdlp-filename-format")?.value?.trim();
+  if (customFmt) return customFmt;
+  return settings.ytdlpFilenameFormat || getSavedYtDlpFormat();
+}
+
 export function buildYtDlpVideoCommand(url, outputDir, settings = {}) {
   const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
   const outDir = resolveYtDlpOutputDir(settings);
+  const fmt = resolveYtDlpFilenameFormat(settings);
   const res = document.getElementById("dl-video-res")?.value || "best";
   const container = document.getElementById("dl-video-container")?.value || "mp4";
   const embedSubs = document.getElementById("dl-video-embed-subs")?.checked ?? true;
@@ -920,7 +927,7 @@ export function buildYtDlpVideoCommand(url, outputDir, settings = {}) {
   appendGlobalYtDlpArgs(args, settings);
 
   args.push("-P", outDir);
-  args.push("-o", "%(title)s [%(id)s].%(ext)s");
+  args.push("-o", fmt);
   args.push(targetUrl);
 
   return {
@@ -934,12 +941,13 @@ export function buildYtDlpVideoCommand(url, outputDir, settings = {}) {
 export function buildYtDlpAudioCommand(url, outputDir, settings = {}) {
   const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
   const outDir = resolveYtDlpOutputDir(settings);
-  const fmt = document.getElementById("dl-audio-fmt")?.value || "mp3";
+  const fmt = resolveYtDlpFilenameFormat(settings);
+  const audioFmt = document.getElementById("dl-audio-fmt")?.value || "mp3";
   const quality = document.getElementById("dl-audio-quality")?.value || "0";
   const embedThumb = document.getElementById("dl-audio-embed-thumb")?.checked ?? true;
   const embedMeta = document.getElementById("dl-audio-embed-meta")?.checked ?? true;
 
-  const args = ["-x", "--audio-format", fmt, "--audio-quality", quality];
+  const args = ["-x", "--audio-format", audioFmt, "--audio-quality", quality];
 
   if (embedThumb) {
     args.push("--embed-thumbnail");
@@ -951,7 +959,7 @@ export function buildYtDlpAudioCommand(url, outputDir, settings = {}) {
   appendGlobalYtDlpArgs(args, settings);
 
   args.push("-P", outDir);
-  args.push("-o", "%(title)s [%(id)s].%(ext)s");
+  args.push("-o", fmt);
   args.push(targetUrl);
 
   return {
@@ -965,6 +973,7 @@ export function buildYtDlpAudioCommand(url, outputDir, settings = {}) {
 export function buildYtDlpPlaylistCommand(url, outputDir, settings = {}, selectedIndices = null) {
   const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/playlist?list=PL...";
   const outDir = resolveYtDlpOutputDir(settings);
+  const fmt = resolveYtDlpFilenameFormat(settings);
   const mode = document.getElementById("dl-playlist-mode")?.value || "video";
   const items = document.getElementById("dl-playlist-items")?.value?.trim() || "all";
   const autonumber = document.getElementById("dl-playlist-autonumber")?.checked ?? true;
@@ -993,9 +1002,13 @@ export function buildYtDlpPlaylistCommand(url, outputDir, settings = {}, selecte
   args.push("-P", outDir);
 
   if (autonumber) {
-    args.push("-o", "%(playlist_title)s/%(playlist_index)s - %(title)s.%(ext)s");
+    if (!fmt.includes("%(playlist_index)s")) {
+      args.push("-o", `%(playlist_title)s/%(playlist_index)s - ${fmt}`);
+    } else {
+      args.push("-o", `%(playlist_title)s/${fmt}`);
+    }
   } else {
-    args.push("-o", "%(playlist_title)s/%(title)s.%(ext)s");
+    args.push("-o", `%(playlist_title)s/${fmt}`);
   }
 
   args.push(targetUrl);
@@ -1011,15 +1024,16 @@ export function buildYtDlpPlaylistCommand(url, outputDir, settings = {}, selecte
 export function buildYtDlpSubtitlesCommand(url, outputDir, settings = {}) {
   const targetUrl = url || document.getElementById("ytdlp-url-input")?.value?.trim() || "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
   const outDir = resolveYtDlpOutputDir(settings);
+  const fmt = resolveYtDlpFilenameFormat(settings);
   const lang = document.getElementById("dl-sub-lang")?.value?.trim() || "en";
-  const fmt = document.getElementById("dl-sub-fmt")?.value || "srt";
+  const subFmt = document.getElementById("dl-sub-fmt")?.value || "srt";
   const autoSubs = document.getElementById("dl-sub-auto")?.checked ?? true;
   const downloadThumb = document.getElementById("dl-sub-thumb")?.checked ?? true;
   const writeInfo = document.getElementById("dl-sub-info")?.checked ?? false;
 
   const args = ["--skip-download"];
 
-  args.push("--write-subs", "--sub-lang", lang, "--convert-subs", fmt);
+  args.push("--write-subs", "--sub-lang", lang, "--convert-subs", subFmt);
   if (autoSubs) {
     args.push("--write-auto-subs");
   }
@@ -1033,7 +1047,7 @@ export function buildYtDlpSubtitlesCommand(url, outputDir, settings = {}) {
   appendGlobalYtDlpArgs(args, settings);
 
   args.push("-P", outDir);
-  args.push("-o", "%(title)s [%(id)s].%(ext)s");
+  args.push("-o", fmt);
   args.push(targetUrl);
 
   return {

@@ -543,7 +543,12 @@ a:active,
 .toast-slide-in {
   opacity: 0;
   transform: translateX(120%);
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease-out, box-shadow 0.3s ease;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+#finished-toast {
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 10px 28px rgba(0, 0, 0, 0.5) !important;
 }
 
 .toast-slide-in.showing,
@@ -553,10 +558,50 @@ a:active,
 }
 
 .toast-slide-in.hiding,
+.toast-slide-in.toast-sliding-out,
 .toast-slide-in.hide,
 .toast-slide-in:not(.show) {
-  opacity: 0;
-  transform: translateX(120%);
+  opacity: 0 !important;
+  transform: translateX(120%) !important;
+  transition: transform 0.35s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.3s ease-in !important;
+}
+
+/* Filename Format Editor Styles */
+.format-list-item {
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.15s ease;
+  user-select: none;
+  touch-action: none;
+  border-radius: 0 !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--bs-border-color) !important;
+}
+
+.format-list-item:last-child {
+  border-bottom: none !important;
+}
+
+.format-list-item.is-dragging {
+  z-index: 1050 !important;
+  opacity: 0.98;
+  border: 1px solid var(--bs-primary) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.45) !important;
+  transition: none !important;
+  cursor: grabbing !important;
+}
+
+.format-drag-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.format-drag-handle:active,
+.format-list-item.is-dragging .format-drag-handle {
+  cursor: grabbing;
 }
 
 /* Media Preview Slide-in Animation */
@@ -593,7 +638,7 @@ html.no-animations *::after {
 
 /* Material Design 3 Toggle Switch */
 .form-check.form-switch {
-  padding-left: 3.75rem;
+  padding-left: 3.25rem;
   min-height: 1.75rem;
   display: flex;
   align-items: center;
@@ -602,14 +647,17 @@ html.no-animations *::after {
 .form-check.form-switch .form-check-label {
   cursor: pointer;
   user-select: none;
-  margin-left: 0.5rem;
+  margin-left: 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.4;
 }
 
 .form-check.form-switch .form-check-input {
-  width: 44px;
-  height: 24px;
-  margin-left: -3.75rem;
-  margin-right: 0.5rem;
+  width: 42px;
+  height: 23px;
+  margin-left: -3.25rem;
+  margin-right: 0.25rem;
   margin-top: 0;
   flex-shrink: 0;
   border-radius: 9999px;
@@ -937,27 +985,28 @@ html.no-animations *::after {
 
 /* Playhead with strong hover shadow and 75% active brightness */
 #trim-playhead {
-  box-shadow: 0 0 20px 4px rgba(255, 59, 48, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45);
+  box-shadow: none !important;
   transition: box-shadow 0.15s ease, filter 0.1s ease;
   pointer-events: auto;
 }
 
 #trim-playhead > div {
-  filter: drop-shadow(0 4px 10px rgba(255, 59, 48, 0.4));
+  filter: none;
   transition: filter 0.15s ease;
 }
 
 #trim-playhead:hover {
-  box-shadow: 0 0 28px 8px rgba(255, 59, 48, 0.7), 0 8px 32px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 0 24px 6px rgba(255, 59, 48, 0.7), 0 8px 28px rgba(0, 0, 0, 0.65) !important;
 }
 
 #trim-playhead:hover > div {
-  filter: drop-shadow(0 4px 14px rgba(255, 59, 48, 0.8));
+  filter: drop-shadow(0 4px 12px rgba(255, 59, 48, 0.8));
 }
 
 #trim-playhead:active,
 #trim-playhead.active-drag {
   filter: brightness(75%) !important;
+  box-shadow: 0 0 28px 8px rgba(255, 59, 48, 0.85), 0 8px 32px rgba(0, 0, 0, 0.75) !important;
 }
 
 /* Remove easing transition from dimmer overlays for instantaneous scrubbing */
@@ -992,6 +1041,11 @@ html.no-animations *::after {
   aspect-ratio: 1 / 1;
 }
 
+.media-preview-morpher.image-mode {
+  max-width: 360px;
+  aspect-ratio: 16 / 9;
+}
+
 .media-preview-layer {
   transition: opacity 0.35s ease-in-out, visibility 0.35s ease-in-out;
   opacity: 0;
@@ -1006,6 +1060,12 @@ html.no-animations *::after {
 }
 
 .media-preview-morpher.audio-mode #audio-preview-layer {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.media-preview-morpher.image-mode #image-preview-layer {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -1167,42 +1227,63 @@ html.no-animations *::after {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 1070;
-  background-color: rgba(8, 8, 12, 0.88);
-  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.image-lightbox-overlay.active {
-  opacity: 1;
+  background-color: transparent;
   pointer-events: auto;
 }
 
+.image-lightbox-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(8, 8, 12, 0.92);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .image-lightbox-card {
-  max-width: 88vw;
-  max-height: 88vh;
+  position: relative;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   transform-origin: center center;
-  will-change: transform, opacity;
+  user-select: none;
+}
+
+#image-lightbox-wrapper {
+  max-width: 84vw;
+  max-height: 76vh;
+  background-color: #121214;
+  transform-origin: center center;
 }
 
 .image-lightbox-img {
-  max-width: 80vw;
-  max-height: 75vh;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   border-radius: 4px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+  display: block;
+}
+
+.image-queue-item.image-item-deleted .image-queue-item-title {
+  color: var(--bs-danger) !important;
+  text-decoration: line-through !important;
+}
+
+.image-queue-thumb-fallback {
+  border-radius: 4px;
 }
 
 .image-drop-active {

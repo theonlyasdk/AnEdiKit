@@ -134,8 +134,10 @@ export function renderWaveformToCanvas(canvas, peaks, options = {}) {
 
   const dpr = Math.max(2, window.devicePixelRatio || 1);
   const rect = canvas.getBoundingClientRect();
-  const width = Math.max(10, rect.width || canvas.width || 300);
-  const height = Math.max(10, rect.height || canvas.height || 68);
+  const parentWidth = canvas.parentElement?.clientWidth;
+  const parentHeight = canvas.parentElement?.clientHeight;
+  const width = Math.max(10, rect.width || parentWidth || canvas.width || 600);
+  const height = Math.max(10, rect.height || parentHeight || canvas.height || 68);
 
   if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
     canvas.width = Math.floor(width * dpr);
@@ -204,4 +206,13 @@ export function renderWaveformToCanvas(canvas, peaks, options = {}) {
   }
 
   ctx.restore();
+}
+
+export function clearWaveformCache() {
+  let bytes = 0;
+  for (const [k, v] of waveformCache.entries()) {
+    bytes += (k.length * 2) + (Array.isArray(v) ? v.length * 8 : 1024);
+  }
+  waveformCache.clear();
+  return bytes;
 }

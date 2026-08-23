@@ -24,6 +24,7 @@ import {
   updateImageAiItemStatus,
   renderImageAiQueueUI,
   initImageLightbox,
+  clearAllMediaPreviewCaches,
 } from "./js/media.js";
 import { buildCommandForTool, setDetectedHardware } from "./js/commands.js";
 import {
@@ -37,6 +38,7 @@ import { initNavigation, getCurrentActiveTool, TOOL_METADATA } from "./js/naviga
 import { initToolsManager } from "./js/tools_manager.js";
 import { initThemeManager } from "./js/theme.js";
 import { initComparisonModal, openComparisonModal } from "./js/comparison.js";
+import { initYtDlpFormatEditor } from "./js/ytdlp_format.js";
 
 let appSettings = loadSettings();
 let mergeFiles = [];
@@ -1195,15 +1197,38 @@ function bindFormEvents() {
     });
   }
 
-  // Brand Logo Credits Dialog & GitHub link
+  // Brand Logo Credits Dialog & Special Debug Dialog (Shift + Click)
   const brandLogoTitle = document.getElementById("brand-logo-title");
   if (brandLogoTitle) {
     brandLogoTitle.addEventListener("click", (e) => {
       e.stopPropagation();
+      if (e.shiftKey) {
+        // Shift + Click opens special Debug Dialog
+        const debugModalEl = document.getElementById("modal-debug-dialog");
+        if (debugModalEl && window.bootstrap?.Modal) {
+          const btnClear = document.getElementById("btn-clear-preview-cache");
+          if (btnClear) {
+            btnClear.textContent = "Clear Preview Cache";
+            btnClear.className = "btn btn-outline-danger btn-sm w-100 py-2";
+          }
+          window.bootstrap.Modal.getOrCreateInstance(debugModalEl).show();
+        }
+        return;
+      }
       const modalEl = document.getElementById("credits-modal");
       if (modalEl && window.bootstrap?.Modal) {
         window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
       }
+    });
+  }
+
+  // Debug Dialog: Clear Preview Cache Button
+  const btnClearCache = document.getElementById("btn-clear-preview-cache");
+  if (btnClearCache) {
+    btnClearCache.addEventListener("click", () => {
+      const mbGained = clearAllMediaPreviewCaches();
+      btnClearCache.textContent = `Cleared ${mbGained.toFixed(2)} MB`;
+      btnClearCache.className = "btn btn-success btn-sm w-100 py-2";
     });
   }
 
@@ -1803,6 +1828,7 @@ function populateSettingsUI() {
   const setYtRate = document.getElementById("set-ytdlp-ratelimit");
   const setYtSponsor = document.getElementById("set-ytdlp-sponsorblock");
   const setYtGeo = document.getElementById("set-ytdlp-geo-bypass");
+  const setYtAutoPaste = document.getElementById("set-ytdlp-autopaste");
   const setYtCustom = document.getElementById("set-ytdlp-custom-args");
 
   if (setOutDir) setOutDir.value = appSettings.outputDir || "C:\\Users\\User\\Videos";
@@ -1819,6 +1845,7 @@ function populateSettingsUI() {
   if (setYtRate) setYtRate.value = appSettings.ytdlpRateLimit || "none";
   if (setYtSponsor) setYtSponsor.checked = !!appSettings.ytdlpSponsorblock;
   if (setYtGeo) setYtGeo.checked = appSettings.ytdlpGeoBypass !== false;
+  if (setYtAutoPaste) setYtAutoPaste.checked = appSettings.ytdlpAutoPaste !== false;
   if (setYtCustom) setYtCustom.value = appSettings.ytdlpCustomArgs || "";
 
   populateHardwareInfo();
@@ -1839,6 +1866,7 @@ function syncSettingsFromUI() {
   const setYtRate = document.getElementById("set-ytdlp-ratelimit");
   const setYtSponsor = document.getElementById("set-ytdlp-sponsorblock");
   const setYtGeo = document.getElementById("set-ytdlp-geo-bypass");
+  const setYtAutoPaste = document.getElementById("set-ytdlp-autopaste");
   const setYtCustom = document.getElementById("set-ytdlp-custom-args");
 
   if (setOutDir) appSettings.outputDir = setOutDir.value;
@@ -1855,6 +1883,7 @@ function syncSettingsFromUI() {
   if (setYtRate) appSettings.ytdlpRateLimit = setYtRate.value;
   if (setYtSponsor) appSettings.ytdlpSponsorblock = setYtSponsor.checked;
   if (setYtGeo) appSettings.ytdlpGeoBypass = setYtGeo.checked;
+  if (setYtAutoPaste) appSettings.ytdlpAutoPaste = setYtAutoPaste.checked;
   if (setYtCustom) appSettings.ytdlpCustomArgs = setYtCustom.value;
 
   saveSettings(appSettings);
@@ -1871,6 +1900,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   initToolsManager();
+  initYtDlpFormatEditor();
   initJobRunner();
   initTrimmerControls();
   initSavedBatchQueue();
@@ -1887,6 +1917,43 @@ document.addEventListener("DOMContentLoaded", () => {
     updateAutoOutputFilename(true);
     updateCommandPreview();
   });
+  async function tryAutoPasteYtDlpUrl() {
+    if (appSettings.ytdlpAutoPaste === false) return;
+    const currentTool = getCurrentActiveTool();
+    if (!currentTool || !currentTool.startsWith("ytdlp_")) return;
+
+    const ytdlpUrlInput = document.getElementById("ytdlp-url-input");
+    if (!ytdlpUrlInput) return;
+
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && typeof text === "string") {
+        const trimmed = text.trim();
+        if (
+          (trimmed.startsWith("http://") || trimmed.startsWith("https://")) &&
+          (trimmed.includes("youtube.com") ||
+            trimmed.includes("youtu.be") ||
+            trimmed.includes("twitch.tv") ||
+            trimmed.includes("twitter.com") ||
+            trimmed.includes("x.com") ||
+            trimmed.includes("tiktok.com") ||
+            trimmed.includes("vimeo.com") ||
+            trimmed.includes("soundcloud.com") ||
+            trimmed.includes("instagram.com"))
+        ) {
+          if (!ytdlpUrlInput.value || ytdlpUrlInput.value !== trimmed) {
+            ytdlpUrlInput.value = trimmed;
+            updateCommandPreview();
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  window.addEventListener("focus", () => {
+    tryAutoPasteYtDlpUrl();
+  });
+
   initNavigation((toolId) => {
     const mediaInfo = getCurrentMediaInfo();
     if (mediaInfo) {
@@ -1900,6 +1967,9 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         playlistPanel.classList.add("d-none");
       }
+    }
+    if (toolId && toolId.startsWith("ytdlp_")) {
+      tryAutoPasteYtDlpUrl();
     }
     syncFormatSpecificUI();
     updateAutoOutputFilename();

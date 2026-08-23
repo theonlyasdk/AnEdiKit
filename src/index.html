@@ -160,11 +160,30 @@
               <div class="row g-3 align-items-stretch">
                 <!-- Left Column: Input File, Metadata & Output File -->
                 <div class="col-12" id="media-inputs-col">
-                  <div class="section-divider-header">Input Media</div>
-                  <div class="input-group mb-2">
-                    <button class="btn btn-outline-secondary" type="button" id="btn-browse-input" title="Select single media file"><i class="bi bi-folder2-open"></i></button>
-                    <input type="text" class="form-control small" id="input-file-path" placeholder="Select or drop a source media file (or add to queue below)..." readonly />
-                    <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection"><i class="bi bi-x-lg"></i></button>
+                  <!-- Single Input Media (for Convert, Trim, Compress, etc.) -->
+                  <div id="single-input-file-wrapper">
+                    <div class="section-divider-header">Input Media</div>
+                    <div class="input-group mb-2">
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-input" title="Select single media file"><i class="bi bi-folder2-open"></i></button>
+                      <input type="text" class="form-control small" id="input-file-path" placeholder="Select or drop a source media file (or add to queue below)..." readonly />
+                      <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                  </div>
+
+                  <!-- Media Files to Concatenate (for Merge & Concat tool) -->
+                  <div id="merge-files-container" class="mb-3 d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <div class="section-divider-header flex-grow-1 mb-0 me-3">Media Files to Concatenate</div>
+                      <div class="btn-group btn-group-sm flex-shrink-0">
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-add" title="Add files to merge list"><i class="bi bi-folder-plus"></i></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-up" title="Move selected item up"><i class="bi bi-chevron-up"></i></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-down" title="Move selected item down"><i class="bi bi-chevron-down"></i></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear all files"><i class="bi bi-x-lg"></i></button>
+                      </div>
+                    </div>
+                    <div class="list-group list-group-flush border rounded mb-2 small overflow-y-auto" style="max-height: 180px;" id="merge-file-list">
+                      <div class="list-group-item text-body-secondary text-center py-4" id="merge-empty-msg">No files added. Click Add Files to queue items for merging.</div>
+                    </div>
                   </div>
 
                   <!-- Batch Queue Container -->
@@ -246,9 +265,15 @@
                       </div>
 
                       <!-- Image Layer (16:9 / Responsive with Transparency Grid) -->
-                      <div class="w-100 h-100 position-absolute top-0 start-0 d-none d-flex align-items-center justify-content-center transparency-grid media-preview-layer" id="image-preview-layer">
+                      <div class="w-100 h-100 position-absolute top-0 start-0 d-flex align-items-center justify-content-center transparency-grid media-preview-layer" id="image-preview-layer">
                         <img id="media-image-preview" class="w-100 h-100 object-fit-contain position-absolute top-0 start-0 z-1" alt="Image Preview" />
-                        <div class="position-absolute bottom-0 start-0 w-100 p-2 d-flex flex-column z-2 text-start" id="image-overlay-info" style="background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);">
+                        <div class="w-100 h-100 d-none d-flex flex-column align-items-center justify-content-center bg-dark p-2 text-center rounded-0 z-0" id="image-preview-fallback">
+                          <div class="spinner-border spinner-border-sm text-secondary mb-2" id="image-fallback-spinner" role="status" style="width: 1.5rem; height: 1.5rem;"></div>
+                          <i class="bi bi-exclamation-circle-fill fs-1 text-danger mb-1 d-none" id="image-fallback-icon"></i>
+                          <span class="badge bg-danger text-white mb-1 d-none" id="image-fallback-badge" style="font-size: 0.7rem;">Image was deleted</span>
+                          <span class="small text-truncate w-100" style="font-size: 0.75rem;" id="image-fallback-filename">Loading image...</span>
+                        </div>
+                        <div class="position-absolute bottom-0 start-0 w-100 p-2 d-none flex-column z-2 text-start" id="image-overlay-info" style="background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);">
                           <span class="small fw-medium text-white text-truncate w-100" id="image-overlay-title" style="font-size: 0.8rem;">Image Preview</span>
                           <span class="small text-white-50" id="image-overlay-format" style="font-size: 0.7rem;">PNG Image</span>
                         </div>
@@ -295,6 +320,13 @@
                 <div class="input-group mb-2">
                   <button class="btn btn-outline-secondary" type="button" id="btn-browse-ytdlp-outdir" title="Choose download destination folder"><i class="bi bi-folder2-open"></i></button>
                   <input type="text" class="form-control small" id="ytdlp-output-dir" placeholder="Default downloads folder..." readonly />
+                </div>
+              </div>
+              <div class="mt-3">
+                <div class="section-divider-header">Filename Format</div>
+                <div class="input-group mb-2">
+                  <input type="text" class="form-control small font-monospace bg-body-tertiary" id="ytdlp-filename-format" placeholder="%(title)s [%(id)s].%(ext)s" value="%(title)s [%(id)s].%(ext)s" readonly />
+                  <button class="btn btn-outline-secondary d-flex align-items-center gap-1" type="button" id="btn-edit-ytdlp-filename-format" title="Edit output filename format template"><i class="bi bi-pencil-square"></i> Edit</button>
                 </div>
               </div>
             </div>
@@ -522,7 +554,7 @@
             <div class="tool-view d-none" id="view-trim">
               <div class="mb-4">
                 <div class="section-divider-header">Trim</div>
-                
+
                 <!-- Interactive Trimmer Seekbar & Range Control Box -->
                 <div class="p-3 border bg-body-tertiary mb-3 trim-panel-card" id="trim-controls-card">
                   <!-- Timeline Filmstrip & Visual Range Slider Track -->
@@ -531,6 +563,10 @@
                     <div id="trim-filmstrip-container" class="d-flex w-100 h-100 position-absolute top-0 start-0 z-0 overflow-hidden rounded">
                       <div class="w-100 h-100 d-flex align-items-center justify-content-center text-secondary small" id="trim-filmstrip-empty">
                         <span class="text-shimmer"><i class="bi bi-film me-2"></i> Preparing preview...</span>
+                      </div>
+                      <div class="w-100 h-100 d-none align-items-center justify-content-center text-warning small px-3 text-center" id="trim-filmstrip-unsupported">
+                        <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                        <span>Unsupported media type: Still images cannot be trimmed</span>
                       </div>
                     </div>
 
@@ -543,8 +579,8 @@
 
                     <!-- Active Trim Selection Window with Border & Top/Bottom Highlight -->
                     <div id="trim-selection-window" class="position-absolute top-0 h-100 border-start border-end border-primary z-2" style="left: 0%; width: 100%; border-width: 2px !important; box-shadow: inset 0 0 0 1px rgba(13, 110, 253, 0.4); pointer-events: none;">
-                      <div class="position-absolute top-0 start-0 w-100 bg-primary" style="height: 3px;"></div>
-                      <div class="position-absolute bottom-0 start-0 w-100 bg-primary" style="height: 3px;"></div>
+                      <div class="position-absolute top-0 start-0 w-100 bg-primary" style="height: 2px;"></div>
+                      <div class="position-absolute bottom-0 start-0 w-100 bg-primary" style="height: 2px;"></div>
                     </div>
 
                     <!-- Current Playhead Position Indicator Line (Rendered on top of trim handles) -->
@@ -979,18 +1015,7 @@
             <!-- TOOL 5: Merge & Concat -->
             <div class="tool-view d-none" id="view-merge">
               <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Media Files to Concatenate</div>
-                  <div class="btn-group btn-group-sm flex-shrink-0">
-                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-add" title="Add files to merge list"><i class="bi bi-folder-plus"></i></button>
-                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-up" title="Move selected item up"><i class="bi bi-chevron-up"></i></button>
-                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-down" title="Move selected item down"><i class="bi bi-chevron-down"></i></button>
-                    <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear all files"><i class="bi bi-x-lg"></i></button>
-                  </div>
-                </div>
-                <div class="list-group list-group-flush border rounded mb-3 small overflow-y-auto" style="max-height: 180px;" id="merge-file-list">
-                  <div class="list-group-item text-body-secondary text-center py-4" id="merge-empty-msg">No files added. Click Add Files to queue items for merging.</div>
-                </div>
+                <div class="section-divider-header">Merge Settings</div>
                 <div class="row g-3">
                   <div class="col-md-6">
                     <label class="form-label small fw-medium" for="merge-engine">Merge Engine</label>
@@ -1616,13 +1641,21 @@
                   <div class="col-md-6">
                     <div class="form-check form-switch pt-1">
                       <input class="form-check-input" type="checkbox" role="switch" id="set-ytdlp-sponsorblock" />
-                      <label class="form-check-label small" for="set-ytdlp-sponsorblock">Auto-Remove Sponsored Segments (SponsorBlock)</label>
+                      <label class="form-check-label" for="set-ytdlp-sponsorblock">Auto-Remove Sponsored Segments (SponsorBlock)</label>
                     </div>
                   </div>
                   <div class="col-md-6">
                     <div class="form-check form-switch pt-1">
                       <input class="form-check-input" type="checkbox" role="switch" id="set-ytdlp-geo-bypass" checked />
-                      <label class="form-check-label small" for="set-ytdlp-geo-bypass">Bypass Geographic Restrictions</label>
+                      <label class="form-check-label" for="set-ytdlp-geo-bypass">Bypass Geographic Restrictions</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="row g-3 mb-2">
+                  <div class="col-md-12">
+                    <div class="form-check form-switch pt-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="set-ytdlp-autopaste" checked />
+                      <label class="form-check-label" for="set-ytdlp-autopaste">Auto-Paste Video Links from Clipboard on Tool Switch & Window Focus</label>
                     </div>
                   </div>
                 </div>
@@ -2313,6 +2346,75 @@
       </div>
     </div>
 
+    <!-- yt-dlp Filename Format Editor Modal -->
+    <div class="modal fade" id="modal-filename-format-editor" tabindex="-1" aria-labelledby="filenameFormatModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-6 fw-semibold text-body" id="filenameFormatModalLabel">Filename Format Editor</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <!-- Top Live Preview (Full-width, 0 gap from edges) -->
+          <div class="bg-body-tertiary border-bottom px-4 py-3">
+            <div class="fs-5 fw-light text-body mb-1 text-truncate" id="format-preview-filename">Never Gonna Give You Up [dQw4w9WgXcQ].mp4</div>
+            <div class="small font-monospace text-body-secondary text-truncate" id="format-preview-template">%(title)s [%(id)s].%(ext)s</div>
+          </div>
+          <div class="modal-body p-4">
+            <!-- Toolbar / Add Field Controls -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <div class="dropdown">
+                  <button class="btn btn-primary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" id="btn-add-format-field" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-plus-lg"></i> Add Field
+                  </button>
+                  <ul class="dropdown-menu shadow" id="dropdown-format-tokens" aria-labelledby="btn-add-format-field" style="max-height: 280px; overflow-y: auto;">
+                    <!-- Populated dynamically with tokens -->
+                  </ul>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" type="button" id="btn-add-format-text">
+                  <i class="bi bi-plus-lg"></i> Add Text / Separator
+                </button>
+              </div>
+
+              <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" id="btn-format-presets" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bi bi-bookmark"></i> Presets
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="btn-format-presets">
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(title)s [%(id)s].%(ext)s">Never Gonna Give You Up [dQw4w9WgXcQ].mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(title)s.%(ext)s">Never Gonna Give You Up.mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(uploader)s - %(title)s.%(ext)s">Rick Astley - Never Gonna Give You Up.mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(playlist_index)s - %(title)s.%(ext)s">01 - Never Gonna Give You Up.mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(artist)s - %(track)s [%(release_year)s].%(ext)s">Rick Astley - Never Gonna Give You Up [1987].mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(upload_date)s - %(title)s.%(ext)s">20091025 - Never Gonna Give You Up.mp3</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- List View of Format Fields (Flush without gaps) -->
+            <div class="border rounded bg-body p-0 overflow-hidden" style="min-height: 220px; max-height: 340px; overflow-y: auto;">
+              <div id="format-fields-list" class="d-flex flex-column">
+                <!-- Populated with draggable items -->
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 justify-content-between">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-reset-format-default">
+              Reset to Default
+            </button>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button type="button" class="btn btn-primary btn-sm px-3" id="btn-save-format-editor">
+                Save Format
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Fullscreen Sliding Window Image Comparison Modal -->
     <div class="image-comp-modal-overlay d-none" id="image-comparison-modal">
       <!-- Top Control Bar -->
@@ -2427,18 +2529,33 @@
 
     <!-- Image Hero Zoom Lightbox Modal -->
     <div class="image-lightbox-overlay d-none" id="image-lightbox-modal">
+      <div class="image-lightbox-backdrop" id="image-lightbox-backdrop"></div>
       <div class="position-absolute top-0 end-0 p-3" style="z-index: 20;">
         <button type="button" class="btn btn-outline-light btn-sm rounded-circle d-flex align-items-center justify-content-center" id="btn-lightbox-close" style="width: 36px; height: 36px;" title="Close preview (Esc)">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
-      <div class="image-lightbox-card p-3" id="image-lightbox-card">
-        <div class="transparency-grid rounded p-2 border shadow-lg d-flex align-items-center justify-content-center overflow-hidden">
+      <div class="image-lightbox-card" id="image-lightbox-card">
+        <div class="transparency-grid rounded border shadow-lg d-flex align-items-center justify-content-center overflow-hidden" id="image-lightbox-wrapper">
           <img id="image-lightbox-img" class="image-lightbox-img" src="" alt="Full Preview" />
         </div>
         <div class="mt-3 text-center text-white" id="image-lightbox-meta">
           <h6 class="mb-0 fw-medium text-truncate" id="image-lightbox-title" style="max-width: 70vw;">photo.png</h6>
           <span class="small text-white-50" id="image-lightbox-details">Original Image</span>
+        </div>
+      </div>
+    </div>
+    <!-- Special Debug Dialog (Shift + Click on AnEdiKit Title) -->
+    <div class="modal fade" id="modal-debug-dialog" tabindex="-1" aria-labelledby="debugDialogModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="modal-title fs-6 fw-semibold text-body mb-0" id="debugDialogModalLabel">Debug</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <button type="button" class="btn btn-outline-danger btn-sm w-100 py-2" id="btn-clear-preview-cache">
+            Clear Preview Cache
+          </button>
         </div>
       </div>
     </div>

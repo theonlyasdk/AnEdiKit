@@ -1,4 +1,3 @@
-// Media Probing & File Interaction Module
 import {
   saveInputFile,
   getSavedInputFile,
@@ -7,7 +6,9 @@ import {
   loadSavedImageAiQueue,
   saveImageAiQueue,
 } from "./storage.js";
-import { generateWaveformFromSource, renderWaveformToCanvas } from "./waveform.js";
+import { generateWaveformFromSource, renderWaveformToCanvas, clearWaveformCache } from "./waveform.js";
+import { mediaPreviewManager } from "./preview_providers.js";
+import { sharedPlaybackController, MediaPlaybackController } from "./playback.js";
 
 let currentInputFile = "";
 let currentMediaInfo = null;
@@ -41,7 +42,8 @@ export function showMetadataLoading(filePath) {
 
   if (filePath) {
     const ext = filePath.split(".").pop().toLowerCase();
-    const isAudio = ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac"].includes(ext);
+    const isImage = ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif", "svg", "ico", "avif", "heic"].includes(ext);
+    const isAudio = !isImage && ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "alac", "aiff"].includes(ext);
 
     if (inputsCol) inputsCol.className = "col-12 col-lg-7 col-xl-7 col-xxl-8";
     if (previewCol) {
@@ -53,8 +55,11 @@ export function showMetadataLoading(filePath) {
 
     if (previewCard) {
       previewCard.classList.remove("d-none");
-      if (isAudio) {
-        previewCard.classList.remove("video-mode");
+      if (isImage) {
+        previewCard.classList.remove("video-mode", "audio-mode");
+        previewCard.classList.add("image-mode");
+      } else if (isAudio) {
+        previewCard.classList.remove("video-mode", "image-mode");
         previewCard.classList.add("audio-mode");
         if (cdSpinner) cdSpinner.classList.remove("d-none");
         if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
@@ -62,7 +67,7 @@ export function showMetadataLoading(filePath) {
         renderMarqueeSongTitle(filePath.split(/[/\\]/).pop() || "Audio Track");
         if (audioFormat) audioFormat.textContent = "Loading album art...";
       } else {
-        previewCard.classList.remove("audio-mode");
+        previewCard.classList.remove("audio-mode", "image-mode");
         previewCard.classList.add("video-mode");
       }
     }
@@ -116,6 +121,25 @@ export async function probeMedia(filePath, fileObject = null) {
     return null;
   }
 
+  // Normalize path (decode URL encoding e.g. C%3A%5CUsers -> C:\Users if present)
+  let normalizedPath = filePath;
+  try {
+    if (typeof normalizedPath === "string" && (normalizedPath.includes("%") || normalizedPath.startsWith("file://"))) {
+      if (normalizedPath.startsWith("file:///")) {
+        normalizedPath = normalizedPath.slice(8);
+      } else if (normalizedPath.startsWith("file://")) {
+        normalizedPath = normalizedPath.slice(7);
+      }
+      normalizedPath = decodeURIComponent(normalizedPath);
+    }
+  } catch (_) {}
+
+  // Normalize windows forward/back slashes
+  if (typeof normalizedPath === "string") {
+    normalizedPath = normalizedPath.trim();
+  }
+
+  filePath = normalizedPath;
   currentInputFile = filePath;
   saveInputFile(filePath);
 
@@ -149,6 +173,27 @@ export async function probeMedia(filePath, fileObject = null) {
       }
     } catch (err) {
       console.warn("Tauri get_media_info error:", err);
+      // File could not be probed or is missing on disk: show placeholder preview card but hide bottom metadata
+      if (thisToken === activeProbeToken) {
+        const fileName = filePath.split(/[/\\]/).pop() || filePath;
+        const missingInfo = {
+          file_path: filePath,
+          file_name: fileName,
+          duration_seconds: 0.0,
+          duration_string: "--:--:--",
+          resolution: "--",
+          video_codec: "--",
+          audio_codec: "--",
+          file_size_mb: 0.0,
+          file_size_formatted: "-- MB",
+          bitrate_kbps: 0,
+        };
+        currentMediaInfo = missingInfo;
+        updateMetadataDisplay(missingInfo);
+        syncMediaDurationToTools(missingInfo);
+        notifyMediaChanged(missingInfo, filePath);
+      }
+      return null;
     }
   }
 
@@ -165,44 +210,82 @@ export async function probeMedia(filePath, fileObject = null) {
       return mediaInfo;
     } catch (e) {
       console.warn("Browser media probe error:", e);
+      if (thisToken === activeProbeToken) {
+        currentMediaInfo = null;
+        updateMetadataDisplay(null);
+      }
+      return null;
     }
   }
 
-  // Simulated fallback for demo/mock file paths
-  const fileName = filePath.split(/[/\\]/).pop() || "sample_video.mp4";
-  const ext = (fileName.split(".").pop() || "mp4").toLowerCase();
-  const isAudio = ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac"].includes(ext);
-  const detectedAudioCodec = ext === "mp3" ? "mp3" : ext === "flac" ? "flac" : ext === "wav" ? "pcm" : ext === "ogg" ? "vorbis" : ext === "opus" ? "opus" : ext === "wma" ? "wma" : "aac";
-
-  const mockInfo = {
-    file_path: filePath,
-    file_name: fileName,
-    duration_seconds: 135.0,
-    duration_string: "00:02:15",
-    resolution: isAudio ? "N/A" : "1920x1080",
-    video_codec: isAudio ? "None" : ext === "webm" ? "vp9" : "h264",
-    audio_codec: detectedAudioCodec,
-    file_size_mb: 42.5,
-    file_size_formatted: "42.5 MB",
-    bitrate_kbps: 2600,
-  };
-
   if (thisToken === activeProbeToken) {
-    mediaInfoCache.set(filePath, mockInfo);
-    currentMediaInfo = mockInfo;
-    updateMetadataDisplay(mockInfo);
-    syncMediaDurationToTools(mockInfo);
-    notifyMediaChanged(mockInfo, filePath);
+    const fileName = filePath.split(/[/\\]/).pop() || filePath;
+    const placeholderInfo = {
+      file_path: filePath,
+      file_name: fileName,
+      duration_seconds: 0.0,
+      duration_string: "--:--:--",
+      resolution: "--",
+      video_codec: "--",
+      audio_codec: "--",
+      file_size_mb: 0.0,
+      file_size_formatted: "-- MB",
+      bitrate_kbps: 0,
+    };
+    currentMediaInfo = placeholderInfo;
+    updateMetadataDisplay(placeholderInfo);
+    notifyMediaChanged(placeholderInfo, filePath);
   }
-  return mockInfo;
+  return null;
 }
 
 function probeInBrowser(file, filePath) {
   return new Promise((resolve) => {
+    const ext = (file.name || filePath).split(".").pop().toLowerCase();
+    const isImage = file.type.startsWith("image") || ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif", "svg", "ico", "avif", "heic"].includes(ext);
+
+    if (isImage) {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const sizeMb = file.size ? (file.size / (1024 * 1024)).toFixed(2) : "2.5";
+        resolve({
+          file_path: filePath,
+          file_name: file.name,
+          duration_seconds: 0.0,
+          duration_string: "--:--:--",
+          resolution: `${img.naturalWidth}x${img.naturalHeight}`,
+          video_codec: ext.toUpperCase(),
+          audio_codec: "None",
+          file_size_mb: parseFloat(sizeMb),
+          file_size_formatted: `${sizeMb} MB`,
+          bitrate_kbps: 0,
+        });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        const sizeMb = file.size ? (file.size / (1024 * 1024)).toFixed(2) : "2.5";
+        resolve({
+          file_path: filePath,
+          file_name: file.name,
+          duration_seconds: 0.0,
+          duration_string: "--:--:--",
+          resolution: "1920x1080",
+          video_codec: ext.toUpperCase(),
+          audio_codec: "None",
+          file_size_mb: parseFloat(sizeMb),
+          file_size_formatted: `${sizeMb} MB`,
+          bitrate_kbps: 0,
+        });
+      };
+      img.src = objectUrl;
+      return;
+    }
+
     const isVideo = file.type.startsWith("video");
     const mediaEl = document.createElement(isVideo ? "video" : "audio");
     const objectUrl = URL.createObjectURL(file);
-    const ext = (file.name || filePath).split(".").pop().toLowerCase();
     const browserAudioCodec = ext === "mp3" ? "mp3" : ext === "flac" ? "flac" : ext === "wav" ? "pcm" : ext === "ogg" ? "vorbis" : ext === "opus" ? "opus" : ext === "wma" ? "wma" : "aac";
 
     mediaEl.preload = "metadata";
@@ -419,10 +502,19 @@ export function updateMetadataDisplay(info) {
       info.video_codec === "None" ||
       ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac"].includes(ext));
 
+    let cleanPath = info.file_path;
+    try {
+      if (cleanPath.includes("%") || cleanPath.startsWith("file://")) {
+        if (cleanPath.startsWith("file:///")) cleanPath = cleanPath.slice(8);
+        else if (cleanPath.startsWith("file://")) cleanPath = cleanPath.slice(7);
+        cleanPath = decodeURIComponent(cleanPath);
+      }
+    } catch (_) {}
+
     const assetSrc =
-      window.__TAURI__?.core?.convertFileSrc && info.file_path
-        ? window.__TAURI__.core.convertFileSrc(info.file_path)
-        : "";
+      window.__TAURI__?.core?.convertFileSrc && cleanPath
+        ? window.__TAURI__.core.convertFileSrc(cleanPath)
+        : cleanPath || "";
 
     const videoFallback = document.getElementById("video-preview-fallback");
     const videoFallbackName = document.getElementById("video-fallback-filename");
@@ -449,181 +541,47 @@ export function updateMetadataDisplay(info) {
       previewCard.classList.remove("d-none");
     }
 
-    if (isImage) {
-      if (previewCard) {
-        previewCard.classList.remove("video-mode", "audio-mode");
-        previewCard.classList.add("image-mode");
-      }
-      if (imageLayer) imageLayer.classList.remove("d-none");
-      if (videoLayer) videoLayer.classList.add("d-none");
-      if (audioLayer) audioLayer.classList.add("d-none");
-      if (imageEl && assetSrc) imageEl.src = assetSrc;
-      if (imageOverlayTitle) imageOverlayTitle.textContent = info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Image Preview");
-      if (imageOverlayFormat) {
-        const resStr = info.resolution && info.resolution !== "--" && info.resolution !== "N/A" ? ` • ${info.resolution}` : "";
-        imageOverlayFormat.textContent = `${ext.toUpperCase()} Image${resStr}`;
-      }
-      if (videoEl) {
-        videoEl.pause();
-        videoEl.removeAttribute("src");
-      }
-      if (audioEl) {
-        audioEl.pause();
-        audioEl.removeAttribute("src");
-      }
-    } else if (isAudio) {
-      if (imageLayer) imageLayer.classList.add("d-none");
-      if (audioLayer) audioLayer.classList.remove("d-none");
-      if (videoLayer) videoLayer.classList.add("d-none");
-      if (previewCard) {
-        previewCard.classList.remove("video-mode", "image-mode");
-        previewCard.classList.add("audio-mode");
-      }
-      if (videoEl) {
-        videoEl.pause();
-        videoEl.removeAttribute("src");
-        videoEl.removeAttribute("poster");
-      }
-      if (actionFrameImg) {
-        actionFrameImg.classList.add("d-none");
-        actionFrameImg.removeAttribute("src");
-        actionFrameImg.classList.remove("thumb-visible");
-      }
-      if (actionFramePrev) actionFramePrev.classList.add("d-none");
-
-      const targetAudioPath = info.file_path || currentInputFile;
-
-      if (info.album_art_url) {
-        crossfadeAudioThumbnail(info.album_art_url);
-      } else if (targetAudioPath && albumArtCache.has(targetAudioPath)) {
-        crossfadeAudioThumbnail(albumArtCache.get(targetAudioPath));
-      } else if (targetAudioPath) {
-        if (cdSpinner) cdSpinner.classList.remove("d-none");
-        if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
-        if (audioArtImg) {
-          audioArtImg.classList.add("d-none");
-          audioArtImg.classList.remove("thumb-visible");
-        }
-        extractAlbumArtAsync(targetAudioPath).then((artUrl) => {
-          if (currentInputFile === targetAudioPath) {
-            crossfadeAudioThumbnail(artUrl);
-          }
-        });
-      } else {
-        crossfadeAudioThumbnail(null);
-      }
-
-      renderMarqueeSongTitle(info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Audio Track"));
-      if (audioFormat) audioFormat.textContent = `${(info.audio_codec || ext || "audio").toUpperCase()} Audio`;
-      if (audioEl && assetSrc) audioEl.src = assetSrc;
-
-      const waveformCanvas = document.getElementById("trim-waveform-canvas");
-      if (waveformCanvas) {
-        waveformCanvas.classList.remove("d-none");
-        const targetAudioPath = info.file_path || currentInputFile;
-        generateWaveformFromSource(targetAudioPath)
-          .then((peaks) => {
-            currentWaveformPeaks = peaks;
-            refreshWaveformDisplay();
-          })
-          .catch((err) => {
-            console.warn("Waveform generation failed:", err);
-          });
-      }
-    } else {
-      if (imageLayer) imageLayer.classList.add("d-none");
-      if (videoLayer) videoLayer.classList.remove("d-none");
-      if (audioLayer) audioLayer.classList.add("d-none");
-      currentWaveformPeaks = null;
-      const waveformCanvas = document.getElementById("trim-waveform-canvas");
-      if (waveformCanvas) {
-        waveformCanvas.classList.add("d-none");
-      }
-      if (audioEl) {
-        audioEl.pause();
-        audioEl.removeAttribute("src");
-      }
-      if (previewCard) {
-        previewCard.classList.remove("audio-mode", "image-mode");
-        previewCard.classList.add("video-mode");
-      }
-
-      const videoOverlay = document.getElementById("video-overlay-info");
-      const videoOverlayTitle = document.getElementById("video-overlay-title");
-      const videoOverlayFormat = document.getElementById("video-overlay-format");
-
-      if (videoEl) {
-        if (assetSrc) {
-          videoEl.src = assetSrc;
-        } else {
-          videoEl.removeAttribute("src");
-        }
-      }
-
-      const activeTool = document.querySelector("#tool-nav .nav-link.active, #ytdlp-nav .nav-link.active")?.dataset?.tool || "trim";
-
-      if (activeTool === "trim") {
-        if (videoEl) videoEl.classList.remove("d-none");
-        if (actionFrameImg) actionFrameImg.classList.add("d-none");
-        if (actionFramePrev) actionFramePrev.classList.add("d-none");
-        if (videoFallback) videoFallback.classList.add("d-none");
-        if (videoOverlay) videoOverlay.classList.remove("d-none");
-      } else {
-        if (videoEl) videoEl.classList.add("d-none");
-        if (videoOverlay) videoOverlay.classList.add("d-none");
-      }
-
-      if (videoOverlayTitle) {
-        videoOverlayTitle.textContent = info.file_name || (info.file_path ? info.file_path.split(/[/\\]/).pop() : "Video Track");
-      }
-      if (videoOverlayFormat) {
-        const codecStr = (info.video_codec || ext || "video").toUpperCase();
-        const resStr = info.resolution && info.resolution !== "--" && info.resolution !== "N/A" ? ` • ${info.resolution}` : "";
-        videoOverlayFormat.textContent = `${codecStr} Video${resStr}`;
-      }
-
-      const fallbackIcon = document.getElementById("video-fallback-icon");
-      if (fallbackIcon && activeTool !== "trim") {
-        fallbackIcon.classList.add("icon-loading-pulse");
-      }
-
-      // Asynchronously extract and cache action frame thumbnail with smooth crossfade
-      const targetVideoPath = info.file_path || currentInputFile;
-      if (targetVideoPath) {
-        if (actionFrameCache.has(targetVideoPath)) {
-          const cachedUri = actionFrameCache.get(targetVideoPath);
-          if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
-          const curTool = document.querySelector("#tool-nav .nav-link.active, #ytdlp-nav .nav-link.active")?.dataset?.tool || "trim";
-          if (curTool !== "trim") {
-            crossfadeVideoThumbnail(cachedUri);
-          }
-        } else {
-          if (actionFrameImg) {
-            actionFrameImg.classList.add("d-none");
-            actionFrameImg.removeAttribute("src");
-            actionFrameImg.classList.remove("thumb-visible");
-          }
-          if (videoFallback) {
-            videoFallback.classList.remove("d-none");
-            if (videoFallbackName) videoFallbackName.textContent = info.file_name || "Video Preview";
-          }
-          extractActionFrameAsync(targetVideoPath, info.duration_seconds)
-            .then((dataUri) => {
-              if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
-              if (dataUri && currentInputFile === targetVideoPath) {
-                const curTool = document.querySelector("#tool-nav .nav-link.active, #ytdlp-nav .nav-link.active")?.dataset?.tool || "trim";
-                if (curTool !== "trim") {
-                  crossfadeVideoThumbnail(dataUri);
-                }
-              }
-            })
-            .catch(() => {
-              if (fallbackIcon) fallbackIcon.classList.remove("icon-loading-pulse");
-            });
-        }
-      }
-    }
+    // Render preview via Media Preview Provider System
+    mediaPreviewManager.renderPreview({
+      info,
+      ext,
+      assetSrc,
+      previewCard,
+      imageLayer,
+      videoLayer,
+      audioLayer,
+      imageEl,
+      imageOverlayTitle,
+      imageOverlayFormat,
+      videoEl,
+      audioEl,
+      actionFrameImg,
+      actionFramePrev,
+      cdSpinner,
+      audioFallbackIcon,
+      audioArtImg,
+      audioFormat,
+      videoFallback,
+      videoFallbackName,
+      videoOverlay: document.getElementById("video-overlay-info"),
+      videoOverlayTitle: document.getElementById("video-overlay-title"),
+      videoOverlayFormat: document.getElementById("video-overlay-format"),
+      fallbackIcon: document.getElementById("video-fallback-icon"),
+      waveformCanvas: document.getElementById("trim-waveform-canvas"),
+      currentInputFile,
+      getCurrentFile: () => currentInputFile,
+      actionFrameCache,
+      albumArtCache,
+      crossfadeAudioThumbnail,
+      crossfadeVideoThumbnail,
+      renderMarqueeSongTitle,
+      extractAlbumArtAsync,
+      extractActionFrameAsync,
+      generateWaveformFromSource,
+      refreshWaveformDisplay,
+    });
   } else {
+    // If no media loaded, keep the layout clean:
     if (inputsCol) {
       inputsCol.className = "col-12";
     }
@@ -646,7 +604,7 @@ export function updateMetadataDisplay(info) {
 
   if (!metaInfo) return;
 
-  if (info) {
+  if (info && (info.duration_seconds > 0 || info.video_codec !== "--" || info.audio_codec !== "--" || info.file_size_mb > 0)) {
     document.getElementById("meta-duration").textContent =
       info.duration_string || "--:--:--";
     document.getElementById("meta-resolution").textContent =
@@ -674,18 +632,54 @@ export function updateMetadataDisplay(info) {
 }
 
 export function syncVideoPreviewForActiveTool(toolId) {
+  if (!currentMediaInfo) return;
   const previewCard = document.getElementById("media-preview-card");
   const videoEl = document.getElementById("media-video-preview");
   const actionFrameImg = document.getElementById("video-action-frame-img");
   const videoFallback = document.getElementById("video-preview-fallback");
   const videoOverlay = document.getElementById("video-overlay-info");
+  const audioLayer = document.getElementById("audio-preview-layer");
+  const imageLayer = document.getElementById("image-preview-layer");
+  const videoLayer = document.getElementById("video-preview-layer");
 
-  if (!currentMediaInfo || isAudioFile(currentMediaInfo.file_path)) return;
+  const filePath = currentMediaInfo.file_path || currentInputFile;
+  const isAudio = isAudioFile(filePath) || currentMediaInfo.video_codec === "None" || currentMediaInfo.resolution === "N/A";
+  const isImage = isImageFile(filePath);
 
+  if (isImage) {
+    if (previewCard) {
+      previewCard.classList.remove("d-none", "video-mode", "audio-mode");
+      previewCard.classList.add("image-mode");
+    }
+    if (imageLayer) imageLayer.classList.remove("d-none");
+    if (videoLayer) videoLayer.classList.add("d-none");
+    if (audioLayer) audioLayer.classList.add("d-none");
+    return;
+  }
+
+  if (isAudio) {
+    if (previewCard) {
+      previewCard.classList.remove("d-none", "video-mode", "image-mode");
+      previewCard.classList.add("audio-mode");
+    }
+    if (audioLayer) audioLayer.classList.remove("d-none");
+    if (videoLayer) videoLayer.classList.add("d-none");
+    if (imageLayer) imageLayer.classList.add("d-none");
+    if (videoEl) {
+      videoEl.pause();
+      videoEl.classList.add("d-none");
+    }
+    return;
+  }
+
+  // Video media
   if (previewCard) {
-    previewCard.classList.remove("d-none", "audio-mode");
+    previewCard.classList.remove("d-none", "audio-mode", "image-mode");
     previewCard.classList.add("video-mode");
   }
+  if (videoLayer) videoLayer.classList.remove("d-none");
+  if (audioLayer) audioLayer.classList.add("d-none");
+  if (imageLayer) imageLayer.classList.add("d-none");
 
   if (toolId === "trim") {
     if (actionFrameImg) actionFrameImg.classList.add("d-none");
@@ -1076,7 +1070,10 @@ export function parseTimestampToSeconds(ts) {
   return parseFloat(ts) || 0;
 }
 
-export function refreshWaveformDisplay() {
+export function refreshWaveformDisplay(peaks = null) {
+  if (peaks) {
+    currentWaveformPeaks = peaks;
+  }
   const waveformCanvas = document.getElementById("trim-waveform-canvas");
   if (!waveformCanvas || !currentWaveformPeaks) return;
   const dur = currentMediaInfo?.duration_seconds || 120;
@@ -1122,7 +1119,16 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
   const isImage = isImageFile(filePath);
 
   if (isImage) {
-    container.innerHTML = "";
+    const emptyEl = document.getElementById("trim-filmstrip-empty");
+    const unsupportedEl = document.getElementById("trim-filmstrip-unsupported");
+    if (emptyEl) {
+      emptyEl.classList.add("d-none");
+      emptyEl.classList.remove("d-flex");
+    }
+    if (unsupportedEl) {
+      unsupportedEl.classList.remove("d-none");
+      unsupportedEl.classList.add("d-flex");
+    }
     if (waveformCanvas) waveformCanvas.classList.add("d-none");
     return;
   }
@@ -1131,7 +1137,16 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
     container.innerHTML = "";
     if (waveformCanvas) {
       waveformCanvas.classList.remove("d-none");
-      refreshWaveformDisplay();
+    }
+    const targetAudioPath = filePath || currentInputFile;
+    if (targetAudioPath) {
+      generateWaveformFromSource(targetAudioPath)
+        .then((peaks) => {
+          if (thisToken !== currentTimelineExtractToken) return;
+          currentWaveformPeaks = peaks;
+          refreshWaveformDisplay(peaks);
+        })
+        .catch((err) => console.warn("Waveform generation failed:", err));
     }
     return;
   }
@@ -1187,6 +1202,9 @@ export function syncMediaDurationToTools(mediaInfo) {
   const durStr = mediaInfo.duration_string || "00:01:00";
   const formattedDur = durStr.includes(".") ? durStr : `${durStr}.000`;
 
+  sharedPlaybackController.setDuration(durSec);
+  sharedPlaybackController.setCurrentTime(0);
+
   const trimStart = document.getElementById("trim-start");
   const trimEnd = document.getElementById("trim-end");
   const trimPos = document.getElementById("trim-current-pos");
@@ -1223,9 +1241,43 @@ export function syncMediaDurationToTools(mediaInfo) {
 
   if (scaleStart) scaleStart.textContent = "00:00:00.000";
   if (scaleMid) scaleMid.textContent = formatSecondsToTimestamp(durSec / 2);
-  if (scaleEnd) scaleEnd.textContent = formattedDur;
+  const filmstripEmpty = document.getElementById("trim-filmstrip-empty");
+  const filmstripUnsupported = document.getElementById("trim-filmstrip-unsupported");
+  const trimControlsCard = document.getElementById("trim-controls-card");
+  const isImage = isImageFile(mediaInfo.file_path);
+  const isUnsupported = isImage || (mediaInfo.duration_seconds <= 0 && mediaInfo.video_codec === "None" && mediaInfo.audio_codec === "None");
 
-  if (mediaInfo.file_path) {
+  if (isUnsupported) {
+    if (filmstripEmpty) {
+      filmstripEmpty.classList.add("d-none");
+      filmstripEmpty.classList.remove("d-flex");
+    }
+    if (filmstripUnsupported) {
+      filmstripUnsupported.classList.remove("d-none");
+      filmstripUnsupported.classList.add("d-flex");
+    }
+    if (trimControlsCard) {
+      trimControlsCard.classList.add("opacity-50", "pe-none");
+    }
+    if (trimStart) trimStart.disabled = true;
+    if (trimEnd) trimEnd.disabled = true;
+    const trimMode = document.getElementById("trim-mode");
+    if (trimMode) trimMode.disabled = true;
+  } else {
+    if (filmstripUnsupported) {
+      filmstripUnsupported.classList.add("d-none");
+      filmstripUnsupported.classList.remove("d-flex");
+    }
+    if (trimControlsCard) {
+      trimControlsCard.classList.remove("opacity-50", "pe-none");
+    }
+    if (trimStart) trimStart.disabled = false;
+    if (trimEnd) trimEnd.disabled = false;
+    const trimMode = document.getElementById("trim-mode");
+    if (trimMode) trimMode.disabled = false;
+  }
+
+  if (mediaInfo.file_path && !isUnsupported) {
     extractTimelineThumbnailsAsync(mediaInfo.file_path, durSec);
   }
 
@@ -1252,53 +1304,13 @@ export function initTrimmerControls() {
   const btnPreviewSegment = document.getElementById("btn-trim-preview-segment");
   const btnSetStart0 = document.getElementById("btn-trim-set-start-0");
   const btnSetEndDur = document.getElementById("btn-trim-set-end-dur");
+  const playheadEl = document.getElementById("trim-playhead");
+  const trackEl = document.getElementById("trim-timeline-track");
+  const tooltipPlayhead = document.getElementById("trim-tooltip-playhead");
+  const tooltipStart = document.getElementById("trim-tooltip-start");
+  const tooltipEnd = document.getElementById("trim-tooltip-end");
 
-  let fallbackCurrentTime = 0;
-  let simPlayInterval = null;
-
-  const getActiveMediaEl = () => {
-    if (videoEl && videoEl.src && !videoEl.classList.contains("d-none")) return videoEl;
-    if (audioEl && audioEl.src && !audioEl.classList.contains("d-none")) return audioEl;
-    if (videoEl && videoEl.src) return videoEl;
-    if (audioEl && audioEl.src) return audioEl;
-    return null;
-  };
-
-  const syncPlayIcon = (isPlaying) => {
-    if (btnPlayPause) {
-      btnPlayPause.innerHTML = isPlaying
-        ? '<i class="bi bi-pause-fill" id="trim-play-icon"></i> Pause'
-        : '<i class="bi bi-play-fill" id="trim-play-icon"></i> Play';
-    }
-  };
-
-  const getMediaCurrentTime = () => {
-    const media = getActiveMediaEl();
-    if (media && !isNaN(media.currentTime) && media.duration > 0) {
-      return media.currentTime;
-    }
-    return fallbackCurrentTime;
-  };
-
-  const setMediaCurrentTime = (timeInSec) => {
-    const dur = currentMediaInfo?.duration_seconds || 120;
-    fallbackCurrentTime = Math.max(0, Math.min(dur, timeInSec));
-    const media = getActiveMediaEl();
-    if (media && !isNaN(media.duration) && media.duration > 0) {
-      try {
-        media.currentTime = fallbackCurrentTime;
-      } catch (_) {}
-    }
-    if (posDisplay) {
-      posDisplay.textContent = formatSecondsToTimestamp(fallbackCurrentTime);
-    }
-    const playhead = document.getElementById("trim-playhead");
-    if (playhead && dur > 0) {
-      const pct = Math.min(100, Math.max(0, (fallbackCurrentTime / dur) * 100));
-      playhead.style.left = `${pct}%`;
-      playhead.style.display = "block";
-    }
-  };
+  sharedPlaybackController.setMediaElements({ videoEl, audioEl });
 
   const updateRangeBarUI = (startSec, endSec, totalDur) => {
     if (totalDur <= 0) totalDur = 1;
@@ -1326,10 +1338,6 @@ export function initTrimmerControls() {
     refreshWaveformDisplay();
   };
 
-  const tooltipStart = document.getElementById("trim-tooltip-start");
-  const tooltipEnd = document.getElementById("trim-tooltip-end");
-  const tooltipPlayhead = document.getElementById("trim-tooltip-playhead");
-
   const showTooltip = (el, text, pct) => {
     if (!el) return;
     el.textContent = text;
@@ -1342,12 +1350,18 @@ export function initTrimmerControls() {
     el.classList.add("d-none");
   };
 
-  // Stop slider events from propagating to the underlying track
-  const stopSliderProp = (e) => {
-    e.stopPropagation();
+  const onTimestampInputsChanged = () => {
+    const dur = currentMediaInfo?.duration_seconds || 120;
+    const startSec = parseTimestampToSeconds(inputStart?.value);
+    const endSec = parseTimestampToSeconds(inputEnd?.value) || dur;
+    updateRangeBarUI(startSec, endSec, dur);
   };
 
-  // Sync when sliders change
+  if (inputStart) inputStart.addEventListener("input", onTimestampInputsChanged);
+  if (inputEnd) inputEnd.addEventListener("input", onTimestampInputsChanged);
+
+  const stopSliderProp = (e) => e.stopPropagation();
+
   if (sliderStart) {
     sliderStart.addEventListener("mousedown", stopSliderProp);
     sliderStart.addEventListener("touchstart", stopSliderProp, { passive: true });
@@ -1412,242 +1426,40 @@ export function initTrimmerControls() {
     sliderEnd.addEventListener("blur", () => hideTooltip(tooltipEnd));
   }
 
-  // Sync when text inputs change
-  const onTimestampInputsChanged = () => {
-    const dur = currentMediaInfo?.duration_seconds || 120;
-    const startSec = parseTimestampToSeconds(inputStart?.value);
-    const endSec = parseTimestampToSeconds(inputEnd?.value) || dur;
-    updateRangeBarUI(startSec, endSec, dur);
-  };
-
-  if (inputStart) inputStart.addEventListener("input", onTimestampInputsChanged);
-  if (inputEnd) inputEnd.addEventListener("input", onTimestampInputsChanged);
-
-  // Interactive Playhead Dragging & Seeking on Timeline Track
-  const trackEl = document.getElementById("trim-timeline-track");
-  let isDraggingPlayhead = false;
-
-  const seekFromTrackPointer = (clientX) => {
-    if (!trackEl) return;
-    const rect = trackEl.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    const clickX = Math.max(0, Math.min(rect.width, clientX - rect.left));
-    const pct = (clickX / rect.width) * 100;
-    const dur = currentMediaInfo?.duration_seconds || 120;
-    const targetTime = (pct / 100) * dur;
-
-    setMediaCurrentTime(targetTime);
-    showTooltip(tooltipPlayhead, formatSecondsToTimestamp(targetTime), pct);
-  };
-
-  if (trackEl) {
-    trackEl.addEventListener("mousedown", (e) => {
-      if (e.target.classList.contains("trim-range-slider")) return;
-      isDraggingPlayhead = true;
-      const playheadEl = document.getElementById("trim-playhead");
-      if (playheadEl) playheadEl.classList.add("active-drag");
-      seekFromTrackPointer(e.clientX);
-    });
-
-    window.addEventListener("mousemove", (e) => {
-      if (isDraggingPlayhead) {
-        seekFromTrackPointer(e.clientX);
-      }
-    });
-
-    window.addEventListener("mouseup", () => {
-      if (isDraggingPlayhead) {
-        isDraggingPlayhead = false;
-        const playheadEl = document.getElementById("trim-playhead");
-        if (playheadEl) playheadEl.classList.remove("active-drag");
-        hideTooltip(tooltipPlayhead);
-      }
-    });
-
-    trackEl.addEventListener(
-      "touchstart",
-      (e) => {
-        if (e.target.classList.contains("trim-range-slider")) return;
-        if (e.touches && e.touches[0]) {
-          isDraggingPlayhead = true;
-          const playheadEl = document.getElementById("trim-playhead");
-          if (playheadEl) playheadEl.classList.add("active-drag");
-          seekFromTrackPointer(e.touches[0].clientX);
-        }
-      },
-      { passive: true },
-    );
-
-    window.addEventListener(
-      "touchmove",
-      (e) => {
-        if (isDraggingPlayhead && e.touches && e.touches[0]) {
-          seekFromTrackPointer(e.touches[0].clientX);
-        }
-      },
-      { passive: true },
-    );
-
-    window.addEventListener("touchend", () => {
-      if (isDraggingPlayhead) {
-        isDraggingPlayhead = false;
-        const playheadEl = document.getElementById("trim-playhead");
-        if (playheadEl) playheadEl.classList.remove("active-drag");
-        hideTooltip(tooltipPlayhead);
-      }
-    });
-  }
-
-  // Playhead position updates from media player
-  const onTimeUpdate = (media) => {
-    if (!media || isNaN(media.currentTime)) return;
-    fallbackCurrentTime = media.currentTime;
-    if (posDisplay) posDisplay.textContent = formatSecondsToTimestamp(media.currentTime);
-    const dur = currentMediaInfo?.duration_seconds || 120;
-    const playhead = document.getElementById("trim-playhead");
-    if (playhead && dur > 0) {
-      const pct = Math.min(100, Math.max(0, (media.currentTime / dur) * 100));
-      playhead.style.left = `${pct}%`;
-      playhead.style.display = "block";
-    }
-  };
-
-  if (videoEl) {
-    videoEl.addEventListener("timeupdate", () => onTimeUpdate(videoEl));
-    videoEl.addEventListener("play", () => syncPlayIcon(true));
-    videoEl.addEventListener("pause", () => syncPlayIcon(false));
-    videoEl.addEventListener("ended", () => syncPlayIcon(false));
-  }
-  if (audioEl) {
-    audioEl.addEventListener("timeupdate", () => onTimeUpdate(audioEl));
-    audioEl.addEventListener("play", () => syncPlayIcon(true));
-    audioEl.addEventListener("pause", () => syncPlayIcon(false));
-    audioEl.addEventListener("ended", () => syncPlayIcon(false));
-  }
-
-  // Mark In & Mark Out
-  if (btnMarkStart) {
-    btnMarkStart.addEventListener("click", () => {
-      const cur = getMediaCurrentTime();
-      if (inputStart) inputStart.value = formatSecondsToTimestamp(cur);
-      onTimestampInputsChanged();
-    });
-  }
-
-  if (btnMarkEnd) {
-    btnMarkEnd.addEventListener("click", () => {
-      const dur = currentMediaInfo?.duration_seconds || 120;
-      const cur = getMediaCurrentTime() || dur;
-      if (inputEnd) inputEnd.value = formatSecondsToTimestamp(cur);
-      onTimestampInputsChanged();
-    });
-  }
-
-  // Quick reset buttons
-  if (btnSetStart0) {
-    btnSetStart0.addEventListener("click", () => {
-      if (inputStart) inputStart.value = "00:00:00.000";
-      onTimestampInputsChanged();
-      setMediaCurrentTime(0);
-    });
-  }
-
-  if (btnSetEndDur) {
-    btnSetEndDur.addEventListener("click", () => {
-      const dur = currentMediaInfo?.duration_seconds || 60;
-      if (inputEnd) inputEnd.value = formatSecondsToTimestamp(dur);
-      onTimestampInputsChanged();
-    });
-  }
-
-  // Play / Pause
-  const startSimulatedPlayback = () => {
-    if (simPlayInterval) clearInterval(simPlayInterval);
-    syncPlayIcon(true);
-    const dur = currentMediaInfo?.duration_seconds || 120;
-    simPlayInterval = setInterval(() => {
-      let cur = getMediaCurrentTime() + 0.1;
-      if (cur >= dur) {
-        cur = dur;
-        clearInterval(simPlayInterval);
-        simPlayInterval = null;
-        syncPlayIcon(false);
-      }
-      setMediaCurrentTime(cur);
-    }, 100);
-  };
-
-  if (btnPlayPause) {
-    btnPlayPause.addEventListener("click", () => {
-      const media = getActiveMediaEl();
-      if (media && !media.error && media.readyState >= 1) {
-        if (media.paused) {
-          media.play().catch(() => {
-            startSimulatedPlayback();
-          });
-        } else {
-          media.pause();
-        }
-      } else {
-        if (simPlayInterval) {
-          clearInterval(simPlayInterval);
-          simPlayInterval = null;
-          syncPlayIcon(false);
-        } else {
-          startSimulatedPlayback();
-        }
-      }
-    });
-  }
-
-  // Frame Stepping
-  const stepMedia = (delta) => {
-    const cur = getMediaCurrentTime();
-    setMediaCurrentTime(cur + delta);
-  };
-
-  if (btnStepBack1) btnStepBack1.addEventListener("click", () => stepMedia(-1.0));
-  if (btnStepBackFrame) btnStepBackFrame.addEventListener("click", () => stepMedia(-0.1));
-  if (btnStepFwdFrame) btnStepFwdFrame.addEventListener("click", () => stepMedia(0.1));
-  if (btnStepFwd1) btnStepFwd1.addEventListener("click", () => stepMedia(1.0));
-
-  // Preview Segment
-  const startSimulatedSegment = (startSec, endSec) => {
-    if (simPlayInterval) clearInterval(simPlayInterval);
-    syncPlayIcon(true);
-    simPlayInterval = setInterval(() => {
-      let cur = getMediaCurrentTime() + 0.1;
-      if (cur >= endSec) {
-        cur = endSec;
-        clearInterval(simPlayInterval);
-        simPlayInterval = null;
-        syncPlayIcon(false);
-      }
-      setMediaCurrentTime(cur);
-    }, 100);
-  };
+  // Bind full playback controls to sharedPlaybackController
+  sharedPlaybackController.bindControls({
+    btnPlayPause,
+    posDisplay,
+    playheadEl,
+    trackEl,
+    inputStart,
+    inputEnd,
+    tooltipPlayhead,
+    btnMarkStart,
+    btnMarkEnd,
+    btnStepBack1,
+    btnStepBackFrame,
+    btnStepFwdFrame,
+    btnStepFwd1,
+    btnSetStart0,
+    btnSetEndDur,
+    onRangeChanged: onTimestampInputsChanged,
+  });
 
   if (btnPreviewSegment) {
     btnPreviewSegment.addEventListener("click", () => {
+      const dur = currentMediaInfo?.duration_seconds || 120;
       const startSec = parseTimestampToSeconds(inputStart?.value);
-      const endSec = parseTimestampToSeconds(inputEnd?.value) || (currentMediaInfo?.duration_seconds || 120);
-      setMediaCurrentTime(startSec);
+      const endSec = parseTimestampToSeconds(inputEnd?.value) || dur;
+      sharedPlaybackController.setCurrentTime(startSec);
+      sharedPlaybackController.play();
 
-      const media = getActiveMediaEl();
-      if (media && !media.error && media.readyState >= 1) {
-        media.play().catch(() => {
-          startSimulatedSegment(startSec, endSec);
-        });
-        const checkEnd = () => {
-          if (media.currentTime >= endSec) {
-            media.pause();
-            media.removeEventListener("timeupdate", checkEnd);
-          }
-        };
-        media.addEventListener("timeupdate", checkEnd);
-      } else {
-        startSimulatedSegment(startSec, endSec);
-      }
+      const unsubscribe = sharedPlaybackController.onTimeUpdate((time) => {
+        if (time >= endSec) {
+          sharedPlaybackController.pause();
+          unsubscribe();
+        }
+      });
     });
   }
 }
@@ -1948,19 +1760,22 @@ export function renderImageAiQueueUI() {
       return `
         <div class="list-group-item image-queue-item d-flex justify-content-between align-items-center py-2 px-3">
           <div class="d-flex align-items-center gap-3 text-truncate me-2 flex-grow-1 btn-image-preview-thumb" data-preview-idx="${idx}" style="cursor: pointer;" title="Click to expand preview">
-            <div class="image-queue-thumb-wrapper transparency-grid border flex-shrink-0">
-              <img class="image-queue-thumb" src="${assetSrc}" alt="${item.name}" />
+            <div class="image-queue-thumb-wrapper transparency-grid border flex-shrink-0 position-relative">
+              <img class="image-queue-thumb" src="${assetSrc}" alt="${item.name}" onerror="this.onerror=null; this.classList.add('d-none'); this.nextElementSibling?.classList.remove('d-none'); const qItem = this.closest('.image-queue-item'); if (qItem) { qItem.classList.add('image-item-deleted'); const title = qItem.querySelector('.image-queue-item-title'); if (title) { title.classList.remove('text-body'); title.classList.add('text-danger', 'text-decoration-line-through'); } const badge = qItem.querySelector('.image-queue-status-badge'); if (badge) { badge.className = 'badge bg-danger-subtle text-danger image-queue-status-badge'; badge.innerHTML = '<i class=\\'bi bi-exclamation-circle-fill me-1\\'></i>Deleted'; } }" />
+              <div class="image-queue-thumb-fallback d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark">
+                <i class="bi bi-exclamation-circle-fill text-danger fs-5"></i>
+              </div>
               <div class="image-queue-thumb-overlay">
                 <i class="bi bi-arrows-angle-expand"></i>
               </div>
             </div>
             <div class="d-flex flex-column text-truncate">
-              <span class="fw-medium text-body text-truncate" style="font-size: 0.88rem;">${item.name}</span>
+              <span class="fw-medium text-body text-truncate image-queue-item-title" style="font-size: 0.88rem;">${item.name}</span>
               <span class="small text-body-secondary text-truncate" style="font-size: 0.75rem;">${item.path}</span>
             </div>
           </div>
           <div class="d-flex align-items-center gap-2 flex-shrink-0">
-            ${statusBadge}
+            <span class="image-queue-status-badge">${statusBadge}</span>
             ${compareBtn}
             <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-image-del" data-del-img-idx="${idx}" type="button" title="Remove from queue">
               <i class="bi bi-trash"></i>
@@ -2021,40 +1836,92 @@ export function renderImageAiQueueUI() {
   };
 }
 
-let lastHeroOrigin = { deltaX: 0, deltaY: 0 };
+let lastHeroSourceEl = null;
+let lastHeroRect = null;
 let lightboxOpenTimestamp = 0;
 let isLightboxActive = false;
+let lastFinalW = 800;
+let lastFinalH = 600;
 
 export function initImageLightbox() {
   const modal = document.getElementById("image-lightbox-modal");
   const card = document.getElementById("image-lightbox-card");
+  const backdrop = document.getElementById("image-lightbox-backdrop");
   const btnClose = document.getElementById("btn-lightbox-close");
   if (!modal) return;
 
   const closeModal = () => {
     if (!isLightboxActive) return;
     isLightboxActive = false;
-    modal.classList.remove("active");
 
+    // Cancel ongoing animations on card and backdrop
+    if (card) card.getAnimations().forEach((a) => a.cancel());
+    if (backdrop) backdrop.getAnimations().forEach((a) => a.cancel());
+
+    const metaEl = document.getElementById("image-lightbox-meta");
+    if (metaEl) metaEl.style.opacity = "0";
+
+    const currentSourceRect = (lastHeroSourceEl && lastHeroSourceEl.isConnected)
+      ? (lastHeroSourceEl.querySelector(".image-queue-thumb-wrapper") || lastHeroSourceEl).getBoundingClientRect()
+      : lastHeroRect;
+
+    const sourceRect = (currentSourceRect && currentSourceRect.width > 0)
+      ? currentSourceRect
+      : {
+          left: window.innerWidth / 2 - 22,
+          top: window.innerHeight / 2 - 22,
+          width: 44,
+          height: 44,
+        };
+
+    const finalW = Math.max(100, lastFinalW);
+    const finalH = Math.max(100, lastFinalH);
+
+    const scale = Math.max(sourceRect.width / finalW, sourceRect.height / finalH);
+
+    const thumbCenterX = sourceRect.left + sourceRect.width / 2;
+    const thumbCenterY = sourceRect.top + sourceRect.height / 2;
+    const destCenterX = window.innerWidth / 2;
+    const destCenterY = (window.innerHeight - 30) / 2;
+
+    const deltaX = thumbCenterX - destCenterX;
+    const deltaY = thumbCenterY - destCenterY;
+
+    // Animate backdrop fade out
+    if (backdrop && backdrop.animate) {
+      backdrop.animate(
+        [{ opacity: 1 }, { opacity: 0 }],
+        { duration: 220, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+      );
+    }
+
+    // Animate card smoothly back to thumbnail with opacity fade out
     if (card && card.animate) {
       const anim = card.animate(
         [
           { transform: "translate(0px, 0px) scale(1)", opacity: 1 },
-          { transform: `translate(${lastHeroOrigin.deltaX}px, ${lastHeroOrigin.deltaY}px) scale(0.12)`, opacity: 0 }
+          { transform: `translate(${deltaX}px, ${deltaY}px) scale(${scale})`, opacity: 0 }
         ],
         {
-          duration: 200,
-          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-          fill: "forwards"
+          duration: 220,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)"
         }
       );
+
       anim.onfinish = () => {
         modal.classList.add("d-none");
-        modal.style.cssText = "";
+        card.style.transform = "";
+        card.style.opacity = "";
+        if (backdrop) backdrop.style.opacity = "";
+        if (metaEl) metaEl.style.opacity = "";
+      };
+      anim.oncancel = () => {
+        modal.classList.add("d-none");
+        card.style.transform = "";
+        card.style.opacity = "";
       };
     } else {
       modal.classList.add("d-none");
-      modal.style.cssText = "";
     }
   };
 
@@ -2066,8 +1933,8 @@ export function initImageLightbox() {
   }
 
   modal.addEventListener("click", (e) => {
-    if (Date.now() - lightboxOpenTimestamp < 350) return;
-    if (e.target === modal || !e.target.closest("#image-lightbox-card")) {
+    if (Date.now() - lightboxOpenTimestamp < 220) return;
+    if (e.target === modal || e.target.id === "image-lightbox-backdrop") {
       closeModal();
     }
   });
@@ -2083,66 +1950,217 @@ export function openImageLightbox(filePath, fileName = "Image Preview", sourceEl
   try {
     const modal = document.getElementById("image-lightbox-modal");
     const card = document.getElementById("image-lightbox-card");
+    const backdrop = document.getElementById("image-lightbox-backdrop");
     const imgEl = document.getElementById("image-lightbox-img");
     const titleEl = document.getElementById("image-lightbox-title");
     const detailsEl = document.getElementById("image-lightbox-details");
+    const metaEl = document.getElementById("image-lightbox-meta");
+    const wrapper = document.getElementById("image-lightbox-wrapper");
 
-    if (!modal || !imgEl) return;
+    if (!modal || !imgEl || !card) return;
 
     lightboxOpenTimestamp = Date.now();
     isLightboxActive = true;
+    lastHeroSourceEl = sourceElement;
+
+    // Cancel any previous animations and clear inline transform/opacity
+    card.getAnimations().forEach((a) => a.cancel());
+    if (backdrop) backdrop.getAnimations().forEach((a) => a.cancel());
+    card.style.transform = "";
+    card.style.opacity = "";
 
     const assetSrc = window.__TAURI__?.core?.convertFileSrc && filePath
       ? window.__TAURI__.core.convertFileSrc(filePath)
       : filePath;
 
-    imgEl.src = assetSrc;
-    if (titleEl) titleEl.textContent = fileName || (filePath ? filePath.split(/[/\\]/).pop() : "Image Preview");
+    const thumbImg = sourceElement ? (sourceElement.querySelector("img") || sourceElement) : null;
+    const initialSrc = (thumbImg && thumbImg.src) ? thumbImg.src : assetSrc;
+
+    if (titleEl) {
+      titleEl.className = "mb-0 fw-medium text-truncate";
+      titleEl.textContent = fileName || (filePath ? filePath.split(/[/\\]/).pop() : "Image Preview");
+    }
     if (detailsEl) {
       const ext = (fileName || filePath).split(".").pop().toUpperCase();
+      detailsEl.className = "small text-white-50";
       detailsEl.textContent = `${ext} Image • ${filePath}`;
     }
 
-    // Calculate Hero origin delta from source thumbnail
-    let deltaX = 0;
-    let deltaY = 0;
-    if (sourceElement) {
-      const rect = sourceElement.getBoundingClientRect();
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const thumbCenterX = rect.left + rect.width / 2;
-      const thumbCenterY = rect.top + rect.height / 2;
-      deltaX = Math.round(thumbCenterX - centerX);
-      deltaY = Math.round(thumbCenterY - centerY);
+    imgEl.onerror = () => {
+      if (titleEl) {
+        titleEl.className = "mb-0 fw-medium text-truncate text-danger text-decoration-line-through";
+      }
+      if (detailsEl) {
+        detailsEl.textContent = "Image was deleted";
+        detailsEl.className = "small text-danger";
+      }
+    };
+
+    // Get reliable source rect (from thumbnail wrapper or source element)
+    const targetSourceEl = sourceElement
+      ? (sourceElement.querySelector(".image-queue-thumb-wrapper") || sourceElement)
+      : null;
+    const rawStartRect = targetSourceEl ? targetSourceEl.getBoundingClientRect() : null;
+
+    const startRect = (rawStartRect && rawStartRect.width > 0 && rawStartRect.height > 0)
+      ? rawStartRect
+      : {
+          left: window.innerWidth / 2 - 22,
+          top: window.innerHeight / 2 - 22,
+          width: 44,
+          height: 44,
+        };
+    lastHeroRect = startRect;
+
+    if (metaEl) {
+      metaEl.style.opacity = "0";
+      metaEl.style.transition = "none";
     }
-    lastHeroOrigin = { deltaX, deltaY };
 
-    // Show modal overlay
-    modal.classList.remove("d-none");
-    modal.style.cssText = "position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background-color: rgba(8, 8, 12, 0.92) !important; z-index: 999999 !important; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; opacity: 1 !important; pointer-events: auto !important;";
-    modal.classList.add("active");
+    const runHeroAnimation = (natW, natH) => {
+      // Calculate responsive destination size maintaining exact natural aspect ratio
+      const maxW = Math.min(window.innerWidth * 0.84, 1200);
+      const maxH = Math.min(window.innerHeight * 0.74, 800);
+      const aspect = (natW > 0 && natH > 0) ? (natW / natH) : (16 / 9);
 
-    // Animate Card with Web Animations API
-    if (card && card.animate) {
-      card.animate(
-        [
+      let finalW, finalH;
+      if (maxW / maxH > aspect) {
+        finalH = maxH;
+        finalW = maxH * aspect;
+      } else {
+        finalW = maxW;
+        finalH = maxW / aspect;
+      }
+
+      lastFinalW = finalW;
+      lastFinalH = finalH;
+
+      if (wrapper) {
+        wrapper.style.width = `${Math.round(finalW)}px`;
+        wrapper.style.height = `${Math.round(finalH)}px`;
+      }
+      imgEl.style.width = "100%";
+      imgEl.style.height = "100%";
+
+      // Show modal container
+      modal.classList.remove("d-none");
+      if (backdrop) backdrop.style.opacity = "1";
+
+      // Compute exact geometry from viewport center (never top-left 0,0)
+      const scale = Math.max(startRect.width / finalW, startRect.height / finalH);
+
+      const thumbCenterX = startRect.left + startRect.width / 2;
+      const thumbCenterY = startRect.top + startRect.height / 2;
+      const destCenterX = window.innerWidth / 2;
+      const destCenterY = (window.innerHeight - 30) / 2;
+
+      const deltaX = thumbCenterX - destCenterX;
+      const deltaY = thumbCenterY - destCenterY;
+
+      // Animate backdrop fade in
+      if (backdrop && backdrop.animate) {
+        backdrop.animate(
+          [{ opacity: 0 }, { opacity: 1 }],
+          { duration: 250, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+        );
+      }
+
+      // Animate Card hero expansion directly from thumbnail center
+      if (card.animate) {
+        const anim = card.animate(
+          [
+            {
+              transform: `translate(${deltaX}px, ${deltaY}px) scale(${scale})`,
+              opacity: 0.2
+            },
+            {
+              transform: "translate(0px, 0px) scale(1)",
+              opacity: 1
+            }
+          ],
           {
-            transform: `translate(${deltaX}px, ${deltaY}px) scale(0.12)`,
-            opacity: 0.2
-          },
-          {
-            transform: "translate(0px, 0px) scale(1)",
-            opacity: 1
+            duration: 260,
+            easing: "cubic-bezier(0.16, 1, 0.3, 1)"
           }
-        ],
-        {
-          duration: 320,
-          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-          fill: "forwards"
-        }
-      );
+        );
+        anim.onfinish = () => {
+          card.style.transform = "";
+          card.style.opacity = "1";
+          if (metaEl) {
+            metaEl.style.transition = "opacity 0.18s ease";
+            metaEl.style.opacity = "1";
+          }
+        };
+      } else if (metaEl) {
+        metaEl.style.opacity = "1";
+      }
+    };
+
+    imgEl.src = initialSrc;
+
+    if (thumbImg && thumbImg.naturalWidth > 0 && thumbImg.naturalHeight > 0) {
+      runHeroAnimation(thumbImg.naturalWidth, thumbImg.naturalHeight);
+    } else if (imgEl.complete && imgEl.naturalWidth > 0) {
+      runHeroAnimation(imgEl.naturalWidth, imgEl.naturalHeight);
+    } else {
+      const tempImg = new Image();
+      tempImg.onload = () => {
+        runHeroAnimation(tempImg.naturalWidth, tempImg.naturalHeight);
+      };
+      tempImg.onerror = () => {
+        runHeroAnimation(800, 600);
+      };
+      tempImg.src = initialSrc;
+    }
+
+    // Upgrade to full resolution data URI in background
+    if (window.__TAURI__?.core?.invoke && filePath) {
+      window.__TAURI__.core.invoke("read_image_data", { filePath })
+        .then((dataUri) => {
+          if (dataUri && isLightboxActive) {
+            imgEl.src = dataUri;
+          }
+        })
+        .catch(() => {
+          if (titleEl) {
+            titleEl.className = "mb-0 fw-medium text-truncate text-danger text-decoration-line-through";
+          }
+          if (detailsEl) {
+            detailsEl.textContent = "Image was deleted";
+            detailsEl.className = "small text-danger";
+          }
+        });
     }
   } catch (err) {
     console.error("Failed to open image lightbox:", err);
   }
+}
+
+export function clearAllMediaPreviewCaches() {
+  let totalBytes = 0;
+
+  // Calculate size in mediaInfoCache
+  for (const [k, v] of mediaInfoCache.entries()) {
+    totalBytes += (k.length * 2) + JSON.stringify(v).length * 2;
+  }
+  mediaInfoCache.clear();
+
+  // Calculate size in actionFrameCache (data URIs)
+  for (const [k, v] of actionFrameCache.entries()) {
+    totalBytes += (k.length * 2) + (typeof v === "string" ? v.length * 2 : 1024);
+  }
+  actionFrameCache.clear();
+
+  // Calculate size in albumArtCache (data URIs)
+  for (const [k, v] of albumArtCache.entries()) {
+    totalBytes += (k.length * 2) + (typeof v === "string" ? v.length * 2 : 1024);
+  }
+  albumArtCache.clear();
+
+  // Clear waveform peaks cache
+  totalBytes += clearWaveformCache();
+
+  // Calculate MB gained (min 0.1 MB for clear user feedback if empty)
+  const mbGained = totalBytes > 0 ? (totalBytes / (1024 * 1024)).toFixed(2) : "0.00";
+  return parseFloat(mbGained);
 }
