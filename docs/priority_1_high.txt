@@ -1,0 +1,10 @@
+HIGH PRIORITY SUGGESTIONS
+
+1. Automated E2E Test Suite Expansion
+Implement full WebdriverIO test specs under test/specs/ for each tool module in the application (Convert, Compress, Trim, Speed/Motion, Aspect Crop, Merge, Mute/Replace, GIF/Frames, Custom FFmpeg, Image Background Remover, Upscaler, Vectorizer, Restoration, Icon Generator, Metadata Cleaner, and yt-dlp downloaders). This verifies all UI flows automatically using the tauri-feedback-loop skill without manual testing.
+
+2. Batch Processing Pipeline Execution
+Wire the batch queue system directly into the task runner to support multi-file queue execution sequentially. Include progress percentage tracking across total batch items, per-item status badge updates (processing, completed, skipped, error), and cancel-all capabilities.
+
+3. Background Task History & Session Retention
+Store completed task records, output file locations, timestamps, and exit statuses in localStorage so users can inspect past outputs, open containing folders, or copy file paths even after closing task log boxes.

@@ -1,0 +1,13 @@
+LOW PRIORITY SUGGESTIONS
+
+1. Custom Subtitle Styler and Burn-in Tool
+Provide a visual subtitle burn-in configuration tool with custom font selection, font size, border thickness, text alignment, drop shadows, and opacity styling preview.
+
+2. On-Device Whisper AI Audio Transcription
+Integrate local offline speech-to-text transcription (via whisper.cpp or faster-whisper) to generate synchronized .srt and .vtt subtitle tracks directly from audio and video files.
+
+3. Preset Export and Import Manager
+Allow users to export, share, and import custom encoding templates, custom filename format strings, custom FFmpeg CLI flags, and UI theme configurations via JSON files.
+
+4. Keyboard Navigation & Accessibility Shortcuts
+Implement global keyboard shortcuts (e.g. Ctrl+O to open media, Ctrl+E to execute task, Space to play/pause media preview, Esc to close overlays) across the desktop app.
