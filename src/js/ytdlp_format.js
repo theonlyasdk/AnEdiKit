@@ -254,13 +254,20 @@ function setupItemDrag(itemEl, dragHandle, index, listContainer) {
     const draggedHeight = rects[startIndex].height;
     const gap = 0; // 0px spacing (flush list items)
 
+    const originalOverflowY = listContainer.style.overflowY;
+    const originalOverflowX = listContainer.style.overflowX;
+    listContainer.style.overflowY = "visible";
+    listContainer.style.overflowX = "visible";
+
     itemEl.classList.add("is-dragging");
-    dragHandle.setPointerCapture(e.pointerId);
+    try {
+      dragHandle.setPointerCapture(e.pointerId);
+    } catch (_) {}
 
     const onPointerMove = (moveEvt) => {
       const deltaY = moveEvt.clientY - startY;
-      // Strictly locked to vertical Y axis with lift elevation
-      itemEl.style.transform = `translateY(${deltaY}px) scale(1.02)`;
+      // Strictly locked to vertical Y axis without horizontal expansion
+      itemEl.style.transform = `translateY(${deltaY}px)`;
 
       const currentMid = rects[startIndex].mid + deltaY;
 
@@ -308,6 +315,9 @@ function setupItemDrag(itemEl, dragHandle, index, listContainer) {
       dragHandle.removeEventListener("pointermove", onPointerMove);
       dragHandle.removeEventListener("pointerup", onPointerUp);
       dragHandle.removeEventListener("pointercancel", onPointerUp);
+
+      listContainer.style.overflowY = originalOverflowY;
+      listContainer.style.overflowX = originalOverflowX;
 
       itemEl.classList.remove("is-dragging");
       itemEl.style.transform = "";

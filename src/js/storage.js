@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   SETTINGS: "anedikit:settings",
   LAST_INPUT_FILE: "anedikit:last_input_file",
   YTDLP_LAST_DOWNLOAD_DIR: "anedikit:last_ytdlp_out_dir",
+  IMAGE_AI_LAST_OUT_DIR: "anedikit:last_image_ai_out_dir",
   BATCH_QUEUE: "anedikit:batch_queue",
   IMAGE_AI_QUEUE: "anedikit:image_ai_queue",
   AI_REPLACE_SOURCE: "anedikit:ai_replace_source",
@@ -13,6 +14,7 @@ export const STORAGE_KEYS = {
 export const DEFAULT_SETTINGS = {
   outputDir: "C:\\Users\\User\\Videos",
   promptOverwrite: true,
+  enableNotifications: true,
   disableAnimations: false,
   customFont: "",
   hwAccel: "auto",
@@ -102,6 +104,18 @@ export function saveLastYtDlpOutDir(path) {
     localStorage.setItem(STORAGE_KEYS.YTDLP_LAST_DOWNLOAD_DIR, path || "");
   } catch (err) {
     console.warn("Failed to save last yt-dlp out dir:", err);
+  }
+}
+
+export function getLastImageAiOutDir() {
+  return localStorage.getItem(STORAGE_KEYS.IMAGE_AI_LAST_OUT_DIR) || "";
+}
+
+export function saveLastImageAiOutDir(path) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.IMAGE_AI_LAST_OUT_DIR, path || "");
+  } catch (err) {
+    console.warn("Failed to save last image AI out dir:", err);
   }
 }
 

@@ -1,5 +1,5 @@
 // AnEdiKit - Modular Application Entry Point
-import { loadSettings, saveSettings, getLastYtDlpOutDir, saveLastYtDlpOutDir, saveAiReplaceSource } from "./js/storage.js";
+import { loadSettings, saveSettings, getLastYtDlpOutDir, saveLastYtDlpOutDir, getLastImageAiOutDir, saveLastImageAiOutDir, saveAiReplaceSource } from "./js/storage.js";
 import {
   selectMediaFile,
   selectMediaFiles,
@@ -1336,6 +1336,25 @@ function bindFormEvents() {
     });
   }
 
+  // Browse Output Folder for Image & AI Tools
+  const btnBrowseImageOutDir = document.getElementById("btn-browse-image-outdir");
+  const imageAiOutDirInput = document.getElementById("image-ai-output-dir");
+  if (imageAiOutDirInput) {
+    const savedImageDir = getLastImageAiOutDir() || appSettings.outputDir || "C:\\Users\\User\\Pictures";
+    imageAiOutDirInput.value = savedImageDir;
+  }
+  if (btnBrowseImageOutDir) {
+    btnBrowseImageOutDir.addEventListener("click", async () => {
+      const currentDir = imageAiOutDirInput?.value || null;
+      const folder = await selectOutputFolder(currentDir);
+      if (folder) {
+        if (imageAiOutDirInput) imageAiOutDirInput.value = folder;
+        saveLastImageAiOutDir(folder);
+        updateCommandPreview();
+      }
+    });
+  }
+
   // Browse Output Folder in Settings
   const btnBrowseOutDir = document.getElementById("btn-browse-outdir");
   const setOutDirInput = document.getElementById("set-output-dir");
@@ -1417,6 +1436,20 @@ function bindFormEvents() {
 
           for (let i = 0; i < imgQueue.length; i++) {
             const item = imgQueue[i];
+
+            // Automatically check and skip non-existent files
+            if (window.__TAURI__?.core?.invoke && item.path) {
+              try {
+                const exists = await window.__TAURI__.core.invoke("check_file_exists", { filePath: item.path });
+                if (!exists) {
+                  updateImageAiItemStatus(i, "skipped");
+                  continue;
+                }
+              } catch (e) {
+                console.warn("Failed to check image file existence:", e);
+              }
+            }
+
             updateImageAiItemStatus(i, "processing");
             const cmdObj = buildCommandForTool(activeTool, item.path, appSettings.outputDir, appSettings);
             if (!cmdObj) continue;
@@ -1816,6 +1849,7 @@ export async function populateHardwareInfo() {
 function populateSettingsUI() {
   const setOutDir = document.getElementById("set-output-dir");
   const setPromptOver = document.getElementById("set-prompt-overwrite");
+  const setEnableNotif = document.getElementById("set-enable-notifications");
   const setDisableAnim = document.getElementById("set-disable-animations");
   const setHw = document.getElementById("set-hwaccel");
   const setThr = document.getElementById("set-threads");
@@ -1833,6 +1867,7 @@ function populateSettingsUI() {
 
   if (setOutDir) setOutDir.value = appSettings.outputDir || "C:\\Users\\User\\Videos";
   if (setPromptOver) setPromptOver.checked = !!appSettings.promptOverwrite;
+  if (setEnableNotif) setEnableNotif.checked = appSettings.enableNotifications !== false;
   if (setDisableAnim) setDisableAnim.checked = !!appSettings.disableAnimations;
   if (setHw) setHw.value = appSettings.hwAccel || "auto";
   if (setThr) setThr.value = appSettings.threads || "0";
@@ -1854,6 +1889,7 @@ function populateSettingsUI() {
 function syncSettingsFromUI() {
   const setOutDir = document.getElementById("set-output-dir");
   const setPromptOver = document.getElementById("set-prompt-overwrite");
+  const setEnableNotif = document.getElementById("set-enable-notifications");
   const setDisableAnim = document.getElementById("set-disable-animations");
   const setHw = document.getElementById("set-hwaccel");
   const setThr = document.getElementById("set-threads");
@@ -1871,6 +1907,7 @@ function syncSettingsFromUI() {
 
   if (setOutDir) appSettings.outputDir = setOutDir.value;
   if (setPromptOver) appSettings.promptOverwrite = setPromptOver.checked;
+  if (setEnableNotif) appSettings.enableNotifications = setEnableNotif.checked;
   if (setDisableAnim) appSettings.disableAnimations = setDisableAnim.checked;
   if (setHw) appSettings.hwAccel = setHw.value;
   if (setThr) appSettings.threads = setThr.value;

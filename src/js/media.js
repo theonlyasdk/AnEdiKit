@@ -9,6 +9,11 @@ import {
 import { generateWaveformFromSource, renderWaveformToCanvas, clearWaveformCache } from "./waveform.js";
 import { mediaPreviewManager } from "./preview_providers.js";
 import { sharedPlaybackController, MediaPlaybackController } from "./playback.js";
+import {
+  refreshWaveformDisplay,
+  syncMediaDurationToTools,
+} from "./trimmer.js";
+import { addImageFilesToQueue } from "./image_queue.js";
 
 let currentInputFile = "";
 let currentMediaInfo = null;
@@ -783,14 +788,36 @@ export async function initSavedBatchQueue() {
   batchQueue = loadSavedBatchQueue();
   const lastInput = getSavedInputFile();
 
-  if (batchQueue.length === 0 && lastInput) {
-    const fileName = lastInput.split(/[/\\]/).pop() || lastInput;
-    batchQueue.push({
-      path: lastInput,
-      name: fileName,
-      status: "pending",
-    });
+  if (window.__TAURI__?.core?.invoke) {
+    const validQueue = [];
+    for (const item of batchQueue) {
+      try {
+        const exists = await window.__TAURI__.core.invoke("check_file_exists", { filePath: item.path });
+        if (exists) validQueue.push(item);
+      } catch (_) {}
+    }
+    batchQueue = validQueue;
     saveBatchQueue(batchQueue);
+  }
+
+  if (batchQueue.length === 0 && lastInput) {
+    let exists = true;
+    if (window.__TAURI__?.core?.invoke) {
+      try {
+        exists = await window.__TAURI__.core.invoke("check_file_exists", { filePath: lastInput });
+      } catch (_) {}
+    }
+    if (exists) {
+      const fileName = lastInput.split(/[/\\]/).pop() || lastInput;
+      batchQueue.push({
+        path: lastInput,
+        name: fileName,
+        status: "pending",
+      });
+      saveBatchQueue(batchQueue);
+    } else {
+      saveInputFile("");
+    }
   }
 
   if (batchQueue.length > 0) {
@@ -800,12 +827,9 @@ export async function initSavedBatchQueue() {
     if (info) {
       updateMetadataDisplay(info);
     }
-  } else if (lastInput) {
-    const info = await probeMedia(lastInput);
-    if (info) {
-      updateMetadataDisplay(info);
-    }
   } else {
+    selectedBatchIdx = -1;
+    saveInputFile("");
     updateMetadataDisplay(null);
   }
   renderBatchQueueUI();
@@ -960,34 +984,31 @@ export function renderBatchQueueUI() {
       let statusBadge = "";
       if (item.status === "processing") {
         statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Active</span>`;
+      } else if (item.status === "skipped") {
+        statusBadge = `<span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> Skipped (Missing)</span>`;
       } else if (item.status === "error") {
         statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-x"></i> Failed</span>`;
       }
 
       let leadingCheckBtn = "";
       if (item.status === "done") {
-        leadingCheckBtn = `<button class="btn btn-success btn-sm py-0 px-2 disabled me-2 border-0 flex-shrink-0" type="button" tabindex="-1" style="pointer-events: none;"><i class="bi bi-check-lg"></i></button>`;
+        leadingCheckBtn = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fs-7 flex-shrink-0"><i class="bi bi-check-lg"></i></span>`;
       }
 
       const isSelected = idx === selectedBatchIdx;
       return `
-        <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 ${isSelected ? 'active' : ''}" data-batch-idx="${idx}" style="cursor: pointer;">
-          <div class="d-flex align-items-center text-truncate me-2 flex-grow-1">
+        <div class="batch-queue-item list-group-item list-group-item-action ${isSelected ? 'active' : 'bg-body-tertiary'} px-3 py-1 d-flex flex-row align-items-center justify-content-between gap-2" data-batch-idx="${idx}" style="cursor: pointer;">
+          <div class="d-flex align-items-center gap-2 flex-grow-1 overflow-hidden">
+            <span class="batch-queue-drag-handle format-drag-handle ${isSelected ? 'text-white' : 'text-secondary'} cursor-grab p-1 flex-shrink-0" data-drag-idx="${idx}" title="Drag vertically to reorder">
+              <i class="bi bi-grip-vertical fs-5"></i>
+            </span>
             ${leadingCheckBtn}
-            <span class="text-truncate"><strong class="me-2">${idx + 1}.</strong>${item.name}</span>
+            <span class="fw-medium ${isSelected ? 'text-white' : 'text-body'} text-truncate" style="font-size: 0.88rem;"><strong class="me-2 ${isSelected ? 'text-white' : 'text-body-secondary'}">${idx + 1}.</strong>${item.name}</span>
           </div>
-          <div class="d-flex align-items-center gap-1 flex-shrink-0">
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
             ${statusBadge}
-            <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-secondary btn-sm py-0 px-2 btn-batch-item-up ${isSelected ? 'btn-outline-light' : ''}" data-up-batch-idx="${idx}" type="button" title="Move Up" ${idx === 0 ? 'disabled' : ''}>
-                <i class="bi bi-arrow-up"></i>
-              </button>
-              <button class="btn btn-outline-secondary btn-sm py-0 px-2 btn-batch-item-down ${isSelected ? 'btn-outline-light' : ''}" data-down-batch-idx="${idx}" type="button" title="Move Down" ${idx === batchQueue.length - 1 ? 'disabled' : ''}>
-                <i class="bi bi-arrow-down"></i>
-              </button>
-            </div>
-            <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-batch-del ${isSelected ? 'btn-outline-light' : ''}" data-del-batch-idx="${idx}" type="button" title="Delete file from queue">
-              <i class="bi bi-trash"></i>
+            <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-batch-del btn-item-delete ${isSelected ? 'btn-outline-light text-white' : ''}" data-del-batch-idx="${idx}" type="button" title="Delete file from queue">
+              <i class="bi bi-trash3"></i>
             </button>
           </div>
         </div>
@@ -995,42 +1016,57 @@ export function renderBatchQueueUI() {
     })
     .join("");
 
-  list.querySelectorAll(".list-group-item-action").forEach((el) => {
+  // Setup interactive vertical pointer drag with real-time shift animation for all batch queue items
+  const itemEls = list.querySelectorAll(".batch-queue-item");
+  itemEls.forEach((itemEl, index) => {
+    const handle = itemEl.querySelector(".batch-queue-drag-handle");
+    if (handle) {
+      setupBatchQueueItemDrag(itemEl, handle, index, list);
+    }
+  });
+
+  list.querySelectorAll(".batch-queue-item").forEach((el) => {
     el.addEventListener("click", (e) => {
-      if (e.target.closest("button")) return;
+      if (e.target.closest("button") || e.target.closest(".batch-queue-drag-handle")) return;
       const idx = parseInt(el.getAttribute("data-batch-idx"), 10);
       if (idx === selectedBatchIdx) return;
       selectedBatchIdx = idx;
 
       // Update UI active selection immediately (0ms latency)
-      list.querySelectorAll(".list-group-item-action").forEach((itemEl, i) => {
+      list.querySelectorAll(".batch-queue-item").forEach((itemEl, i) => {
         const isCurrent = i === idx;
         itemEl.classList.toggle("active", isCurrent);
-        itemEl.querySelectorAll(".btn-batch-item-up, .btn-batch-item-down, .btn-batch-del").forEach((b) => {
-          b.classList.toggle("btn-outline-light", isCurrent);
-        });
+        itemEl.classList.toggle("bg-body-tertiary", !isCurrent);
+
+        const handle = itemEl.querySelector(".batch-queue-drag-handle");
+        if (handle) {
+          handle.classList.toggle("text-white", isCurrent);
+          handle.classList.toggle("text-secondary", !isCurrent);
+        }
+
+        const titleText = itemEl.querySelector(".fw-medium");
+        if (titleText) {
+          titleText.classList.toggle("text-white", isCurrent);
+          titleText.classList.toggle("text-body", !isCurrent);
+        }
+
+        const strongNum = itemEl.querySelector("strong");
+        if (strongNum) {
+          strongNum.classList.toggle("text-white", isCurrent);
+          strongNum.classList.toggle("text-body-secondary", !isCurrent);
+        }
+
+        const delBtn = itemEl.querySelector(".btn-batch-del");
+        if (delBtn) {
+          delBtn.classList.toggle("btn-outline-light", isCurrent);
+          delBtn.classList.toggle("text-white", isCurrent);
+        }
       });
 
       // Asynchronously probe media in background without blocking UI
       if (idx >= 0 && idx < batchQueue.length) {
         probeMedia(batchQueue[idx].path);
       }
-    });
-  });
-
-  list.querySelectorAll(".btn-batch-item-up").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const idx = parseInt(btn.getAttribute("data-up-batch-idx"), 10);
-      moveBatchIndexUp(idx);
-    });
-  });
-
-  list.querySelectorAll(".btn-batch-item-down").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const idx = parseInt(btn.getAttribute("data-down-batch-idx"), 10);
-      moveBatchIndexDown(idx);
     });
   });
 
@@ -1043,425 +1079,202 @@ export function renderBatchQueueUI() {
   });
 }
 
-// Trimmer Seekbar & Live Preview Controller
-export function formatSecondsToTimestamp(seconds) {
-  if (isNaN(seconds) || seconds < 0) seconds = 0;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  const ms = Math.floor((seconds % 1) * 1000);
-  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}.${ms.toString().padStart(3, "0")}`;
-}
+function setupBatchQueueItemDrag(itemEl, dragHandle, index, listContainer) {
+  dragHandle.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
 
-export function parseTimestampToSeconds(ts) {
-  if (!ts) return 0;
-  const parts = ts.trim().split(":");
-  if (parts.length === 3) {
-    const h = parseFloat(parts[0]) || 0;
-    const m = parseFloat(parts[1]) || 0;
-    const s = parseFloat(parts[2]) || 0;
-    return h * 3600 + m * 60 + s;
-  }
-  if (parts.length === 2) {
-    const m = parseFloat(parts[0]) || 0;
-    const s = parseFloat(parts[1]) || 0;
-    return m * 60 + s;
-  }
-  return parseFloat(ts) || 0;
-}
+    const allItemEls = Array.from(listContainer.querySelectorAll(".batch-queue-item"));
+    if (allItemEls.length <= 1) return;
 
-export function refreshWaveformDisplay(peaks = null) {
-  if (peaks) {
-    currentWaveformPeaks = peaks;
-  }
-  const waveformCanvas = document.getElementById("trim-waveform-canvas");
-  if (!waveformCanvas || !currentWaveformPeaks) return;
-  const dur = currentMediaInfo?.duration_seconds || 120;
-  const inputStart = document.getElementById("trim-start");
-  const inputEnd = document.getElementById("trim-end");
-  const startSec = parseTimestampToSeconds(inputStart?.value);
-  const endSec = parseTimestampToSeconds(inputEnd?.value) || dur;
-  const startPct = Math.min(100, Math.max(0, (startSec / dur) * 100));
-  const endPct = Math.min(100, Math.max(0, (endSec / dur) * 100));
+    const startY = e.clientY;
+    const startIndex = index;
+    let targetIndex = index;
 
-  renderWaveformToCanvas(waveformCanvas, currentWaveformPeaks, {
-    startPct,
-    endPct,
-  });
-}
+    // Get initial geometry
+    const rects = allItemEls.map((el) => {
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, height: r.height, mid: r.top + r.height / 2 };
+    });
 
-export function isAudioFile(filePath) {
-  if (!filePath) return false;
-  const ext = filePath.split(/[?#]/)[0].split(".").pop().toLowerCase();
-  return ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "aiff", "alac"].includes(ext);
-}
+    // Lock main workspace scroll during drag to prevent outer view from scrolling
+    const workspaceEl = document.getElementById("tool-workspace");
+    const originalWorkspaceOverflowY = workspaceEl ? workspaceEl.style.overflowY : "";
+    if (workspaceEl) workspaceEl.style.overflowY = "hidden";
 
-export function isImageFile(filePath) {
-  if (!filePath) return false;
-  const ext = filePath.split(/[?#]/)[0].split(".").pop().toLowerCase();
-  return ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg", "ico"].includes(ext);
-}
+    // Prevent listbox overflow clipping and scrollbar flicker during active drag
+    const originalOverflowY = listContainer.style.overflowY;
+    const originalOverflowX = listContainer.style.overflowX;
+    listContainer.style.overflowY = "visible";
+    listContainer.style.overflowX = "visible";
 
-export function isVideoFile(filePath) {
-  if (!filePath) return false;
-  return !isAudioFile(filePath) && !isImageFile(filePath);
-}
+    itemEl.classList.add("is-dragging");
+    try {
+      dragHandle.setPointerCapture(e.pointerId);
+    } catch (_) {}
 
-let currentTimelineExtractToken = 0;
+    const startScrollTop = listContainer.scrollTop;
+    let autoScrollRaf = null;
+    let lastClientY = startY;
 
-export async function extractTimelineThumbnailsAsync(filePath, duration) {
-  const container = document.getElementById("trim-filmstrip-container");
-  const waveformCanvas = document.getElementById("trim-waveform-canvas");
-  if (!container || !filePath) return;
+    const updateItemPosition = () => {
+      const scrollDelta = listContainer.scrollTop - startScrollTop;
+      const pointerDeltaY = lastClientY - startY;
+      const totalDeltaY = pointerDeltaY + scrollDelta;
 
-  const thisToken = ++currentTimelineExtractToken;
-  const isAudio = isAudioFile(filePath) || currentMediaInfo?.video_codec === "None" || currentMediaInfo?.resolution === "N/A";
-  const isImage = isImageFile(filePath);
+      // Strictly locked to vertical Y axis
+      itemEl.style.transform = `translateY(${totalDeltaY}px)`;
 
-  if (isImage) {
-    const emptyEl = document.getElementById("trim-filmstrip-empty");
-    const unsupportedEl = document.getElementById("trim-filmstrip-unsupported");
-    if (emptyEl) {
-      emptyEl.classList.add("d-none");
-      emptyEl.classList.remove("d-flex");
-    }
-    if (unsupportedEl) {
-      unsupportedEl.classList.remove("d-none");
-      unsupportedEl.classList.add("d-flex");
-    }
-    if (waveformCanvas) waveformCanvas.classList.add("d-none");
-    return;
-  }
+      const currentMid = rects[startIndex].mid + totalDeltaY;
 
-  if (isAudio) {
-    container.innerHTML = "";
-    if (waveformCanvas) {
-      waveformCanvas.classList.remove("d-none");
-    }
-    const targetAudioPath = filePath || currentInputFile;
-    if (targetAudioPath) {
-      generateWaveformFromSource(targetAudioPath)
-        .then((peaks) => {
-          if (thisToken !== currentTimelineExtractToken) return;
-          currentWaveformPeaks = peaks;
-          refreshWaveformDisplay(peaks);
-        })
-        .catch((err) => console.warn("Waveform generation failed:", err));
-    }
-    return;
-  }
-
-  if (waveformCanvas) waveformCanvas.classList.add("d-none");
-
-  const frameCount = 12;
-  const dur = Math.max(0.5, duration || 10.0);
-
-  // Render individual frame slot placeholders for live progressive feedback
-  let slotsHtml = "";
-  for (let i = 0; i < frameCount; i++) {
-    slotsHtml += `
-      <div id="trim-slot-${i}" class="trim-timeline-frame-slot d-flex align-items-center justify-content-center bg-black bg-opacity-75 text-secondary position-relative overflow-hidden" style="flex: 1 1 0px; height: 100%; min-width: 0; border-right: 1px solid rgba(0,0,0,0.5);">
-        <span class="spinner-border spinner-border-sm opacity-25" style="width: 0.85rem; height: 0.85rem;"></span>
-      </div>
-    `;
-  }
-  container.innerHTML = slotsHtml;
-
-  if (window.__TAURI__?.core?.invoke) {
-    // Extract frames with live progressive frame-by-frame updates
-    for (let i = 0; i < frameCount; i++) {
-      const ts = dur * ((i + 0.5) / frameCount);
-      window.__TAURI__.core.invoke("extract_timeline_frame", {
-        filePath,
-        frameIndex: i + 1,
-        timestampSeconds: ts,
-      }).then((dataUri) => {
-        if (thisToken !== currentTimelineExtractToken) return;
-        const slotEl = document.getElementById(`trim-slot-${i}`);
-        if (slotEl && dataUri) {
-          slotEl.innerHTML = `<img class="trim-timeline-frame-item w-100 h-100 object-fit-cover" src="${dataUri}" alt="Frame ${i + 1}" />`;
+      // Determine target slot
+      let newTarget = startIndex;
+      for (let i = 0; i < rects.length; i++) {
+        if (i < startIndex) {
+          if (currentMid < rects[i].mid) {
+            newTarget = i;
+            break;
+          }
+        } else if (i > startIndex) {
+          if (currentMid > rects[i].mid) {
+            newTarget = i;
+          }
         }
-      }).catch((err) => {
-        console.warn(`Frame ${i + 1} extraction error:`, err);
-      });
-    }
-    return;
-  }
-
-  // Fallback if in web mode
-  container.innerHTML = `
-    <div class="w-100 h-100 d-flex align-items-center justify-content-center text-body-secondary small">
-      <i class="bi bi-film me-2"></i> Video Timeline
-    </div>
-  `;
-}
-
-export function syncMediaDurationToTools(mediaInfo) {
-  if (!mediaInfo) return;
-  const durSec = mediaInfo.duration_seconds || 60;
-  const durStr = mediaInfo.duration_string || "00:01:00";
-  const formattedDur = durStr.includes(".") ? durStr : `${durStr}.000`;
-
-  sharedPlaybackController.setDuration(durSec);
-  sharedPlaybackController.setCurrentTime(0);
-
-  const trimStart = document.getElementById("trim-start");
-  const trimEnd = document.getElementById("trim-end");
-  const trimPos = document.getElementById("trim-current-pos");
-  const trimDur = document.getElementById("trim-clip-dur");
-  const sliderStart = document.getElementById("trim-slider-start");
-  const sliderEnd = document.getElementById("trim-slider-end");
-
-  const dimmerLeft = document.getElementById("trim-dimmer-left");
-  const dimmerRight = document.getElementById("trim-dimmer-right");
-  const selectionWindow = document.getElementById("trim-selection-window");
-  const playhead = document.getElementById("trim-playhead");
-
-  const scaleStart = document.getElementById("trim-scale-start");
-  const scaleMid = document.getElementById("trim-scale-mid");
-  const scaleEnd = document.getElementById("trim-scale-end");
-
-  if (trimStart) trimStart.value = "00:00:00.000";
-  if (trimEnd) trimEnd.value = formattedDur;
-  if (trimPos) trimPos.textContent = "00:00:00.000";
-  if (trimDur) trimDur.textContent = formattedDur;
-  if (sliderStart) sliderStart.value = "0";
-  if (sliderEnd) sliderEnd.value = "100";
-
-  if (dimmerLeft) dimmerLeft.style.width = "0%";
-  if (dimmerRight) dimmerRight.style.width = "0%";
-  if (selectionWindow) {
-    selectionWindow.style.left = "0%";
-    selectionWindow.style.width = "100%";
-  }
-  if (playhead) {
-    playhead.style.left = "0%";
-    playhead.style.display = "block";
-  }
-
-  if (scaleStart) scaleStart.textContent = "00:00:00.000";
-  if (scaleMid) scaleMid.textContent = formatSecondsToTimestamp(durSec / 2);
-  const filmstripEmpty = document.getElementById("trim-filmstrip-empty");
-  const filmstripUnsupported = document.getElementById("trim-filmstrip-unsupported");
-  const trimControlsCard = document.getElementById("trim-controls-card");
-  const isImage = isImageFile(mediaInfo.file_path);
-  const isUnsupported = isImage || (mediaInfo.duration_seconds <= 0 && mediaInfo.video_codec === "None" && mediaInfo.audio_codec === "None");
-
-  if (isUnsupported) {
-    if (filmstripEmpty) {
-      filmstripEmpty.classList.add("d-none");
-      filmstripEmpty.classList.remove("d-flex");
-    }
-    if (filmstripUnsupported) {
-      filmstripUnsupported.classList.remove("d-none");
-      filmstripUnsupported.classList.add("d-flex");
-    }
-    if (trimControlsCard) {
-      trimControlsCard.classList.add("opacity-50", "pe-none");
-    }
-    if (trimStart) trimStart.disabled = true;
-    if (trimEnd) trimEnd.disabled = true;
-    const trimMode = document.getElementById("trim-mode");
-    if (trimMode) trimMode.disabled = true;
-  } else {
-    if (filmstripUnsupported) {
-      filmstripUnsupported.classList.add("d-none");
-      filmstripUnsupported.classList.remove("d-flex");
-    }
-    if (trimControlsCard) {
-      trimControlsCard.classList.remove("opacity-50", "pe-none");
-    }
-    if (trimStart) trimStart.disabled = false;
-    if (trimEnd) trimEnd.disabled = false;
-    const trimMode = document.getElementById("trim-mode");
-    if (trimMode) trimMode.disabled = false;
-  }
-
-  if (mediaInfo.file_path && !isUnsupported) {
-    extractTimelineThumbnailsAsync(mediaInfo.file_path, durSec);
-  }
-
-  refreshWaveformDisplay();
-}
-
-export function initTrimmerControls() {
-  const sliderStart = document.getElementById("trim-slider-start");
-  const sliderEnd = document.getElementById("trim-slider-end");
-  const inputStart = document.getElementById("trim-start");
-  const inputEnd = document.getElementById("trim-end");
-  const posDisplay = document.getElementById("trim-current-pos");
-  const clipDurBadge = document.getElementById("trim-clip-dur");
-  const videoEl = document.getElementById("media-video-preview");
-  const audioEl = document.getElementById("media-audio-preview");
-
-  const btnPlayPause = document.getElementById("btn-trim-play-pause");
-  const btnMarkStart = document.getElementById("btn-trim-mark-start");
-  const btnMarkEnd = document.getElementById("btn-trim-mark-end");
-  const btnStepBack1 = document.getElementById("btn-trim-step-back-1");
-  const btnStepBackFrame = document.getElementById("btn-trim-step-back-frame");
-  const btnStepFwdFrame = document.getElementById("btn-trim-step-fwd-frame");
-  const btnStepFwd1 = document.getElementById("btn-trim-step-fwd-1");
-  const btnPreviewSegment = document.getElementById("btn-trim-preview-segment");
-  const btnSetStart0 = document.getElementById("btn-trim-set-start-0");
-  const btnSetEndDur = document.getElementById("btn-trim-set-end-dur");
-  const playheadEl = document.getElementById("trim-playhead");
-  const trackEl = document.getElementById("trim-timeline-track");
-  const tooltipPlayhead = document.getElementById("trim-tooltip-playhead");
-  const tooltipStart = document.getElementById("trim-tooltip-start");
-  const tooltipEnd = document.getElementById("trim-tooltip-end");
-
-  sharedPlaybackController.setMediaElements({ videoEl, audioEl });
-
-  const updateRangeBarUI = (startSec, endSec, totalDur) => {
-    if (totalDur <= 0) totalDur = 1;
-    const startPct = Math.min(100, Math.max(0, (startSec / totalDur) * 100));
-    const endPct = Math.min(100, Math.max(0, (endSec / totalDur) * 100));
-    const widthPct = Math.max(0, endPct - startPct);
-
-    const dimmerLeft = document.getElementById("trim-dimmer-left");
-    const dimmerRight = document.getElementById("trim-dimmer-right");
-    const selectionWindow = document.getElementById("trim-selection-window");
-
-    if (dimmerLeft) dimmerLeft.style.width = `${startPct}%`;
-    if (dimmerRight) dimmerRight.style.width = `${Math.max(0, 100 - endPct)}%`;
-    if (selectionWindow) {
-      selectionWindow.style.left = `${startPct}%`;
-      selectionWindow.style.width = `${widthPct}%`;
-    }
-
-    if (sliderStart) sliderStart.value = startPct.toString();
-    if (sliderEnd) sliderEnd.value = endPct.toString();
-
-    const diff = Math.max(0, endSec - startSec);
-    if (clipDurBadge) clipDurBadge.textContent = formatSecondsToTimestamp(diff);
-
-    refreshWaveformDisplay();
-  };
-
-  const showTooltip = (el, text, pct) => {
-    if (!el) return;
-    el.textContent = text;
-    el.style.left = `${pct}%`;
-    el.classList.remove("d-none");
-  };
-
-  const hideTooltip = (el) => {
-    if (!el) return;
-    el.classList.add("d-none");
-  };
-
-  const onTimestampInputsChanged = () => {
-    const dur = currentMediaInfo?.duration_seconds || 120;
-    const startSec = parseTimestampToSeconds(inputStart?.value);
-    const endSec = parseTimestampToSeconds(inputEnd?.value) || dur;
-    updateRangeBarUI(startSec, endSec, dur);
-  };
-
-  if (inputStart) inputStart.addEventListener("input", onTimestampInputsChanged);
-  if (inputEnd) inputEnd.addEventListener("input", onTimestampInputsChanged);
-
-  const stopSliderProp = (e) => e.stopPropagation();
-
-  if (sliderStart) {
-    sliderStart.addEventListener("mousedown", stopSliderProp);
-    sliderStart.addEventListener("touchstart", stopSliderProp, { passive: true });
-    sliderStart.addEventListener("pointerdown", stopSliderProp);
-
-    sliderStart.addEventListener("input", (e) => {
-      e.stopPropagation();
-      const dur = currentMediaInfo?.duration_seconds || 120;
-      let startVal = parseFloat(sliderStart.value);
-      let endVal = parseFloat(sliderEnd ? sliderEnd.value : 100);
-      if (startVal > endVal) {
-        startVal = endVal;
-        sliderStart.value = startVal.toString();
       }
-      const startSec = (startVal / 100) * dur;
-      const endSec = (endVal / 100) * dur;
+      targetIndex = newTarget;
 
-      if (inputStart) inputStart.value = formatSecondsToTimestamp(startSec);
-      updateRangeBarUI(startSec, endSec, dur);
-      showTooltip(tooltipStart, formatSecondsToTimestamp(startSec), startVal);
-    });
-    sliderStart.addEventListener("pointerdown", () => {
-      const dur = currentMediaInfo?.duration_seconds || 120;
-      const startVal = parseFloat(sliderStart.value);
-      const startSec = (startVal / 100) * dur;
-      showTooltip(tooltipStart, formatSecondsToTimestamp(startSec), startVal);
-    });
-    sliderStart.addEventListener("pointerup", () => hideTooltip(tooltipStart));
-    sliderStart.addEventListener("pointercancel", () => hideTooltip(tooltipStart));
-    sliderStart.addEventListener("blur", () => hideTooltip(tooltipStart));
-  }
-
-  if (sliderEnd) {
-    sliderEnd.addEventListener("mousedown", stopSliderProp);
-    sliderEnd.addEventListener("touchstart", stopSliderProp, { passive: true });
-    sliderEnd.addEventListener("pointerdown", stopSliderProp);
-
-    sliderEnd.addEventListener("input", (e) => {
-      e.stopPropagation();
-      const dur = currentMediaInfo?.duration_seconds || 120;
-      let startVal = parseFloat(sliderStart ? sliderStart.value : 0);
-      let endVal = parseFloat(sliderEnd.value);
-      if (endVal < startVal) {
-        endVal = startVal;
-        sliderEnd.value = endVal.toString();
-      }
-      const startSec = (startVal / 100) * dur;
-      const endSec = (endVal / 100) * dur;
-
-      if (inputEnd) inputEnd.value = formatSecondsToTimestamp(endSec);
-      updateRangeBarUI(startSec, endSec, dur);
-      showTooltip(tooltipEnd, formatSecondsToTimestamp(endSec), endVal);
-    });
-    sliderEnd.addEventListener("pointerdown", () => {
-      const dur = currentMediaInfo?.duration_seconds || 120;
-      const endVal = parseFloat(sliderEnd.value);
-      const endSec = (endVal / 100) * dur;
-      showTooltip(tooltipEnd, formatSecondsToTimestamp(endSec), endVal);
-    });
-    sliderEnd.addEventListener("pointerup", () => hideTooltip(tooltipEnd));
-    sliderEnd.addEventListener("pointercancel", () => hideTooltip(tooltipEnd));
-    sliderEnd.addEventListener("blur", () => hideTooltip(tooltipEnd));
-  }
-
-  // Bind full playback controls to sharedPlaybackController
-  sharedPlaybackController.bindControls({
-    btnPlayPause,
-    posDisplay,
-    playheadEl,
-    trackEl,
-    inputStart,
-    inputEnd,
-    tooltipPlayhead,
-    btnMarkStart,
-    btnMarkEnd,
-    btnStepBack1,
-    btnStepBackFrame,
-    btnStepFwdFrame,
-    btnStepFwd1,
-    btnSetStart0,
-    btnSetEndDur,
-    onRangeChanged: onTimestampInputsChanged,
-  });
-
-  if (btnPreviewSegment) {
-    btnPreviewSegment.addEventListener("click", () => {
-      const dur = currentMediaInfo?.duration_seconds || 120;
-      const startSec = parseTimestampToSeconds(inputStart?.value);
-      const endSec = parseTimestampToSeconds(inputEnd?.value) || dur;
-      sharedPlaybackController.setCurrentTime(startSec);
-      sharedPlaybackController.play();
-
-      const unsubscribe = sharedPlaybackController.onTimeUpdate((time) => {
-        if (time >= endSec) {
-          sharedPlaybackController.pause();
-          unsubscribe();
+      // Smoothly shift other items
+      allItemEls.forEach((otherEl, i) => {
+        if (i === startIndex) return;
+        if (startIndex < targetIndex) {
+          if (i > startIndex && i <= targetIndex) {
+            otherEl.style.transform = `translateY(-${draggedHeight + gap}px)`;
+          } else {
+            otherEl.style.transform = "translateY(0)";
+          }
+        } else if (startIndex > targetIndex) {
+          if (i < startIndex && i >= targetIndex) {
+            otherEl.style.transform = `translateY(${draggedHeight + gap}px)`;
+          } else {
+            otherEl.style.transform = "translateY(0)";
+          }
+        } else {
+          otherEl.style.transform = "translateY(0)";
         }
       });
-    });
-  }
+    };
+
+    const checkAutoScroll = () => {
+      const containerRect = listContainer.getBoundingClientRect();
+      const edgeZone = 40; // 40px top/bottom threshold zone
+      const topThreshold = containerRect.top + edgeZone;
+      const bottomThreshold = containerRect.bottom - edgeZone;
+
+      let scrolled = false;
+      if (lastClientY < topThreshold && listContainer.scrollTop > 0) {
+        const ratio = Math.max(0.2, (topThreshold - lastClientY) / edgeZone);
+        const speed = Math.max(2, Math.round(ratio * 8));
+        listContainer.scrollTop -= speed;
+        scrolled = true;
+      } else if (lastClientY > bottomThreshold && listContainer.scrollTop < listContainer.scrollHeight - listContainer.clientHeight) {
+        const ratio = Math.max(0.2, (lastClientY - bottomThreshold) / edgeZone);
+        const speed = Math.max(2, Math.round(ratio * 8));
+        listContainer.scrollTop += speed;
+        scrolled = true;
+      }
+
+      if (scrolled) {
+        updateItemPosition();
+        autoScrollRaf = requestAnimationFrame(checkAutoScroll);
+      } else {
+        autoScrollRaf = null;
+      }
+    };
+
+    const onPointerMove = (moveEvt) => {
+      lastClientY = moveEvt.clientY;
+      updateItemPosition();
+
+      const containerRect = listContainer.getBoundingClientRect();
+      const edgeZone = 40;
+      const nearEdge = (lastClientY < containerRect.top + edgeZone && listContainer.scrollTop > 0) ||
+                       (lastClientY > containerRect.bottom - edgeZone && listContainer.scrollTop < listContainer.scrollHeight - listContainer.clientHeight);
+
+      if (nearEdge && !autoScrollRaf) {
+        autoScrollRaf = requestAnimationFrame(checkAutoScroll);
+      } else if (!nearEdge && autoScrollRaf) {
+        cancelAnimationFrame(autoScrollRaf);
+        autoScrollRaf = null;
+      }
+    };
+
+    const onPointerUp = (upEvt) => {
+      try {
+        dragHandle.releasePointerCapture(upEvt.pointerId);
+      } catch (_) {}
+      dragHandle.removeEventListener("pointermove", onPointerMove);
+      dragHandle.removeEventListener("pointerup", onPointerUp);
+      dragHandle.removeEventListener("pointercancel", onPointerUp);
+
+      if (workspaceEl) workspaceEl.style.overflowY = originalWorkspaceOverflowY;
+
+      // Calculate final resting position offset for smooth release transition
+      let finalTranslateY = 0;
+      if (targetIndex !== startIndex) {
+        finalTranslateY = rects[targetIndex].top - rects[startIndex].top;
+      }
+
+      itemEl.classList.add("is-releasing");
+      itemEl.style.setProperty("transition", "transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease", "important");
+      itemEl.style.transform = `translateY(${finalTranslateY}px)`;
+      itemEl.style.boxShadow = "none";
+
+      const onTransitionEnd = () => {
+        itemEl.removeEventListener("transitionend", onTransitionEnd);
+        listContainer.style.overflowY = originalOverflowY;
+        listContainer.style.overflowX = originalOverflowX;
+
+        itemEl.classList.remove("is-dragging", "is-releasing");
+        itemEl.style.transition = "";
+        itemEl.style.transform = "";
+        itemEl.style.boxShadow = "";
+        allItemEls.forEach((el) => {
+          el.style.transform = "";
+        });
+
+        const finalIdx = targetIndex;
+        if (targetIndex !== startIndex && targetIndex >= 0 && targetIndex < batchQueue.length) {
+          const moved = batchQueue.splice(startIndex, 1)[0];
+          batchQueue.splice(targetIndex, 0, moved);
+          if (selectedBatchIdx === startIndex) {
+            selectedBatchIdx = targetIndex;
+          } else if (startIndex < selectedBatchIdx && targetIndex >= selectedBatchIdx) {
+            selectedBatchIdx--;
+          } else if (startIndex > selectedBatchIdx && targetIndex <= selectedBatchIdx) {
+            selectedBatchIdx++;
+          }
+          saveBatchQueue(batchQueue);
+        }
+        renderBatchQueueUI();
+
+        // Trigger smooth accent drop pulse on the placed row
+        const droppedEl = listContainer.querySelector(`[data-batch-idx="${finalIdx}"]`);
+        if (droppedEl) {
+          droppedEl.classList.add("item-dropped-highlight");
+          setTimeout(() => droppedEl.classList.remove("item-dropped-highlight"), 500);
+        }
+      };
+
+      itemEl.addEventListener("transitionend", onTransitionEnd);
+      // Fallback in case transitionend does not fire
+      setTimeout(onTransitionEnd, 180);
+    };
+
+    dragHandle.addEventListener("pointermove", onPointerMove);
+    dragHandle.addEventListener("pointerup", onPointerUp);
+    dragHandle.addEventListener("pointercancel", onPointerUp);
+  });
 }
 
 export function initDragAndDrop(onFileSelected) {
@@ -1624,517 +1437,32 @@ export function initDragAndDrop(onFileSelected) {
   }
 }
 
-// Image AI Queue State & Management
-let imageAiQueue = loadSavedImageAiQueue();
+// Re-export trimmer and timeline utilities from trimmer.js
+export {
+  formatSecondsToTimestamp,
+  parseTimestampToSeconds,
+  refreshWaveformDisplay,
+  isAudioFile,
+  isImageFile,
+  isVideoFile,
+  extractTimelineThumbnailsAsync,
+  syncMediaDurationToTools,
+  initTrimmerControls,
+} from "./trimmer.js";
 
-export function initSavedImageAiQueue() {
-  imageAiQueue = loadSavedImageAiQueue();
-  renderImageAiQueueUI();
-}
-
-export function getImageAiQueue() {
-  return imageAiQueue;
-}
-
-export function updateImageAiItemStatus(idx, status, resultPath = null) {
-  if (idx >= 0 && idx < imageAiQueue.length) {
-    imageAiQueue[idx].status = status; // "pending", "processing", "done", "error"
-    if (resultPath) {
-      imageAiQueue[idx].resultPath = resultPath;
-    }
-    saveImageAiQueue(imageAiQueue);
-    renderImageAiQueueUI();
-  }
-}
-
-export function removeImageAiQueueItem(idx) {
-  if (idx >= 0 && idx < imageAiQueue.length) {
-    imageAiQueue.splice(idx, 1);
-    saveImageAiQueue(imageAiQueue);
-    renderImageAiQueueUI();
-  }
-}
-
-export function clearImageAiQueue() {
-  imageAiQueue = [];
-  saveImageAiQueue(imageAiQueue);
-  renderImageAiQueueUI();
-}
-
-export async function addImageFilesToQueue(paths) {
-  if (!paths || paths.length === 0) return;
-  for (const p of paths) {
-    if (!p) continue;
-    if (!imageAiQueue.some((item) => item.path === p)) {
-      const fileName = p.split(/[/\\]/).pop() || p;
-      imageAiQueue.push({
-        path: p,
-        name: fileName,
-        status: "pending",
-        resultPath: null,
-      });
-    }
-  }
-  saveImageAiQueue(imageAiQueue);
-  renderImageAiQueueUI();
-}
-
-export function renderImageAiQueueUI() {
-  const countEl = document.getElementById("image-ai-queue-count");
-  const listEl = document.getElementById("image-ai-queue-list");
-  const btnClear = document.getElementById("btn-image-clear");
-  const btnExecute = document.getElementById("btn-execute");
-
-  if (countEl) countEl.textContent = imageAiQueue.length.toString();
-  if (btnClear) btnClear.classList.toggle("d-none", imageAiQueue.length === 0);
-
-  if (imageAiQueue.length === 0) {
-    listEl.className = "mb-3";
-    listEl.style.maxHeight = "";
-    listEl.style.overflowY = "visible";
-    listEl.innerHTML = `
-      <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="image-ai-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
-        <i class="bi bi-images fs-2 text-secondary opacity-50 mb-1"></i>
-        <span class="fw-medium text-body" id="image-drop-label">Drop images here or click to select</span>
-        <span class="small text-body-secondary" id="image-drop-sublabel">Supports PNG, JPG, WebP, BMP, TIFF, SVG</span>
-        <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-image-add-empty" title="Add images to queue">
-          <i class="bi bi-folder2-open me-1"></i> Select Images
-        </button>
-      </div>
-    `;
-    const btnEmpty = document.getElementById("btn-image-add-empty");
-    const emptyMsg = document.getElementById("image-ai-empty-msg");
-    const pickHandler = async () => {
-      const selected = await selectMediaFiles("image");
-      if (selected && selected.length > 0) {
-        await addImageFilesToQueue(selected);
-      }
-    };
-    if (btnEmpty) btnEmpty.addEventListener("click", pickHandler);
-    if (emptyMsg) emptyMsg.addEventListener("click", (e) => {
-      if (!e.target.closest("button")) pickHandler();
-    });
-
-    if (btnExecute && btnExecute.textContent !== "Cancel") {
-      btnExecute.textContent = "Execute";
-    }
-    return;
-  }
-
-  listEl.className = "list-group border rounded overflow-y-auto mb-3";
-  listEl.style.maxHeight = "260px";
-  listEl.style.overflowY = "auto";
-  listEl.style.overscrollBehavior = "contain";
-
-  if (btnExecute && btnExecute.textContent !== "Cancel") {
-    btnExecute.textContent = imageAiQueue.length > 1 ? `Execute (${imageAiQueue.length})` : "Execute";
-  }
-
-  const placeholderHtml = `
-    <div id="image-queue-drop-placeholder" class="list-group-item image-queue-drop-placeholder text-primary py-3 text-center d-flex align-items-center justify-content-center gap-2 d-none" style="cursor: pointer;">
-      <i class="bi bi-cloud-arrow-up-fill fs-5 text-primary"></i>
-      <span class="fw-semibold text-primary">Drop here to import</span>
-    </div>
-  `;
-
-  listEl.innerHTML = imageAiQueue
-    .map((item, idx) => {
-      const assetSrc = window.__TAURI__?.core?.convertFileSrc
-        ? window.__TAURI__.core.convertFileSrc(item.path)
-        : "";
-
-      let statusBadge = `<span class="badge bg-secondary-subtle text-secondary-emphasis">Ready</span>`;
-      let compareBtn = "";
-
-      if (item.status === "processing") {
-        statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Processing</span>`;
-      } else if (item.status === "done") {
-        statusBadge = `<span class="badge bg-success-subtle text-success-emphasis"><i class="bi bi-check-lg"></i> Done</span>`;
-        if (item.resultPath) {
-          compareBtn = `<button class="btn btn-primary btn-sm py-0 px-2 btn-image-compare me-1" data-comp-idx="${idx}" type="button" title="View sliding comparison"><i class="bi bi-layout-split me-1"></i> Compare</button>`;
-        }
-      } else if (item.status === "error") {
-        statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-x"></i> Failed</span>`;
-      }
-
-      return `
-        <div class="list-group-item image-queue-item d-flex justify-content-between align-items-center py-2 px-3">
-          <div class="d-flex align-items-center gap-3 text-truncate me-2 flex-grow-1 btn-image-preview-thumb" data-preview-idx="${idx}" style="cursor: pointer;" title="Click to expand preview">
-            <div class="image-queue-thumb-wrapper transparency-grid border flex-shrink-0 position-relative">
-              <img class="image-queue-thumb" src="${assetSrc}" alt="${item.name}" onerror="this.onerror=null; this.classList.add('d-none'); this.nextElementSibling?.classList.remove('d-none'); const qItem = this.closest('.image-queue-item'); if (qItem) { qItem.classList.add('image-item-deleted'); const title = qItem.querySelector('.image-queue-item-title'); if (title) { title.classList.remove('text-body'); title.classList.add('text-danger', 'text-decoration-line-through'); } const badge = qItem.querySelector('.image-queue-status-badge'); if (badge) { badge.className = 'badge bg-danger-subtle text-danger image-queue-status-badge'; badge.innerHTML = '<i class=\\'bi bi-exclamation-circle-fill me-1\\'></i>Deleted'; } }" />
-              <div class="image-queue-thumb-fallback d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark">
-                <i class="bi bi-exclamation-circle-fill text-danger fs-5"></i>
-              </div>
-              <div class="image-queue-thumb-overlay">
-                <i class="bi bi-arrows-angle-expand"></i>
-              </div>
-            </div>
-            <div class="d-flex flex-column text-truncate">
-              <span class="fw-medium text-body text-truncate image-queue-item-title" style="font-size: 0.88rem;">${item.name}</span>
-              <span class="small text-body-secondary text-truncate" style="font-size: 0.75rem;">${item.path}</span>
-            </div>
-          </div>
-          <div class="d-flex align-items-center gap-2 flex-shrink-0">
-            <span class="image-queue-status-badge">${statusBadge}</span>
-            ${compareBtn}
-            <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-image-del" data-del-img-idx="${idx}" type="button" title="Remove from queue">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-      `;
-    })
-    .join("") + placeholderHtml;
-
-  const dropPlaceholder = document.getElementById("image-queue-drop-placeholder");
-  if (dropPlaceholder) {
-    dropPlaceholder.addEventListener("click", async () => {
-      const selected = await selectMediaFiles("image");
-      if (selected && selected.length > 0) {
-        await addImageFilesToQueue(selected);
-      }
-    });
-  }
-
-  // Event delegation for queue list interactions
-  listEl.onclick = (e) => {
-    // Preview click
-    const previewBtn = e.target.closest(".btn-image-preview-thumb");
-    if (previewBtn) {
-      e.stopPropagation();
-      const idx = parseInt(previewBtn.getAttribute("data-preview-idx"), 10);
-      const item = imageAiQueue[idx];
-      if (item && item.path) {
-        const thumbEl = previewBtn.querySelector(".image-queue-thumb-wrapper") || previewBtn;
-        openImageLightbox(item.path, item.name, thumbEl);
-      }
-      return;
-    }
-
-    // Delete click
-    const delBtn = e.target.closest(".btn-image-del");
-    if (delBtn) {
-      e.stopPropagation();
-      const idx = parseInt(delBtn.getAttribute("data-del-img-idx"), 10);
-      removeImageAiQueueItem(idx);
-      return;
-    }
-
-    // Compare click
-    const compBtn = e.target.closest(".btn-image-compare");
-    if (compBtn) {
-      e.stopPropagation();
-      const idx = parseInt(compBtn.getAttribute("data-comp-idx"), 10);
-      const item = imageAiQueue[idx];
-      if (item && item.resultPath) {
-        import("./comparison.js").then((mod) => {
-          mod.openComparisonModal(item.path, item.resultPath, "Enhanced Image");
-        });
-      }
-      return;
-    }
-  };
-}
-
-let lastHeroSourceEl = null;
-let lastHeroRect = null;
-let lightboxOpenTimestamp = 0;
-let isLightboxActive = false;
-let lastFinalW = 800;
-let lastFinalH = 600;
-
-export function initImageLightbox() {
-  const modal = document.getElementById("image-lightbox-modal");
-  const card = document.getElementById("image-lightbox-card");
-  const backdrop = document.getElementById("image-lightbox-backdrop");
-  const btnClose = document.getElementById("btn-lightbox-close");
-  if (!modal) return;
-
-  const closeModal = () => {
-    if (!isLightboxActive) return;
-    isLightboxActive = false;
-
-    // Cancel ongoing animations on card and backdrop
-    if (card) card.getAnimations().forEach((a) => a.cancel());
-    if (backdrop) backdrop.getAnimations().forEach((a) => a.cancel());
-
-    const metaEl = document.getElementById("image-lightbox-meta");
-    if (metaEl) metaEl.style.opacity = "0";
-
-    const currentSourceRect = (lastHeroSourceEl && lastHeroSourceEl.isConnected)
-      ? (lastHeroSourceEl.querySelector(".image-queue-thumb-wrapper") || lastHeroSourceEl).getBoundingClientRect()
-      : lastHeroRect;
-
-    const sourceRect = (currentSourceRect && currentSourceRect.width > 0)
-      ? currentSourceRect
-      : {
-          left: window.innerWidth / 2 - 22,
-          top: window.innerHeight / 2 - 22,
-          width: 44,
-          height: 44,
-        };
-
-    const finalW = Math.max(100, lastFinalW);
-    const finalH = Math.max(100, lastFinalH);
-
-    const scale = Math.max(sourceRect.width / finalW, sourceRect.height / finalH);
-
-    const thumbCenterX = sourceRect.left + sourceRect.width / 2;
-    const thumbCenterY = sourceRect.top + sourceRect.height / 2;
-    const destCenterX = window.innerWidth / 2;
-    const destCenterY = (window.innerHeight - 30) / 2;
-
-    const deltaX = thumbCenterX - destCenterX;
-    const deltaY = thumbCenterY - destCenterY;
-
-    // Animate backdrop fade out
-    if (backdrop && backdrop.animate) {
-      backdrop.animate(
-        [{ opacity: 1 }, { opacity: 0 }],
-        { duration: 220, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
-      );
-    }
-
-    // Animate card smoothly back to thumbnail with opacity fade out
-    if (card && card.animate) {
-      const anim = card.animate(
-        [
-          { transform: "translate(0px, 0px) scale(1)", opacity: 1 },
-          { transform: `translate(${deltaX}px, ${deltaY}px) scale(${scale})`, opacity: 0 }
-        ],
-        {
-          duration: 220,
-          easing: "cubic-bezier(0.16, 1, 0.3, 1)"
-        }
-      );
-
-      anim.onfinish = () => {
-        modal.classList.add("d-none");
-        card.style.transform = "";
-        card.style.opacity = "";
-        if (backdrop) backdrop.style.opacity = "";
-        if (metaEl) metaEl.style.opacity = "";
-      };
-      anim.oncancel = () => {
-        modal.classList.add("d-none");
-        card.style.transform = "";
-        card.style.opacity = "";
-      };
-    } else {
-      modal.classList.add("d-none");
-    }
-  };
-
-  if (btnClose) {
-    btnClose.addEventListener("click", (e) => {
-      e.stopPropagation();
-      closeModal();
-    });
-  }
-
-  modal.addEventListener("click", (e) => {
-    if (Date.now() - lightboxOpenTimestamp < 220) return;
-    if (e.target === modal || e.target.id === "image-lightbox-backdrop") {
-      closeModal();
-    }
-  });
-
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && isLightboxActive) {
-      closeModal();
-    }
-  });
-}
-
-export function openImageLightbox(filePath, fileName = "Image Preview", sourceElement = null) {
-  try {
-    const modal = document.getElementById("image-lightbox-modal");
-    const card = document.getElementById("image-lightbox-card");
-    const backdrop = document.getElementById("image-lightbox-backdrop");
-    const imgEl = document.getElementById("image-lightbox-img");
-    const titleEl = document.getElementById("image-lightbox-title");
-    const detailsEl = document.getElementById("image-lightbox-details");
-    const metaEl = document.getElementById("image-lightbox-meta");
-    const wrapper = document.getElementById("image-lightbox-wrapper");
-
-    if (!modal || !imgEl || !card) return;
-
-    lightboxOpenTimestamp = Date.now();
-    isLightboxActive = true;
-    lastHeroSourceEl = sourceElement;
-
-    // Cancel any previous animations and clear inline transform/opacity
-    card.getAnimations().forEach((a) => a.cancel());
-    if (backdrop) backdrop.getAnimations().forEach((a) => a.cancel());
-    card.style.transform = "";
-    card.style.opacity = "";
-
-    const assetSrc = window.__TAURI__?.core?.convertFileSrc && filePath
-      ? window.__TAURI__.core.convertFileSrc(filePath)
-      : filePath;
-
-    const thumbImg = sourceElement ? (sourceElement.querySelector("img") || sourceElement) : null;
-    const initialSrc = (thumbImg && thumbImg.src) ? thumbImg.src : assetSrc;
-
-    if (titleEl) {
-      titleEl.className = "mb-0 fw-medium text-truncate";
-      titleEl.textContent = fileName || (filePath ? filePath.split(/[/\\]/).pop() : "Image Preview");
-    }
-    if (detailsEl) {
-      const ext = (fileName || filePath).split(".").pop().toUpperCase();
-      detailsEl.className = "small text-white-50";
-      detailsEl.textContent = `${ext} Image • ${filePath}`;
-    }
-
-    imgEl.onerror = () => {
-      if (titleEl) {
-        titleEl.className = "mb-0 fw-medium text-truncate text-danger text-decoration-line-through";
-      }
-      if (detailsEl) {
-        detailsEl.textContent = "Image was deleted";
-        detailsEl.className = "small text-danger";
-      }
-    };
-
-    // Get reliable source rect (from thumbnail wrapper or source element)
-    const targetSourceEl = sourceElement
-      ? (sourceElement.querySelector(".image-queue-thumb-wrapper") || sourceElement)
-      : null;
-    const rawStartRect = targetSourceEl ? targetSourceEl.getBoundingClientRect() : null;
-
-    const startRect = (rawStartRect && rawStartRect.width > 0 && rawStartRect.height > 0)
-      ? rawStartRect
-      : {
-          left: window.innerWidth / 2 - 22,
-          top: window.innerHeight / 2 - 22,
-          width: 44,
-          height: 44,
-        };
-    lastHeroRect = startRect;
-
-    if (metaEl) {
-      metaEl.style.opacity = "0";
-      metaEl.style.transition = "none";
-    }
-
-    const runHeroAnimation = (natW, natH) => {
-      // Calculate responsive destination size maintaining exact natural aspect ratio
-      const maxW = Math.min(window.innerWidth * 0.84, 1200);
-      const maxH = Math.min(window.innerHeight * 0.74, 800);
-      const aspect = (natW > 0 && natH > 0) ? (natW / natH) : (16 / 9);
-
-      let finalW, finalH;
-      if (maxW / maxH > aspect) {
-        finalH = maxH;
-        finalW = maxH * aspect;
-      } else {
-        finalW = maxW;
-        finalH = maxW / aspect;
-      }
-
-      lastFinalW = finalW;
-      lastFinalH = finalH;
-
-      if (wrapper) {
-        wrapper.style.width = `${Math.round(finalW)}px`;
-        wrapper.style.height = `${Math.round(finalH)}px`;
-      }
-      imgEl.style.width = "100%";
-      imgEl.style.height = "100%";
-
-      // Show modal container
-      modal.classList.remove("d-none");
-      if (backdrop) backdrop.style.opacity = "1";
-
-      // Compute exact geometry from viewport center (never top-left 0,0)
-      const scale = Math.max(startRect.width / finalW, startRect.height / finalH);
-
-      const thumbCenterX = startRect.left + startRect.width / 2;
-      const thumbCenterY = startRect.top + startRect.height / 2;
-      const destCenterX = window.innerWidth / 2;
-      const destCenterY = (window.innerHeight - 30) / 2;
-
-      const deltaX = thumbCenterX - destCenterX;
-      const deltaY = thumbCenterY - destCenterY;
-
-      // Animate backdrop fade in
-      if (backdrop && backdrop.animate) {
-        backdrop.animate(
-          [{ opacity: 0 }, { opacity: 1 }],
-          { duration: 250, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
-        );
-      }
-
-      // Animate Card hero expansion directly from thumbnail center
-      if (card.animate) {
-        const anim = card.animate(
-          [
-            {
-              transform: `translate(${deltaX}px, ${deltaY}px) scale(${scale})`,
-              opacity: 0.2
-            },
-            {
-              transform: "translate(0px, 0px) scale(1)",
-              opacity: 1
-            }
-          ],
-          {
-            duration: 260,
-            easing: "cubic-bezier(0.16, 1, 0.3, 1)"
-          }
-        );
-        anim.onfinish = () => {
-          card.style.transform = "";
-          card.style.opacity = "1";
-          if (metaEl) {
-            metaEl.style.transition = "opacity 0.18s ease";
-            metaEl.style.opacity = "1";
-          }
-        };
-      } else if (metaEl) {
-        metaEl.style.opacity = "1";
-      }
-    };
-
-    imgEl.src = initialSrc;
-
-    if (thumbImg && thumbImg.naturalWidth > 0 && thumbImg.naturalHeight > 0) {
-      runHeroAnimation(thumbImg.naturalWidth, thumbImg.naturalHeight);
-    } else if (imgEl.complete && imgEl.naturalWidth > 0) {
-      runHeroAnimation(imgEl.naturalWidth, imgEl.naturalHeight);
-    } else {
-      const tempImg = new Image();
-      tempImg.onload = () => {
-        runHeroAnimation(tempImg.naturalWidth, tempImg.naturalHeight);
-      };
-      tempImg.onerror = () => {
-        runHeroAnimation(800, 600);
-      };
-      tempImg.src = initialSrc;
-    }
-
-    // Upgrade to full resolution data URI in background
-    if (window.__TAURI__?.core?.invoke && filePath) {
-      window.__TAURI__.core.invoke("read_image_data", { filePath })
-        .then((dataUri) => {
-          if (dataUri && isLightboxActive) {
-            imgEl.src = dataUri;
-          }
-        })
-        .catch(() => {
-          if (titleEl) {
-            titleEl.className = "mb-0 fw-medium text-truncate text-danger text-decoration-line-through";
-          }
-          if (detailsEl) {
-            detailsEl.textContent = "Image was deleted";
-            detailsEl.className = "small text-danger";
-          }
-        });
-    }
-  } catch (err) {
-    console.error("Failed to open image lightbox:", err);
-  }
-}
+// Re-export image AI queue and lightbox utilities from image_queue.js
+export {
+  initSavedImageAiQueue,
+  getImageAiQueue,
+  updateImageAiItemStatus,
+  updateActiveImageAiProgress,
+  removeImageAiQueueItem,
+  clearImageAiQueue,
+  addImageFilesToQueue,
+  renderImageAiQueueUI,
+  initImageLightbox,
+  openImageLightbox,
+} from "./image_queue.js";
 
 export function clearAllMediaPreviewCaches() {
   let totalBytes = 0;

@@ -194,7 +194,7 @@
                       </div>
                       <div class="btn-group btn-group-sm flex-shrink-0 d-none" id="batch-header-actions">
                         <button class="btn btn-outline-secondary" type="button" id="btn-batch-add" title="Add files to batch queue"><i class="bi bi-folder-plus"></i></button>
-                        <button class="btn btn-outline-secondary" type="button" id="btn-batch-clear" title="Clear batch queue"><i class="bi bi-x-lg"></i></button>
+                        <button class="btn btn-outline-danger" type="button" id="btn-batch-clear" title="Clear batch queue"><i class="bi bi-trash"></i></button>
                       </div>
                     </div>
                     <div class="list-group list-group-flush border rounded mb-2 overflow-y-auto" style="max-height: 180px;" id="batch-queue-list">
@@ -273,9 +273,10 @@
                           <span class="badge bg-danger text-white mb-1 d-none" id="image-fallback-badge" style="font-size: 0.7rem;">Image was deleted</span>
                           <span class="small text-truncate w-100" style="font-size: 0.75rem;" id="image-fallback-filename">Loading image...</span>
                         </div>
-                        <div class="position-absolute bottom-0 start-0 w-100 p-2 d-none flex-column z-2 text-start" id="image-overlay-info" style="background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%);">
-                          <span class="small fw-medium text-white text-truncate w-100" id="image-overlay-title" style="font-size: 0.8rem;">Image Preview</span>
-                          <span class="small text-white-50" id="image-overlay-format" style="font-size: 0.7rem;">PNG Image</span>
+                        <div class="position-absolute bottom-0 start-0 w-100 p-2 d-none flex-column z-2 text-start" id="image-overlay-info" style="background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);">
+                          <span class="small fw-medium text-white text-truncate w-100 mb-0 lh-sm" id="image-overlay-title" style="font-size: 0.82rem;">Image Preview</span>
+                          <span class="small text-white-50 text-truncate w-100 lh-sm my-0" id="image-overlay-format" style="font-size: 0.72rem;">PNG Image</span>
+                          <span class="small text-white-50 text-truncate w-100 lh-sm" id="image-overlay-path" style="font-size: 0.68rem; opacity: 0.75;"></span>
                         </div>
                       </div>
                     </div>
@@ -291,8 +292,8 @@
                   Image Queue (<span id="image-ai-queue-count">0</span>&nbsp;images)
                 </div>
                 <div class="btn-group btn-group-sm flex-shrink-0" id="image-ai-header-actions">
-                  <button class="btn btn-outline-primary" type="button" id="btn-image-add" title="Add images to queue"><i class="bi bi-plus-lg me-1"></i>Add Images...</button>
-                  <button class="btn btn-outline-secondary d-none" type="button" id="btn-image-clear" title="Clear image queue"><i class="bi bi-trash"></i></button>
+                  <button class="btn btn-outline-primary d-none" type="button" id="btn-image-add" title="Add images to queue"><i class="bi bi-plus-lg me-1"></i>Add Images...</button>
+                  <button class="btn btn-outline-danger d-none" type="button" id="btn-image-clear" title="Clear image queue"><i class="bi bi-trash"></i></button>
                 </div>
               </div>
               <div id="image-ai-queue-list" class="mb-3">
@@ -303,6 +304,17 @@
                   <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-image-add-empty" title="Add images to queue">
                     <i class="bi bi-folder2-open me-1"></i> Select Images
                   </button>
+                </div>
+              </div>
+
+              <div class="mt-3" id="image-ai-outdir-section">
+                <div class="section-divider-header">Output Folder</div>
+                <div class="input-group mb-0">
+                  <button class="btn btn-outline-secondary" type="button" id="btn-browse-image-outdir" title="Choose output folder for AI images"><i class="bi bi-folder2-open"></i></button>
+                  <input type="text" class="form-control small" id="image-ai-output-dir" placeholder="Default Pictures folder..." readonly />
+                </div>
+                <div class="form-text text-body-secondary small mt-1">
+                  Generated images are saved to this folder unless "Replace Source" is toggled ON.
                 </div>
               </div>
             </div>
@@ -1207,8 +1219,12 @@
                     <label class="form-label small fw-medium" for="bg-model">Segmentation Model</label>
                     <select class="form-select form-select-sm" id="bg-model">
                       <option value="u2net" selected>U2Net (General Purpose / Studio)</option>
+                      <option value="fake_transparency">Fake Transparency (Checkerboard Grid Remover)</option>
+                      <option value="u2net_human_seg">U2Net Human (Portraits &amp; People)</option>
+                      <option value="u2net_cloth_seg">U2Net Cloth (Apparel &amp; Fashion)</option>
                       <option value="isnet-general-use">IS-Net (High Precision Boundaries)</option>
-                      <option value="birefnet-general">BiRefNet (Ultra-Fine Edge Detail)</option>
+                      <option value="isnet-anime">IS-Net Anime (Illustrations &amp; Cel Art)</option>
+                      <option value="birefnet-general">BiRefNet (Ultra-Fine Edge Detail &amp; Hair)</option>
                       <option value="silueta">Silueta (Fast Lightweight)</option>
                     </select>
                   </div>
@@ -1258,7 +1274,9 @@
                     <select class="form-select form-select-sm" id="upscale-model">
                       <option value="realesrgan-x4plus" selected>Real-ESRGAN+ (Photos &amp; Real World)</option>
                       <option value="realesr-animevideov3">Real-ESRGAN Anime (Illustration &amp; Art)</option>
+                      <option value="realesrgan-x4plus-anime">Real-ESRGAN Anime 6B (High-Fidelity 2D)</option>
                       <option value="bicubic_sharp">Lanczos Edge-Preserving Sharp</option>
+                      <option value="clarity_hdr">Local Contrast &amp; Clarity HDR</option>
                     </select>
                   </div>
                   <div class="col-md-4">
@@ -1289,6 +1307,8 @@
                     <select class="form-select form-select-sm" id="vec-mode">
                       <option value="color" selected>Color Quantized (Multi-Layer SVG)</option>
                       <option value="monochrome">Monochrome Silhouette</option>
+                      <option value="line_art">Line Art &amp; Edge Contours</option>
+                      <option value="posterize_flat">Flat Poster Graphic</option>
                     </select>
                   </div>
                   <div class="col-md-4" id="vec-colors-wrapper">
@@ -1332,6 +1352,8 @@
                       <option value="nlmeans" selected>Non-Local Means (Best for Low-Light &amp; High ISO Noise)</option>
                       <option value="bilateral">Bilateral Filter (Fast Edge-Preserving Smoothing)</option>
                       <option value="deblur_sharpen">Unsharp Mask (Deblur &amp; Edge Sharpening)</option>
+                      <option value="clahe_enhance">Adaptive Histogram Equalization (Shadow &amp; Highlight Recovery)</option>
+                      <option value="guided_filter">Guided Detail Filter (Scratch &amp; Compression Artifact Removal)</option>
                     </select>
                   </div>
                   <div class="col-md-6">
@@ -1600,7 +1622,13 @@
                   </button>
                 </div>
                 <div class="row g-3">
-                  <div class="col-md-12">
+                  <div class="col-md-6">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" role="switch" id="set-enable-notifications" checked />
+                      <label class="form-check-label small" for="set-enable-notifications">Show System Notification & Toast on Task Complete</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
                     <div class="form-check form-switch">
                       <input class="form-check-input" type="checkbox" role="switch" id="set-disable-animations" />
                       <label class="form-check-label small" for="set-disable-animations">Disable UI Animations & Transitions (Reduce Motion)</label>
@@ -1877,8 +1905,8 @@
                     <i class="bi bi-clipboard"></i>
                   </button>
 
-                  <!-- Log Box at top (full width, no gap from top) -->
-                  <div class="bg-black text-success-emphasis p-3 pe-5 font-monospace small overflow-y-auto" style="height: 140px; font-size: 0.8rem;" id="log-console">
+                  <!-- Log Box at top (full width, no gap from top, user-selectable text) -->
+                  <div class="bg-black text-success-emphasis p-3 pe-5 font-monospace small overflow-y-auto user-select-text" style="height: 140px; font-size: 0.8rem; user-select: text; -webkit-user-select: text;" id="log-console">
                     <div class="text-secondary">[Ready to process tasks]</div>
                   </div>
 
@@ -1901,7 +1929,7 @@
                   </div>
                   <!-- Progress Bar at absolute bottom (full width, no gap) -->
                   <div class="progress rounded-0" style="height: 4px; background-color: var(--bs-border-color);" id="exec-progress-container">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated progress-bar-indeterminate" id="job-progress-bar" role="progressbar" style="width: 100%"></div>
+                    <div class="progress-bar progress-bar-material-indeterminate" id="job-progress-bar" role="progressbar" style="width: 100%"></div>
                   </div>
                 </div>
               </div>
@@ -2530,8 +2558,8 @@
     <!-- Image Hero Zoom Lightbox Modal -->
     <div class="image-lightbox-overlay d-none" id="image-lightbox-modal">
       <div class="image-lightbox-backdrop" id="image-lightbox-backdrop"></div>
-      <div class="position-absolute top-0 end-0 p-3" style="z-index: 20;">
-        <button type="button" class="btn btn-outline-light btn-sm rounded-circle d-flex align-items-center justify-content-center" id="btn-lightbox-close" style="width: 36px; height: 36px;" title="Close preview (Esc)">
+      <div class="image-lightbox-close-wrapper">
+        <button type="button" class="btn btn-outline-light btn-sm rounded-circle d-flex align-items-center justify-content-center shadow" id="btn-lightbox-close" style="width: 36px; height: 36px;" title="Close preview (Esc)">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
@@ -2539,9 +2567,10 @@
         <div class="transparency-grid rounded border shadow-lg d-flex align-items-center justify-content-center overflow-hidden" id="image-lightbox-wrapper">
           <img id="image-lightbox-img" class="image-lightbox-img" src="" alt="Full Preview" />
         </div>
-        <div class="mt-3 text-center text-white" id="image-lightbox-meta">
-          <h6 class="mb-0 fw-medium text-truncate" id="image-lightbox-title" style="max-width: 70vw;">photo.png</h6>
-          <span class="small text-white-50" id="image-lightbox-details">Original Image</span>
+        <div class="mt-3 text-center text-white d-flex flex-column align-items-center" id="image-lightbox-meta">
+          <h6 class="mb-0 fw-medium text-truncate w-100" id="image-lightbox-title" style="max-width: 80vw;">photo.png</h6>
+          <span class="small text-white-50 text-truncate w-100 my-0" id="image-lightbox-details" style="max-width: 80vw; font-size: 0.78rem;">PNG Image • 1920x1080</span>
+          <span class="small text-white-50 text-truncate w-100" id="image-lightbox-path" style="max-width: 80vw; font-size: 0.72rem; opacity: 0.75;">C:\path\to\photo.png</span>
         </div>
       </div>
     </div>

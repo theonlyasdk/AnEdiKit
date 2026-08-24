@@ -566,8 +566,10 @@ a:active,
   transition: transform 0.35s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.3s ease-in !important;
 }
 
-/* Filename Format Editor Styles */
-.format-list-item {
+/* Filename Format Editor, Image Queue & Batch Queue Drag Styles */
+.format-list-item,
+.image-queue-item,
+.batch-queue-item {
   position: relative;
   transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.15s ease;
   user-select: none;
@@ -579,29 +581,64 @@ a:active,
   border-bottom: 1px solid var(--bs-border-color) !important;
 }
 
-.format-list-item:last-child {
+.format-list-item:last-child,
+.image-queue-item:last-child,
+.batch-queue-item:last-child {
   border-bottom: none !important;
 }
 
-.format-list-item.is-dragging {
+.format-list-item.is-dragging:not(.is-releasing),
+.image-queue-item.is-dragging:not(.is-releasing),
+.batch-queue-item.is-dragging:not(.is-releasing) {
+  position: relative;
   z-index: 1050 !important;
   opacity: 0.98;
+  background-color: var(--bs-body-bg) !important;
   border: 1px solid var(--bs-primary) !important;
   border-radius: 4px !important;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 3px 10px rgba(0, 0, 0, 0.25) !important;
   transition: none !important;
   cursor: grabbing !important;
+  will-change: transform;
 }
 
-.format-drag-handle {
+.format-drag-handle,
+.image-queue-drag-handle,
+.batch-queue-drag-handle {
   cursor: grab;
   touch-action: none;
   user-select: none;
 }
 
 .format-drag-handle:active,
-.format-list-item.is-dragging .format-drag-handle {
+.image-queue-drag-handle:active,
+.batch-queue-drag-handle:active,
+.format-list-item.is-dragging .format-drag-handle,
+.image-queue-item.is-dragging .image-queue-drag-handle,
+.batch-queue-item.is-dragging .batch-queue-drag-handle {
   cursor: grabbing;
+}
+
+/* Drag drop placement flash animation */
+@keyframes itemDropFlash {
+  0% {
+    background-color: rgba(var(--bs-primary-rgb), 0.4) !important;
+    outline: 2px solid var(--bs-primary);
+  }
+  100% {
+    background-color: transparent !important;
+    outline: 2px solid transparent;
+  }
+}
+
+.item-dropped-highlight {
+  animation: itemDropFlash 0.5s ease-out forwards !important;
+}
+
+/* Ensure drag lists allow dragging on top without horizontal scrollbar flash */
+#image-ai-queue-list.list-group,
+#batch-queue-list.list-group {
+  overflow-x: hidden !important;
 }
 
 /* Media Preview Slide-in Animation */
@@ -1251,6 +1288,31 @@ html.no-animations *::after {
   z-index: 1;
 }
 
+.image-lightbox-close-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 1rem;
+  z-index: 20;
+  transform: translateY(-50px);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease-out;
+  pointer-events: none;
+}
+
+.image-lightbox-overlay.lightbox-visible .image-lightbox-close-wrapper {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.image-lightbox-overlay.lightbox-closing .image-lightbox-close-wrapper {
+  transform: translateY(-50px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.15s ease-in;
+}
+
 .image-lightbox-card {
   position: relative;
   z-index: 10;
@@ -1423,9 +1485,9 @@ html.no-animations *::after {
   padding: 0.6rem 1.25rem;
 }
 
-/* iOS-style slide-in-from-bottom animation for comparison modal */
+/* Snappy slide-in-from-bottom animation for comparison modal */
 .image-comp-modal-overlay {
-  animation: compModalSlideIn 0.4s cubic-bezier(.06, -0.04, .1, .99) forwards;
+  animation: compModalSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes compModalSlideIn {
@@ -1438,7 +1500,7 @@ html.no-animations *::after {
 }
 
 .image-comp-modal-overlay.comp-closing {
-  animation: compModalSlideOut 0.3s cubic-bezier(.06, -0.04, .1, .99) forwards;
+  animation: compModalSlideOut 0.18s cubic-bezier(0.7, 0, 0.84, 0) forwards;
 }
 
 @keyframes compModalSlideOut {
@@ -1477,6 +1539,33 @@ html.no-animations *::after {
   white-space: nowrap;
   word-break: normal;
   max-width: 100%;
+}
+
+/* Material Design Indeterminate Progress Bar */
+#exec-progress-container {
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-material-indeterminate {
+  position: relative;
+  width: 100% !important;
+  height: 100%;
+  background-color: var(--bs-primary) !important;
+  animation: materialIndeterminate 1.6s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite !important;
+  transform-origin: 0% 50%;
+}
+
+@keyframes materialIndeterminate {
+  0% {
+    transform: translateX(-100%) scaleX(0.1);
+  }
+  50% {
+    transform: translateX(0%) scaleX(0.7);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.2);
+  }
 }
 
 

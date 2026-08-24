@@ -1342,14 +1342,18 @@ fn execute_image_ai(app: tauri::AppHandle, task: String, params: String) -> Resu
                         if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
                             let pct = val.get("pct").and_then(|p| p.as_u64()).unwrap_or(0) as u32;
                             let msg = val.get("msg").and_then(|m| m.as_str()).unwrap_or("").to_string();
+                            let speed = val.get("speed").and_then(|s| s.as_str()).unwrap_or("").to_string();
+                            let eta = val.get("eta").and_then(|e| e.as_str()).map(|s| s.to_string());
+                            let bitrate = val.get("bitrate").and_then(|b| b.as_str()).unwrap_or("").to_string();
+
                             let _ = app_out.emit(
                                 "ffmpeg-progress",
                                 ProgressPayload {
                                     time: msg,
-                                    eta: None,
+                                    eta,
                                     fps: "".into(),
-                                    speed: "".into(),
-                                    bitrate: "".into(),
+                                    speed,
+                                    bitrate,
                                     pct,
                                     playlist_item: None,
                                     playlist_total: None,
@@ -1368,6 +1372,98 @@ fn execute_image_ai(app: tauri::AppHandle, task: String, params: String) -> Resu
         let err_handle = std::thread::spawn(move || {
             if let Some(err) = stderr {
                 stream_lines(err, move |line| {
+                    if CANCEL_REQUESTED.load(Ordering::SeqCst) {
+                        return;
+                    }
+
+                    if line.starts_with("ANEDIKIT_PROGRESS:") {
+                        let json_str = &line["ANEDIKIT_PROGRESS:".len()..];
+                        if let Ok(val) = serde_json::from_str::<serde_json::Value>(json_str) {
+                            let pct = val.get("pct").and_then(|p| p.as_u64()).unwrap_or(0) as u32;
+                            let msg = val.get("msg").and_then(|m| m.as_str()).unwrap_or("").to_string();
+                            let speed = val.get("speed").and_then(|s| s.as_str()).unwrap_or("").to_string();
+                            let eta = val.get("eta").and_then(|e| e.as_str()).map(|s| s.to_string());
+                            let bitrate = val.get("bitrate").and_then(|b| b.as_str()).unwrap_or("").to_string();
+
+                            let _ = app_err.emit(
+                                "ffmpeg-progress",
+                                ProgressPayload {
+                                    time: msg,
+                                    eta,
+                                    fps: "".into(),
+                                    speed,
+                                    bitrate,
+                                    pct,
+                                    playlist_item: None,
+                                    playlist_total: None,
+                                    current_item_title: None,
+                                },
+                            );
+                        }
+                    } else if line.contains('%') && (line.contains("MB/s") || line.contains("kB/s") || line.contains("B/s") || line.contains("it/s")) {
+                        // Fallback parsing for raw tqdm progress outputs on stderr
+                        let mut cur_pct = 0u32;
+                        if let Some(pct_idx) = line.find('%') {
+                            let before = &line[..pct_idx];
+                            let num_str: String = before.chars().rev().take_while(|c| c.is_digit(10) || *c == '.' || *c == ' ').collect();
+                            let clean_num: String = num_str.chars().rev().collect();
+                            if let Ok(pct) = clean_num.trim().parse::<f64>() {
+                                cur_pct = pct.clamp(0.0, 100.0).round() as u32;
+                            }
+                        }
+
+                        let mut cur_speed = String::new();
+                        if let Some(speed_idx) = line.rfind(", ") {
+                            let sub = &line[speed_idx + 2..];
+                            if let Some(end_idx) = sub.find(']') {
+                                cur_speed = sub[..end_idx].trim().to_string();
+                            }
+                        }
+
+                        let mut cur_eta: Option<String> = None;
+                        if let Some(open_bracket) = line.find('[') {
+                            let sub = &line[open_bracket + 1..];
+                            if let Some(lt_idx) = sub.find('<') {
+                                let eta_part = &sub[lt_idx + 1..];
+                                if let Some(comma_idx) = eta_part.find(',') {
+                                    let eta_str = eta_part[..comma_idx].trim();
+                                    if !eta_str.is_empty() && eta_str != "--:--" {
+                                        cur_eta = Some(eta_str.to_string());
+                                    }
+                                }
+                            }
+                        }
+
+                        let mut cur_size = String::new();
+                        if let Some(pipe_idx) = line.rfind('|') {
+                            let sub = &line[pipe_idx + 1..];
+                            if let Some(bracket_idx) = sub.find('[') {
+                                cur_size = sub[..bracket_idx].trim().to_string();
+                            }
+                        }
+
+                        let time_label = if !cur_size.is_empty() {
+                            format!("Downloading Model: {}", cur_size)
+                        } else {
+                            format!("Downloading Model... ({}%)", cur_pct)
+                        };
+
+                        let _ = app_err.emit(
+                            "ffmpeg-progress",
+                            ProgressPayload {
+                                time: time_label,
+                                eta: cur_eta,
+                                fps: "".into(),
+                                speed: cur_speed,
+                                bitrate: cur_size,
+                                pct: cur_pct,
+                                playlist_item: None,
+                                playlist_total: None,
+                                current_item_title: None,
+                            },
+                        );
+                    }
+
                     let _ = app_err.emit("ffmpeg-log", LogPayload { line });
                 });
             }

@@ -137,12 +137,23 @@ export class ImagePreviewProvider extends MediaPreviewProvider {
         if (imageOverlayInfo) imageOverlayInfo.classList.remove("d-none");
 
         // Update resolution accurately from image natural dimensions if not already provided
+        const w = imageEl.naturalWidth;
+        const h = imageEl.naturalHeight;
+        const res = (w && h) ? `${w}x${h}` : (info?.resolution && info.resolution !== "--" && info.resolution !== "N/A" ? info.resolution : "");
+        const formatText = `${(ext || "img").toUpperCase()} Image`;
+        const sizeText = info?.file_size_formatted || (info?.file_size_mb ? `${info.file_size_mb} MB` : "");
+
+        const metaParts = [formatText];
+        if (res) metaParts.push(res);
+        if (sizeText) metaParts.push(sizeText);
+
         if (imageOverlayFormat) {
-          const w = imageEl.naturalWidth;
-          const h = imageEl.naturalHeight;
-          const res = (w && h) ? `${w}x${h}` : (info?.resolution && info.resolution !== "--" && info.resolution !== "N/A" ? info.resolution : "");
-          const formatText = `${(ext || "img").toUpperCase()} Image`;
-          imageOverlayFormat.innerHTML = res ? `${formatText}<br><span class="text-white-50">${res}</span>` : formatText;
+          imageOverlayFormat.textContent = metaParts.join(" • ");
+        }
+
+        const imageOverlayPath = document.getElementById("image-overlay-path");
+        if (imageOverlayPath) {
+          imageOverlayPath.textContent = targetImgPath || "";
         }
       };
 
@@ -186,9 +197,16 @@ export class ImagePreviewProvider extends MediaPreviewProvider {
           ? info.resolution
           : "";
       const formatText = `${(ext || "img").toUpperCase()} Image`;
-      imageOverlayFormat.innerHTML = res
-        ? `${formatText}<br><span class="text-white-50">${res}</span>`
-        : formatText;
+      const sizeText = info?.file_size_formatted || (info?.file_size_mb ? `${info.file_size_mb} MB` : "");
+      const metaParts = [formatText];
+      if (res) metaParts.push(res);
+      if (sizeText) metaParts.push(sizeText);
+      imageOverlayFormat.textContent = metaParts.join(" • ");
+    }
+
+    const imageOverlayPath = document.getElementById("image-overlay-path");
+    if (imageOverlayPath) {
+      imageOverlayPath.textContent = targetImgPath || "";
     }
 
     if (videoEl) {

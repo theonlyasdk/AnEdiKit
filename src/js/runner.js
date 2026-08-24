@@ -1,5 +1,6 @@
 // Task Execution Runner Module
-import { updateBatchItemStatus } from "./media.js";
+import { updateBatchItemStatus, updateActiveImageAiProgress } from "./media.js";
+import { loadSettings } from "./storage.js";
 
 let isRunning = false;
 let isBatchRunning = false;
@@ -93,6 +94,7 @@ export function updateProgress(data) {
   const statFps = document.getElementById("stat-fps");
   const statSpeed = document.getElementById("stat-speed");
   const statBitrate = document.getElementById("stat-bitrate");
+  const statusMsg = document.getElementById("status-message");
 
   // Currently processing item and heading
   const currentItemWrapper = document.getElementById("current-item-wrapper");
@@ -115,37 +117,99 @@ export function updateProgress(data) {
     currentItemName.textContent = current_item_title;
   }
 
-  if (time && statTime) statTime.textContent = time.startsWith("Time:") || time.startsWith("Size:") ? time : `Time: ${time}`;
+  // Format message / time readout
+  if (time && statTime) {
+    if (
+      time.startsWith("Time:") ||
+      time.startsWith("Size:") ||
+      time.startsWith("Downloading") ||
+      time.startsWith("Connecting") ||
+      time.startsWith("Loading") ||
+      time.startsWith("Executing") ||
+      time.startsWith("Completed")
+    ) {
+      statTime.textContent = time;
+    } else {
+      statTime.textContent = `Time: ${time}`;
+    }
+  }
+
+  // Live status message at bottom bar
+  if (statusMsg && time) {
+    if (time.toLowerCase().includes("downloading") || time.toLowerCase().includes("model") || time.toLowerCase().includes("segmentation") || time.toLowerCase().includes("upscal")) {
+      statusMsg.textContent = time;
+    }
+  }
+
+  // ETA readout
   if (statEta) {
-    if (eta) {
+    if (eta && eta !== "--:--" && eta !== "--:--:--") {
       statEta.textContent = eta.startsWith("ETA:") || eta.startsWith("Remaining:") ? eta : `ETA: ${eta}`;
       statEta.classList.remove("d-none");
     } else if (pct >= 100) {
       statEta.textContent = "ETA: 00:00:00";
+      statEta.classList.remove("d-none");
     } else {
       statEta.textContent = "ETA: --:--:--";
     }
   }
-  if (fps && statFps) statFps.textContent = fps.startsWith("FPS:") ? fps : `FPS: ${fps}`;
-  if (speed && statSpeed) statSpeed.textContent = speed.startsWith("Speed:") ? speed : `Speed: ${speed}`;
-  if (bitrate && statBitrate) statBitrate.textContent = bitrate.startsWith("Bitrate:") ? bitrate : `Bitrate: ${bitrate}`;
+
+  // FPS readout (hidden if empty or not video processing)
+  if (statFps) {
+    if (fps && fps !== "0" && fps !== "0.0") {
+      statFps.textContent = fps.startsWith("FPS:") ? fps : `FPS: ${fps}`;
+      statFps.classList.remove("d-none");
+    } else {
+      statFps.classList.add("d-none");
+    }
+  }
+
+  // Speed readout (shown for ffmpeg, yt-dlp, and python model downloads)
+  if (statSpeed) {
+    if (speed && speed !== "0x" && speed !== "0" && speed !== "0 MiB/s" && speed !== "0.00 MB/s") {
+      statSpeed.textContent = speed.startsWith("Speed:") ? speed : `Speed: ${speed}`;
+      statSpeed.classList.remove("d-none");
+    } else {
+      statSpeed.classList.add("d-none");
+    }
+  }
+
+  // Bitrate / Size readout
+  if (statBitrate) {
+    const isDownloadProgress = time && (time.startsWith("Downloading") || time.startsWith("Size:"));
+    if (bitrate && bitrate !== "0 kbits/s" && bitrate !== "0" && !isDownloadProgress) {
+      const isSize = bitrate.toLowerCase().includes("mb") || bitrate.toLowerCase().includes("kb") || bitrate.toLowerCase().includes("gb");
+      const prefix = isSize ? "Size: " : "Bitrate: ";
+      statBitrate.textContent = bitrate.startsWith("Bitrate:") || bitrate.startsWith("Size:") ? bitrate : `${prefix}${bitrate}`;
+      statBitrate.classList.remove("d-none");
+    } else {
+      statBitrate.classList.add("d-none");
+    }
+  }
+
+  // Progress percentage and bar width
+  const numPct = typeof pct === "number" ? pct : parseInt(pct, 10) || 0;
+  const clamped = Math.min(100, Math.max(0, numPct));
 
   if (bar && pctEl) {
-    const numPct = typeof pct === "number" ? pct : parseInt(pct, 10) || 0;
-    const clamped = Math.min(100, Math.max(0, numPct));
     pctEl.textContent = `${clamped}%`;
     if (clamped === 0) {
-      bar.classList.remove("bg-success", "bg-danger");
-      bar.classList.add("progress-bar-striped", "progress-bar-animated");
-      bar.style.width = "4%";
+      bar.classList.remove("bg-success", "bg-danger", "progress-bar-striped", "progress-bar-animated");
+      bar.classList.add("progress-bar-material-indeterminate");
+      bar.style.width = "100%";
     } else if (clamped >= 100) {
-      bar.classList.remove("progress-bar-striped", "progress-bar-animated", "bg-danger");
+      bar.classList.remove("progress-bar-striped", "progress-bar-animated", "progress-bar-material-indeterminate", "bg-danger");
       bar.classList.add("bg-success");
       bar.style.width = "100%";
     } else {
-      bar.classList.remove("progress-bar-striped", "progress-bar-animated", "bg-success", "bg-danger");
+      bar.classList.remove("progress-bar-striped", "progress-bar-animated", "progress-bar-material-indeterminate", "bg-success", "bg-danger");
       bar.style.width = `${clamped}%`;
     }
+  }
+
+  // Update active item badge in Image AI queue if present
+  if (typeof updateActiveImageAiProgress === "function") {
+    updateActiveImageAiProgress(time, clamped);
   }
 }
 
@@ -216,9 +280,9 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   
   const bar = document.getElementById("job-progress-bar");
   if (bar) {
-    bar.classList.remove("bg-success", "bg-danger");
-    bar.classList.add("progress-bar-striped", "progress-bar-animated");
-    bar.style.width = "4%";
+    bar.classList.remove("bg-success", "bg-danger", "progress-bar-striped", "progress-bar-animated");
+    bar.classList.add("progress-bar-material-indeterminate");
+    bar.style.width = "100%";
   }
 
   updateProgress({
@@ -384,6 +448,22 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
     }
 
     const item = queue[i];
+
+    // Check if source file exists before executing
+    if (window.__TAURI__?.core?.invoke && item.path) {
+      try {
+        const exists = await window.__TAURI__.core.invoke("check_file_exists", { filePath: item.path });
+        if (!exists) {
+          item.status = "skipped";
+          updateBatchItemStatus(i, "skipped");
+          appendLog(`[Item ${i + 1}/${queue.length}: Skipped non-existent file: ${item.name} (${item.path})]`, true);
+          continue;
+        }
+      } catch (e) {
+        console.warn("Failed to check file existence:", e);
+      }
+    }
+
     item.status = "processing";
     updateBatchItemStatus(i, "processing");
 
@@ -551,6 +631,11 @@ export function onJobFinished(success, message) {
 
 export async function showFinishedNotification(destination, toolName = "Conversion", elapsedSeconds = "0.0") {
   if (!destination) return;
+
+  const currentSettings = loadSettings();
+  if (currentSettings.enableNotifications === false) {
+    return;
+  }
 
   const fileName = destination.split(/[/\\]/).pop() || destination;
 
@@ -744,7 +829,15 @@ export function initLogCopyButton() {
 
   btnCopy.onclick = async () => {
     try {
-      const textToCopy = logConsole.innerText || logConsole.textContent || "";
+      // Gather lines cleanly from child elements to ensure full text fidelity
+      const lines = Array.from(logConsole.querySelectorAll("div"))
+        .map((el) => el.textContent || "")
+        .filter((t) => t.trim().length > 0);
+
+      const textToCopy = lines.length > 0
+        ? lines.join("\n")
+        : (logConsole.innerText || logConsole.textContent || "");
+
       if (!textToCopy.trim()) return;
 
       await navigator.clipboard.writeText(textToCopy);
