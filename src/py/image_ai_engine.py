@@ -460,41 +460,78 @@ def cmd_bg_remover(args_json):
             orig_np = np.array(img.convert("RGB"))
             hsv = cv2.cvtColor(orig_np, cv2.COLOR_RGB2HSV)
             gray = cv2.cvtColor(orig_np, cv2.COLOR_RGB2GRAY)
-            alpha = np.array(fg_image.getchannel("A")).astype(np.float32) / 255.0
-
-            # Detect neutral checkerboard pixels (low saturation, high brightness)
-            sat = hsv[:, :, 1]
-            val = hsv[:, :, 2]
-            is_neutral = (sat < 22) & (val > 145)
-
-            # Flood fill connected background from outer image perimeter
             h, w = gray.shape
-            flood_seeds = []
-            for x in range(0, w, 15):
-                if is_neutral[0, x]: flood_seeds.append((x, 0))
-                if is_neutral[h - 1, x]: flood_seeds.append((x, h - 1))
-            for y in range(0, h, 15):
-                if is_neutral[y, 0]: flood_seeds.append((0, y))
-                if is_neutral[y, w - 1]: flood_seeds.append((w - 1, y))
+            neural_alpha = np.array(fg_image.getchannel("A"))
 
-            bg_marker = np.zeros((h, w), dtype=np.uint8)
-            for sx, sy in flood_seeds:
-                if is_neutral[sy, sx] and bg_marker[sy, sx] == 0:
-                    mask = np.zeros((h + 2, w + 2), np.uint8)
-                    cv2.floodFill(gray, mask, (sx, sy), 255, loDiff=18, upDiff=18, flags=4 | (255 << 8) | cv2.FLOODFILL_MASK_ONLY)
-                    bg_marker[mask[1:-1, 1:-1] == 255] = 1
+            # 1. Automatic checkerboard grid parameter discovery from image corners / edges
+            best_score = 0
+            best_params = (17, 0, 0, 230.0, 254.0)
 
-            # Clamp alpha to 0 for detected checkerboard and low-confidence neutral fringe
-            refined_alpha = alpha.copy()
-            refined_alpha[bg_marker == 1] = 0.0
-            refined_alpha[(alpha < 0.88) & is_neutral] = 0.0
+            sample_h, sample_w = min(h, 90), min(w, 90)
+            for tile_sz in range(10, 32):
+                for ox in range(tile_sz):
+                    for oy in range(tile_sz):
+                        y_idx, x_idx = np.indices((sample_h, sample_w))
+                        parity = (((x_idx + ox) // tile_sz) + ((y_idx + oy) // tile_sz)) % 2
+                        sample = gray[:sample_h, :sample_w]
+                        c0 = sample[parity == 0]
+                        c1 = sample[parity == 1]
+                        diff_val = abs(float(np.mean(c0)) - float(np.mean(c1)))
+                        std0 = float(np.std(c0))
+                        std1 = float(np.std(c1))
+                        score = diff_val / (std0 + std1 + 1e-4)
+                        if score > best_score:
+                            best_score = score
+                            best_params = (tile_sz, ox, oy, float(np.mean(c0)), float(np.mean(c1)))
 
-            # Gentle edge denoising
-            refined_alpha_uint8 = (refined_alpha * 255).astype(np.uint8)
-            refined_alpha_uint8 = cv2.medianBlur(refined_alpha_uint8, 3)
+            tile_sz, ox, oy, c0_val, c1_val = best_params
+
+            # 2. Synthesize expected checkerboard and calculate pixel & block differences
+            y_idx, x_idx = np.indices((h, w))
+            parity = (((x_idx + ox) // tile_sz) + ((y_idx + oy) // tile_sz)) % 2
+            grid_expected = np.where(parity == 0, c0_val, c1_val)
+            pixel_diff = np.abs(gray.astype(np.float32) - grid_expected)
+
+            num_r = h // tile_sz
+            num_c = w // tile_sz
+            tile_diff_mean = np.zeros((h, w), dtype=np.float32)
+            for r in range(num_r):
+                for c in range(num_c):
+                    block = pixel_diff[r * tile_sz : (r + 1) * tile_sz, c * tile_sz : (c + 1) * tile_sz]
+                    tile_diff_mean[r * tile_sz : (r + 1) * tile_sz, c * tile_sz : (c + 1) * tile_sz] = np.mean(block)
+
+            # 3. Outer background flood fill from image perimeter
+            is_pure_bg_tile = tile_diff_mean < 3.8
+            bg_mask = np.zeros((h + 2, w + 2), np.uint8)
+            for x in range(w):
+                if is_pure_bg_tile[0, x]:
+                    cv2.floodFill(is_pure_bg_tile.astype(np.uint8), bg_mask, (x, 0), 255, flags=4 | (255 << 8) | cv2.FLOODFILL_MASK_ONLY)
+                if is_pure_bg_tile[h - 1, x]:
+                    cv2.floodFill(is_pure_bg_tile.astype(np.uint8), bg_mask, (x, h - 1), 255, flags=4 | (255 << 8) | cv2.FLOODFILL_MASK_ONLY)
+            for y in range(h):
+                if is_pure_bg_tile[y, 0]:
+                    cv2.floodFill(is_pure_bg_tile.astype(np.uint8), bg_mask, (0, y), 255, flags=4 | (255 << 8) | cv2.FLOODFILL_MASK_ONLY)
+                if is_pure_bg_tile[y, w - 1]:
+                    cv2.floodFill(is_pure_bg_tile.astype(np.uint8), bg_mask, (w - 1, y), 255, flags=4 | (255 << 8) | cv2.FLOODFILL_MASK_ONLY)
+
+            outer_bg = bg_mask[1:-1, 1:-1] == 255
+
+            # 4. Refine alpha mask without eroding subject content
+            final_alpha = neural_alpha.copy()
+            final_alpha[outer_bg] = 0
+
+            # Neutrality filter for interior gaps (e.g. gaps between floating parts)
+            sat = hsv[:, :, 1]
+            is_neutral = sat < 16
+            final_alpha[(pixel_diff < 3.5) & is_neutral & (neural_alpha < 190)] = 0
+
+            # Dilated gap cleanup for low confidence checkerboard residue
+            gap_seed = (final_alpha == 0) & (neural_alpha > 0)
+            dilated_gap = cv2.dilate(gap_seed.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))) == 1
+            final_alpha[dilated_gap & (pixel_diff < 10) & (neural_alpha < 140)] = 0
 
             fg_image = img.convert("RGBA")
-            fg_image.putalpha(Image.fromarray(refined_alpha_uint8))
+            fg_image.putalpha(Image.fromarray(final_alpha))
         except Exception as checker_err:
             log_progress(75, f"Checkerboard refinement notice: {checker_err}")
 
