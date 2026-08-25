@@ -42,7 +42,7 @@ export function initComparisonModal() {
     // Restore background app view
     const appMain = document.getElementById("app-root");
     if (appMain) {
-      appMain.style.transition = "transform 0.3s cubic-bezier(.06,-0.04,.1,.99), opacity 0.3s cubic-bezier(.06,-0.04,.1,.99)";
+      appMain.style.transition = "transform 0.3s cubic-bezier(0.09, -0.05, 0.12, 0.98), opacity 0.3s cubic-bezier(0.09, -0.05, 0.12, 0.98)";
       appMain.style.transform = "";
       appMain.style.opacity = "";
     }
@@ -367,11 +367,11 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
   const zoomText = document.getElementById("comp-zoom-text");
   if (zoomText) zoomText.textContent = `100%`;
 
-  // Show modal with iOS-style slide-in animation
+  // Show modal with slide-in animation
   // Background (main app view) scales down while comparison slides up
   const appMain = document.getElementById("main-content-area") || document.querySelector(".col.p-0.d-flex");
   if (appMain) {
-    appMain.style.transition = "transform 0.4s cubic-bezier(.06,-0.04,.1,.99), opacity 0.4s cubic-bezier(.06,-0.04,.1,.99)";
+    appMain.style.transition = "transform 0.35s cubic-bezier(0.09, -0.05, 0.12, 0.98), opacity 0.35s cubic-bezier(0.09, -0.05, 0.12, 0.98)";
     appMain.style.transform = "scale(0.75)";
     appMain.style.opacity = "0.3";
     appMain.style.transformOrigin = "center center";
