@@ -110,9 +110,13 @@ export function initComparisonModal() {
     x = Math.max(0, Math.min(rect.width, x));
     splitPositionPct = (x / rect.width) * 100;
 
+    const beforeWrapper = document.getElementById("comp-split-before-wrapper");
     const afterWrapper = document.getElementById("comp-split-after-wrapper");
     const divider = document.getElementById("comp-split-divider");
 
+    if (beforeWrapper) {
+      beforeWrapper.style.clipPath = `polygon(0% 0%, ${splitPositionPct}% 0%, ${splitPositionPct}% 100%, 0% 100%)`;
+    }
     if (afterWrapper) {
       afterWrapper.style.clipPath = `polygon(${splitPositionPct}% 0%, 100% 0%, 100% 100%, ${splitPositionPct}% 100%)`;
     }
@@ -339,8 +343,12 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
 
   // Reset split slider position to 50%
   splitPositionPct = 50;
+  const beforeWrapper = document.getElementById("comp-split-before-wrapper");
   const afterWrapper = document.getElementById("comp-split-after-wrapper");
   const divider = document.getElementById("comp-split-divider");
+  if (beforeWrapper) {
+    beforeWrapper.style.clipPath = `polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%)`;
+  }
   if (afterWrapper) {
     afterWrapper.style.clipPath = `polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%)`;
   }

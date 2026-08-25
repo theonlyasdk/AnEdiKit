@@ -2476,12 +2476,12 @@
         <!-- Mode 1: Split Slider (Sliding Window) -->
         <div class="comp-split-container w-100 h-100" id="comp-view-split">
           <div class="position-relative w-100 h-100 comp-zoomable" id="comp-split-wrapper" style="transition: transform 0.05s ease-out;">
-            <!-- Before Layer (Original) -->
-            <div class="comp-split-image-layer">
+            <!-- Before Layer (Original - Clipped to Left Side of Slider) -->
+            <div class="comp-split-image-layer" id="comp-split-before-wrapper" style="clip-path: polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%);">
               <img id="comp-split-before-img" src="" alt="Original Image" draggable="false" />
               <div class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 start-0 m-3 py-1 px-2 border" style="z-index: 5;">Before</div>
             </div>
-            <!-- After Layer (Processed - Clipped by Slider) -->
+            <!-- After Layer (Processed - Clipped to Right Side of Slider) -->
             <div class="comp-split-image-layer" id="comp-split-after-wrapper" style="clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);">
               <img id="comp-split-after-img" src="" alt="Enhanced Result" draggable="false" />
               <div class="badge bg-primary text-white position-absolute top-0 end-0 m-3 py-1 px-2" style="z-index: 15;">After</div>
