@@ -457,22 +457,27 @@ def cmd_bg_remover(args_json):
             import cv2
             import numpy as np
 
+            custom_tile_sz = int(args_json.get("fake_tile_size", 0))
+            grid_tolerance = float(args_json.get("fake_grid_tolerance", 14.0))
+            gap_threshold = float(args_json.get("fake_gap_threshold", 15.0))
+
             orig_np = np.array(img.convert("RGB"))
             hsv = cv2.cvtColor(orig_np, cv2.COLOR_RGB2HSV)
             gray = cv2.cvtColor(orig_np, cv2.COLOR_RGB2GRAY)
             h, w = gray.shape
             neural_alpha = np.array(fg_image.getchannel("A"))
 
-            # 1. Automatic checkerboard grid parameter discovery from image corners / edges
+            # 1. Automatic or manual checkerboard grid parameter discovery
             best_score = 0
-            best_params = (17, 0, 0, 230.0, 254.0)
+            best_params = (custom_tile_sz if custom_tile_sz > 0 else 17, 0, 0, 230.0, 254.0)
 
             sample_h, sample_w = min(h, 90), min(w, 90)
-            for tile_sz in range(10, 32):
-                for ox in range(tile_sz):
-                    for oy in range(tile_sz):
+            tile_search_range = [custom_tile_sz] if custom_tile_sz > 0 else range(10, 32)
+            for tile_sz_cand in tile_search_range:
+                for ox in range(tile_sz_cand):
+                    for oy in range(tile_sz_cand):
                         y_idx, x_idx = np.indices((sample_h, sample_w))
-                        parity = (((x_idx + ox) // tile_sz) + ((y_idx + oy) // tile_sz)) % 2
+                        parity = (((x_idx + ox) // tile_sz_cand) + ((y_idx + oy) // tile_sz_cand)) % 2
                         sample = gray[:sample_h, :sample_w]
                         c0 = sample[parity == 0]
                         c1 = sample[parity == 1]
@@ -482,7 +487,7 @@ def cmd_bg_remover(args_json):
                         score = diff_val / (std0 + std1 + 1e-4)
                         if score > best_score:
                             best_score = score
-                            best_params = (tile_sz, ox, oy, float(np.mean(c0)), float(np.mean(c1)))
+                            best_params = (tile_sz_cand, ox, oy, float(np.mean(c0)), float(np.mean(c1)))
 
             tile_sz, ox, oy, c0_val, c1_val = best_params
 
@@ -501,7 +506,7 @@ def cmd_bg_remover(args_json):
                     tile_diff_mean[r * tile_sz : (r + 1) * tile_sz, c * tile_sz : (c + 1) * tile_sz] = np.mean(block)
 
             # 3. Outer background flood fill from image perimeter
-            is_pure_bg_tile = tile_diff_mean < 3.8
+            is_pure_bg_tile = tile_diff_mean < 4.0
             bg_mask = np.zeros((h + 2, w + 2), np.uint8)
             for x in range(w):
                 if is_pure_bg_tile[0, x]:
@@ -527,12 +532,12 @@ def cmd_bg_remover(args_json):
                 for c in range(num_c):
                     block_diff = pixel_diff[r * tile_sz : (r + 1) * tile_sz, c * tile_sz : (c + 1) * tile_sz]
                     block_alpha = neural_alpha[r * tile_sz : (r + 1) * tile_sz, c * tile_sz : (c + 1) * tile_sz]
-                    if np.mean(block_diff) < 14.5 and np.mean(block_alpha) < 225:
+                    if np.mean(block_diff) < gap_threshold and np.mean(block_alpha) < 225:
                         final_alpha[r * tile_sz : (r + 1) * tile_sz, c * tile_sz : (c + 1) * tile_sz] = 0
 
             # Dilated gap & boundary grid line cleanup
             dilated_bg = cv2.dilate((final_alpha == 0).astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))) == 1
-            boundary_fringe = dilated_bg & (pixel_diff < 12) & is_neutral & (neural_alpha < 190)
+            boundary_fringe = dilated_bg & (pixel_diff < grid_tolerance) & is_neutral & (neural_alpha < 190)
             final_alpha[boundary_fringe] = 0
 
             fg_image = img.convert("RGBA")

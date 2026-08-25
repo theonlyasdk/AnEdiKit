@@ -1248,6 +1248,42 @@
                     <input type="number" class="form-control form-control-sm font-sans" id="bg-blur-radius" value="25" min="5" max="100" />
                   </div>
                 </div>
+
+                <!-- Fake Transparency Tuning Parameters -->
+                <div class="row g-3 mt-1 d-none ui-zoom-in" id="fake-transparency-options">
+                  <div class="col-12">
+                    <div class="p-3 border rounded bg-body-tertiary">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small fw-semibold text-body"><i class="bi bi-sliders me-1 text-primary"></i> Checkerboard Grid Tuning Parameters</span>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Hybrid Neural + Geometric</span>
+                      </div>
+                      <div class="row g-3">
+                        <div class="col-md-4">
+                          <label class="form-label small fw-medium text-body-secondary" for="fake-grid-tile-size">Grid Tile Size (px)</label>
+                          <div class="input-group input-group-sm">
+                            <input type="number" class="form-control form-control-sm font-sans" id="fake-grid-tile-size" value="0" min="0" max="64" title="0 = Auto-detect tile size" />
+                            <span class="input-group-text small text-body-secondary">0 = Auto</span>
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label small fw-medium text-body-secondary" for="fake-grid-tolerance">Grid Color Tolerance</label>
+                          <div class="input-group input-group-sm">
+                            <input type="range" class="form-range mt-1" id="fake-grid-tolerance" min="2" max="30" step="1" value="14" />
+                            <span class="ms-2 small font-sans fw-medium text-body" id="fake-grid-tolerance-val" style="min-width: 26px;">14</span>
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label small fw-medium text-body-secondary" for="fake-gap-threshold">Interior Gap Aggressiveness</label>
+                          <div class="input-group input-group-sm">
+                            <input type="range" class="form-range mt-1" id="fake-gap-threshold" min="5" max="30" step="1" value="15" />
+                            <span class="ms-2 small font-sans fw-medium text-body" id="fake-gap-threshold-val" style="min-width: 26px;">15</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Live Estimation Readout -->
                 <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="bg-estimate-box">
                   <div>Model: <strong class="text-body" id="bg-est-model">U2Net</strong> &bull; Output: <strong class="text-body" id="bg-est-mode">Transparent PNG</strong></div>

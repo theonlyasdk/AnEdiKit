@@ -974,14 +974,32 @@ export function syncFormatSpecificUI() {
   }
 
   // 6. Background Remover mode wrappers sync
+  const bgModel = document.getElementById("bg-model")?.value || "u2net";
   const bgMode = document.getElementById("bg-output-mode")?.value || "transparent";
   const bgColorWrapper = document.getElementById("bg-color-wrapper");
   const bgBlurWrapper = document.getElementById("bg-blur-wrapper");
+  const fakeTransparencyOptions = document.getElementById("fake-transparency-options");
+
   if (bgColorWrapper) {
     bgColorWrapper.classList.toggle("d-none", bgMode !== "solid_color");
   }
   if (bgBlurWrapper) {
     bgBlurWrapper.classList.toggle("d-none", bgMode !== "blur_bg");
+  }
+  if (fakeTransparencyOptions) {
+    fakeTransparencyOptions.classList.toggle("d-none", bgModel !== "fake_transparency");
+  }
+
+  // Sync fake transparency range readout values
+  const gridTolSlider = document.getElementById("fake-grid-tolerance");
+  const gridTolVal = document.getElementById("fake-grid-tolerance-val");
+  if (gridTolSlider && gridTolVal) {
+    gridTolVal.textContent = gridTolSlider.value;
+  }
+  const gapThreshSlider = document.getElementById("fake-gap-threshold");
+  const gapThreshVal = document.getElementById("fake-gap-threshold-val");
+  if (gapThreshSlider && gapThreshVal) {
+    gapThreshVal.textContent = gapThreshSlider.value;
   }
 
   // 7. Vectorizer mode wrappers sync

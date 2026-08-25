@@ -46,6 +46,11 @@ export function buildBgRemoverCommand(inputFile, outputDir, settings = {}) {
 
   const defaultOut = `${baseName}_nobg.png`;
   const dst = shouldReplace ? src : resolveImageAiDestinationPath(defaultOut, settings, src);
+
+  const fakeTileSize = parseInt(document.getElementById("fake-grid-tile-size")?.value || "0", 10) || 0;
+  const fakeGridTolerance = parseFloat(document.getElementById("fake-grid-tolerance")?.value || "14") || 14;
+  const fakeGapThreshold = parseFloat(document.getElementById("fake-gap-threshold")?.value || "15") || 15;
+
   const params = {
     input_path: src,
     output_path: dst,
@@ -55,6 +60,9 @@ export function buildBgRemoverCommand(inputFile, outputDir, settings = {}) {
     blur_radius: parseInt(blurRadius, 10),
     replace_source: shouldReplace,
     device,
+    fake_tile_size: fakeTileSize,
+    fake_grid_tolerance: fakeGridTolerance,
+    fake_gap_threshold: fakeGapThreshold,
   };
 
   return {
