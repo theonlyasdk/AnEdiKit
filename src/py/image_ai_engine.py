@@ -193,13 +193,13 @@ REMBG_MODEL_URLS = {
     "isnet-general-use": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
     "isnet-anime": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-anime.onnx",
     "silueta": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/silueta.onnx",
-    "birefnet-general": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/birefnet-general.onnx",
-    "birefnet-general-lite": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/birefnet-general-lite.onnx",
-    "birefnet-portrait": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/birefnet-portrait.onnx",
-    "birefnet-dis": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/birefnet-dis.onnx",
-    "birefnet-hrsod": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/birefnet-hrsod.onnx",
-    "birefnet-cod": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/birefnet-cod.onnx",
-    "birefnet-massive": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/birefnet-massive.onnx",
+    "birefnet-general": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx",
+    "birefnet-general-lite": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
+    "birefnet-portrait": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-portrait-epoch_150.onnx",
+    "birefnet-dis": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-DIS-epoch_590.onnx",
+    "birefnet-hrsod": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-HRSOD_DHU-epoch_115.onnx",
+    "birefnet-cod": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-COD-epoch_125.onnx",
+    "birefnet-massive": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-massive-TR_DIS5K_TR_TEs-epoch_420.onnx",
 }
 
 def ensure_rembg_model(model_name):
@@ -386,7 +386,7 @@ def cmd_bg_remover(args_json):
                 ort_sess = ort.InferenceSession(onnx_path, providers=providers)
                 input_name = ort_sess.get_inputs()[0].name
                 
-                # Preprocess input image to model standard 320x320 / 1024x1024 float32
+                # Preprocess input image to model standard size (320x320, 1024x1024, 768x768)
                 orig_w, orig_h = img.size
                 input_shape = ort_sess.get_inputs()[0].shape
                 in_h = input_shape[2] if len(input_shape) > 2 and isinstance(input_shape[2], int) else 320
@@ -399,10 +399,27 @@ def cmd_bg_remover(args_json):
                 
                 log_progress(60, f"Running neural segmentation on ({target_onnx})...")
                 outputs = ort_sess.run(None, {input_name: np_in})
-                pred = outputs[0][0, 0]
-                
-                # Normalize and resize mask back to original resolution
+                out_arr = outputs[0]
+
+                # Extract alpha mask based on model output dimension
+                if out_arr.ndim == 4:
+                    if out_arr.shape[1] > 1:
+                        # Multi-class output (e.g. u2net_cloth_seg classes)
+                        # Classes: 0: bg, 1: upper, 2: lower, 3: full body
+                        pred_classes = np.argmax(out_arr[0], axis=0)
+                        pred = np.where(pred_classes > 0, 1.0, 0.0).astype(np.float32)
+                    else:
+                        pred = out_arr[0, 0]
+                elif out_arr.ndim == 3:
+                    pred = out_arr[0]
+                else:
+                    pred = out_arr
+
+                # Normalize or apply sigmoid if values are unconstrained logits
+                if pred.min() < 0.0 or pred.max() > 1.0:
+                    pred = 1.0 / (1.0 + np.exp(-np.clip(pred, -20.0, 20.0)))
                 pred = (pred - pred.min()) / (pred.max() - pred.min() + 1e-8)
+                
                 mask_uint8 = (pred * 255).astype(np.uint8)
                 mask_img = Image.fromarray(mask_uint8).resize((orig_w, orig_h), Image.Resampling.BILINEAR)
                 
