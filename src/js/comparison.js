@@ -224,8 +224,20 @@ export function initComparisonModal() {
     }, { passive: false });
 
     stage.addEventListener("mousedown", (e) => {
-      // Allow panning with left mouse (button 0) when not dragging split handle, or middle mouse (button 1) anywhere
-      if (e.button === 1 || (e.button === 0 && !e.target.closest("#comp-split-divider") && !isDraggingSlider)) {
+      // Prevent panning when clicking on the tuning drawer, sliders, floating toolbar, or split divider
+      if (
+        e.target.closest("#comp-tuning-drawer") ||
+        e.target.closest(".comp-floating-toolbar") ||
+        e.target.closest("#comp-split-divider") ||
+        e.target.closest("input") ||
+        e.target.closest("button") ||
+        e.target.closest(".form-range")
+      ) {
+        return;
+      }
+
+      // Allow panning with left mouse (button 0) when clicking canvas background or middle mouse (button 1) anywhere
+      if (e.button === 1 || (e.button === 0 && !isDraggingSlider)) {
         if (e.button === 1) e.preventDefault();
         isPanning = true;
         startPanX = e.clientX - panX;
@@ -252,12 +264,27 @@ export function initComparisonModal() {
     });
   }
 
-  // Tuning Drawer Event Listeners
+  // Tuning Drawer & Header Toggle Button Event Listeners
   const btnTuningClose = document.getElementById("btn-comp-tuning-close");
+  const btnToggleTuning = document.getElementById("btn-comp-toggle-tuning");
   const tuningDrawer = document.getElementById("comp-tuning-drawer");
-  if (btnTuningClose && tuningDrawer) {
-    btnTuningClose.addEventListener("click", () => {
-      tuningDrawer.classList.add("d-none");
+
+  const setTuningDrawerVisible = (visible) => {
+    if (tuningDrawer) {
+      tuningDrawer.classList.toggle("d-none", !visible);
+    }
+    if (btnToggleTuning) {
+      btnToggleTuning.classList.toggle("active", visible);
+    }
+  };
+
+  if (btnTuningClose) {
+    btnTuningClose.addEventListener("click", () => setTuningDrawerVisible(false));
+  }
+  if (btnToggleTuning) {
+    btnToggleTuning.addEventListener("click", () => {
+      const isCurrentlyHidden = !tuningDrawer || tuningDrawer.classList.contains("d-none");
+      setTuningDrawerVisible(isCurrentlyHidden);
     });
   }
 
@@ -434,8 +461,14 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
 
   // Show/hide tuning drawer in comparison modal based on task & active model
   const tuningDrawer = document.getElementById("comp-tuning-drawer");
+  const btnToggleTuning = document.getElementById("btn-comp-toggle-tuning");
   const isFakeTransparency = taskName.toLowerCase().includes("fake transparency") || 
                              document.getElementById("bg-model")?.value === "fake_transparency";
+
+  if (btnToggleTuning) {
+    btnToggleTuning.classList.toggle("d-none", !isFakeTransparency);
+    btnToggleTuning.classList.toggle("active", isFakeTransparency);
+  }
 
   if (tuningDrawer) {
     tuningDrawer.classList.toggle("d-none", !isFakeTransparency);

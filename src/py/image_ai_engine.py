@@ -467,18 +467,20 @@ def cmd_bg_remover(args_json):
             h, w = gray.shape
             neural_alpha = np.array(fg_image.getchannel("A"))
 
-            # 1. Automatic or manual checkerboard grid parameter discovery
+            # 1. High-speed checkerboard grid parameter discovery
             best_score = 0
             best_params = (custom_tile_sz if custom_tile_sz > 0 else 17, 0, 0, 230.0, 254.0)
 
-            sample_h, sample_w = min(h, 90), min(w, 90)
-            tile_search_range = [custom_tile_sz] if custom_tile_sz > 0 else range(10, 32)
+            sample_h, sample_w = min(h, 68), min(w, 68)
+            sample = gray[:sample_h, :sample_w]
+            tile_search_range = [custom_tile_sz] if custom_tile_sz > 0 else range(12, 28)
             for tile_sz_cand in tile_search_range:
-                for ox in range(tile_sz_cand):
-                    for oy in range(tile_sz_cand):
+                # Step with stride of 2 for fast initial estimate or fine evaluation
+                step = 1 if custom_tile_sz > 0 or tile_sz_cand < 18 else 2
+                for ox in range(0, tile_sz_cand, step):
+                    for oy in range(0, tile_sz_cand, step):
                         y_idx, x_idx = np.indices((sample_h, sample_w))
                         parity = (((x_idx + ox) // tile_sz_cand) + ((y_idx + oy) // tile_sz_cand)) % 2
-                        sample = gray[:sample_h, :sample_w]
                         c0 = sample[parity == 0]
                         c1 = sample[parity == 1]
                         diff_val = abs(float(np.mean(c0)) - float(np.mean(c1)))
