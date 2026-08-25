@@ -457,13 +457,13 @@ def cmd_bg_remover(args_json):
     elif output_mode == "solid_color":
         rgb_color = ImageColor.getrgb(bg_color_hex)
         background = Image.new("RGBA", fg_image.size, rgb_color + (255,))
-        background.paste(fg_image, (0, 0), fg_image)
-        final_img = background.convert("RGB")
+        # True alpha compositing
+        final_img = Image.alpha_composite(background, fg_image).convert("RGB")
     elif output_mode == "blur_bg":
-        orig_rgb = Image.open(input_path).convert("RGBA")
-        blurred_bg = orig_rgb.filter(ImageFilter.GaussianBlur(blur_radius))
-        blurred_bg.paste(fg_image, (0, 0), fg_image)
-        final_img = blurred_bg.convert("RGB")
+        orig_rgba = Image.open(input_path).convert("RGBA")
+        blurred_bg = orig_rgba.filter(ImageFilter.GaussianBlur(blur_radius))
+        # True alpha compositing over blurred background
+        final_img = Image.alpha_composite(blurred_bg, fg_image).convert("RGB")
     else:
         final_img = fg_image
 

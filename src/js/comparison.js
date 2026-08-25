@@ -300,14 +300,15 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
   currentOrigPath = origPath;
   currentResultPath = resultPath;
 
-  const toSrc = (p) => {
+  const toSrc = (p, isResult = false) => {
     if (!p) return "";
     if (p.startsWith("data:") || p.startsWith("blob:") || p.startsWith("http")) return p;
-    return window.__TAURI__?.core?.convertFileSrc ? window.__TAURI__.core.convertFileSrc(p) : p;
+    const base = window.__TAURI__?.core?.convertFileSrc ? window.__TAURI__.core.convertFileSrc(p) : p;
+    return isResult ? `${base}?t=${Date.now()}` : base;
   };
 
-  currentOrigSrc = toSrc(origPath);
-  currentResultSrc = toSrc(resultPath);
+  currentOrigSrc = toSrc(origPath, false);
+  currentResultSrc = toSrc(resultPath, true);
 
   // Set titles
   const titleEl = document.getElementById("comp-modal-title");
