@@ -451,6 +451,53 @@ def cmd_bg_remover(args_json):
     if not fg_image:
         fg_image = img
 
+    # Specialized geometric + color boundary refinement for fake transparency checkerboard backgrounds
+    if model_name == "fake_transparency" and fg_image is not None:
+        try:
+            import cv2
+            import numpy as np
+
+            orig_np = np.array(img.convert("RGB"))
+            hsv = cv2.cvtColor(orig_np, cv2.COLOR_RGB2HSV)
+            gray = cv2.cvtColor(orig_np, cv2.COLOR_RGB2GRAY)
+            alpha = np.array(fg_image.getchannel("A")).astype(np.float32) / 255.0
+
+            # Detect neutral checkerboard pixels (low saturation, high brightness)
+            sat = hsv[:, :, 1]
+            val = hsv[:, :, 2]
+            is_neutral = (sat < 22) & (val > 145)
+
+            # Flood fill connected background from outer image perimeter
+            h, w = gray.shape
+            flood_seeds = []
+            for x in range(0, w, 15):
+                if is_neutral[0, x]: flood_seeds.append((x, 0))
+                if is_neutral[h - 1, x]: flood_seeds.append((x, h - 1))
+            for y in range(0, h, 15):
+                if is_neutral[y, 0]: flood_seeds.append((0, y))
+                if is_neutral[y, w - 1]: flood_seeds.append((w - 1, y))
+
+            bg_marker = np.zeros((h, w), dtype=np.uint8)
+            for sx, sy in flood_seeds:
+                if is_neutral[sy, sx] and bg_marker[sy, sx] == 0:
+                    mask = np.zeros((h + 2, w + 2), np.uint8)
+                    cv2.floodFill(gray, mask, (sx, sy), 255, loDiff=18, upDiff=18, flags=4 | (255 << 8) | cv2.FLOODFILL_MASK_ONLY)
+                    bg_marker[mask[1:-1, 1:-1] == 255] = 1
+
+            # Clamp alpha to 0 for detected checkerboard and low-confidence neutral fringe
+            refined_alpha = alpha.copy()
+            refined_alpha[bg_marker == 1] = 0.0
+            refined_alpha[(alpha < 0.88) & is_neutral] = 0.0
+
+            # Gentle edge denoising
+            refined_alpha_uint8 = (refined_alpha * 255).astype(np.uint8)
+            refined_alpha_uint8 = cv2.medianBlur(refined_alpha_uint8, 3)
+
+            fg_image = img.convert("RGBA")
+            fg_image.putalpha(Image.fromarray(refined_alpha_uint8))
+        except Exception as checker_err:
+            log_progress(75, f"Checkerboard refinement notice: {checker_err}")
+
     log_progress(80, f"Applying composition mode: {output_mode}...")
     if output_mode == "transparent":
         final_img = fg_image
