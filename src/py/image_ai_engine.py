@@ -520,15 +520,20 @@ def cmd_bg_remover(args_json):
             final_alpha = neural_alpha.copy()
             final_alpha[outer_bg] = 0
 
-            # Neutrality filter for interior gaps (e.g. gaps between floating parts)
+            # Interior gap tiles (mouth gap, between floating smoke/jaw elements)
             sat = hsv[:, :, 1]
-            is_neutral = sat < 16
-            final_alpha[(pixel_diff < 3.5) & is_neutral & (neural_alpha < 190)] = 0
+            is_neutral = sat < 18
+            for r in range(num_r):
+                for c in range(num_c):
+                    block_diff = pixel_diff[r * tile_sz : (r + 1) * tile_sz, c * tile_sz : (c + 1) * tile_sz]
+                    block_alpha = neural_alpha[r * tile_sz : (r + 1) * tile_sz, c * tile_sz : (c + 1) * tile_sz]
+                    if np.mean(block_diff) < 14.5 and np.mean(block_alpha) < 225:
+                        final_alpha[r * tile_sz : (r + 1) * tile_sz, c * tile_sz : (c + 1) * tile_sz] = 0
 
-            # Dilated gap cleanup for low confidence checkerboard residue
-            gap_seed = (final_alpha == 0) & (neural_alpha > 0)
-            dilated_gap = cv2.dilate(gap_seed.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))) == 1
-            final_alpha[dilated_gap & (pixel_diff < 10) & (neural_alpha < 140)] = 0
+            # Dilated gap & boundary grid line cleanup
+            dilated_bg = cv2.dilate((final_alpha == 0).astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))) == 1
+            boundary_fringe = dilated_bg & (pixel_diff < 12) & is_neutral & (neural_alpha < 190)
+            final_alpha[boundary_fringe] = 0
 
             fg_image = img.convert("RGBA")
             fg_image.putalpha(Image.fromarray(final_alpha))
