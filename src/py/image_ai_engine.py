@@ -340,7 +340,9 @@ def cmd_bg_remover(args_json):
     ensure_rembg_model(model_name)
 
     providers = get_execution_providers(device)
-    active_device_label = "GPU" if any("CUDA" in p or "Dml" in p or "Tensorrt" in p for p in providers) else "CPU"
+    fg_image = None
+    rembg_success = False
+
     if model_name == "fake_transparency":
         log_progress(30, "Removing fake transparency checkerboard background using deep neural segmentation...")
         try:
@@ -359,65 +361,75 @@ def cmd_bg_remover(args_json):
             except Exception as u2_err:
                 log_progress(50, f"U2Net notice: {u2_err}, falling back to direct ONNX inference...")
                 rembg_success = False
-        if not rembg_success:
-            # Direct onnxruntime inference on the downloaded ONNX model weights
-            try:
-                import onnxruntime as ort
-                import numpy as np
-                
-                target_onnx = "isnet-general-use" if model_name == "fake_transparency" else model_name
-                onnx_path = ensure_rembg_model(target_onnx)
-                if not (os.path.exists(onnx_path) and os.path.getsize(onnx_path) > 100000):
-                    onnx_path = ensure_rembg_model("u2net")
+    else:
+        try:
+            from rembg import remove, new_session
+            session = new_session(model_name, providers=providers)
+            fg_image = remove(img, session=session)
+            rembg_success = True
+        except Exception as e:
+            log_progress(40, f"rembg package notice: {e}, attempting direct ONNX runtime inference...")
+            rembg_success = False
 
-                if os.path.exists(onnx_path) and os.path.getsize(onnx_path) > 100000:
-                    ort_sess = ort.InferenceSession(onnx_path, providers=providers)
-                    input_name = ort_sess.get_inputs()[0].name
-                    
-                    # Preprocess input image to model standard 320x320 / 1024x1024 float32
-                    orig_w, orig_h = img.size
-                    input_shape = ort_sess.get_inputs()[0].shape
-                    in_h = input_shape[2] if len(input_shape) > 2 and isinstance(input_shape[2], int) else 320
-                    in_w = input_shape[3] if len(input_shape) > 3 and isinstance(input_shape[3], int) else 320
-                    
-                    resized = img.convert("RGB").resize((in_w, in_h), Image.Resampling.BILINEAR)
-                    np_in = np.array(resized).astype(np.float32) / 255.0
-                    np_in = (np_in - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
-                    np_in = np_in.transpose(2, 0, 1)[np.newaxis, ...].astype(np.float32)
-                    
-                    log_progress(60, f"Running neural segmentation on ({target_onnx})...")
-                    outputs = ort_sess.run(None, {input_name: np_in})
-                    pred = outputs[0][0, 0]
-                    
-                    # Normalize and resize mask back to original resolution
-                    pred = (pred - pred.min()) / (pred.max() - pred.min() + 1e-8)
-                    mask_uint8 = (pred * 255).astype(np.uint8)
-                    mask_img = Image.fromarray(mask_uint8).resize((orig_w, orig_h), Image.Resampling.BILINEAR)
-                    
-                    fg_image = img.copy()
-                    fg_image.putalpha(mask_img)
-                    rembg_success = True
-            except Exception as onnx_err:
-                log_progress(45, f"ONNX runtime notice: {onnx_err}, falling back to adaptive alpha extraction...")
-
-        if not rembg_success:
-            import cv2
+    if not rembg_success:
+        # Direct onnxruntime inference on the downloaded ONNX model weights
+        try:
+            import onnxruntime as ort
             import numpy as np
-            cv_img = cv2.imread(input_path, cv2.IMREAD_COLOR)
-            if cv_img is not None:
-                mask = np.zeros(cv_img.shape[:2], np.uint8)
-                bgdModel = np.zeros((1, 65), np.float64)
-                fgdModel = np.zeros((1, 65), np.float64)
-                h, w = cv_img.shape[:2]
-                rect = (int(w * 0.05), int(h * 0.05), int(w * 0.9), int(h * 0.9))
-                cv2.grabCut(cv_img, mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
-                mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
-                fg_cv = cv_img * mask2[:, :, np.newaxis]
-                b, g, r = cv2.split(fg_cv)
-                a = (mask2 * 255).astype('uint8')
-                rgba = cv2.merge([r, g, b, a])
-                fg_image = Image.fromarray(rgba, "RGBA")
+            
+            target_onnx = "isnet-general-use" if model_name == "fake_transparency" else model_name
+            onnx_path = ensure_rembg_model(target_onnx)
+            if not (os.path.exists(onnx_path) and os.path.getsize(onnx_path) > 100000):
+                onnx_path = ensure_rembg_model("u2net")
+
+            if os.path.exists(onnx_path) and os.path.getsize(onnx_path) > 100000:
+                ort_sess = ort.InferenceSession(onnx_path, providers=providers)
+                input_name = ort_sess.get_inputs()[0].name
+                
+                # Preprocess input image to model standard 320x320 / 1024x1024 float32
+                orig_w, orig_h = img.size
+                input_shape = ort_sess.get_inputs()[0].shape
+                in_h = input_shape[2] if len(input_shape) > 2 and isinstance(input_shape[2], int) else 320
+                in_w = input_shape[3] if len(input_shape) > 3 and isinstance(input_shape[3], int) else 320
+                
+                resized = img.convert("RGB").resize((in_w, in_h), Image.Resampling.BILINEAR)
+                np_in = np.array(resized).astype(np.float32) / 255.0
+                np_in = (np_in - [0.485, 0.456, 0.406]) / [0.229, 0.224, 0.225]
+                np_in = np_in.transpose(2, 0, 1)[np.newaxis, ...].astype(np.float32)
+                
+                log_progress(60, f"Running neural segmentation on ({target_onnx})...")
+                outputs = ort_sess.run(None, {input_name: np_in})
+                pred = outputs[0][0, 0]
+                
+                # Normalize and resize mask back to original resolution
+                pred = (pred - pred.min()) / (pred.max() - pred.min() + 1e-8)
+                mask_uint8 = (pred * 255).astype(np.uint8)
+                mask_img = Image.fromarray(mask_uint8).resize((orig_w, orig_h), Image.Resampling.BILINEAR)
+                
+                fg_image = img.copy()
+                fg_image.putalpha(mask_img)
                 rembg_success = True
+        except Exception as onnx_err:
+            log_progress(45, f"ONNX runtime notice: {onnx_err}, falling back to adaptive alpha extraction...")
+
+    if not rembg_success:
+        import cv2
+        import numpy as np
+        cv_img = cv2.imread(input_path, cv2.IMREAD_COLOR)
+        if cv_img is not None:
+            mask = np.zeros(cv_img.shape[:2], np.uint8)
+            bgdModel = np.zeros((1, 65), np.float64)
+            fgdModel = np.zeros((1, 65), np.float64)
+            h, w = cv_img.shape[:2]
+            rect = (int(w * 0.05), int(h * 0.05), int(w * 0.9), int(h * 0.9))
+            cv2.grabCut(cv_img, mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+            mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+            fg_cv = cv_img * mask2[:, :, np.newaxis]
+            b, g, r = cv2.split(fg_cv)
+            a = (mask2 * 255).astype('uint8')
+            rgba = cv2.merge([r, g, b, a])
+            fg_image = Image.fromarray(rgba, "RGBA")
+            rembg_success = True
 
     if not fg_image:
         fg_image = img
