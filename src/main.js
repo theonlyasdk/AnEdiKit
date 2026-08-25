@@ -37,7 +37,7 @@ import {
 import { initNavigation, getCurrentActiveTool, TOOL_METADATA } from "./js/navigation.js";
 import { initToolsManager } from "./js/tools_manager.js";
 import { initThemeManager } from "./js/theme.js";
-import { initComparisonModal, openComparisonModal } from "./js/comparison.js";
+import { initComparisonModal, openComparisonModal, setComparisonShimmer } from "./js/comparison.js";
 import { initYtDlpFormatEditor } from "./js/ytdlp_format.js";
 
 let appSettings = loadSettings();
@@ -1102,6 +1102,32 @@ function bindFormEvents() {
     updateExecuteButtonState();
   });
 
+  // Live preview regeneration listener for fake transparency in comparison modal
+  window.addEventListener("anedikit:regenerate_comparison", async (e) => {
+    const { origPath, resultPath, taskName } = e.detail || {};
+    if (!origPath) return;
+
+    try {
+      setComparisonShimmer(true);
+      const cmdObj = buildCommandForTool("bg_remover", origPath, appSettings.outputDir, appSettings);
+      if (cmdObj) {
+        const ok = await executeFfmpegJob(cmdObj, 1.0);
+        if (ok) {
+          openComparisonModal(origPath, cmdObj.destination, taskName || "Fake Transparency");
+        }
+      }
+    } catch (err) {
+      console.warn("Live comparison regeneration error:", err);
+    } finally {
+      setComparisonShimmer(false);
+      const btnReapply = document.getElementById("btn-comp-reapply");
+      if (btnReapply) {
+        btnReapply.disabled = false;
+        btnReapply.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Re-apply &amp; Update`;
+      }
+    }
+  });
+
   // Color picker sync
   const bgColorPicker = document.getElementById("bg-color-picker");
   const bgColorInput = document.getElementById("bg-color");
@@ -1471,14 +1497,12 @@ function bindFormEvents() {
             updateImageAiItemStatus(i, "processing");
             const cmdObj = buildCommandForTool(activeTool, item.path, appSettings.outputDir, appSettings);
             if (!cmdObj) continue;
-
             const success = await executeFfmpegJob(cmdObj, 1.0);
             if (success) {
               updateImageAiItemStatus(i, "done", cmdObj.destination);
               openComparisonModal(item.path, cmdObj.destination, TOOL_METADATA[activeTool]?.title || "Enhanced Image");
             } else {
               updateImageAiItemStatus(i, "error");
-              break;
             }
           }
           return;

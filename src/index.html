@@ -2508,6 +2508,42 @@
 
       <!-- Main Interactive Comparison Stage Area -->
       <div class="comp-stage-wrapper transparency-grid flex-grow-1 position-relative" id="comp-stage-container">
+        <!-- Scanning Shimmer Overlay (Active during generation) -->
+        <div class="comp-shimmer-overlay" id="comp-shimmer-sweep"></div>
+
+        <!-- Floating Quick Tuning Drawer for Fake Transparency -->
+        <div class="comp-tuning-drawer p-3 d-none ui-zoom-in" id="comp-tuning-drawer">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="small fw-semibold text-body"><i class="bi bi-sliders me-1 text-primary"></i> Grid Parameters</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 border-0" id="btn-comp-tuning-close" title="Hide tuning panel"><i class="bi bi-x"></i></button>
+          </div>
+          <div class="d-flex flex-column gap-2">
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="small text-body-secondary mb-0" for="comp-fake-tile-size">Tile Size</label>
+                <span class="small font-sans text-body fw-medium" id="comp-fake-tile-size-val">Auto</span>
+              </div>
+              <input type="number" class="form-control form-control-sm font-sans" id="comp-fake-tile-size" value="0" min="0" max="64" title="0 = Auto-detect" />
+            </div>
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="small text-body-secondary mb-0" for="comp-fake-grid-tolerance">Color Tolerance</label>
+                <span class="small font-sans text-body fw-medium" id="comp-fake-grid-tolerance-val">14</span>
+              </div>
+              <input type="range" class="form-range" id="comp-fake-grid-tolerance" min="2" max="30" step="1" value="14" />
+            </div>
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="small text-body-secondary mb-0" for="comp-fake-gap-threshold">Gap Aggressiveness</label>
+                <span class="small font-sans text-body fw-medium" id="comp-fake-gap-threshold-val">15</span>
+              </div>
+              <input type="range" class="form-range" id="comp-fake-gap-threshold" min="5" max="30" step="1" value="15" />
+            </div>
+            <button type="button" class="btn btn-primary btn-sm mt-1 w-100 d-flex align-items-center justify-content-center gap-1" id="btn-comp-reapply">
+              <i class="bi bi-arrow-clockwise"></i> Re-apply &amp; Update
+            </button>
+          </div>
+        </div>
         
         <!-- Mode 1: Split Slider (Sliding Window) -->
         <div class="comp-split-container w-100 h-100" id="comp-view-split">

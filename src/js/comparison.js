@@ -252,6 +252,70 @@ export function initComparisonModal() {
     });
   }
 
+  // Tuning Drawer Event Listeners
+  const btnTuningClose = document.getElementById("btn-comp-tuning-close");
+  const tuningDrawer = document.getElementById("comp-tuning-drawer");
+  if (btnTuningClose && tuningDrawer) {
+    btnTuningClose.addEventListener("click", () => {
+      tuningDrawer.classList.add("d-none");
+    });
+  }
+
+  const compTileInput = document.getElementById("comp-fake-tile-size");
+  const compTileVal = document.getElementById("comp-fake-tile-size-val");
+  const compTolInput = document.getElementById("comp-fake-grid-tolerance");
+  const compTolVal = document.getElementById("comp-fake-grid-tolerance-val");
+  const compGapInput = document.getElementById("comp-fake-gap-threshold");
+  const compGapVal = document.getElementById("comp-fake-gap-threshold-val");
+  const btnReapply = document.getElementById("btn-comp-reapply");
+
+  if (compTileInput && compTileVal) {
+    compTileInput.addEventListener("input", () => {
+      compTileVal.textContent = compTileInput.value === "0" ? "Auto" : `${compTileInput.value}px`;
+      const mainTile = document.getElementById("fake-grid-tile-size");
+      if (mainTile) mainTile.value = compTileInput.value;
+    });
+  }
+  if (compTolInput && compTolVal) {
+    compTolInput.addEventListener("input", () => {
+      compTolVal.textContent = compTolInput.value;
+      const mainTol = document.getElementById("fake-grid-tolerance");
+      if (mainTol) mainTol.value = compTolInput.value;
+    });
+  }
+  if (compGapInput && compGapVal) {
+    compGapInput.addEventListener("input", () => {
+      compGapVal.textContent = compGapInput.value;
+      const mainGap = document.getElementById("fake-gap-threshold");
+      if (mainGap) mainGap.value = compGapInput.value;
+    });
+  }
+
+  if (btnReapply) {
+    btnReapply.addEventListener("click", async () => {
+      if (!currentOrigPath || !currentResultPath) return;
+
+      const mainTile = document.getElementById("fake-grid-tile-size");
+      const mainTol = document.getElementById("fake-grid-tolerance");
+      const mainGap = document.getElementById("fake-gap-threshold");
+      if (compTileInput && mainTile) mainTile.value = compTileInput.value;
+      if (compTolInput && mainTol) mainTol.value = compTolInput.value;
+      if (compGapInput && mainGap) mainGap.value = compGapInput.value;
+
+      btnReapply.disabled = true;
+      btnReapply.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Generating...`;
+      setComparisonShimmer(true);
+
+      window.dispatchEvent(new CustomEvent("anedikit:regenerate_comparison", {
+        detail: {
+          origPath: currentOrigPath,
+          resultPath: currentResultPath,
+          taskName: currentTaskName || "Fake Transparency",
+        },
+      }));
+    });
+  }
+
   // Export / Save Image
   if (btnExport) {
     btnExport.addEventListener("click", async () => {
@@ -368,6 +432,41 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
   const zoomText = document.getElementById("comp-zoom-text");
   if (zoomText) zoomText.textContent = `100%`;
 
+  // Show/hide tuning drawer in comparison modal based on task & active model
+  const tuningDrawer = document.getElementById("comp-tuning-drawer");
+  const isFakeTransparency = taskName.toLowerCase().includes("fake transparency") || 
+                             document.getElementById("bg-model")?.value === "fake_transparency";
+
+  if (tuningDrawer) {
+    tuningDrawer.classList.toggle("d-none", !isFakeTransparency);
+    if (isFakeTransparency) {
+      // Initialize inputs with current form settings
+      const mainTileSize = document.getElementById("fake-grid-tile-size")?.value || "0";
+      const mainGridTol = document.getElementById("fake-grid-tolerance")?.value || "14";
+      const mainGapThresh = document.getElementById("fake-gap-threshold")?.value || "15";
+
+      const compTileInput = document.getElementById("comp-fake-tile-size");
+      const compTileVal = document.getElementById("comp-fake-tile-size-val");
+      const compTolInput = document.getElementById("comp-fake-grid-tolerance");
+      const compTolVal = document.getElementById("comp-fake-grid-tolerance-val");
+      const compGapInput = document.getElementById("comp-fake-gap-threshold");
+      const compGapVal = document.getElementById("comp-fake-gap-threshold-val");
+
+      if (compTileInput) {
+        compTileInput.value = mainTileSize;
+        if (compTileVal) compTileVal.textContent = mainTileSize === "0" ? "Auto" : `${mainTileSize}px`;
+      }
+      if (compTolInput) {
+        compTolInput.value = mainGridTol;
+        if (compTolVal) compTolVal.textContent = mainGridTol;
+      }
+      if (compGapInput) {
+        compGapInput.value = mainGapThresh;
+        if (compGapVal) compGapVal.textContent = mainGapThresh;
+      }
+    }
+  }
+
   // Show modal with slide-in animation
   // Background (main app view) scales down while comparison slides up
   const appMain = document.getElementById("main-content-area") || document.querySelector(".col.p-0.d-flex");
@@ -379,4 +478,11 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
   }
   modal.classList.remove("d-none", "comp-closing");
   document.body.classList.add("overflow-hidden");
+}
+
+export function setComparisonShimmer(isGenerating) {
+  const stage = document.getElementById("comp-stage-container");
+  if (stage) {
+    stage.classList.toggle("is-generating", !!isGenerating);
+  }
 }
