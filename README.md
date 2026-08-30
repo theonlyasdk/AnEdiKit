@@ -41,10 +41,17 @@ Run application in development mode:
 npm run tauri dev
 ```
 
-Build standalone executable:
+Build release variant with installer bundles:
 ```bash
-npm run tauri build
+npm run release
+# or
+build_release.bat
 ```
+The release output will be placed flat in the `release/` folder:
+- `AnEdiKit-v<version>-windows-x64-portable.exe` (Portable binary)
+- `AnEdiKit-v<version>-windows-x64-installer.msi` (MSI Installer)
+- `AnEdiKit-v<version>-windows-x64-setup.exe` (NSIS Setup)
+- `SHA256SUMS.txt` (SHA256 checksums)
 
 ## License
 

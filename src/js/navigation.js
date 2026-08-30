@@ -1,5 +1,5 @@
 // Navigation & View Transitions Module
-import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings } from "./storage.js";
+import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings, getUserKitById } from "./storage.js";
 import { isJobRunning } from "./runner.js";
 
 export const TOOL_METADATA = {
@@ -189,7 +189,28 @@ export function updateSidebarIndicator(activeBtn, isSettings = false) {
 }
 
 export function switchTool(toolId, onToolChanged) {
-  if (!TOOL_METADATA[toolId]) return;
+  const isKit = typeof toolId === "string" && toolId.startsWith("kit_");
+  let toolTitle = "";
+  let toolDesc = "";
+  let targetViewId = "";
+
+  if (isKit) {
+    const kitId = toolId.replace("kit_", "");
+    const kit = getUserKitById(kitId);
+    toolTitle = kit ? kit.name : "User Kit";
+    toolDesc = kit ? (kit.description || "Custom scriptable user module.") : "Custom Kit IDE & Scripting workspace.";
+    targetViewId = "view-kit_ide";
+    if (window.renderActiveKitIde) {
+      window.renderActiveKitIde(kitId);
+    }
+  } else if (TOOL_METADATA[toolId]) {
+    toolTitle = TOOL_METADATA[toolId].title;
+    toolDesc = TOOL_METADATA[toolId].desc;
+    targetViewId = TOOL_METADATA[toolId].viewId;
+  } else {
+    return;
+  }
+
   if (toolId === currentActiveTool) return;
   if (isJobRunning() && toolId !== "settings") return;
 
@@ -200,8 +221,8 @@ export function switchTool(toolId, onToolChanged) {
   currentActiveTool = toolId;
   saveActiveTool(toolId);
 
-  // Update nav buttons active states across tool-nav, image-ai-nav, ytdlp-nav, and settings-nav
-  const allToolButtons = document.querySelectorAll("#tool-nav .nav-link, #image-ai-nav .nav-link, #ytdlp-nav .nav-link");
+  // Update nav buttons active states across tool-nav, image-ai-nav, ytdlp-nav, user-kits-nav, and settings-nav
+  const allToolButtons = document.querySelectorAll("#tool-nav .nav-link, #image-ai-nav .nav-link, #ytdlp-nav .nav-link, #user-kits-nav .nav-link");
   const allSettingsButtons = document.querySelectorAll('button[data-tool="settings"]');
   const desktopSettingsBtn = document.querySelector("#settings-nav .nav-link");
 
@@ -232,8 +253,8 @@ export function switchTool(toolId, onToolChanged) {
     headerContainer.classList.remove("slide-from-bottom", "slide-from-top");
     void headerContainer.offsetWidth; // force reflow
 
-    titleEl.textContent = TOOL_METADATA[toolId].title;
-    descEl.textContent = TOOL_METADATA[toolId].desc;
+    titleEl.textContent = toolTitle;
+    descEl.textContent = toolDesc;
 
     const animClass = movingDown ? "slide-from-bottom" : "slide-from-top";
     headerContainer.classList.add(animClass);
@@ -251,7 +272,7 @@ export function switchTool(toolId, onToolChanged) {
   const toolViews = document.querySelectorAll(".tool-view");
   toolViews.forEach((view) => view.classList.add("d-none"));
 
-  const targetView = document.getElementById(TOOL_METADATA[toolId].viewId);
+  const targetView = document.getElementById(targetViewId);
   if (targetView) {
     targetView.classList.remove("d-none");
   }
@@ -272,7 +293,7 @@ export function switchTool(toolId, onToolChanged) {
     );
   }
 
-  // Toggle shared input cards (FFmpeg input file vs Image & AI queue vs yt-dlp URL input)
+  // Toggle shared input cards (FFmpeg input file vs Image & AI queue vs yt-dlp URL input vs User Kit)
   const isYtDlp = toolId.startsWith("ytdlp_");
   const isSettings = toolId === "settings";
   const isImageTool = [
@@ -290,18 +311,18 @@ export function switchTool(toolId, onToolChanged) {
   const cmdPreviewCard = document.getElementById("command-preview-card");
 
   if (sharedInputCard) {
-    sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings || isImageTool);
+    sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings || isImageTool || isKit);
   }
   if (imageAiWorkspaceCard) {
-    imageAiWorkspaceCard.classList.toggle("d-none", !isImageTool || isSettings);
+    imageAiWorkspaceCard.classList.toggle("d-none", !isImageTool || isSettings || isKit);
   }
   if (cmdPreviewCard) {
-    cmdPreviewCard.classList.toggle("d-none", isSettings || isImageTool);
+    cmdPreviewCard.classList.toggle("d-none", isSettings || isImageTool || isKit);
   }
 
   const aiReplaceSourceWrapper = document.getElementById("ai-replace-source-wrapper");
   if (aiReplaceSourceWrapper) {
-    aiReplaceSourceWrapper.classList.toggle("d-none", !isImageTool || isSettings);
+    aiReplaceSourceWrapper.classList.toggle("d-none", !isImageTool || isSettings || isKit);
   }
 
   const singleInputFileWrapper = document.getElementById("single-input-file-wrapper");
@@ -309,7 +330,7 @@ export function switchTool(toolId, onToolChanged) {
   const inputMetaInfo = document.getElementById("input-meta-info");
 
   if (singleInputFileWrapper) {
-    singleInputFileWrapper.classList.toggle("d-none", toolId === "merge" || isYtDlp || isSettings || isImageTool);
+    singleInputFileWrapper.classList.toggle("d-none", toolId === "merge" || isYtDlp || isSettings || isImageTool || isKit);
   }
   if (mergeFilesContainer) {
     mergeFilesContainer.classList.toggle("d-none", toolId !== "merge");
@@ -320,10 +341,10 @@ export function switchTool(toolId, onToolChanged) {
 
   const batchQueueContainer = document.getElementById("batch-queue-container");
   if (batchQueueContainer) {
-    batchQueueContainer.classList.toggle("d-none", toolId === "merge" || isYtDlp || isSettings || isImageTool);
+    batchQueueContainer.classList.toggle("d-none", toolId === "merge" || isYtDlp || isSettings || isImageTool || isKit);
   }
   if (sharedUrlCard) {
-    sharedUrlCard.classList.toggle("d-none", !isYtDlp || isSettings);
+    sharedUrlCard.classList.toggle("d-none", !isYtDlp || isSettings || isKit);
     if (isYtDlp) {
       const ytdlpOutInput = document.getElementById("ytdlp-output-dir");
       if (ytdlpOutInput && !ytdlpOutInput.value) {
@@ -384,6 +405,46 @@ export function toggleMobileSidebar() {
   if (backdrop) backdrop.classList.toggle("d-none", !isShown);
 }
 
+// Bind edge hover proximity and ripple effects to any sidebar button
+export function setupSidebarButtonEffects(btn, onToolChanged) {
+  if (!btn || btn.dataset.effectsBound === "true") return;
+  btn.dataset.effectsBound = "true";
+
+  btn.addEventListener("mousemove", (e) => {
+    const rect = btn.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    btn.style.setProperty("--mouse-x", `${x}px`);
+    btn.style.setProperty("--mouse-y", `${y}px`);
+  });
+
+  btn.addEventListener("mousedown", (e) => {
+    const rect = btn.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const size = Math.max(rect.width, rect.height) * 1.5;
+
+    const ripple = document.createElement("span");
+    ripple.className = "fluent-ripple";
+    ripple.style.width = `${size}px`;
+    ripple.style.height = `${size}px`;
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+
+    btn.appendChild(ripple);
+    ripple.addEventListener("animationend", () => {
+      ripple.remove();
+    });
+  });
+
+  if (onToolChanged && btn.dataset.tool) {
+    btn.addEventListener("click", () => {
+      const tool = btn.dataset.tool;
+      switchTool(tool, onToolChanged);
+    });
+  }
+}
+
 export function initNavigation(onToolChanged) {
   const allToolButtons = document.querySelectorAll("button[data-tool]");
   const btnToggle = document.getElementById("btn-sidebar-toggle");
@@ -432,45 +493,16 @@ export function initNavigation(onToolChanged) {
   }
 
   allToolButtons.forEach((btn) => {
-    btn.addEventListener("mousemove", (e) => {
-      const rect = btn.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      btn.style.setProperty("--mouse-x", `${x}px`);
-      btn.style.setProperty("--mouse-y", `${y}px`);
-    });
-
-    btn.addEventListener("mousedown", (e) => {
-      const rect = btn.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const size = Math.max(rect.width, rect.height) * 1.5;
-
-      const ripple = document.createElement("span");
-      ripple.className = "fluent-ripple";
-      ripple.style.width = `${size}px`;
-      ripple.style.height = `${size}px`;
-      ripple.style.left = `${x}px`;
-      ripple.style.top = `${y}px`;
-
-      btn.appendChild(ripple);
-      ripple.addEventListener("animationend", () => {
-        ripple.remove();
-      });
-    });
-
-    btn.addEventListener("click", () => {
-      const tool = btn.dataset.tool;
-      switchTool(tool, onToolChanged);
-    });
+    setupSidebarButtonEffects(btn, onToolChanged);
   });
 
-  // Container-level proximity border tracking across adjacent sidebar items
+  // Container-level proximity border tracking across adjacent sidebar items (dynamic)
   const sidebarPanel = document.getElementById("sidebar-scroll-container");
   if (sidebarPanel) {
     sidebarPanel.addEventListener("mousemove", (e) => {
       const proximityThreshold = 80;
-      allToolButtons.forEach((btn) => {
+      const currentNavButtons = sidebarPanel.querySelectorAll(".nav-link");
+      currentNavButtons.forEach((btn) => {
         const rect = btn.getBoundingClientRect();
         const withinX = e.clientX >= rect.left - proximityThreshold && e.clientX <= rect.right + proximityThreshold;
         const withinY = e.clientY >= rect.top - proximityThreshold && e.clientY <= rect.bottom + proximityThreshold;
@@ -488,7 +520,8 @@ export function initNavigation(onToolChanged) {
     });
 
     sidebarPanel.addEventListener("mouseleave", () => {
-      allToolButtons.forEach((btn) => {
+      const currentNavButtons = sidebarPanel.querySelectorAll(".nav-link");
+      currentNavButtons.forEach((btn) => {
         btn.classList.remove("has-proximity");
       });
     });
@@ -513,6 +546,9 @@ export function initNavigation(onToolChanged) {
       updateSidebarIndicator(activeBtn, currentActiveTool === "settings");
     }
   });
+
+  // Expose global switcher for custom modules like kits
+  window.switchAppTool = (toolId) => switchTool(toolId, onToolChanged);
 
   // Restore saved active tool on startup
   const savedTool = getSavedActiveTool("convert");

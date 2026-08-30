@@ -8,6 +8,8 @@ export const STORAGE_KEYS = {
   BATCH_QUEUE: "anedikit:batch_queue",
   IMAGE_AI_QUEUE: "anedikit:image_ai_queue",
   AI_REPLACE_SOURCE: "anedikit:ai_replace_source",
+  USER_KITS: "anedikit:user_kits",
+  ACTIVE_KIT: "anedikit:active_kit",
   TOOL_PARAMS_PREFIX: "anedikit:tool_params:",
 };
 
@@ -195,4 +197,81 @@ export function saveAiReplaceSource(val) {
     console.warn("Failed to save AI replace source preference:", err);
   }
 }
+
+export function loadUserKits() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_KITS);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list : [];
+  } catch (err) {
+    console.warn("Failed to load user kits from storage:", err);
+    return [];
+  }
+}
+
+export function saveUserKits(kits) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.USER_KITS, JSON.stringify(kits || []));
+  } catch (err) {
+    console.warn("Failed to save user kits:", err);
+  }
+}
+
+export function getUserKitById(id) {
+  const kits = loadUserKits();
+  return kits.find((k) => k && k.id === id) || null;
+}
+
+export function saveUserKit(kit) {
+  if (!kit || !kit.id) return;
+  const kits = loadUserKits();
+  const idx = kits.findIndex((k) => k && k.id === kit.id);
+  if (idx >= 0) {
+    kits[idx] = kit;
+  } else {
+    kits.push(kit);
+  }
+  saveUserKits(kits);
+}
+
+export function deleteUserKit(id) {
+  const kits = loadUserKits();
+  const filtered = kits.filter((k) => k && k.id !== id);
+  saveUserKits(filtered);
+}
+
+export function getSavedActiveKit() {
+  return localStorage.getItem(STORAGE_KEYS.ACTIVE_KIT) || "";
+}
+
+export function saveActiveKit(id) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_KIT, id || "");
+  } catch (err) {
+    console.warn("Failed to save active kit id:", err);
+  }
+}
+
+export function getSavedKitParams(kitId) {
+  if (!kitId) return {};
+  try {
+    const raw = localStorage.getItem(`${STORAGE_KEYS.TOOL_PARAMS_PREFIX}kit_${kitId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch (err) {
+    console.warn(`Failed to load kit params for kit_${kitId}:`, err);
+    return {};
+  }
+}
+
+export function saveKitParams(kitId, params) {
+  if (!kitId) return;
+  try {
+    localStorage.setItem(`${STORAGE_KEYS.TOOL_PARAMS_PREFIX}kit_${kitId}`, JSON.stringify(params || {}));
+  } catch (err) {
+    console.warn(`Failed to save kit params for kit_${kitId}:`, err);
+  }
+}
+
+
 

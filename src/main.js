@@ -39,6 +39,7 @@ import { initToolsManager } from "./js/tools_manager.js";
 import { initThemeManager } from "./js/theme.js";
 import { initComparisonModal, openComparisonModal, setComparisonShimmer } from "./js/comparison.js";
 import { initYtDlpFormatEditor } from "./js/ytdlp_format.js";
+import { initKitsManager, executeActiveKit, resetActiveKit } from "./js/kits.js";
 
 let appSettings = loadSettings();
 let mergeFiles = [];
@@ -467,6 +468,9 @@ export function updateExecuteButtonState() {
       btnExecute.textContent = `Download (${selectedCount})`;
       canExecute = selectedCount > 0;
     }
+  } else if (activeTool.startsWith("kit_")) {
+    btnExecute.textContent = "Execute Kit";
+    canExecute = true;
   } else if (activeTool.startsWith("ytdlp_")) {
     btnExecute.textContent = "Download";
     canExecute = currentUrl.length > 0;
@@ -504,9 +508,11 @@ export function updateExecuteButtonState() {
   } else {
     btnExecute.setAttribute(
       "title",
-      activeTool === "ytdlp_playlist"
-        ? (playlistVideos.length > 0 ? "Download selected playlist videos" : "Fetch videos from playlist URL")
-        : activeTool.startsWith("ytdlp_") ? "Start download task" : "Run processing operation",
+      activeTool.startsWith("kit_")
+        ? "Execute current User Kit"
+        : activeTool === "ytdlp_playlist"
+          ? (playlistVideos.length > 0 ? "Download selected playlist videos" : "Fetch videos from playlist URL")
+          : activeTool.startsWith("ytdlp_") ? "Start download task" : "Run processing operation",
     );
   }
 }
@@ -1445,6 +1451,12 @@ function bindFormEvents() {
         cancelFfmpegJob();
       } else {
         const activeTool = getCurrentActiveTool();
+
+        if (activeTool.startsWith("kit_")) {
+          executeActiveKit();
+          return;
+        }
+
         const batchQueue = getBatchQueue();
         const isYtDlp = activeTool.startsWith("ytdlp_");
         const currentUrl = document.getElementById("ytdlp-url-input")?.value?.trim() || "";
@@ -1573,6 +1585,12 @@ function bindFormEvents() {
   const btnReset = document.getElementById("btn-reset");
   if (btnReset) {
     btnReset.addEventListener("click", () => {
+      const activeTool = getCurrentActiveTool();
+      if (activeTool.startsWith("kit_")) {
+        resetActiveKit();
+        return;
+      }
+
       const activeView = document.querySelector(".tool-view:not(.d-none)");
       if (activeView) {
         activeView.querySelectorAll("select, input").forEach((input) => {
@@ -1978,11 +1996,11 @@ document.addEventListener("DOMContentLoaded", () => {
     ytdlpOutInput.value = getLastYtDlpOutDir() || appSettings.outputDir || "C:\\Users\\User\\Downloads";
   }
 
-  initToolsManager();
   initYtDlpFormatEditor();
   initJobRunner();
   initTrimmerControls();
   initSavedBatchQueue();
+  initSavedImageAiQueue();
   initDragAndDrop((mediaInfo) => {
     if (mediaInfo) {
       syncMediaDurationToTools(mediaInfo);
@@ -2054,10 +2072,11 @@ document.addEventListener("DOMContentLoaded", () => {
     updateAutoOutputFilename();
     updateCommandPreview();
   });
-  initSavedBatchQueue();
-  initSavedImageAiQueue();
+
   initComparisonModal();
   initImageLightbox();
+  initToolsManager();
+  initKitsManager();
   syncFormatSpecificUI();
   updateAutoOutputFilename(true);
   updateCommandPreview();

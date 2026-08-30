@@ -788,45 +788,50 @@ export async function initSavedBatchQueue() {
   batchQueue = loadSavedBatchQueue();
   const lastInput = getSavedInputFile();
 
-  if (window.__TAURI__?.core?.invoke) {
-    const validQueue = [];
-    for (const item of batchQueue) {
-      try {
-        const exists = await window.__TAURI__.core.invoke("check_file_exists", { filePath: item.path });
-        if (exists) validQueue.push(item);
-      } catch (_) {}
-    }
-    batchQueue = validQueue;
-    saveBatchQueue(batchQueue);
+  if (batchQueue.length === 0 && lastInput) {
+    const fileName = lastInput.split(/[/\\]/).pop() || lastInput;
+    batchQueue.push({
+      path: lastInput,
+      name: fileName,
+      status: "pending",
+    });
   }
 
-  if (batchQueue.length === 0 && lastInput) {
-    let exists = true;
-    if (window.__TAURI__?.core?.invoke) {
-      try {
-        exists = await window.__TAURI__.core.invoke("check_file_exists", { filePath: lastInput });
-      } catch (_) {}
-    }
-    if (exists) {
-      const fileName = lastInput.split(/[/\\]/).pop() || lastInput;
-      batchQueue.push({
-        path: lastInput,
-        name: fileName,
-        status: "pending",
-      });
+  // Render initial queue immediately for 0ms initial layout freeze
+  if (batchQueue.length > 0) {
+    selectedBatchIdx = 0;
+  } else {
+    selectedBatchIdx = -1;
+  }
+  renderBatchQueueUI();
+
+  if (window.__TAURI__?.core?.invoke && batchQueue.length > 0) {
+    try {
+      const checkResults = await Promise.all(
+        batchQueue.map(async (item) => {
+          try {
+            const exists = await window.__TAURI__.core.invoke("check_file_exists", { filePath: item.path });
+            return exists ? item : null;
+          } catch (_) {
+            return null;
+          }
+        }),
+      );
+      const validQueue = checkResults.filter(Boolean);
+      batchQueue = validQueue;
       saveBatchQueue(batchQueue);
-    } else {
-      saveInputFile("");
-    }
+    } catch (_) {}
   }
 
   if (batchQueue.length > 0) {
     selectedBatchIdx = 0;
     const targetPath = batchQueue[0].path;
-    const info = await probeMedia(targetPath);
-    if (info) {
-      updateMetadataDisplay(info);
-    }
+    saveInputFile(targetPath);
+    probeMedia(targetPath).then((info) => {
+      if (info) {
+        updateMetadataDisplay(info);
+      }
+    });
   } else {
     selectedBatchIdx = -1;
     saveInputFile("");

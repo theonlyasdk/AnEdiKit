@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::io::{BufReader, Read};
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
@@ -9,6 +10,8 @@ use tauri::{Emitter, Manager};
 
 static RUNNING_CHILD_PID: Mutex<Option<u32>> = Mutex::new(None);
 static CANCEL_REQUESTED: AtomicBool = AtomicBool::new(false);
+static BINARY_PATH_CACHE: Mutex<Option<HashMap<String, String>>> = Mutex::new(None);
+static HARDWARE_INFO_CACHE: Mutex<Option<HardwareInfo>> = Mutex::new(None);
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct MediaInfo {
@@ -221,114 +224,150 @@ pub struct ToolVersionsInfo {
 
 #[tauri::command]
 fn check_tool_versions() -> ToolVersionsInfo {
-    let mut info = ToolVersionsInfo {
-        ytdlp_installed: "Not Found".into(),
-        deno_installed: "Not Found".into(),
-        ffmpeg_installed: "Not Found".into(),
-        ffprobe_installed: "Not Found".into(),
-    };
-
-    // yt-dlp
-    let ytdlp_bin = find_binary("yt-dlp");
-    let mut cmd = Command::new(&ytdlp_bin);
-    cmd.arg("--version");
-    #[cfg(windows)]
-    cmd.creation_flags(0x08000000);
-    if let Ok(out) = cmd.output() {
-        if out.status.success() {
-            if let Ok(s) = String::from_utf8(out.stdout) {
-                info.ytdlp_installed = s.trim().to_string();
-            }
-        }
-    }
-
-    // Deno
-    let deno_bin = find_binary("deno");
-    let mut cmd = Command::new(&deno_bin);
-    cmd.arg("--version");
-    #[cfg(windows)]
-    cmd.creation_flags(0x08000000);
-    if let Ok(out) = cmd.output() {
-        if out.status.success() {
-            if let Ok(s) = String::from_utf8(out.stdout) {
-                if let Some(line1) = s.lines().next() {
-                    let ver = line1.replace("deno", "").trim().to_string();
-                    info.deno_installed = if ver.is_empty() { line1.trim().to_string() } else { ver };
+    let t_ytdlp = std::thread::spawn(|| {
+        let bin = find_binary("yt-dlp");
+        let mut cmd = Command::new(&bin);
+        cmd.arg("--version");
+        #[cfg(windows)]
+        cmd.creation_flags(0x08000000);
+        if let Ok(out) = cmd.output() {
+            if out.status.success() {
+                if let Ok(s) = String::from_utf8(out.stdout) {
+                    return s.trim().to_string();
                 }
             }
         }
-    }
+        "Not Found".to_string()
+    });
 
-    // FFmpeg
-    let ffmpeg_bin = find_binary("ffmpeg");
-    let mut cmd = Command::new(&ffmpeg_bin);
-    cmd.arg("-version");
-    #[cfg(windows)]
-    cmd.creation_flags(0x08000000);
-    if let Ok(out) = cmd.output() {
-        if out.status.success() {
-            if let Ok(s) = String::from_utf8(out.stdout) {
-                if let Some(line1) = s.lines().next() {
-                    let parts: Vec<&str> = line1.split_whitespace().collect();
-                    if parts.len() >= 3 {
-                        info.ffmpeg_installed = parts[2].to_string();
-                    } else {
-                        info.ffmpeg_installed = line1.trim().to_string();
+    let t_deno = std::thread::spawn(|| {
+        let bin = find_binary("deno");
+        let mut cmd = Command::new(&bin);
+        cmd.arg("--version");
+        #[cfg(windows)]
+        cmd.creation_flags(0x08000000);
+        if let Ok(out) = cmd.output() {
+            if out.status.success() {
+                if let Ok(s) = String::from_utf8(out.stdout) {
+                    if let Some(line1) = s.lines().next() {
+                        let ver = line1.replace("deno", "").trim().to_string();
+                        return if ver.is_empty() { line1.trim().to_string() } else { ver };
                     }
                 }
             }
         }
-    }
+        "Not Found".to_string()
+    });
 
-    // FFprobe
-    let ffprobe_bin = find_binary("ffprobe");
-    let mut cmd = Command::new(&ffprobe_bin);
-    cmd.arg("-version");
-    #[cfg(windows)]
-    cmd.creation_flags(0x08000000);
-    if let Ok(out) = cmd.output() {
-        if out.status.success() {
-            if let Ok(s) = String::from_utf8(out.stdout) {
-                if let Some(line1) = s.lines().next() {
-                    let parts: Vec<&str> = line1.split_whitespace().collect();
-                    if parts.len() >= 3 {
-                        info.ffprobe_installed = parts[2].to_string();
-                    } else {
-                        info.ffprobe_installed = line1.trim().to_string();
+    let t_ffmpeg = std::thread::spawn(|| {
+        let bin = find_binary("ffmpeg");
+        let mut cmd = Command::new(&bin);
+        cmd.arg("-version");
+        #[cfg(windows)]
+        cmd.creation_flags(0x08000000);
+        if let Ok(out) = cmd.output() {
+            if out.status.success() {
+                if let Ok(s) = String::from_utf8(out.stdout) {
+                    if let Some(line1) = s.lines().next() {
+                        let parts: Vec<&str> = line1.split_whitespace().collect();
+                        if parts.len() >= 3 {
+                            return parts[2].to_string();
+                        } else {
+                            return line1.trim().to_string();
+                        }
                     }
                 }
             }
         }
-    }
+        "Not Found".to_string()
+    });
 
-    info
+    let t_ffprobe = std::thread::spawn(|| {
+        let bin = find_binary("ffprobe");
+        let mut cmd = Command::new(&bin);
+        cmd.arg("-version");
+        #[cfg(windows)]
+        cmd.creation_flags(0x08000000);
+        if let Ok(out) = cmd.output() {
+            if out.status.success() {
+                if let Ok(s) = String::from_utf8(out.stdout) {
+                    if let Some(line1) = s.lines().next() {
+                        let parts: Vec<&str> = line1.split_whitespace().collect();
+                        if parts.len() >= 3 {
+                            return parts[2].to_string();
+                        } else {
+                            return line1.trim().to_string();
+                        }
+                    }
+                }
+            }
+        }
+        "Not Found".to_string()
+    });
+
+    ToolVersionsInfo {
+        ytdlp_installed: t_ytdlp.join().unwrap_or_else(|_| "Not Found".into()),
+        deno_installed: t_deno.join().unwrap_or_else(|_| "Not Found".into()),
+        ffmpeg_installed: t_ffmpeg.join().unwrap_or_else(|_| "Not Found".into()),
+        ffprobe_installed: t_ffprobe.join().unwrap_or_else(|_| "Not Found".into()),
+    }
 }
 
 fn find_binary(bin: &str) -> String {
-    let mut check_cmd = Command::new(bin);
-    check_cmd.arg("-version");
-    #[cfg(windows)]
-    check_cmd.creation_flags(0x08000000);
-    if let Ok(out) = check_cmd.output() {
-        if out.status.success() {
-            return bin.to_string();
+    let mut cache = BINARY_PATH_CACHE.lock().unwrap();
+    if cache.is_none() {
+        *cache = Some(HashMap::new());
+    }
+    if let Some(ref map) = *cache {
+        if let Some(cached_path) = map.get(bin) {
+            return cached_path.clone();
         }
     }
 
+    let resolved = resolve_binary_path(bin);
+    if let Some(ref mut map) = *cache {
+        map.insert(bin.to_string(), resolved.clone());
+    }
+    resolved
+}
+
+fn resolve_binary_path(bin: &str) -> String {
+    // 1. Check local tools and app directories first
     if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
         let p = std::path::Path::new(&local_app_data)
             .join("ASDK")
             .join("Shared")
             .join("bin")
             .join(format!("{}.exe", bin));
-        if p.exists() {
+        if p.is_file() {
             return p.to_string_lossy().to_string();
+        }
+        let p_tauri = std::path::Path::new(&local_app_data)
+            .join("tauri")
+            .join("bin")
+            .join(format!("{}.exe", bin));
+        if p_tauri.is_file() {
+            return p_tauri.to_string_lossy().to_string();
         }
     }
 
     let p2 = std::path::Path::new(r"C:\ffmpeg\bin").join(format!("{}.exe", bin));
-    if p2.exists() {
+    if p2.is_file() {
         return p2.to_string_lossy().to_string();
+    }
+
+    // 2. Check PATH environment variable directly via filesystem checks without process spawning
+    if let Some(paths) = std::env::var_os("PATH") {
+        for path_entry in std::env::split_paths(&paths) {
+            let candidate_exe = path_entry.join(format!("{}.exe", bin));
+            if candidate_exe.is_file() {
+                return candidate_exe.to_string_lossy().to_string();
+            }
+            let candidate_bare = path_entry.join(bin);
+            if candidate_bare.is_file() {
+                return candidate_bare.to_string_lossy().to_string();
+            }
+        }
     }
 
     bin.to_string()
@@ -541,6 +580,13 @@ fn cancel_job() -> Result<(), String> {
 
 #[tauri::command]
 fn get_hardware_info() -> HardwareInfo {
+    {
+        let cache = HARDWARE_INFO_CACHE.lock().unwrap();
+        if let Some(ref info) = *cache {
+            return info.clone();
+        }
+    }
+
     let mut cpu_name: Option<String> = None;
     let mut nvidia_gpu: Option<String> = None;
     let mut intel_gpu: Option<String> = None;
@@ -630,13 +676,17 @@ fn get_hardware_info() -> HardwareInfo {
         "cpu".to_string()
     };
 
-    HardwareInfo {
+    let result = HardwareInfo {
         cpu_name,
         nvidia_gpu,
         intel_gpu,
         amd_gpu,
         default_recommended,
-    }
+    };
+
+    let mut cache = HARDWARE_INFO_CACHE.lock().unwrap();
+    *cache = Some(result.clone());
+    result
 }
 
 fn strip_ansi_codes(s: &str) -> String {
