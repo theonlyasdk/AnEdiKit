@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const tauriDir = path.join(rootDir, 'src-tauri');
-const releaseOutputDir = path.join(rootDir, 'release');
+const releaseOutputDir = path.join(rootDir, 'build');
 
 // Helper to format bytes into human-readable string
 function formatBytes(bytes) {
@@ -213,7 +213,7 @@ async function main() {
 
   await runTauriBuild(rawArgs);
 
-  console.log('\n[Release] Preparing release directory...');
+  console.log('\n[Build] Preparing build directory...');
   fs.mkdirSync(releaseOutputDir, { recursive: true });
 
   // Locate target release directory
@@ -314,8 +314,8 @@ async function main() {
     return;
   }
 
-  // Copy files to release/ in flat structure
-  console.log('\n[Release] Copying files to release/ folder:');
+  // Copy files to build/ in flat structure
+  console.log('\n[Build] Copying files to build/ folder:');
   const checksums = [];
 
   for (const item of releaseItems) {

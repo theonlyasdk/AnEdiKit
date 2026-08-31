@@ -47,7 +47,7 @@ npm run release
 # or
 build_release.bat
 ```
-The release output will be placed flat in the `release/` folder:
+The release output will be placed flat in the `build/` folder:
 - `AnEdiKit-v<version>-windows-x64-portable.exe` (Portable binary)
 - `AnEdiKit-v<version>-windows-x64-installer.msi` (MSI Installer)
 - `AnEdiKit-v<version>-windows-x64-setup.exe` (NSIS Setup)
