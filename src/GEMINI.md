@@ -93,6 +93,8 @@ Avoid:
 - Use Ionicons across the app for a crisp, modern, consistent icon set
 - Do not mix unrelated design systems with Bootstrap
 - When unsure, choose the closest Bootstrap 5 pattern instead of inventing a new one
+- Always load Bootstrap scripts (`bootstrap.bundle.min.js`) before Monaco Editor's loader (`vs/loader.min.js`) in HTML; Monaco's AMD loader (`define.amd`) hijacks Bootstrap's UMD module definition and prevents Bootstrap modals/dialogs from initializing globally
+
 
 # LocalStorage Key System
 

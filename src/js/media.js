@@ -21,6 +21,7 @@ import {
   initTrimmerControls,
 } from "./trimmer.js";
 import { addImageFilesToQueue } from "./image_queue.js";
+import { setupListDragAndDrop } from "./drag_reorder.js";
 
 let currentInputFile = "";
 let currentMediaInfo = null;
@@ -1092,204 +1093,34 @@ export function renderBatchQueueUI() {
 }
 
 function setupBatchQueueItemDrag(itemEl, dragHandle, index, listContainer) {
-  dragHandle.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    const allItemEls = Array.from(listContainer.querySelectorAll(".batch-queue-item"));
-    if (allItemEls.length <= 1) return;
-
-    const startY = e.clientY;
-    const startIndex = index;
-    let targetIndex = index;
-
-    // Get initial geometry
-    const rects = allItemEls.map((el) => {
-      const r = el.getBoundingClientRect();
-      return { top: r.top, bottom: r.bottom, height: r.height, mid: r.top + r.height / 2 };
-    });
-
-    // Lock main workspace scroll during drag to prevent outer view from scrolling
-    const workspaceEl = document.getElementById("tool-workspace");
-    const originalWorkspaceOverflowY = workspaceEl ? workspaceEl.style.overflowY : "";
-    if (workspaceEl) workspaceEl.style.overflowY = "hidden";
-
-    // Prevent listbox overflow clipping and scrollbar flicker during active drag
-    const originalOverflowY = listContainer.style.overflowY;
-    const originalOverflowX = listContainer.style.overflowX;
-    listContainer.style.overflowY = "visible";
-    listContainer.style.overflowX = "visible";
-
-    itemEl.classList.add("is-dragging");
-    try {
-      dragHandle.setPointerCapture(e.pointerId);
-    } catch (_) {}
-
-    const startScrollTop = listContainer.scrollTop;
-    let autoScrollRaf = null;
-    let lastClientY = startY;
-
-    const updateItemPosition = () => {
-      const scrollDelta = listContainer.scrollTop - startScrollTop;
-      const pointerDeltaY = lastClientY - startY;
-      const totalDeltaY = pointerDeltaY + scrollDelta;
-
-      // Strictly locked to vertical Y axis
-      itemEl.style.transform = `translateY(${totalDeltaY}px)`;
-
-      const currentMid = rects[startIndex].mid + totalDeltaY;
-
-      // Determine target slot
-      let newTarget = startIndex;
-      for (let i = 0; i < rects.length; i++) {
-        if (i < startIndex) {
-          if (currentMid < rects[i].top + rects[i].height * 0.5) {
-            newTarget = i;
-            break;
-          }
-        } else if (i > startIndex) {
-          if (currentMid > rects[i].top + rects[i].height * 0.5) {
-            newTarget = i;
+  setupListDragAndDrop({
+    itemEl,
+    dragHandle,
+    index,
+    listContainer,
+    itemSelector: ".batch-queue-item",
+    droppedHighlightSelector: '[data-batch-idx="{index}"]',
+    onReorder: (startIndex, targetIndex) => {
+      if (targetIndex !== startIndex && targetIndex >= 0 && targetIndex < batchQueue.length) {
+        const moved = batchQueue.splice(startIndex, 1)[0];
+        batchQueue.splice(targetIndex, 0, moved);
+        if (selectedBatchIdx === startIndex) {
+          selectedBatchIdx = targetIndex;
+        } else if (startIndex < selectedBatchIdx && targetIndex >= selectedBatchIdx) {
+          selectedBatchIdx--;
+        } else if (startIndex > selectedBatchIdx && targetIndex <= selectedBatchIdx) {
+          selectedBatchIdx++;
+        }
+        saveBatchQueue(batchQueue);
+        if (selectedBatchIdx >= 0 && selectedBatchIdx < batchQueue.length) {
+          const activePath = batchQueue[selectedBatchIdx].path;
+          if (activePath && activePath !== currentInputFile) {
+            probeMedia(activePath);
           }
         }
       }
-      targetIndex = newTarget;
-
-      // Smoothly shift other items
-      allItemEls.forEach((otherEl, i) => {
-        if (i === startIndex) return;
-        if (startIndex < targetIndex) {
-          if (i > startIndex && i <= targetIndex) {
-            otherEl.style.transform = `translateY(-${draggedHeight + gap}px)`;
-          } else {
-            otherEl.style.transform = "translateY(0)";
-          }
-        } else if (startIndex > targetIndex) {
-          if (i < startIndex && i >= targetIndex) {
-            otherEl.style.transform = `translateY(${draggedHeight + gap}px)`;
-          } else {
-            otherEl.style.transform = "translateY(0)";
-          }
-        } else {
-          otherEl.style.transform = "translateY(0)";
-        }
-      });
-    };
-
-    const checkAutoScroll = () => {
-      const containerRect = listContainer.getBoundingClientRect();
-      const edgeZone = 40; // 40px top/bottom threshold zone
-      const topThreshold = containerRect.top + edgeZone;
-      const bottomThreshold = containerRect.bottom - edgeZone;
-
-      let scrolled = false;
-      if (lastClientY < topThreshold && listContainer.scrollTop > 0) {
-        const ratio = Math.max(0.2, (topThreshold - lastClientY) / edgeZone);
-        const speed = Math.max(2, Math.round(ratio * 8));
-        listContainer.scrollTop -= speed;
-        scrolled = true;
-      } else if (lastClientY > bottomThreshold && listContainer.scrollTop < listContainer.scrollHeight - listContainer.clientHeight) {
-        const ratio = Math.max(0.2, (lastClientY - bottomThreshold) / edgeZone);
-        const speed = Math.max(2, Math.round(ratio * 8));
-        listContainer.scrollTop += speed;
-        scrolled = true;
-      }
-
-      if (scrolled) {
-        updateItemPosition();
-        autoScrollRaf = requestAnimationFrame(checkAutoScroll);
-      } else {
-        autoScrollRaf = null;
-      }
-    };
-
-    const onPointerMove = (moveEvt) => {
-      lastClientY = moveEvt.clientY;
-      updateItemPosition();
-
-      const containerRect = listContainer.getBoundingClientRect();
-      const edgeZone = 40;
-      const nearEdge = (lastClientY < containerRect.top + edgeZone && listContainer.scrollTop > 0) ||
-                       (lastClientY > containerRect.bottom - edgeZone && listContainer.scrollTop < listContainer.scrollHeight - listContainer.clientHeight);
-
-      if (nearEdge && !autoScrollRaf) {
-        autoScrollRaf = requestAnimationFrame(checkAutoScroll);
-      } else if (!nearEdge && autoScrollRaf) {
-        cancelAnimationFrame(autoScrollRaf);
-        autoScrollRaf = null;
-      }
-    };
-
-    const onPointerUp = (upEvt) => {
-      try {
-        dragHandle.releasePointerCapture(upEvt.pointerId);
-      } catch (_) {}
-      dragHandle.removeEventListener("pointermove", onPointerMove);
-      dragHandle.removeEventListener("pointerup", onPointerUp);
-      dragHandle.removeEventListener("pointercancel", onPointerUp);
-
-      if (workspaceEl) workspaceEl.style.overflowY = originalWorkspaceOverflowY;
-
-      // Calculate final resting position offset for smooth release transition
-      let finalTranslateY = 0;
-      if (targetIndex !== startIndex) {
-        if (targetIndex > startIndex) {
-          finalTranslateY = rects[targetIndex].bottom - rects[startIndex].bottom;
-        } else {
-          finalTranslateY = rects[targetIndex].top - rects[startIndex].top;
-        }
-      }
-
-      itemEl.classList.add("is-releasing");
-      itemEl.style.setProperty("transition", "transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease", "important");
-      itemEl.style.transform = `translateY(${finalTranslateY}px)`;
-      itemEl.style.boxShadow = "none";
-
-      const onTransitionEnd = () => {
-        itemEl.removeEventListener("transitionend", onTransitionEnd);
-        listContainer.style.overflowY = originalOverflowY;
-        listContainer.style.overflowX = originalOverflowX;
-
-        itemEl.classList.remove("is-dragging", "is-releasing");
-        itemEl.style.transition = "";
-        itemEl.style.transform = "";
-        itemEl.style.boxShadow = "";
-        allItemEls.forEach((el) => {
-          el.style.transform = "";
-        });
-
-        const finalIdx = targetIndex;
-        if (targetIndex !== startIndex && targetIndex >= 0 && targetIndex < batchQueue.length) {
-          const moved = batchQueue.splice(startIndex, 1)[0];
-          batchQueue.splice(targetIndex, 0, moved);
-          if (selectedBatchIdx === startIndex) {
-            selectedBatchIdx = targetIndex;
-          } else if (startIndex < selectedBatchIdx && targetIndex >= selectedBatchIdx) {
-            selectedBatchIdx--;
-          } else if (startIndex > selectedBatchIdx && targetIndex <= selectedBatchIdx) {
-            selectedBatchIdx++;
-          }
-          saveBatchQueue(batchQueue);
-        }
-        renderBatchQueueUI();
-
-        // Trigger smooth accent drop pulse on the placed row
-        const droppedEl = listContainer.querySelector(`[data-batch-idx="${finalIdx}"]`);
-        if (droppedEl) {
-          droppedEl.classList.add("item-dropped-highlight");
-          setTimeout(() => droppedEl.classList.remove("item-dropped-highlight"), 500);
-        }
-      };
-
-      itemEl.addEventListener("transitionend", onTransitionEnd);
-      // Fallback in case transitionend does not fire
-      setTimeout(onTransitionEnd, 180);
-    };
-
-    dragHandle.addEventListener("pointermove", onPointerMove);
-    dragHandle.addEventListener("pointerup", onPointerUp);
-    dragHandle.addEventListener("pointercancel", onPointerUp);
+      renderBatchQueueUI();
+    },
   });
 }
 

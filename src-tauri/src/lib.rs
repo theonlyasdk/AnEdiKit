@@ -46,7 +46,7 @@ pub struct LogPayload {
     pub line: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct HardwareInfo {
     pub cpu_name: Option<String>,
     pub nvidia_gpu: Option<String>,
@@ -182,8 +182,7 @@ fn check_file_exists(file_path: String) -> bool {
     p.exists() && p.is_file()
 }
 
-#[tauri::command]
-fn read_image_data(file_path: String) -> Result<String, String> {
+fn read_image_data_internal(file_path: String) -> Result<String, String> {
     let decoded = percent_decode_path(&file_path);
     let p = std::path::Path::new(&decoded);
     if !p.exists() || !p.is_file() {
@@ -212,6 +211,13 @@ fn read_image_data(file_path: String) -> Result<String, String> {
     use base64::Engine;
     let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
     Ok(format!("data:{};base64,{}", mime, b64))
+}
+
+#[tauri::command]
+async fn read_image_data(file_path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || read_image_data_internal(file_path))
+        .await
+        .map_err(|e| format!("Async task execution failed: {}", e))?
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -398,8 +404,7 @@ fn percent_decode_path(input: &str) -> String {
     String::from_utf8(decoded).unwrap_or_else(|_| clean.to_string())
 }
 
-#[tauri::command]
-fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
+fn get_media_info_internal(file_path: String) -> Result<MediaInfo, String> {
     let decoded_path = percent_decode_path(&file_path);
     let path = std::path::Path::new(&decoded_path);
     if !path.exists() {
@@ -553,6 +558,13 @@ fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
 }
 
 #[tauri::command]
+async fn get_media_info(file_path: String) -> Result<MediaInfo, String> {
+    tauri::async_runtime::spawn_blocking(move || get_media_info_internal(file_path))
+        .await
+        .map_err(|e| format!("Async task execution failed: {}", e))?
+}
+
+#[tauri::command]
 fn cancel_ffmpeg() -> Result<(), String> {
     CANCEL_REQUESTED.store(true, Ordering::SeqCst);
     let mut pid_lock = RUNNING_CHILD_PID.lock().unwrap();
@@ -578,8 +590,7 @@ fn cancel_job() -> Result<(), String> {
     cancel_ffmpeg()
 }
 
-#[tauri::command]
-fn get_hardware_info() -> HardwareInfo {
+fn get_hardware_info_internal() -> HardwareInfo {
     {
         let cache = HARDWARE_INFO_CACHE.lock().unwrap();
         if let Some(ref info) = *cache {
@@ -687,6 +698,13 @@ fn get_hardware_info() -> HardwareInfo {
     let mut cache = HARDWARE_INFO_CACHE.lock().unwrap();
     *cache = Some(result.clone());
     result
+}
+
+#[tauri::command]
+async fn get_hardware_info() -> HardwareInfo {
+    tauri::async_runtime::spawn_blocking(move || get_hardware_info_internal())
+        .await
+        .unwrap_or_default()
 }
 
 fn strip_ansi_codes(s: &str) -> String {
@@ -1769,12 +1787,15 @@ fn extract_album_art_internal(file_path: &str) -> Option<String> {
 }
 
 #[tauri::command]
-fn extract_album_art(file_path: String) -> Result<String, String> {
-    extract_album_art_internal(&file_path).ok_or_else(|| "No album art found".into())
+async fn extract_album_art(file_path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        extract_album_art_internal(&file_path).ok_or_else(|| "No album art found".into())
+    })
+    .await
+    .map_err(|e| format!("Async task execution failed: {}", e))?
 }
 
-#[tauri::command]
-fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Result<String, String> {
+fn extract_action_frame_internal(file_path: String, duration_seconds: Option<f64>) -> Result<String, String> {
     let path = std::path::Path::new(&file_path);
     if !path.exists() {
         return Err("File does not exist".into());
@@ -1837,7 +1858,15 @@ fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Res
 }
 
 #[tauri::command]
-fn extract_timeline_thumbnails(
+async fn extract_action_frame(file_path: String, duration_seconds: Option<f64>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        extract_action_frame_internal(file_path, duration_seconds)
+    })
+    .await
+    .map_err(|e| format!("Async task execution failed: {}", e))?
+}
+
+fn extract_timeline_thumbnails_internal(
     file_path: String,
     count: Option<usize>,
     duration_seconds: Option<f64>,
@@ -1934,7 +1963,19 @@ fn extract_timeline_thumbnails(
 }
 
 #[tauri::command]
-fn fetch_playlist_videos(url: String) -> Result<Vec<PlaylistVideo>, String> {
+async fn extract_timeline_thumbnails(
+    file_path: String,
+    count: Option<usize>,
+    duration_seconds: Option<f64>,
+) -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        extract_timeline_thumbnails_internal(file_path, count, duration_seconds)
+    })
+    .await
+    .map_err(|e| format!("Async task execution failed: {}", e))?
+}
+
+fn fetch_playlist_videos_internal(url: String) -> Result<Vec<PlaylistVideo>, String> {
     if url.trim().is_empty() {
         return Err("Please enter a valid playlist or video URL".into());
     }
@@ -2017,7 +2058,13 @@ fn fetch_playlist_videos(url: String) -> Result<Vec<PlaylistVideo>, String> {
 }
 
 #[tauri::command]
-fn extract_timeline_frame(
+async fn fetch_playlist_videos(url: String) -> Result<Vec<PlaylistVideo>, String> {
+    tauri::async_runtime::spawn_blocking(move || fetch_playlist_videos_internal(url))
+        .await
+        .map_err(|e| format!("Async task execution failed: {}", e))?
+}
+
+fn extract_timeline_frame_internal(
     file_path: String,
     frame_index: usize,
     timestamp_seconds: f64,
@@ -2071,6 +2118,19 @@ fn extract_timeline_frame(
     let bytes = std::fs::read(&frame_file).map_err(|e| format!("Failed to read frame: {}", e))?;
     let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
     Ok(format!("data:image/jpeg;base64,{}", b64))
+}
+
+#[tauri::command]
+async fn extract_timeline_frame(
+    file_path: String,
+    frame_index: usize,
+    timestamp_seconds: f64,
+) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        extract_timeline_frame_internal(file_path, frame_index, timestamp_seconds)
+    })
+    .await
+    .map_err(|e| format!("Async task execution failed: {}", e))?
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

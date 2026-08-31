@@ -941,6 +941,18 @@ export function updateEstimatesUI() {
   if (loopEstMode && loopEstEngine && loopEstLoops) {
     const mode = document.getElementById("loop-mode")?.value || "duration";
     const engine = document.getElementById("loop-engine")?.value || "copy";
+    const vcodec = document.getElementById("loop-vcodec")?.value || "libx264";
+    const currentInput = getCurrentInputFile();
+    const hasMedia = !!(currentInput && currentInput.trim().length > 0 && mediaInfo && mediaInfo.duration_seconds > 0);
+
+    const vcodecNames = {
+      libx264: "H.264",
+      libx265: "HEVC",
+      libsvtav1: "AV1",
+      "libvpx-vp9": "VP9",
+    };
+    const engineLabel = engine === "copy" ? "Direct Stream Copy" : `Re-encode (${vcodecNames[vcodec] || vcodec})`;
+    loopEstEngine.textContent = engineLabel;
 
     if (mode === "duration") {
       const hh = parseInt(document.getElementById("loop-target-hh")?.value, 10) || 0;
@@ -948,29 +960,38 @@ export function updateEstimatesUI() {
       const ss = parseInt(document.getElementById("loop-target-ss")?.value, 10) || 0;
       const totalSec = Math.max(1, hh * 3600 + mm * 60 + ss);
       const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-      const neededLoops = Math.max(1, Math.ceil(totalSec / Math.max(0.1, durSec)));
 
       if (loopTotalTimeStr) loopTotalTimeStr.textContent = timeStr;
-      if (loopCalcCount) loopCalcCount.textContent = `${neededLoops} repeats`;
-
       loopEstMode.textContent = `Target Duration (${timeStr})`;
-      const estTotalMb = (srcSizeMb * (totalSec / Math.max(1, durSec)));
-      loopEstLoops.textContent = `${neededLoops} loops (${formatSize(estTotalMb)})`;
+
+      if (hasMedia) {
+        const neededLoops = Math.max(1, Math.ceil(totalSec / durSec));
+        const estTotalMb = srcSizeMb * (totalSec / durSec);
+        if (loopCalcCount) loopCalcCount.textContent = `${neededLoops.toLocaleString()} repeats`;
+        loopEstLoops.textContent = `${neededLoops.toLocaleString()} loops (${formatSize(estTotalMb)})`;
+      } else {
+        if (loopCalcCount) loopCalcCount.textContent = "--";
+        loopEstLoops.textContent = "Waiting for media...";
+      }
     } else {
       const count = parseInt(document.getElementById("loop-repeat-count")?.value, 10) || 10;
-      const totalSec = Math.round(durSec * count);
-      const hh = Math.floor(totalSec / 3600);
-      const mm = Math.floor((totalSec % 3600) / 60);
-      const ss = totalSec % 60;
-      const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-
-      if (loopCountDurationStr) loopCountDurationStr.textContent = timeStr;
       loopEstMode.textContent = `Repeat Count (${count}x)`;
-      const estTotalMb = srcSizeMb * count;
-      loopEstLoops.textContent = `${count} repeats (${timeStr}, ${formatSize(estTotalMb)})`;
-    }
 
-    loopEstEngine.textContent = engine === "copy" ? "Direct Stream Copy (Lossless)" : "Re-encode";
+      if (hasMedia) {
+        const totalSec = Math.round(durSec * count);
+        const hh = Math.floor(totalSec / 3600);
+        const mm = Math.floor((totalSec % 3600) / 60);
+        const ss = totalSec % 60;
+        const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+        const estTotalMb = srcSizeMb * count;
+
+        if (loopCountDurationStr) loopCountDurationStr.textContent = timeStr;
+        loopEstLoops.textContent = `${count.toLocaleString()} repeats (${timeStr}, ${formatSize(estTotalMb)})`;
+      } else {
+        if (loopCountDurationStr) loopCountDurationStr.textContent = "--:--:--";
+        loopEstLoops.textContent = `${count} repeats (No media)`;
+      }
+    }
   }
 
   // 3.8. Volume Normalization Estimate
@@ -1265,10 +1286,19 @@ function bindFormEvents() {
         e.target.id === "loop-container" ||
         e.target.id === "loop-mode" ||
         e.target.id === "loop-engine" ||
+        e.target.id === "loop-vcodec" ||
+        e.target.id === "loop-audio-mode" ||
         e.target.id === "norm-video-mode" ||
         e.target.id === "norm-acodec"
       ) {
         updateAutoOutputFilename(true);
+      }
+      if (
+        e.target.id === "loop-target-hh" ||
+        e.target.id === "loop-target-mm" ||
+        e.target.id === "loop-target-ss"
+      ) {
+        syncLoopPresetActiveButtons();
       }
       updateCommandPreview();
     });
@@ -1297,14 +1327,34 @@ function bindFormEvents() {
         e.target.id === "loop-container" ||
         e.target.id === "loop-mode" ||
         e.target.id === "loop-engine" ||
+        e.target.id === "loop-vcodec" ||
+        e.target.id === "loop-audio-mode" ||
         e.target.id === "norm-video-mode" ||
         e.target.id === "norm-acodec"
       ) {
         updateAutoOutputFilename(true);
       }
+      if (
+        e.target.id === "loop-target-hh" ||
+        e.target.id === "loop-target-mm" ||
+        e.target.id === "loop-target-ss"
+      ) {
+        syncLoopPresetActiveButtons();
+      }
       updateCommandPreview();
     });
   });
+
+  function syncLoopPresetActiveButtons() {
+    const inH = parseInt(document.getElementById("loop-target-hh")?.value, 10) || 0;
+    const inM = parseInt(document.getElementById("loop-target-mm")?.value, 10) || 0;
+    const inS = parseInt(document.getElementById("loop-target-ss")?.value, 10) || 0;
+    const totalSec = inH * 3600 + inM * 60 + inS;
+    document.querySelectorAll(".btn-loop-preset").forEach((btn) => {
+      const sec = parseInt(btn.dataset.sec, 10);
+      btn.classList.toggle("active", sec === totalSec);
+    });
+  }
 
   // Loop & Duration Extender preset buttons
   document.querySelectorAll(".btn-loop-preset").forEach((btn) => {

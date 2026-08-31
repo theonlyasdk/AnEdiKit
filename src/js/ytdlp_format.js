@@ -1,5 +1,6 @@
 // yt-dlp Filename Format Editor Module
 import { loadSettings, saveSettings } from "./storage.js";
+import { setupListDragAndDrop } from "./drag_reorder.js";
 
 export const YT_TOKENS = [
   { name: "Title", key: "title", raw: "%(title)s", desc: "Video or audio title" },
@@ -233,106 +234,19 @@ export function renderFormatEditorList() {
 }
 
 function setupItemDrag(itemEl, dragHandle, index, listContainer) {
-  dragHandle.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    const allItemEls = Array.from(listContainer.querySelectorAll(".format-list-item"));
-    if (allItemEls.length <= 1) return;
-
-    const startY = e.clientY;
-    const startIndex = index;
-    let targetIndex = index;
-
-    // Get initial geometry
-    const rects = allItemEls.map((el) => {
-      const r = el.getBoundingClientRect();
-      return { top: r.top, bottom: r.bottom, height: r.height, mid: r.top + r.height / 2 };
-    });
-
-    const draggedHeight = rects[startIndex].height;
-    const gap = 0; // 0px spacing (flush list items)
-
-    const originalOverflowY = listContainer.style.overflowY;
-    const originalOverflowX = listContainer.style.overflowX;
-    listContainer.style.overflowY = "visible";
-    listContainer.style.overflowX = "visible";
-
-    itemEl.classList.add("is-dragging");
-    try {
-      dragHandle.setPointerCapture(e.pointerId);
-    } catch (_) {}
-
-    const onPointerMove = (moveEvt) => {
-      const deltaY = moveEvt.clientY - startY;
-      // Strictly locked to vertical Y axis without horizontal expansion
-      itemEl.style.transform = `translateY(${deltaY}px)`;
-
-      const currentMid = rects[startIndex].mid + deltaY;
-
-      // Determine target slot
-      let newTarget = startIndex;
-      for (let i = 0; i < rects.length; i++) {
-        if (i < startIndex) {
-          if (currentMid < rects[i].mid) {
-            newTarget = i;
-            break;
-          }
-        } else if (i > startIndex) {
-          if (currentMid > rects[i].mid) {
-            newTarget = i;
-          }
-        }
-      }
-      targetIndex = newTarget;
-
-      // Smoothly shift other items
-      allItemEls.forEach((otherEl, i) => {
-        if (i === startIndex) return;
-        if (startIndex < targetIndex) {
-          if (i > startIndex && i <= targetIndex) {
-            otherEl.style.transform = `translateY(-${draggedHeight + gap}px)`;
-          } else {
-            otherEl.style.transform = "translateY(0)";
-          }
-        } else if (startIndex > targetIndex) {
-          if (i < startIndex && i >= targetIndex) {
-            otherEl.style.transform = `translateY(${draggedHeight + gap}px)`;
-          } else {
-            otherEl.style.transform = "translateY(0)";
-          }
-        } else {
-          otherEl.style.transform = "translateY(0)";
-        }
-      });
-    };
-
-    const onPointerUp = (upEvt) => {
-      try {
-        dragHandle.releasePointerCapture(upEvt.pointerId);
-      } catch (_) {}
-      dragHandle.removeEventListener("pointermove", onPointerMove);
-      dragHandle.removeEventListener("pointerup", onPointerUp);
-      dragHandle.removeEventListener("pointercancel", onPointerUp);
-
-      listContainer.style.overflowY = originalOverflowY;
-      listContainer.style.overflowX = originalOverflowX;
-
-      itemEl.classList.remove("is-dragging");
-      itemEl.style.transform = "";
-      allItemEls.forEach((el) => (el.style.transform = ""));
-
-      if (targetIndex !== startIndex) {
+  setupListDragAndDrop({
+    itemEl,
+    dragHandle,
+    index,
+    listContainer,
+    itemSelector: ".format-list-item",
+    onReorder: (startIndex, targetIndex) => {
+      if (targetIndex !== startIndex && targetIndex >= 0 && targetIndex < currentFormatItems.length) {
         const moved = currentFormatItems.splice(startIndex, 1)[0];
         currentFormatItems.splice(targetIndex, 0, moved);
       }
       renderFormatEditorList();
-    };
-
-    dragHandle.addEventListener("pointermove", onPointerMove);
-    dragHandle.addEventListener("pointerup", onPointerUp);
-    dragHandle.addEventListener("pointercancel", onPointerUp);
+    },
   });
 }
 

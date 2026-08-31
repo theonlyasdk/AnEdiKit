@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="styles.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
     <script type="module" src="vendor/ionicons/ionicons.esm.js"></script>
     <script type="module" src="main.js" defer></script>
   </head>
@@ -355,7 +355,7 @@
                 <div class="section-divider-header">Filename Format</div>
                 <div class="input-group mb-2">
                   <input type="text" class="form-control small font-monospace bg-body-tertiary" id="ytdlp-filename-format" placeholder="%(title)s [%(id)s].%(ext)s" value="%(title)s [%(id)s].%(ext)s" readonly />
-                  <button class="btn btn-outline-secondary d-flex align-items-center gap-1" type="button" id="btn-edit-ytdlp-filename-format" title="Edit output filename format template"><ion-icon name="create-outline"></ion-icon> Edit</button>
+                  <button class="btn btn-outline-secondary d-flex align-items-center gap-1" type="button" id="btn-edit-ytdlp-filename-format" data-bs-toggle="modal" data-bs-target="#modal-filename-format-editor" title="Edit output filename format template"><ion-icon name="create-outline"></ion-icon> Edit</button>
                 </div>
               </div>
             </div>
@@ -869,19 +869,11 @@
                 <div class="section-divider-header">Loop &amp; Duration Parameters</div>
                 <div class="row g-3">
                   <!-- Mode Selection -->
-                  <div class="col-md-6">
+                  <div class="col-12">
                     <label class="form-label small fw-medium" for="loop-mode">Loop Mode</label>
                     <select class="form-select form-select-sm" id="loop-mode">
                       <option value="duration" selected>Target Duration (Calculate loops to reach exact time)</option>
                       <option value="count">Repeat Count (Specify exact number of repetitions)</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="loop-engine">Processing Mode</label>
-                    <select class="form-select form-select-sm" id="loop-engine">
-                      <option value="copy" selected>Direct Stream Copy (Lossless &amp; Instant)</option>
-                      <option value="reencode">Re-encode Video &amp; Audio (High Quality)</option>
                     </select>
                   </div>
 
@@ -942,8 +934,17 @@
                     </div>
                   </div>
 
+                  <!-- Processing Mode -->
+                  <div class="col-12 col-md-4">
+                    <label class="form-label small fw-medium" for="loop-engine">Processing Mode</label>
+                    <select class="form-select form-select-sm" id="loop-engine">
+                      <option value="copy" selected>Direct Stream Copy (Lossless &amp; Instant)</option>
+                      <option value="reencode">Re-encode Video &amp; Audio (High Quality)</option>
+                    </select>
+                  </div>
+
                   <!-- Audio Handling -->
-                  <div class="col-md-4">
+                  <div class="col-12 col-md-4">
                     <label class="form-label small fw-medium" for="loop-audio-mode">Audio Handling</label>
                     <select class="form-select form-select-sm" id="loop-audio-mode">
                       <option value="keep" selected>Loop Audio with Video</option>
@@ -952,7 +953,7 @@
                   </div>
 
                   <!-- Container / Format -->
-                  <div class="col-md-4">
+                  <div class="col-12 col-md-4">
                     <label class="form-label small fw-medium" for="loop-container">Output Format</label>
                     <select class="form-select form-select-sm" id="loop-container">
                       <option value="mp4" selected>MP4 (.mp4)</option>
@@ -964,7 +965,7 @@
                   </div>
 
                   <!-- Re-encode video codec (conditional) -->
-                  <div class="col-md-4 d-none ui-zoom-in" id="loop-reencode-codec-wrapper">
+                  <div class="col-12 col-md-4 d-none ui-zoom-in" id="loop-reencode-codec-wrapper">
                     <label class="form-label small fw-medium" for="loop-vcodec">Video Codec</label>
                     <select class="form-select form-select-sm" id="loop-vcodec">
                       <option value="libx264" selected>H.264 (libx264)</option>

@@ -18,6 +18,7 @@ import { BLOCK_TYPES, createBlockInstance, renderBlockHTML } from "./blocks.js";
 import { executeFfmpegJob, cancelFfmpegJob, isJobRunning } from "./runner.js";
 import { selectMediaFile, selectOutputFolder, probeMedia } from "./media.js";
 import { setupSidebarButtonEffects } from "./navigation.js";
+import { setupListDragAndDrop } from "./drag_reorder.js";
 
 // Starter Templates for New Kits
 export const STARTER_TEMPLATES = {
@@ -321,8 +322,9 @@ export function initKitsManager() {
   renderUserKitsSidebar();
   bindKitWizardEvents();
 
-  // Dismiss open dropdowns on click outside
+  // Dismiss open dropdowns on click outside (only if Bootstrap is not active)
   document.addEventListener("click", (e) => {
+    if (window.bootstrap?.Dropdown) return;
     if (!e.target.closest(".dropdown, .dropup, .dropend, .dropstart")) {
       document.querySelectorAll(".dropdown-menu.show").forEach((m) => {
         m.classList.remove("show");
@@ -346,47 +348,44 @@ export function bindUniversalDropdowns(container) {
   if (!container) return;
 
   container.querySelectorAll('[data-bs-toggle="dropdown"]').forEach((toggleBtn) => {
-    toggleBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    if (window.bootstrap?.Dropdown) {
+      const autoCloseAttr = toggleBtn.getAttribute("data-bs-auto-close");
+      let autoCloseVal = true;
+      if (autoCloseAttr === "outside") autoCloseVal = "outside";
+      else if (autoCloseAttr === "inside") autoCloseVal = "inside";
+      else if (autoCloseAttr === "false") autoCloseVal = false;
 
-      const parentDropdown = toggleBtn.closest(".dropdown, .dropup, .dropend, .dropstart") || toggleBtn.parentElement;
-      const menu = parentDropdown?.querySelector(".dropdown-menu");
-      if (!menu) return;
+      window.bootstrap.Dropdown.getOrCreateInstance(toggleBtn, {
+        autoClose: autoCloseVal,
+      });
+    } else {
+      toggleBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-      const isCurrentlyOpen = menu.classList.contains("show");
+        const parentDropdown = toggleBtn.closest(".dropdown, .dropup, .dropend, .dropstart") || toggleBtn.parentElement;
+        const menu = parentDropdown?.querySelector(".dropdown-menu");
+        if (!menu) return;
 
-      // Close all open dropdowns first
-      document.querySelectorAll(".dropdown-menu.show").forEach((m) => {
-        m.classList.remove("show");
-        const b = m.parentElement?.querySelector('[data-bs-toggle="dropdown"]');
-        if (b) {
-          b.classList.remove("show");
-          b.setAttribute("aria-expanded", "false");
+        const isCurrentlyOpen = menu.classList.contains("show");
+
+        document.querySelectorAll(".dropdown-menu.show").forEach((m) => {
+          m.classList.remove("show");
+          const b = m.parentElement?.querySelector('[data-bs-toggle="dropdown"]');
+          if (b) {
+            b.classList.remove("show");
+            b.setAttribute("aria-expanded", "false");
+          }
+        });
+
+        if (!isCurrentlyOpen) {
+          menu.classList.add("show");
+          menu.setAttribute("data-bs-popper", "static");
+          toggleBtn.classList.add("show");
+          toggleBtn.setAttribute("aria-expanded", "true");
         }
       });
-
-      if (!isCurrentlyOpen) {
-        menu.classList.add("show");
-        toggleBtn.classList.add("show");
-        toggleBtn.setAttribute("aria-expanded", "true");
-      }
-    });
-  });
-
-  // Close dropdown on dropdown-item click
-  container.querySelectorAll(".dropdown-menu .dropdown-item").forEach((item) => {
-    item.addEventListener("click", () => {
-      const menu = item.closest(".dropdown-menu");
-      if (menu) {
-        menu.classList.remove("show");
-        const btn = menu.parentElement?.querySelector('[data-bs-toggle="dropdown"]');
-        if (btn) {
-          btn.classList.remove("show");
-          btn.setAttribute("aria-expanded", "false");
-        }
-      }
-    });
+    }
   });
 }
 
@@ -1312,8 +1311,8 @@ export function showCustomKitAlert(message, title = "Alert") {
     }
 
     const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-    const titleEl = document.getElementById("modal-kit-alert-title");
-    const msgEl = document.getElementById("modal-kit-alert-message");
+    const titleEl = document.getElementById("modal-kit-alert-title") || document.getElementById("kit-alert-title");
+    const msgEl = document.getElementById("modal-kit-alert-message") || document.getElementById("kit-alert-message");
     const okBtn = document.getElementById("btn-kit-alert-ok");
 
     if (titleEl) titleEl.innerHTML = `<ion-icon name="information-circle-outline" class="text-primary me-2"></ion-icon>${escapeHtml(title)}`;
@@ -1352,9 +1351,9 @@ export function showCustomKitPrompt(message, defaultValue = "", title = "Prompt"
     }
 
     const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
-    const titleEl = document.getElementById("modal-kit-prompt-title");
-    const msgEl = document.getElementById("modal-kit-prompt-message");
-    const inputEl = document.getElementById("modal-kit-prompt-input");
+    const titleEl = document.getElementById("modal-kit-prompt-title") || document.getElementById("kit-prompt-title");
+    const msgEl = document.getElementById("modal-kit-prompt-message") || document.getElementById("kit-prompt-message");
+    const inputEl = document.getElementById("modal-kit-prompt-input") || document.getElementById("kit-prompt-input");
     const okBtn = document.getElementById("btn-kit-prompt-ok");
     const cancelBtn = document.getElementById("btn-kit-prompt-cancel");
 
@@ -2359,9 +2358,9 @@ function renderBlockEditorHTML(b, idx) {
     const optionsRowsHtml = opts
       .map(
         (opt, optIdx) => `
-      <div class="d-flex align-items-center gap-2 mb-2 block-option-row" data-opt-idx="${optIdx}">
-        <input type="text" class="form-control form-control-sm block-opt-val" data-idx="${idx}" data-opt-idx="${optIdx}" placeholder="Value (e.g. mp4)" value="${escapeHtml(opt.value)}" />
+      <div class="d-flex align-items-center gap-2 block-option-row" data-opt-idx="${optIdx}">
         <input type="text" class="form-control form-control-sm block-opt-lbl" data-idx="${idx}" data-opt-idx="${optIdx}" placeholder="Label (e.g. MP4 Video)" value="${escapeHtml(opt.label)}" />
+        <input type="text" class="form-control form-control-sm block-opt-val" data-idx="${idx}" data-opt-idx="${optIdx}" placeholder="Value (e.g. mp4)" value="${escapeHtml(opt.value)}" />
         <button class="btn btn-outline-danger btn-sm flex-shrink-0 btn-remove-block-opt" type="button" data-idx="${idx}" data-opt-idx="${optIdx}" title="Remove option">
           <ion-icon name="close-outline"></ion-icon>
         </button>
@@ -2381,12 +2380,12 @@ function renderBlockEditorHTML(b, idx) {
         <label class="col-auto col-form-label small fw-medium text-body pt-1" style="width: 120px; flex-shrink: 0;">Choices</label>
         <div class="col">
           <div class="d-flex justify-content-between align-items-center mb-1">
-            <span class="small text-body-secondary" style="font-size: 0.75rem;">Value &amp; Label Pairs</span>
+            <span class="small text-body-secondary" style="font-size: 0.75rem;">Label &amp; Value Pairs</span>
             <button class="btn btn-outline-primary btn-sm py-0 px-2 btn-add-block-opt" type="button" data-idx="${idx}">
               <ion-icon name="add-outline"></ion-icon> Add Option
             </button>
           </div>
-          <div class="border rounded p-2 bg-body">
+          <div class="border rounded p-2 bg-body d-flex flex-column gap-2">
             ${optionsRowsHtml || '<div class="small text-body-secondary">No options defined yet. Click "+ Add Option" above.</div>'}
           </div>
         </div>
@@ -2579,204 +2578,34 @@ function renderBlockEditorHTML(b, idx) {
 
 // Vertical pointer drag reordering with real-time shift animations for UI Blocks
 function setupBlockItemDrag(itemEl, dragHandle, index, listContainer) {
-  dragHandle.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-
-    const allItemEls = Array.from(listContainer.querySelectorAll(".kit-builder-row"));
-    if (allItemEls.length <= 1) return;
-
-    const startY = e.clientY;
-    const startIndex = index;
-    let targetIndex = index;
-
-    const rects = allItemEls.map((el) => {
-      const r = el.getBoundingClientRect();
-      return { top: r.top, bottom: r.bottom, height: r.height, mid: r.top + r.height / 2 };
-    });
-
-    const draggedHeight = rects[startIndex].height;
-    const gap = 0;
-
-    const workspaceEl = document.getElementById("tool-workspace");
-    const originalWorkspaceOverflowY = workspaceEl ? workspaceEl.style.overflowY : "";
-    if (workspaceEl) workspaceEl.style.overflowY = "hidden";
-
-    const originalOverflowY = listContainer.style.overflowY;
-    const originalOverflowX = listContainer.style.overflowX;
-    listContainer.style.overflowY = "visible";
-    listContainer.style.overflowX = "visible";
-
-    itemEl.classList.add("is-dragging");
-    try {
-      dragHandle.setPointerCapture(e.pointerId);
-    } catch (_) {}
-
-    const startScrollTop = listContainer.scrollTop;
-    let autoScrollRaf = null;
-    let lastClientY = startY;
-
-    const updateItemPosition = () => {
-      const scrollDelta = listContainer.scrollTop - startScrollTop;
-      const pointerDeltaY = lastClientY - startY;
-      const totalDeltaY = pointerDeltaY + scrollDelta;
-
-      itemEl.style.transform = `translateY(${totalDeltaY}px)`;
-
-      const currentMid = rects[startIndex].mid + totalDeltaY;
-
-      let newTarget = startIndex;
-      for (let i = 0; i < rects.length; i++) {
-        if (i < startIndex) {
-          if (currentMid < rects[i].top + rects[i].height * 0.5) {
-            newTarget = i;
-            break;
-          }
-        } else if (i > startIndex) {
-          if (currentMid > rects[i].top + rects[i].height * 0.5) {
-            newTarget = i;
-          }
-        }
-      }
-      targetIndex = newTarget;
-
-      // Smoothly shift other items
-      allItemEls.forEach((otherEl, i) => {
-        if (i === startIndex) return;
-        if (startIndex < targetIndex) {
-          if (i > startIndex && i <= targetIndex) {
-            otherEl.style.transform = `translateY(-${draggedHeight + gap}px)`;
+  setupListDragAndDrop({
+    itemEl,
+    dragHandle,
+    index,
+    listContainer,
+    itemSelector: ".kit-builder-row",
+    onReorder: (startIndex, targetIndex) => {
+      if (targetIndex !== startIndex && targetIndex >= 0 && targetIndex < activeKit.blocks.length) {
+        const newEditing = new Set();
+        editingBlockIndices.forEach((openIdx) => {
+          if (openIdx === startIndex) {
+            newEditing.add(targetIndex);
+          } else if (startIndex < targetIndex && openIdx > startIndex && openIdx <= targetIndex) {
+            newEditing.add(openIdx - 1);
+          } else if (startIndex > targetIndex && openIdx >= targetIndex && openIdx < startIndex) {
+            newEditing.add(openIdx + 1);
           } else {
-            otherEl.style.transform = "translateY(0)";
+            newEditing.add(openIdx);
           }
-        } else if (startIndex > targetIndex) {
-          if (i < startIndex && i >= targetIndex) {
-            otherEl.style.transform = `translateY(${draggedHeight + gap}px)`;
-          } else {
-            otherEl.style.transform = "translateY(0)";
-          }
-        } else {
-          otherEl.style.transform = "translateY(0)";
-        }
-      });
-    };
-
-    const checkAutoScroll = () => {
-      const containerRect = listContainer.getBoundingClientRect();
-      const edgeZone = 40;
-      const topThreshold = containerRect.top + edgeZone;
-      const bottomThreshold = containerRect.bottom - edgeZone;
-
-      let scrolled = false;
-      if (lastClientY < topThreshold && listContainer.scrollTop > 0) {
-        const ratio = Math.max(0.2, (topThreshold - lastClientY) / edgeZone);
-        const speed = Math.max(2, Math.round(ratio * 8));
-        listContainer.scrollTop -= speed;
-        scrolled = true;
-      } else if (lastClientY > bottomThreshold && listContainer.scrollTop < listContainer.scrollHeight - listContainer.clientHeight) {
-        const ratio = Math.max(0.2, (lastClientY - bottomThreshold) / edgeZone);
-        const speed = Math.max(2, Math.round(ratio * 8));
-        listContainer.scrollTop += speed;
-        scrolled = true;
-      }
-
-      if (scrolled) {
-        updateItemPosition();
-        autoScrollRaf = requestAnimationFrame(checkAutoScroll);
-      } else {
-        autoScrollRaf = null;
-      }
-    };
-
-    const onPointerMove = (moveEvt) => {
-      lastClientY = moveEvt.clientY;
-      updateItemPosition();
-
-      const containerRect = listContainer.getBoundingClientRect();
-      const edgeZone = 40;
-      const nearEdge =
-        (lastClientY < containerRect.top + edgeZone && listContainer.scrollTop > 0) ||
-        (lastClientY > containerRect.bottom - edgeZone && listContainer.scrollTop < listContainer.scrollHeight - listContainer.clientHeight);
-
-      if (nearEdge && !autoScrollRaf) {
-        autoScrollRaf = requestAnimationFrame(checkAutoScroll);
-      } else if (!nearEdge && autoScrollRaf) {
-        cancelAnimationFrame(autoScrollRaf);
-        autoScrollRaf = null;
-      }
-    };
-
-    const onPointerUp = (upEvt) => {
-      if (autoScrollRaf) {
-        cancelAnimationFrame(autoScrollRaf);
-        autoScrollRaf = null;
-      }
-      try {
-        dragHandle.releasePointerCapture(upEvt.pointerId);
-      } catch (_) {}
-      dragHandle.removeEventListener("pointermove", onPointerMove);
-      dragHandle.removeEventListener("pointerup", onPointerUp);
-      dragHandle.removeEventListener("pointercancel", onPointerUp);
-
-      if (workspaceEl) workspaceEl.style.overflowY = originalWorkspaceOverflowY;
-
-      let finalTranslateY = 0;
-      if (targetIndex !== startIndex) {
-        if (targetIndex > startIndex) {
-          finalTranslateY = rects[targetIndex].bottom - rects[startIndex].bottom;
-        } else {
-          finalTranslateY = rects[targetIndex].top - rects[startIndex].top;
-        }
-      }
-
-      itemEl.classList.add("is-releasing");
-      itemEl.style.setProperty("transition", "transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease", "important");
-      itemEl.style.transform = `translateY(${finalTranslateY}px)`;
-      itemEl.style.boxShadow = "none";
-
-      const onTransitionEnd = () => {
-        itemEl.removeEventListener("transitionend", onTransitionEnd);
-        listContainer.style.overflowY = originalOverflowY;
-        listContainer.style.overflowX = originalOverflowX;
-
-        itemEl.classList.remove("is-dragging", "is-releasing");
-        itemEl.style.transition = "";
-        itemEl.style.transform = "";
-        itemEl.style.boxShadow = "";
-        allItemEls.forEach((el) => {
-          el.style.transform = "";
         });
+        editingBlockIndices = newEditing;
 
-        if (targetIndex !== startIndex && targetIndex >= 0 && targetIndex < activeKit.blocks.length) {
-          const newEditing = new Set();
-          editingBlockIndices.forEach((openIdx) => {
-            if (openIdx === startIndex) {
-              newEditing.add(targetIndex);
-            } else if (startIndex < targetIndex && openIdx > startIndex && openIdx <= targetIndex) {
-              newEditing.add(openIdx - 1);
-            } else if (startIndex > targetIndex && openIdx >= targetIndex && openIdx < startIndex) {
-              newEditing.add(openIdx + 1);
-            } else {
-              newEditing.add(openIdx);
-            }
-          });
-          editingBlockIndices = newEditing;
-
-          const moved = activeKit.blocks.splice(startIndex, 1)[0];
-          activeKit.blocks.splice(targetIndex, 0, moved);
-          saveUserKit(activeKit);
-          renderKitBuilderTab();
-        }
-      };
-
-      itemEl.addEventListener("transitionend", onTransitionEnd, { once: true });
-      setTimeout(onTransitionEnd, 200);
-    };
-
-    dragHandle.addEventListener("pointermove", onPointerMove);
-    dragHandle.addEventListener("pointerup", onPointerUp);
-    dragHandle.addEventListener("pointercancel", onPointerUp);
+        const moved = activeKit.blocks.splice(startIndex, 1)[0];
+        activeKit.blocks.splice(targetIndex, 0, moved);
+        saveUserKit(activeKit);
+        renderKitBuilderTab();
+      }
+    },
   });
 }
 
