@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "tauri": "tauri",
-    "build": "node scripts/build_release.js",
-    "release": "node scripts/build_release.js",
-    "build:release": "node scripts/build_release.js",
+    "build": "node tools/scripts/build_release.js",
+    "release": "node tools/scripts/build_release.js",
+    "build:release": "node tools/scripts/build_release.js",
     "test:e2e": "wdio run wdio.conf.js"
   },
   "devDependencies": {

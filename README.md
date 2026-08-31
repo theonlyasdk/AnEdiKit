@@ -1,6 +1,6 @@
 # AnEdiKit
 
-AnEdiKit is a lightweight, all-in-one desktop toolkit for creators that integrates FFmpeg and yt-dlp media utilities into a responsive desktop application built with Tauri v2 and Rust.
+AnEdiKit is a lightweight, all-in-one desktop toolkit for creators that integrates FFmpeg and yt-dlp media utilities into a responsive desktop application built with Tauri v2 and Rust. It also serves as a macro engine for making your own GUI for command line tools of your choice with JavaScript and drag-and-drop tools.
 
 ## Features
 
@@ -47,32 +47,23 @@ npm run release
 # or
 build_release.bat
 ```
-The release output will be placed flat in the `build/` folder:
-- `AnEdiKit-v<version>-windows-x64-portable.exe` (Portable binary)
-- `AnEdiKit-v<version>-windows-x64-installer.msi` (MSI Installer)
-- `AnEdiKit-v<version>-windows-x64-setup.exe` (NSIS Setup)
+
+The release files will be in the `build/` folder:
+- `AnEdiKit-ver-windows-x64-portable.exe` (Portable binary)
+- `AnEdiKit-ver-windows-x64-installer.msi` (MSI Installer)
+- `AnEdiKit-ver-windows-x64-setup.exe` (NSIS Setup)
 - `SHA256SUMS.txt` (SHA256 checksums)
+
+## Libraries and Tools Used
+
+- Desktop Framework: Tauri v2
+- Backend and Systems: Rust, `serde`, `serde_json`, `rfd`, `base64`, `tauri-plugin-opener`
+- Frontend UI: HTML5, CSS3, JavaScript (ES Modules), Bootstrap 5, Bootstrap Icons
+- Media Processing: FFmpeg (transcoding, trimming, merging, compressing, filtering, palette generation), yt-dlp (stream/playlist downloading and metadata extraction)
+- AI and Computer Vision: Python 3, `rembg`, `onnxruntime`, `opencv-python`, `Pillow`, `numpy`, `tqdm`
+- Build and Packaging: Node.js, npm, NSIS, WiX Toolset
+- Testing and Automation: WebdriverIO (`@wdio/cli`, `@wdio/tauri-service`, `webdriverio`), Mocha
 
 ## License
 
-MIT License
-
-Copyright (c) 2026 theonlyasdk
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

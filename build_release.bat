@@ -1,2 +1,2 @@
 @echo off
-node scripts\build_release.js %*
+node tools\scripts\build_release.js %*

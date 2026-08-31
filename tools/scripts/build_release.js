@@ -7,7 +7,7 @@ import https from 'node:https';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
+const rootDir = path.resolve(__dirname, '..', '..');
 const tauriDir = path.join(rootDir, 'src-tauri');
 const releaseOutputDir = path.join(rootDir, 'build');
 
@@ -190,7 +190,7 @@ async function main() {
 
   if (rawArgs.includes('--help') || rawArgs.includes('-h')) {
     console.log('AnEdiKit Release Builder');
-    console.log('Usage: node scripts/build_release.js [tauri build options]');
+    console.log('Usage: node tools/scripts/build_release.js [tauri build options]');
     console.log('');
     console.log('Options:');
     console.log('  -b, --bundles <BUNDLES>  Bundles to package (e.g. nsis, msi)');
