@@ -153,7 +153,7 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
   // Fallback if in web mode
   container.innerHTML = `
     <div class="w-100 h-100 d-flex align-items-center justify-content-center text-body-secondary small">
-      <i class="bi bi-film me-2"></i> Video Timeline
+      <ion-icon name="film-outline" class="me-2"></ion-icon> Video Timeline
     </div>
   `;
 }

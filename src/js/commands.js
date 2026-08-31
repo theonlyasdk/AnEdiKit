@@ -636,6 +636,79 @@ export function buildCompressAudioCommand(inputFile, outputDir, settings = {}) {
   };
 }
 
+export function buildLoopDurationCommand(inputFile, outputDir, settings = {}) {
+  const args = ["-y"];
+  const src = inputFile || "C:\\Users\\User\\Videos\\sample.mp4";
+  const baseName =
+    src
+      .split(/[/\\]/)
+      .pop()
+      ?.replace(/\.[^/.]+$/, "") || "output_looped";
+
+  const mode = document.getElementById("loop-mode")?.value || "duration";
+  const engine = document.getElementById("loop-engine")?.value || "copy";
+  const audioMode = document.getElementById("loop-audio-mode")?.value || "keep";
+  const container = document.getElementById("loop-container")?.value || "mp4";
+  const vcodec = document.getElementById("loop-vcodec")?.value || "libx264";
+
+  // Check source duration from meta element
+  const metaDurationEl = document.getElementById("meta-duration");
+  let srcDurationSec = 10.0;
+  if (metaDurationEl && metaDurationEl.textContent && metaDurationEl.textContent !== "--:--:--") {
+    srcDurationSec = parseTimestampToSeconds(metaDurationEl.textContent) || 10.0;
+  }
+
+  let targetDurationSec = 3600;
+  let loopCount = 10;
+
+  if (mode === "duration") {
+    const hh = parseInt(document.getElementById("loop-target-hh")?.value, 10) || 0;
+    const mm = parseInt(document.getElementById("loop-target-mm")?.value, 10) || 0;
+    const ss = parseInt(document.getElementById("loop-target-ss")?.value, 10) || 0;
+    targetDurationSec = Math.max(1, hh * 3600 + mm * 60 + ss);
+    loopCount = Math.max(1, Math.ceil(targetDurationSec / Math.max(0.1, srcDurationSec)));
+
+    args.push("-stream_loop", "-1", "-i", src);
+    args.push("-t", String(targetDurationSec));
+  } else {
+    // Repeat count mode
+    loopCount = parseInt(document.getElementById("loop-repeat-count")?.value, 10) || 10;
+    targetDurationSec = Math.round(srcDurationSec * loopCount);
+    args.push("-stream_loop", String(Math.max(0, loopCount - 1)), "-i", src);
+  }
+
+  // Audio handling
+  if (audioMode === "mute") {
+    args.push("-an");
+  }
+
+  if (engine === "copy") {
+    args.push("-c:v", "copy");
+    if (audioMode !== "mute") {
+      args.push("-c:a", "copy");
+    }
+  } else {
+    // Re-encode
+    applyVideoEncoderOptions(args, vcodec, settings, { crf: "23", preset: "medium" });
+    if (audioMode !== "mute") {
+      args.push("-c:a", "aac", "-b:a", "192k");
+    }
+  }
+
+  const defaultFileName = `${baseName}_looped.${container}`;
+  const dst = resolveDestinationPath(defaultFileName, settings, inputFile);
+
+  args.push("-progress", "pipe:1", dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
+    duration: targetDurationSec,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
 export function buildMergeCommand(mergeFiles = [], outputDir, settings = {}, concatListPath = null) {
   const args = ["-y"];
   const engine = document.getElementById("merge-engine")?.value || "concat_demuxer";
@@ -1349,6 +1422,8 @@ export function buildCommandForTool(
       return buildAspectCropCommand(inputFile, outputDir, settings);
     case "stabilize":
       return buildStabilizeCommand(inputFile, outputDir, settings);
+    case "loop_duration":
+      return buildLoopDurationCommand(inputFile, outputDir, settings);
     case "normalize":
       return buildNormalizeCommand(inputFile, outputDir, settings);
     case "compress":

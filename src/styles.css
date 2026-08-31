@@ -20,6 +20,29 @@ select,
   cursor: pointer;
 }
 
+/* Ionicons Global Sizing and Alignment */
+ion-icon {
+  display: inline-block;
+  vertical-align: -0.15em;
+  font-size: 1.15em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.nav-link ion-icon {
+  font-size: 1.22rem;
+  vertical-align: -0.2em;
+}
+
+.btn ion-icon {
+  vertical-align: -0.16em;
+  font-size: 1.1em;
+}
+
+.btn-sm ion-icon {
+  font-size: 0.95rem;
+}
+
 /* Interactive Clickable Components: Instant brightness 75% on mousedown, smooth linear recovery on mouseup */
 button,
 .btn,
@@ -1629,18 +1652,57 @@ html.no-animations *::after {
   }
 }
 
-/* Dropdown Menu Drop Shadows and display */
+/* Dropdown Menu Subtle Shadow and Curtain Fall Animation */
+@keyframes dropdownCurtainFall {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0 round 0.375rem);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0.375rem);
+  }
+}
+
+@keyframes dropupCurtainRise {
+  0% {
+    opacity: 0;
+    clip-path: inset(100% 0 0 0 round 0.375rem);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0.375rem);
+  }
+}
+
 .dropdown-menu {
-  box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
 }
 
 .dropdown-menu.show {
   display: block !important;
+  animation: dropdownCurtainFall 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dropup .dropdown-menu.show {
+  animation: dropupCurtainRise 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dropdown-menu-end {
   right: 0;
   left: auto;
+}
+
+/* Modal Zoom-in Ease-out Animation */
+.modal.fade .modal-dialog {
+  transform: scale(0.92) !important;
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease-out !important;
+}
+
+.modal.show .modal-dialog {
+  transform: scale(1) !important;
+  opacity: 1 !important;
 }
 
 /* User Kits & Blocks Builder Styling */
@@ -1751,7 +1813,7 @@ html.no-animations *::after {
 
 .kit-segment-btn.active {
   color: var(--bs-body-color) !important;
-  font-weight: 500;
+  font-weight: normal;
   transform: none !important;
 }
 
@@ -1766,7 +1828,7 @@ html.no-animations *::after {
   border-radius: calc(var(--bs-border-radius) - 2px);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   transform: none;
-  transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1), width 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), width 0.22s cubic-bezier(0.2, 0, 0, 1);
   pointer-events: none;
 }
 

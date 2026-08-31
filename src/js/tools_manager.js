@@ -102,10 +102,15 @@ export async function refreshToolsUI() {
     const el = document.getElementById(elId);
     if (!el) return;
     const isInstalled = ver && ver !== "Not Found" && !ver.toLowerCase().includes("not");
-    el.className = isInstalled
-      ? "bi bi-check2 text-success fs-5 flex-shrink-0"
-      : "bi bi-dash text-body-tertiary fs-5 flex-shrink-0";
-    el.title = isInstalled ? `Installed (${ver})` : "Not Installed";
+    if (isInstalled) {
+      el.setAttribute("name", "checkmark-outline");
+      el.className = "text-success fs-5 flex-shrink-0";
+      el.title = `Installed (${ver})`;
+    } else {
+      el.setAttribute("name", "remove-outline");
+      el.className = "text-body-tertiary fs-5 flex-shrink-0";
+      el.title = "Not Installed";
+    }
   };
 
   updateCheckmark("status-ffmpeg-installed", localInfo.ffmpeg_installed);
@@ -133,15 +138,15 @@ export function updateActionButton(btnId, toolName, localVer, latestVer) {
     localVer.trim() !== latestVer.trim();
 
   if (!isInstalled) {
-    btn.innerHTML = `<i class="bi bi-download"></i> Install ${toolName}`;
+    btn.innerHTML = `<ion-icon name="download-outline"></ion-icon> Install ${toolName}`;
     btn.className = "btn btn-outline-primary btn-sm flex-shrink-0";
     btn.title = `Install ${toolName} binary to system/app data`;
   } else if (hasUpdate) {
-    btn.innerHTML = `<i class="bi bi-arrow-repeat"></i> Update ${toolName}`;
+    btn.innerHTML = `<ion-icon name="repeat-outline"></ion-icon> Update ${toolName}`;
     btn.className = "btn btn-warning btn-sm flex-shrink-0 text-dark";
     btn.title = `Update ${toolName} from ${localVer} to ${latestVer}`;
   } else {
-    btn.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Reinstall ${toolName}`;
+    btn.innerHTML = `<ion-icon name="refresh-outline"></ion-icon> Reinstall ${toolName}`;
     btn.className = "btn btn-primary btn-sm flex-shrink-0";
     btn.title = `Reinstall verified ${toolName} binary build (${localVer})`;
   }
@@ -187,10 +192,15 @@ export function initToolsManager() {
       const el = document.getElementById(elId);
       if (!el) return;
       const isInstalled = ver && ver !== "Not Found" && !ver.toLowerCase().includes("not");
-      el.className = isInstalled
-        ? "bi bi-check2 text-success fs-5 flex-shrink-0"
-        : "bi bi-dash text-body-tertiary fs-5 flex-shrink-0";
-      el.title = isInstalled ? `Installed (${ver})` : "Not Installed";
+      if (isInstalled) {
+        el.setAttribute("name", "checkmark-outline");
+        el.className = "text-success fs-5 flex-shrink-0";
+        el.title = `Installed (${ver})`;
+      } else {
+        el.setAttribute("name", "remove-outline");
+        el.className = "text-body-tertiary fs-5 flex-shrink-0";
+        el.title = "Not Installed";
+      }
     };
 
     updateCheckmark("status-ffmpeg-installed", localInfo.ffmpeg_installed);

@@ -9,6 +9,10 @@ import {
   loadSettings,
   getSavedKitParams,
   saveKitParams,
+  getSavedScriptTheme,
+  saveScriptTheme,
+  getSavedKitActiveTab,
+  saveKitActiveTab,
 } from "./storage.js";
 import { BLOCK_TYPES, createBlockInstance, renderBlockHTML } from "./blocks.js";
 import { executeFfmpegJob, cancelFfmpegJob, isJobRunning } from "./runner.js";
@@ -24,7 +28,7 @@ export const STARTER_TEMPLATES = {
     version: "1.0.0",
     license: "MIT",
     description: "Convert video streams between MP4, MKV, and WebM with custom CRF quality",
-    icon: "bi-film",
+    icon: "film-outline",
     category: "video",
     engine: "ffmpeg",
     blocks: [
@@ -143,7 +147,7 @@ function buildCommand(ctx) {
     version: "1.0.0",
     license: "MIT",
     description: "Extract audio and apply volume gain or peak normalization",
-    icon: "bi-music-note-beamed",
+    icon: "musical-notes-outline",
     category: "audio",
     engine: "ffmpeg",
     blocks: [
@@ -247,7 +251,7 @@ function buildCommand(ctx) {
     version: "1.0.0",
     license: "MIT",
     description: "Custom modular FFmpeg script kit",
-    icon: "bi-code-slash",
+    icon: "code-slash-outline",
     category: "tools",
     engine: "ffmpeg",
     blocks: [
@@ -463,12 +467,12 @@ function ensureSidebarContextMenu() {
     menu.style.zIndex = "1060";
     menu.style.display = "none";
     menu.innerHTML = `
-      <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" data-action="open"><i class="bi bi-box-arrow-in-right text-primary"></i>Open Kit</a></li>
-      <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" data-action="settings"><i class="bi bi-gear text-secondary"></i>Properties</a></li>
-      <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" data-action="export"><i class="bi bi-download text-secondary"></i>Export Kit JSON</a></li>
-      <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" data-action="duplicate"><i class="bi bi-copy text-secondary"></i>Duplicate Kit</a></li>
+      <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" data-action="open"><ion-icon name="enter-outline" class="text-primary"></ion-icon>Open Kit</a></li>
+      <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" data-action="settings"><ion-icon name="settings-outline" class="text-secondary"></ion-icon>Properties</a></li>
+      <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" data-action="export"><ion-icon name="download-outline" class="text-secondary"></ion-icon>Export Kit JSON</a></li>
+      <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" data-action="duplicate"><ion-icon name="copy-outline" class="text-secondary"></ion-icon>Duplicate Kit</a></li>
       <li><hr class="dropdown-divider my-1"></li>
-      <li><a class="dropdown-item small text-danger d-flex align-items-center gap-2" href="#" data-action="delete"><i class="bi bi-trash"></i>Delete Kit</a></li>
+      <li><a class="dropdown-item small text-danger d-flex align-items-center gap-2" href="#" data-action="delete"><ion-icon name="trash-outline"></ion-icon>Delete Kit</a></li>
     `;
     document.body.appendChild(menu);
 
@@ -543,6 +547,31 @@ export function showSidebarContextMenu(e, kitId) {
   menu.style.top = `${posY}px`;
 }
 
+export function getIonicIconName(rawIcon) {
+  if (!rawIcon) return "cube-outline";
+  const map = {
+    "bi-film": "film-outline",
+    "bi-music-note-beamed": "musical-notes-outline",
+    "bi-code-slash": "code-slash-outline",
+    "bi-box-seam": "cube-outline",
+    "bi-sliders": "options-outline",
+    "bi-lightning": "flash-outline",
+    "bi-terminal": "terminal-outline",
+    "bi-gear": "settings-outline",
+    "bi-cpu": "hardware-chip-outline",
+    "bi-camera-video": "videocam-outline",
+    "bi-soundwave": "pulse-outline",
+    "bi-palette": "color-palette-outline",
+    "bi-magic": "sparkles-outline",
+    "bi-scissors": "cut-outline",
+    "bi-file-earmark-code": "code-working-outline",
+  };
+  if (map[rawIcon]) return map[rawIcon];
+  const clean = rawIcon.replace(/^bi-/, "");
+  if (map[clean]) return map[clean];
+  return clean.includes("-") ? clean : `${clean}-outline`;
+}
+
 // Render User Kits navigation links in sidebar
 export function renderUserKitsSidebar() {
   const container = document.getElementById("user-kits-nav");
@@ -561,8 +590,8 @@ export function renderUserKitsSidebar() {
   container.innerHTML = kits
     .map(
       (k) => `
-      <button class="nav-link text-start d-flex align-items-center gap-2 text-truncate kit-nav-button" data-tool="kit_${escapeHtml(k.id)}" data-kit-id="${escapeHtml(k.id)}" type="button" title="${escapeHtml(k.name)} (${escapeHtml(k.version || "1.0.0")})">
-        <i class="bi ${escapeHtml(k.icon || "bi-box-seam")} text-body-secondary flex-shrink-0"></i>
+      <button class="nav-link text-start d-flex align-items-center gap-2 text-truncate kit-nav-button" data-tool="kit_${escapeHtml(k.id)}" data-kit-id="${escapeHtml(k.id)}" type="button" title="${escapeHtml(k.name)}${k.description ? ' - ' + escapeHtml(k.description) : ''} (${escapeHtml(k.version || "1.0.0")})">
+        <ion-icon name="${getIonicIconName(k.icon)}" class="text-body-secondary flex-shrink-0"></ion-icon>
         <span class="text-truncate flex-grow-1">${escapeHtml(k.name)}</span>
       </button>
     `
@@ -627,7 +656,7 @@ function bindKitWizardEvents() {
       if (inLicense) inLicense.value = "MIT";
       if (inTemplate) inTemplate.value = "converter";
       if (inDesc) inDesc.value = "";
-      if (inIcon) inIcon.value = "bi-box-seam";
+      if (inIcon) inIcon.value = "cube-outline";
 
       if (window.bootstrap?.Modal && modalEl) {
         const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -647,12 +676,12 @@ function bindKitWizardEvents() {
       const license = inLicense?.value || "MIT";
       const templateKey = inTemplate?.value || "converter";
       const description = inDesc?.value?.trim() || "";
-      const icon = inIcon?.value || "bi-box-seam";
+      const icon = inIcon?.value || "cube-outline";
 
       // Check unique ID
       const existing = getUserKitById(id);
       if (existing) {
-        alert(`A kit with ID "${id}" already exists. Please choose a different ID.`);
+        showCustomKitAlert(`A kit with ID "${id}" already exists. Please choose a different ID.`, "Duplicate Kit ID");
         if (inId) inId.focus();
         return;
       }
@@ -687,6 +716,9 @@ function bindKitWizardEvents() {
   }
 }
 
+let _kitTabsResizeObserver = null;
+let _lastNavWidth = 0;
+
 // Update the gliding background indicator position on the kit navigation tab bar
 export function updateKitTabIndicator(instant = false) {
   const nav = document.getElementById("kit-ide-tabs");
@@ -696,41 +728,58 @@ export function updateKitTabIndicator(instant = false) {
   const activeBtn = nav.querySelector(`.kit-segment-btn[data-tab="${activeKitTab}"]`);
   if (!activeBtn) return;
 
-  const navRect = nav.getBoundingClientRect();
-  const btnRect = activeBtn.getBoundingClientRect();
+  // Use layout offset coordinates so calculations are unaffected by parent scale/zoom transforms
+  const left = activeBtn.offsetLeft;
+  const width = activeBtn.offsetWidth;
 
-  if (btnRect.width === 0) {
+  if (width === 0) {
     requestAnimationFrame(() => updateKitTabIndicator(instant));
     return;
   }
 
-  const left = btnRect.left - navRect.left;
-  const width = btnRect.width;
-
   if (instant) {
     indicator.style.transition = "none";
-  }
-  indicator.style.transform = `translateX(${left}px)`;
-  indicator.style.width = `${width}px`;
-
-  if (instant) {
+    indicator.style.transform = `translateX(${left}px)`;
+    indicator.style.width = `${width}px`;
     void indicator.offsetWidth;
     indicator.style.transition = "";
+  } else {
+    indicator.style.transform = `translateX(${left}px)`;
+    indicator.style.width = `${width}px`;
+  }
+
+  // Auto-track layout reflows on container resize without cancelling active transitions
+  if (!_kitTabsResizeObserver && typeof ResizeObserver !== "undefined") {
+    _kitTabsResizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0 && Math.abs(entry.contentRect.width - _lastNavWidth) > 1) {
+          _lastNavWidth = entry.contentRect.width;
+          updateKitTabIndicator(true);
+        }
+      }
+    });
+  }
+  if (_kitTabsResizeObserver && nav) {
+    _kitTabsResizeObserver.observe(nav);
   }
 }
 
 // Switch between IDE tabs (Runner, UI Blocks, Script Engine, Kit Settings) with animated transition
 export function switchKitTab(tabName) {
+  if (activeKitTab === tabName) return;
   activeKitTab = tabName;
+  if (activeKit) {
+    saveKitActiveTab(activeKit.id, tabName);
+  }
 
   const nav = document.getElementById("kit-ide-tabs");
   if (nav) {
     nav.querySelectorAll(".kit-segment-btn").forEach((btn) => {
       if (btn.dataset.tab === tabName) {
-        btn.classList.add("active", "text-body", "fw-medium");
+        btn.classList.add("active", "text-body");
         btn.classList.remove("text-body-secondary");
       } else {
-        btn.classList.remove("active", "text-body", "fw-medium");
+        btn.classList.remove("active", "text-body");
         btn.classList.add("text-body-secondary");
       }
     });
@@ -788,6 +837,9 @@ export function selectAndOpenKit(kitId, shouldSwitchTool = true, targetTab = nul
 
   if (targetTab) {
     activeKitTab = targetTab;
+    saveKitActiveTab(kitId, targetTab);
+  } else {
+    activeKitTab = getSavedKitActiveTab(kitId, "runner");
   }
 
   // Restore runtime values from storage or block defaults
@@ -838,7 +890,7 @@ export function renderKitIdeWorkspace() {
     <!-- Top Kit Header Bar (100% full-bleed width, no side gaps) -->
     <div class="kit-ide-header-bar bg-body d-flex flex-wrap align-items-center justify-content-between gap-3">
       <div class="d-flex align-items-center gap-2">
-        <i class="bi ${escapeHtml(activeKit.icon || "bi-box-seam")} fs-2 text-primary lh-1 me-2" id="kit-header-icon-display"></i>
+        <ion-icon name="${getIonicIconName(activeKit.icon)}" class="fs-2 text-primary lh-1 me-2" id="kit-header-icon-display"></ion-icon>
         <div>
           <div class="d-flex align-items-center gap-2">
             <h4 class="mb-0 fw-semibold text-body">${escapeHtml(activeKit.name)}</h4>
@@ -854,30 +906,30 @@ export function renderKitIdeWorkspace() {
         <!-- View Tabs Switcher with Animated Background Indicator -->
         <div class="kit-segment-nav" id="kit-ide-tabs" role="tablist">
           <div class="kit-segment-indicator" id="kit-tab-indicator"></div>
-          <button type="button" class="btn btn-sm kit-segment-btn ${activeKitTab === "runner" ? "active text-body fw-medium" : "text-body-secondary"}" data-tab="runner" role="tab">
-            <i class="bi bi-play-circle me-1"></i> Playground
+          <button type="button" class="btn btn-sm kit-segment-btn ${activeKitTab === "runner" ? "active text-body" : "text-body-secondary"}" data-tab="runner" role="tab">
+            <ion-icon name="play-circle-outline" class="me-1"></ion-icon> Playground
           </button>
-          <button type="button" class="btn btn-sm kit-segment-btn ${activeKitTab === "builder" ? "active text-body fw-medium" : "text-body-secondary"}" data-tab="builder" role="tab">
-            <i class="bi bi-boxes me-1"></i> Blocks
+          <button type="button" class="btn btn-sm kit-segment-btn ${activeKitTab === "builder" ? "active text-body" : "text-body-secondary"}" data-tab="builder" role="tab">
+            <ion-icon name="cube-outline" class="me-1"></ion-icon> Blocks
           </button>
-          <button type="button" class="btn btn-sm kit-segment-btn ${activeKitTab === "script" ? "active text-body fw-medium" : "text-body-secondary"}" data-tab="script" role="tab">
-            <i class="bi bi-code-slash me-1"></i> Script Editor
+          <button type="button" class="btn btn-sm kit-segment-btn ${activeKitTab === "script" ? "active text-body" : "text-body-secondary"}" data-tab="script" role="tab">
+            <ion-icon name="code-slash-outline" class="me-1"></ion-icon> Script Editor
           </button>
-          <button type="button" class="btn btn-sm kit-segment-btn ${activeKitTab === "settings" ? "active text-body fw-medium" : "text-body-secondary"}" data-tab="settings" role="tab">
-            <i class="bi bi-gear me-1"></i> Properties
+          <button type="button" class="btn btn-sm kit-segment-btn ${activeKitTab === "settings" ? "active text-body" : "text-body-secondary"}" data-tab="settings" role="tab">
+            <ion-icon name="settings-outline" class="me-1"></ion-icon> Properties
           </button>
         </div>
 
         <!-- Actions Dropdown -->
         <div class="dropdown">
           <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Kit Options">
-            <i class="bi bi-three-dots-vertical"></i>
+            <ion-icon name="ellipsis-vertical-outline"></ion-icon>
           </button>
           <ul class="dropdown-menu dropdown-menu-end shadow">
-            <li><a class="dropdown-item small" href="#" id="btn-export-kit-json"><i class="bi bi-download me-2"></i>Export Kit JSON</a></li>
-            <li><a class="dropdown-item small" href="#" id="btn-duplicate-kit"><i class="bi bi-copy me-2"></i>Duplicate Kit</a></li>
+            <li><a class="dropdown-item small" href="#" id="btn-export-kit-json"><ion-icon name="download-outline" class="me-2"></ion-icon>Export Kit JSON</a></li>
+            <li><a class="dropdown-item small" href="#" id="btn-duplicate-kit"><ion-icon name="copy-outline" class="me-2"></ion-icon>Duplicate Kit</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item small text-danger" href="#" id="btn-delete-kit"><i class="bi bi-trash me-2"></i>Delete Kit</a></li>
+            <li><a class="dropdown-item small text-danger" href="#" id="btn-delete-kit"><ion-icon name="trash-outline" class="me-2"></ion-icon>Delete Kit</a></li>
           </ul>
         </div>
       </div>
@@ -939,6 +991,11 @@ export function renderKitIdeWorkspace() {
   requestAnimationFrame(() => {
     updateKitTabIndicator(true);
   });
+  if (typeof customElements !== "undefined" && customElements.whenDefined) {
+    customElements.whenDefined("ion-icon").then(() => {
+      updateKitTabIndicator(true);
+    });
+  }
 }
 
 // -------------------------------------------------------------
@@ -952,11 +1009,11 @@ function renderKitRunnerTab() {
   if (blocks.length === 0) {
     container.innerHTML = `
       <div class="text-center py-5 text-body-secondary border rounded bg-body">
-        <i class="bi bi-boxes fs-1 text-secondary opacity-50 mb-2"></i>
+        <ion-icon name="cube-outline" class="fs-1 text-secondary opacity-50 mb-2"></ion-icon>
         <h6 class="text-body fw-semibold">No Blocks Defined</h6>
         <p class="small text-body-secondary mb-3">Add blocks in the "Blocks" tab to create inputs and controls for this kit.</p>
         <button class="btn btn-primary btn-sm" type="button" id="btn-goto-builder">
-          <i class="bi bi-plus-lg me-1"></i> Open Blocks Builder
+          <ion-icon name="add-outline" class="me-1"></ion-icon> Open Blocks Builder
         </button>
       </div>
     `;
@@ -991,7 +1048,7 @@ function renderKitRunnerTab() {
         <div class="input-group">
           <div class="form-control small user-select-all text-body bg-body font-monospace overflow-x-auto d-flex align-items-center" style="min-height: 38px; font-size: 0.8rem; white-space: nowrap;" id="kit-cmd-preview">ffmpeg [waiting for input media selection...]</div>
           <button class="btn btn-outline-secondary" type="button" id="btn-kit-copy-cmd" title="Copy command string">
-            <i class="bi bi-copy"></i>
+            <ion-icon name="copy-outline"></ion-icon>
           </button>
         </div>
       </div>
@@ -1002,7 +1059,7 @@ function renderKitRunnerTab() {
         <div class="card border-secondary-subtle overflow-hidden position-relative">
           <!-- Copy Log Button at Top Right Corner -->
           <button type="button" class="btn btn-sm text-secondary border-0 bg-transparent position-absolute top-0 end-0 m-1 log-copy-btn" id="btn-kit-copy-logs" title="Copy execution log to clipboard" style="z-index: 5;">
-            <i class="bi bi-clipboard"></i>
+            <ion-icon name="copy-outline"></ion-icon>
           </button>
 
           <!-- Log Box at top (full width, no gap from top, user-selectable text) -->
@@ -1150,7 +1207,7 @@ function bindKitRunnerInputs(container) {
       if (pre && pre.textContent) {
         await navigator.clipboard.writeText(pre.textContent);
         const origHtml = btnCopyCmd.innerHTML;
-        btnCopyCmd.innerHTML = `<i class="bi bi-check2"></i> Copied!`;
+        btnCopyCmd.innerHTML = `<ion-icon name="checkmark-outline"></ion-icon> Copied!`;
         btnCopyCmd.classList.replace("btn-outline-secondary", "btn-success");
         setTimeout(() => {
           btnCopyCmd.innerHTML = origHtml;
@@ -1167,7 +1224,7 @@ function bindKitRunnerInputs(container) {
     btnCopyLogs.addEventListener("click", async () => {
       await navigator.clipboard.writeText(logBox.innerText || "");
       const origHtml = btnCopyLogs.innerHTML;
-      btnCopyLogs.innerHTML = `<i class="bi bi-check2 text-success"></i>`;
+      btnCopyLogs.innerHTML = `<ion-icon name="checkmark-outline" class="text-success"></ion-icon>`;
       setTimeout(() => (btnCopyLogs.innerHTML = origHtml), 1500);
     });
   }
@@ -1199,7 +1256,7 @@ export function ensureCustomKitModals() {
         <div class="modal-content shadow border">
           <div class="modal-header py-2 px-3">
             <h6 class="modal-title small fw-semibold text-body d-flex align-items-center gap-2" id="modal-kit-alert-title">
-              <i class="bi bi-info-circle text-primary"></i> Alert
+              <ion-icon name="information-circle-outline" class="text-primary"></ion-icon> Alert
             </h6>
             <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
@@ -1224,7 +1281,7 @@ export function ensureCustomKitModals() {
         <div class="modal-content shadow border">
           <div class="modal-header py-2 px-3">
             <h6 class="modal-title small fw-semibold text-body d-flex align-items-center gap-2" id="modal-kit-prompt-title">
-              <i class="bi bi-chat-left-text text-primary"></i> Prompt
+              <ion-icon name="chatbubble-ellipses-outline" class="text-primary"></ion-icon> Prompt
             </h6>
             <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
@@ -1259,7 +1316,7 @@ export function showCustomKitAlert(message, title = "Alert") {
     const msgEl = document.getElementById("modal-kit-alert-message");
     const okBtn = document.getElementById("btn-kit-alert-ok");
 
-    if (titleEl) titleEl.innerHTML = `<i class="bi bi-info-circle text-primary me-2"></i>${escapeHtml(title)}`;
+    if (titleEl) titleEl.innerHTML = `<ion-icon name="information-circle-outline" class="text-primary me-2"></ion-icon>${escapeHtml(title)}`;
     if (msgEl) msgEl.textContent = String(message ?? "");
 
     let resolved = false;
@@ -1301,7 +1358,7 @@ export function showCustomKitPrompt(message, defaultValue = "", title = "Prompt"
     const okBtn = document.getElementById("btn-kit-prompt-ok");
     const cancelBtn = document.getElementById("btn-kit-prompt-cancel");
 
-    if (titleEl) titleEl.innerHTML = `<i class="bi bi-chat-left-text text-primary me-2"></i>${escapeHtml(title)}`;
+    if (titleEl) titleEl.innerHTML = `<ion-icon name="chatbubble-ellipses-outline" class="text-primary me-2"></ion-icon>${escapeHtml(title)}`;
     if (msgEl) msgEl.textContent = String(message ?? "");
     if (inputEl) inputEl.value = defaultValue || "";
 
@@ -1537,17 +1594,23 @@ function renderKitBuilderTab() {
     .map((catTitle, catIdx) => {
       const items = blockCategoriesHtml[catTitle]
         .map(
-          (b) => `
+          (b) => {
+            const isBi = b.icon && (b.icon.startsWith("bi-") || b.icon.startsWith("bi "));
+            const iconEl = isBi
+              ? `<i class="${b.icon.startsWith("bi ") ? b.icon : "bi " + b.icon} text-primary fs-5 me-3 flex-shrink-0"></i>`
+              : `<ion-icon name="${b.icon || "cube-outline"}" class="text-primary fs-5 me-3 flex-shrink-0"></ion-icon>`;
+            return `
         <li>
           <a class="dropdown-item small d-flex align-items-center btn-add-block-type py-2" href="#" data-type="${b.type}">
-            <i class="bi ${b.icon} text-primary fs-5 me-3 flex-shrink-0"></i>
+            ${iconEl}
             <div class="flex-grow-1 min-w-0">
               <div class="fw-medium text-body text-truncate">${escapeHtml(b.name)}</div>
               <div class="text-body-secondary text-truncate" style="font-size: 0.72rem;">${escapeHtml(b.description)}</div>
             </div>
           </a>
         </li>
-      `
+      `;
+          }
         )
         .join("");
 
@@ -1567,17 +1630,23 @@ function renderKitBuilderTab() {
       : blocks
           .map((b, idx) => {
             const isEditing = editingBlockIndices.has(idx);
+            const bDef = BLOCK_TYPES[b.type] || { name: b.type, icon: "cube-outline" };
+            const bName = bDef.name || b.type;
+            const bIcon = bDef.icon || "cube-outline";
             return `
           <div class="border-bottom kit-builder-row bg-body" data-block-id="${b.id}" data-idx="${idx}">
-            <div class="d-flex align-items-center justify-content-between gap-2 py-2 px-3 kit-block-header-row user-select-none" data-idx="${idx}" title="Double click to configure block">
+            <div class="d-flex align-items-center justify-content-between gap-2 py-2 px-3 kit-block-header-row user-select-none" data-idx="${idx}" title="Click to configure block" style="cursor: pointer;">
               <span class="kit-block-drag-handle text-secondary cursor-grab p-1 flex-shrink-0" data-drag-idx="${idx}" title="Drag vertically to reorder">
-                <i class="bi bi-grip-vertical fs-5"></i>
+                <ion-icon name="reorder-two-outline" class="fs-5"></ion-icon>
               </span>
-              <span class="text-body-secondary fw-semibold small flex-shrink-0" style="min-width: 1.5rem;">${idx + 1}.</span>
+              <span class="text-body-secondary fw-semibold flex-shrink-0 me-1" style="font-size: 0.95rem; min-width: 1.1rem; line-height: 1;">${idx + 1}.</span>
               <div class="flex-grow-1 min-w-0">
                 <div class="d-flex align-items-center gap-2 flex-wrap">
                   <strong class="text-body text-truncate small">${escapeHtml(b.label || b.id)}</strong>
-                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace" style="font-size: 0.68rem;">${b.type}</span>
+                  <span class="badge rounded-pill bg-body-secondary text-body-secondary border d-inline-flex align-items-center gap-1 px-2 py-1" style="font-size: 0.72rem; font-weight: 500;">
+                    <ion-icon name="${bIcon}" style="font-size: 0.8rem;"></ion-icon>
+                    <span>${escapeHtml(bName)}</span>
+                  </span>
                 </div>
                 <div class="small text-body-secondary text-truncate" style="font-size: 0.72rem; opacity: 0.85;">id: ${escapeHtml(b.id)}${b.help || b.placeholder ? ` &bull; ${escapeHtml(b.help || b.placeholder)}` : ""}</div>
               </div>
@@ -1586,13 +1655,13 @@ function renderKitBuilderTab() {
                   <i class="bi ${isEditing ? "bi-chevron-up" : "bi-pencil"}"></i>
                 </button>
                 <button class="btn btn-outline-secondary btn-move-block-up" type="button" data-idx="${idx}" title="Move Up" ${idx === 0 ? "disabled" : ""}>
-                  <i class="bi bi-arrow-up"></i>
+                  <ion-icon name="arrow-up-outline"></ion-icon>
                 </button>
                 <button class="btn btn-outline-secondary btn-move-block-down" type="button" data-idx="${idx}" title="Move Down" ${idx === blocks.length - 1 ? "disabled" : ""}>
-                  <i class="bi bi-arrow-down"></i>
+                  <ion-icon name="arrow-down-outline"></ion-icon>
                 </button>
                 <button class="btn btn-outline-danger btn-delete-block" type="button" data-idx="${idx}" title="Delete Block">
-                  <i class="bi bi-trash"></i>
+                  <ion-icon name="trash-outline"></ion-icon>
                 </button>
               </div>
             </div>
@@ -1613,64 +1682,104 @@ function renderKitBuilderTab() {
         <!-- Batch Modify Dropdown -->
         <div class="dropdown">
           <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" id="btn-batch-modify-toggle" title="Batch modify multiple blocks">
-            <i class="bi bi-sliders2"></i> Batch Modify
+            <ion-icon name="options-outline"></ion-icon> Batch Modify
           </button>
-          <div class="dropdown-menu dropdown-menu-end shadow p-3" style="min-width: 560px; max-width: 95vw;" id="batch-modify-menu">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-              <span class="fw-semibold small text-body d-flex align-items-center gap-2"><i class="bi bi-sliders2 text-primary"></i>Batch Operations</span>
-              <span class="badge bg-secondary-subtle text-secondary-emphasis" id="batch-target-count">${blocks.length} blocks</span>
+          <div class="dropdown-menu dropdown-menu-end shadow p-3" style="min-width: 620px; max-width: 95vw;" id="batch-modify-menu">
+            <!-- Row 1: Target Scope & Filter Rule -->
+            <div class="d-flex align-items-center flex-wrap gap-2 mb-2 bg-body-tertiary p-2 rounded border">
+              <span class="small text-body-secondary flex-shrink-0">Target:</span>
+              <select class="form-select form-select-sm" id="batch-target-type" style="width: auto; cursor: pointer;">
+                <option value="any">All blocks</option>
+                <option value="inputs">All input controls</option>
+                <option value="settings">Settings blocks</option>
+                <option value="output">Output blocks</option>
+                <option value="file_input">File pickers</option>
+                <option value="folder_picker">Folder pickers</option>
+                <option value="output_filename">Output filename</option>
+                <option value="select">Dropdown selects</option>
+                <option value="text">Text inputs</option>
+                <option value="textarea">Text areas</option>
+                <option value="number">Number inputs</option>
+                <option value="slider">Sliders</option>
+                <option value="checkbox">Toggle switches</option>
+                <option value="radios">Radio choices</option>
+                <option value="alert_box">Alert callouts</option>
+              </select>
+
+              <span class="small text-body-secondary flex-shrink-0">where:</span>
+              <select class="form-select form-select-sm" id="batch-filter-mode" style="width: auto; cursor: pointer;">
+                <option value="all">any block</option>
+                <option value="name_contains">label or ID contains</option>
+                <option value="name_regex">label or ID matches regex</option>
+                <option value="name_starts_with">label or ID starts with</option>
+                <option value="name_ends_with">label or ID ends with</option>
+                <option value="required_is">required is true</option>
+                <option value="not_required">required is false</option>
+                <option value="has_desc">has description</option>
+                <option value="no_desc">has no description</option>
+                <option value="has_placeholder">has placeholder</option>
+                <option value="no_placeholder">has no placeholder</option>
+                <option value="has_default">has default value</option>
+                <option value="index_even">even positions (2nd, 4th...)</option>
+                <option value="index_odd">odd positions (1st, 3rd...)</option>
+                <option value="index_first_n">first N blocks</option>
+                <option value="index_last_n">last N blocks</option>
+                <option value="custom_js">JavaScript expression</option>
+              </select>
+
+              <input type="text" class="form-control form-control-sm d-none flex-grow-1" id="batch-filter-query" placeholder="filter query..." style="min-width: 140px;" />
             </div>
-            
+
+            <!-- Row 2: Operation, Target Property & Value Inputs -->
             <div class="d-flex align-items-center flex-wrap gap-2 mb-3 bg-body-tertiary p-2 rounded border">
-              <select class="form-select form-select-sm" id="batch-action" style="width: auto; cursor: pointer;">
-                <option value="select">Select</option>
-                <option value="filter">Filter</option>
-              </select>
-              <select class="form-select form-select-sm" id="batch-scope" style="width: auto; cursor: pointer;">
-                <option value="all">all</option>
-                <option value="matching">matching</option>
-              </select>
-              <select class="form-select form-select-sm" id="batch-type" style="width: auto; cursor: pointer;">
-                <option value="any">blocks</option>
-                <option value="inputs">all inputs</option>
-                <option value="file_input">File Picker</option>
-                <option value="folder_picker">Folder Picker</option>
-                <option value="output_filename">Output Filename</option>
-                <option value="select">Dropdown Select</option>
-                <option value="text">Text Input</option>
-                <option value="textarea">Text Area</option>
-                <option value="number">Number Input</option>
-                <option value="slider">Range Slider</option>
-                <option value="checkbox">Toggle Switch</option>
-                <option value="radios">Radio Choices</option>
-                <option value="alert_box">Alert</option>
-              </select>
               <select class="form-select form-select-sm" id="batch-op" style="width: auto; cursor: pointer;">
-                <option value="set">set</option>
-                <option value="clear">clear</option>
+                <option value="set">Set</option>
+                <option value="clear">Clear</option>
+                <option value="prepend">Prepend</option>
+                <option value="append">Append</option>
+                <option value="replace">Find & replace</option>
+                <option value="invert">Invert / toggle</option>
+                <option value="case_transform">Change case</option>
               </select>
+
               <select class="form-select form-select-sm" id="batch-prop" style="width: auto; cursor: pointer;">
                 <option value="required">required</option>
-                <option value="help">description</option>
+                <option value="label">display label</option>
+                <option value="help">description (help text)</option>
                 <option value="placeholder">placeholder</option>
-                <option value="label_prefix">label prefix</option>
-                <option value="label_suffix">label suffix</option>
+                <option value="default">default value</option>
               </select>
+
               <span class="small text-body-secondary" id="batch-to-label">to</span>
-              <div class="flex-grow-1" id="batch-val-wrapper" style="min-width: 130px;">
+
+              <div class="flex-grow-1 d-flex align-items-center gap-2" id="batch-val-wrapper" style="min-width: 150px;">
                 <select class="form-select form-select-sm" id="batch-val-select" style="cursor: pointer;">
                   <option value="true">true (checked)</option>
                   <option value="false">false (unchecked)</option>
                 </select>
-                <input type="text" class="form-control form-control-sm d-none" id="batch-val-text" placeholder="Value..." />
+                <input type="text" class="form-control form-control-sm d-none" id="batch-val-text" placeholder="value to apply..." />
+                
+                <!-- Find & Replace Sub-inputs -->
+                <div class="d-none w-100 d-flex gap-2" id="batch-val-replace-group">
+                  <input type="text" class="form-control form-control-sm" id="batch-val-find" placeholder="find text or /regex/..." />
+                  <input type="text" class="form-control form-control-sm" id="batch-val-replace" placeholder="replace with..." />
+                </div>
+
+                <!-- Case Transform Sub-select -->
+                <select class="form-select form-select-sm d-none" id="batch-val-case" style="cursor: pointer;">
+                  <option value="uppercase">uppercase</option>
+                  <option value="lowercase">lowercase</option>
+                  <option value="titlecase">title case</option>
+                </select>
               </div>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center">
-              <span class="small text-body-secondary" id="batch-summary-preview">Set required = true for all blocks</span>
-              <div class="d-flex gap-2">
+            <!-- Summary & Actions Bar (No HR / No Top Border, No Matched Badge) -->
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-0">
+              <span class="small text-body-secondary text-truncate me-2 flex-grow-1 min-w-0" id="batch-summary-preview">Set required = true on all blocks</span>
+              <div class="d-flex gap-2 flex-shrink-0">
                 <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="btn-batch-cancel">Cancel</button>
-                <button type="button" class="btn btn-primary btn-sm px-3" id="btn-batch-apply"><i class="bi bi-check2 me-1"></i>Apply</button>
+                <button type="button" class="btn btn-primary btn-sm px-3" id="btn-batch-apply"><ion-icon name="checkmark-outline" class="me-1"></ion-icon>Apply</button>
               </div>
             </div>
           </div>
@@ -1679,7 +1788,7 @@ function renderKitBuilderTab() {
         <!-- Add Block Dropdown -->
         <div class="dropdown">
           <button class="btn btn-primary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bi bi-plus-lg"></i> Add Block
+            <ion-icon name="add-outline"></ion-icon> Add Block
           </button>
           <ul class="dropdown-menu dropdown-menu-end shadow" style="max-height: 420px; overflow-y: auto; overflow-x: hidden; width: 330px; min-width: 320px;">
             ${blockDropdownHtml}
@@ -1696,12 +1805,18 @@ function renderKitBuilderTab() {
   bindUniversalDropdowns(container);
 
   // Batch modify interactions
-  const batchTypeSelect = container.querySelector("#batch-type");
+  const batchTargetTypeSelect = container.querySelector("#batch-target-type");
+  const batchFilterModeSelect = container.querySelector("#batch-filter-mode");
+  const batchFilterQueryInput = container.querySelector("#batch-filter-query");
   const batchOpSelect = container.querySelector("#batch-op");
   const batchPropSelect = container.querySelector("#batch-prop");
   const batchValSelect = container.querySelector("#batch-val-select");
   const batchValText = container.querySelector("#batch-val-text");
   const batchValWrapper = container.querySelector("#batch-val-wrapper");
+  const batchValReplaceGroup = container.querySelector("#batch-val-replace-group");
+  const batchValFind = container.querySelector("#batch-val-find");
+  const batchValReplace = container.querySelector("#batch-val-replace");
+  const batchValCase = container.querySelector("#batch-val-case");
   const batchToLabel = container.querySelector("#batch-to-label");
   const batchTargetBadge = container.querySelector("#batch-target-count");
   const batchSummaryPreview = container.querySelector("#batch-summary-preview");
@@ -1713,11 +1828,83 @@ function renderKitBuilderTab() {
   };
 
   const getMatchingBlocks = () => {
-    const selectedType = batchTypeSelect ? batchTypeSelect.value : "any";
-    return (activeKit.blocks || []).filter((b) => {
-      if (selectedType === "any") return true;
-      if (selectedType === "inputs") return isInputType(b.type);
-      return b.type === selectedType;
+    const selectedType = batchTargetTypeSelect ? batchTargetTypeSelect.value : "any";
+    const filterMode = batchFilterModeSelect ? batchFilterModeSelect.value : "all";
+    const filterQuery = (batchFilterQueryInput?.value || "").trim();
+    const queryLower = filterQuery.toLowerCase();
+    const allBlocks = activeKit.blocks || [];
+
+    return allBlocks.filter((b, idx) => {
+      // 1. Target scope filter
+      if (selectedType === "inputs" && !isInputType(b.type)) return false;
+      if (selectedType === "settings" && b.category !== "settings") return false;
+      if (selectedType === "output" && b.category !== "output") return false;
+      if (selectedType !== "any" && selectedType !== "inputs" && selectedType !== "settings" && selectedType !== "output" && b.type !== selectedType) return false;
+
+      // 2. Complex Filter Condition
+      if (filterMode === "name_contains") {
+        if (queryLower) {
+          const matchLabel = (b.label || "").toLowerCase().includes(queryLower);
+          const matchId = (b.id || "").toLowerCase().includes(queryLower);
+          if (!matchLabel && !matchId) return false;
+        }
+      } else if (filterMode === "name_regex") {
+        if (filterQuery) {
+          try {
+            const re = new RegExp(filterQuery, "i");
+            if (!re.test(b.label || "") && !re.test(b.id || "")) return false;
+          } catch {
+            return false;
+          }
+        }
+      } else if (filterMode === "name_starts_with") {
+        if (queryLower) {
+          const matchLabel = (b.label || "").toLowerCase().startsWith(queryLower);
+          const matchId = (b.id || "").toLowerCase().startsWith(queryLower);
+          if (!matchLabel && !matchId) return false;
+        }
+      } else if (filterMode === "name_ends_with") {
+        if (queryLower) {
+          const matchLabel = (b.label || "").toLowerCase().endsWith(queryLower);
+          const matchId = (b.id || "").toLowerCase().endsWith(queryLower);
+          if (!matchLabel && !matchId) return false;
+        }
+      } else if (filterMode === "required_is") {
+        if (!b.required) return false;
+      } else if (filterMode === "not_required") {
+        if (b.required) return false;
+      } else if (filterMode === "has_desc") {
+        if (!b.help && !b.placeholder) return false;
+      } else if (filterMode === "no_desc") {
+        if (b.help || b.placeholder) return false;
+      } else if (filterMode === "has_placeholder") {
+        if (!b.placeholder) return false;
+      } else if (filterMode === "no_placeholder") {
+        if (b.placeholder) return false;
+      } else if (filterMode === "has_default") {
+        if (b.default === undefined || b.default === null || b.default === "") return false;
+      } else if (filterMode === "index_even") {
+        if ((idx + 1) % 2 !== 0) return false;
+      } else if (filterMode === "index_odd") {
+        if ((idx + 1) % 2 === 0) return false;
+      } else if (filterMode === "index_first_n") {
+        const count = parseInt(filterQuery, 10) || 1;
+        if (idx >= count) return false;
+      } else if (filterMode === "index_last_n") {
+        const count = parseInt(filterQuery, 10) || 1;
+        if (idx < allBlocks.length - count) return false;
+      } else if (filterMode === "custom_js") {
+        if (filterQuery) {
+          try {
+            const fn = new Function("b", "idx", "blocks", `return Boolean(${filterQuery});`);
+            if (!fn(b, idx, allBlocks)) return false;
+          } catch {
+            return false;
+          }
+        }
+      }
+
+      return true;
     });
   };
 
@@ -1725,40 +1912,77 @@ function renderKitBuilderTab() {
     if (!batchPropSelect || !batchOpSelect) return;
     const prop = batchPropSelect.value;
     const op = batchOpSelect.value;
+    const filterMode = batchFilterModeSelect?.value || "all";
+
+    // Dynamic Filter Query input placeholder & visibility
+    if (["name_contains", "name_regex", "name_starts_with", "name_ends_with", "index_first_n", "index_last_n", "custom_js"].includes(filterMode)) {
+      batchFilterQueryInput?.classList.remove("d-none");
+      if (filterMode === "name_contains") batchFilterQueryInput.placeholder = "Contains text (e.g. video)...";
+      else if (filterMode === "name_regex") batchFilterQueryInput.placeholder = "Regex (e.g. ^opt_.*)...";
+      else if (filterMode === "name_starts_with") batchFilterQueryInput.placeholder = "Starts with prefix...";
+      else if (filterMode === "name_ends_with") batchFilterQueryInput.placeholder = "Ends with suffix...";
+      else if (filterMode === "index_first_n") batchFilterQueryInput.placeholder = "Count (e.g. 3)...";
+      else if (filterMode === "index_last_n") batchFilterQueryInput.placeholder = "Count (e.g. 2)...";
+      else if (filterMode === "custom_js") batchFilterQueryInput.placeholder = "JS code e.g. b.required || b.type === 'slider'...";
+    } else {
+      batchFilterQueryInput?.classList.add("d-none");
+    }
+
+    const totalBlocks = (activeKit.blocks || []).length;
     const targets = getMatchingBlocks();
 
     if (batchTargetBadge) {
-      batchTargetBadge.textContent = `${targets.length} block${targets.length === 1 ? "" : "s"}`;
+      batchTargetBadge.textContent = `${targets.length} of ${totalBlocks} matched`;
     }
 
-    if (op === "clear") {
-      if (batchToLabel) batchToLabel.classList.add("d-none");
-      if (batchValWrapper) batchValWrapper.classList.add("d-none");
-    } else {
-      if (batchToLabel) batchToLabel.classList.remove("d-none");
-      if (batchValWrapper) batchValWrapper.classList.remove("d-none");
+    // Configure operator inputs
+    batchValSelect?.classList.add("d-none");
+    batchValText?.classList.add("d-none");
+    batchValReplaceGroup?.classList.add("d-none");
+    batchValCase?.classList.add("d-none");
+    if (batchToLabel) batchToLabel.classList.remove("d-none");
 
-      if (prop === "required") {
+    if (op === "clear" || op === "invert") {
+      if (batchToLabel) batchToLabel.classList.add("d-none");
+    } else if (op === "replace") {
+      if (batchToLabel) batchToLabel.textContent = "in";
+      batchValReplaceGroup?.classList.remove("d-none");
+    } else if (op === "case_transform") {
+      if (batchToLabel) batchToLabel.textContent = "to";
+      batchValCase?.classList.remove("d-none");
+    } else {
+      if (batchToLabel) batchToLabel.textContent = op === "prepend" ? "with prefix" : (op === "append" ? "with suffix" : "to");
+      if (prop === "required" && op === "set") {
         batchValSelect?.classList.remove("d-none");
-        batchValText?.classList.add("d-none");
       } else {
-        batchValSelect?.classList.add("d-none");
         batchValText?.classList.remove("d-none");
+        if (op === "prepend") batchValText.placeholder = "Prefix string...";
+        else if (op === "append") batchValText.placeholder = "Suffix string...";
+        else batchValText.placeholder = "Value to apply...";
       }
     }
 
     if (batchSummaryPreview) {
-      const typeLabel = batchTypeSelect?.options[batchTypeSelect.selectedIndex]?.text || "blocks";
-      const val = prop === "required" ? batchValSelect?.value : (batchValText?.value || '""');
-      if (op === "clear") {
-        batchSummaryPreview.textContent = `Clear ${prop} for ${targets.length} ${typeLabel}`;
-      } else {
-        batchSummaryPreview.textContent = `Set ${prop} = ${val} for ${targets.length} ${typeLabel}`;
+      const typeLabel = batchTargetTypeSelect?.options[batchTargetTypeSelect.selectedIndex]?.text?.toLowerCase() || "blocks";
+      const propLabel = batchPropSelect?.options[batchPropSelect.selectedIndex]?.text?.toLowerCase() || "property";
+      
+      let valSnippet = "";
+      if (op === "clear") valSnippet = `Clear ${propLabel}`;
+      else if (op === "invert") valSnippet = `Invert ${propLabel}`;
+      else if (op === "replace") valSnippet = `Replace "${batchValFind?.value || ""}" with "${batchValReplace?.value || ""}" in ${propLabel}`;
+      else if (op === "case_transform") valSnippet = `Convert ${propLabel} to ${batchValCase?.value || "uppercase"}`;
+      else if (op === "prepend") valSnippet = `Prepend "${batchValText?.value || ""}" to ${propLabel}`;
+      else if (op === "append") valSnippet = `Append "${batchValText?.value || ""}" to ${propLabel}`;
+      else {
+        const val = prop === "required" ? batchValSelect?.value : `"${batchValText?.value || ""}"`;
+        valSnippet = `Set ${propLabel} = ${val}`;
       }
+
+      batchSummaryPreview.textContent = `${valSnippet} for ${typeLabel}`;
     }
   };
 
-  [batchTypeSelect, batchOpSelect, batchPropSelect, batchValSelect, batchValText].forEach((el) => {
+  [batchTargetTypeSelect, batchFilterModeSelect, batchFilterQueryInput, batchOpSelect, batchPropSelect, batchValSelect, batchValText, batchValFind, batchValReplace, batchValCase].forEach((el) => {
     el?.addEventListener("change", updateBatchUI);
     el?.addEventListener("input", updateBatchUI);
   });
@@ -1779,9 +2003,13 @@ function renderKitBuilderTab() {
     const targets = getMatchingBlocks();
 
     if (targets.length === 0) {
-      alert("No blocks matched the selected filter.");
+      showCustomKitAlert("No blocks matched the selected criteria.", "Batch Modify");
       return;
     }
+
+    const toTitleCase = (str) => {
+      return (str || "").replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+    };
 
     targets.forEach((b) => {
       if (op === "clear") {
@@ -1789,23 +2017,52 @@ function renderKitBuilderTab() {
         else if (prop === "help") b.help = "";
         else if (prop === "placeholder") b.placeholder = "";
         else if (prop === "default") b.default = "";
+        else if (prop === "label") b.label = b.id;
+      } else if (op === "invert") {
+        if (prop === "required") b.required = !b.required;
+        else if (b.type === "checkbox" && prop === "default") b.default = !b.default;
+      } else if (op === "replace") {
+        const findStr = batchValFind?.value || "";
+        const replaceStr = batchValReplace?.value || "";
+        if (findStr) {
+          let targetStr = String(b[prop] || "");
+          if (findStr.startsWith("/") && findStr.lastIndexOf("/") > 0) {
+            const lastSlash = findStr.lastIndexOf("/");
+            const pattern = findStr.slice(1, lastSlash);
+            const flags = findStr.slice(lastSlash + 1);
+            try {
+              const re = new RegExp(pattern, flags);
+              targetStr = targetStr.replace(re, replaceStr);
+            } catch {
+              targetStr = targetStr.replaceAll(findStr, replaceStr);
+            }
+          } else {
+            targetStr = targetStr.replaceAll(findStr, replaceStr);
+          }
+          b[prop] = targetStr;
+        }
+      } else if (op === "case_transform") {
+        const caseMode = batchValCase?.value || "uppercase";
+        const currentStr = String(b[prop] || "");
+        if (caseMode === "uppercase") b[prop] = currentStr.toUpperCase();
+        else if (caseMode === "lowercase") b[prop] = currentStr.toLowerCase();
+        else if (caseMode === "titlecase") b[prop] = toTitleCase(currentStr);
+      } else if (op === "prepend") {
+        const prefix = batchValText?.value || "";
+        if (prefix) b[prop] = `${prefix}${b[prop] || ""}`;
+      } else if (op === "append") {
+        const suffix = batchValText?.value || "";
+        if (suffix) b[prop] = `${b[prop] || ""}${suffix}`;
       } else {
+        // Set operation
         if (prop === "required") {
           b.required = batchValSelect?.value === "true";
         } else if (prop === "help") {
           b.help = batchValText?.value || "";
         } else if (prop === "placeholder") {
           b.placeholder = batchValText?.value || "";
-        } else if (prop === "label_prefix") {
-          const prefix = batchValText?.value || "";
-          if (prefix && !b.label?.startsWith(prefix)) {
-            b.label = `${prefix}${b.label || b.id}`;
-          }
-        } else if (prop === "label_suffix") {
-          const suffix = batchValText?.value || "";
-          if (suffix && !b.label?.endsWith(suffix)) {
-            b.label = `${b.label || b.id}${suffix}`;
-          }
+        } else if (prop === "label") {
+          b.label = batchValText?.value || b.id;
         } else if (prop === "default") {
           b.default = batchValText?.value || "";
         }
@@ -1853,7 +2110,7 @@ function renderKitBuilderTab() {
         if (otherCurtain) otherCurtain.classList.remove("is-open");
         if (otherEditBtn) {
           otherEditBtn.classList.remove("active");
-          otherEditBtn.innerHTML = `<i class="bi bi-pencil"></i>`;
+          otherEditBtn.innerHTML = '<i class="bi bi-pencil"></i>';
           otherEditBtn.title = "Edit block parameters";
         }
       }
@@ -1869,22 +2126,22 @@ function renderKitBuilderTab() {
       curtain.classList.add("is-open");
       if (editBtn) {
         editBtn.classList.add("active");
-        editBtn.innerHTML = `<i class="bi bi-chevron-up"></i>`;
+        editBtn.innerHTML = '<i class="bi bi-chevron-up"></i>';
         editBtn.title = "Collapse parameters";
       }
     } else {
       curtain.classList.remove("is-open");
       if (editBtn) {
         editBtn.classList.remove("active");
-        editBtn.innerHTML = `<i class="bi bi-pencil"></i>`;
+        editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
         editBtn.title = "Edit block parameters";
       }
     }
   };
 
-  // Double click header row to toggle curtain
+  // Single click header row to toggle curtain
   container.querySelectorAll(".kit-block-header-row").forEach((headerRow) => {
-    headerRow.addEventListener("dblclick", (e) => {
+    headerRow.addEventListener("click", (e) => {
       if (e.target.closest("button, .btn, .kit-block-drag-handle, input, select, textarea")) return;
       const idx = parseInt(headerRow.dataset.idx, 10);
       toggleCurtain(idx);
@@ -2106,7 +2363,7 @@ function renderBlockEditorHTML(b, idx) {
         <input type="text" class="form-control form-control-sm block-opt-val" data-idx="${idx}" data-opt-idx="${optIdx}" placeholder="Value (e.g. mp4)" value="${escapeHtml(opt.value)}" />
         <input type="text" class="form-control form-control-sm block-opt-lbl" data-idx="${idx}" data-opt-idx="${optIdx}" placeholder="Label (e.g. MP4 Video)" value="${escapeHtml(opt.label)}" />
         <button class="btn btn-outline-danger btn-sm flex-shrink-0 btn-remove-block-opt" type="button" data-idx="${idx}" data-opt-idx="${optIdx}" title="Remove option">
-          <i class="bi bi-x-lg"></i>
+          <ion-icon name="close-outline"></ion-icon>
         </button>
       </div>
     `
@@ -2126,7 +2383,7 @@ function renderBlockEditorHTML(b, idx) {
           <div class="d-flex justify-content-between align-items-center mb-1">
             <span class="small text-body-secondary" style="font-size: 0.75rem;">Value &amp; Label Pairs</span>
             <button class="btn btn-outline-primary btn-sm py-0 px-2 btn-add-block-opt" type="button" data-idx="${idx}">
-              <i class="bi bi-plus-lg"></i> Add Option
+              <ion-icon name="add-outline"></ion-icon> Add Option
             </button>
           </div>
           <div class="border rounded p-2 bg-body">
@@ -2313,7 +2570,7 @@ function renderBlockEditorHTML(b, idx) {
 
       <div class="d-flex justify-content-end mt-2">
         <button class="btn btn-primary btn-sm px-3 btn-done-editing-block" type="button" data-idx="${idx}">
-          <i class="bi bi-check2 me-1"></i> Done
+          <ion-icon name="checkmark-outline" class="me-1"></ion-icon> Done
         </button>
       </div>
     </div>
@@ -2367,17 +2624,17 @@ function setupBlockItemDrag(itemEl, dragHandle, index, listContainer) {
 
       itemEl.style.transform = `translateY(${totalDeltaY}px)`;
 
-      const currentMid = rects[startIndex].mid + pointerDeltaY;
+      const currentMid = rects[startIndex].mid + totalDeltaY;
 
       let newTarget = startIndex;
       for (let i = 0; i < rects.length; i++) {
         if (i < startIndex) {
-          if (currentMid < rects[i].mid) {
+          if (currentMid < rects[i].top + rects[i].height * 0.5) {
             newTarget = i;
             break;
           }
         } else if (i > startIndex) {
-          if (currentMid > rects[i].mid) {
+          if (currentMid > rects[i].top + rects[i].height * 0.5) {
             newTarget = i;
           }
         }
@@ -2466,7 +2723,11 @@ function setupBlockItemDrag(itemEl, dragHandle, index, listContainer) {
 
       let finalTranslateY = 0;
       if (targetIndex !== startIndex) {
-        finalTranslateY = rects[targetIndex].top - rects[startIndex].top;
+        if (targetIndex > startIndex) {
+          finalTranslateY = rects[targetIndex].bottom - rects[startIndex].bottom;
+        } else {
+          finalTranslateY = rects[targetIndex].top - rects[startIndex].top;
+        }
       }
 
       itemEl.classList.add("is-releasing");
@@ -2519,6 +2780,260 @@ function setupBlockItemDrag(itemEl, dragHandle, index, listContainer) {
   });
 }
 
+// 10 Common Monaco Themes configuration and color schemes
+export const MONACO_THEMES = [
+  { id: "vs-dark", name: "VS Code Dark" },
+  { id: "vs", name: "VS Code Light" },
+  { id: "hc-black", name: "High Contrast Dark" },
+  {
+    id: "monokai",
+    name: "Monokai",
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "75715e" },
+        { token: "keyword", foreground: "f92672" },
+        { token: "string", foreground: "e6db74" },
+        { token: "number", foreground: "ae81ff" },
+        { token: "identifier", foreground: "f8f8f2" },
+        { token: "type", foreground: "66d9ef" },
+      ],
+      colors: {
+        "editor.background": "#272822",
+        "editor.foreground": "#f8f8f2",
+        "editorCursor.foreground": "#f8f8f0",
+        "editor.lineHighlightBackground": "#3e3d32",
+        "editorLineNumber.foreground": "#75715e",
+        "editor.selectionBackground": "#49483e",
+      },
+    },
+  },
+  {
+    id: "dracula",
+    name: "Dracula",
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "6272a4" },
+        { token: "keyword", foreground: "ff79c6" },
+        { token: "string", foreground: "f1fa8c" },
+        { token: "number", foreground: "bd93f9" },
+        { token: "identifier", foreground: "f8f8f2" },
+        { token: "type", foreground: "8be9fd" },
+      ],
+      colors: {
+        "editor.background": "#282a36",
+        "editor.foreground": "#f8f8f2",
+        "editorCursor.foreground": "#f8f8f2",
+        "editor.lineHighlightBackground": "#44475a75",
+        "editorLineNumber.foreground": "#6272a4",
+        "editor.selectionBackground": "#44475a",
+      },
+    },
+  },
+  {
+    id: "github-dark",
+    name: "GitHub Dark",
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "8b949e" },
+        { token: "keyword", foreground: "ff7b72" },
+        { token: "string", foreground: "a5d6ff" },
+        { token: "number", foreground: "79c0ff" },
+        { token: "type", foreground: "ffa657" },
+      ],
+      colors: {
+        "editor.background": "#0d1117",
+        "editor.foreground": "#c9d1d9",
+        "editorCursor.foreground": "#58a6ff",
+        "editor.lineHighlightBackground": "#161b22",
+        "editorLineNumber.foreground": "#6e7681",
+        "editor.selectionBackground": "#264f78",
+      },
+    },
+  },
+  {
+    id: "github-light",
+    name: "GitHub Light",
+    data: {
+      base: "vs",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "6e7781" },
+        { token: "keyword", foreground: "cf222e" },
+        { token: "string", foreground: "0a3069" },
+        { token: "number", foreground: "0550ae" },
+        { token: "type", foreground: "953800" },
+      ],
+      colors: {
+        "editor.background": "#ffffff",
+        "editor.foreground": "#24292f",
+        "editorCursor.foreground": "#0969da",
+        "editor.lineHighlightBackground": "#f6f8fa",
+        "editorLineNumber.foreground": "#8c959f",
+        "editor.selectionBackground": "#b6e3ff",
+      },
+    },
+  },
+  {
+    id: "nord",
+    name: "Nord",
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "616e88" },
+        { token: "keyword", foreground: "81a1c1" },
+        { token: "string", foreground: "a3be8c" },
+        { token: "number", foreground: "b48ead" },
+        { token: "type", foreground: "8fbcbb" },
+      ],
+      colors: {
+        "editor.background": "#2e3440",
+        "editor.foreground": "#d8dee9",
+        "editorCursor.foreground": "#d8dee9",
+        "editor.lineHighlightBackground": "#3b4252",
+        "editorLineNumber.foreground": "#4c566a",
+        "editor.selectionBackground": "#434c5e",
+      },
+    },
+  },
+  {
+    id: "solarized-dark",
+    name: "Solarized Dark",
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "586e75" },
+        { token: "keyword", foreground: "859900" },
+        { token: "string", foreground: "2aa198" },
+        { token: "number", foreground: "d33682" },
+        { token: "type", foreground: "b58900" },
+      ],
+      colors: {
+        "editor.background": "#002b36",
+        "editor.foreground": "#839496",
+        "editorCursor.foreground": "#839496",
+        "editor.lineHighlightBackground": "#073642",
+        "editorLineNumber.foreground": "#586e75",
+        "editor.selectionBackground": "#073642",
+      },
+    },
+  },
+  {
+    id: "one-dark-pro",
+    name: "One Dark Pro",
+    data: {
+      base: "vs-dark",
+      inherit: true,
+      rules: [
+        { token: "comment", foreground: "5c6370" },
+        { token: "keyword", foreground: "c678dd" },
+        { token: "string", foreground: "98c379" },
+        { token: "number", foreground: "d19a66" },
+        { token: "type", foreground: "e5c07b" },
+      ],
+      colors: {
+        "editor.background": "#282c34",
+        "editor.foreground": "#abb2bf",
+        "editorCursor.foreground": "#528bff",
+        "editor.lineHighlightBackground": "#2c313a",
+        "editorLineNumber.foreground": "#4b5263",
+        "editor.selectionBackground": "#3e4451",
+      },
+    },
+  },
+];
+
+export function registerMonacoThemes() {
+  if (!window.monaco || !window.monaco.editor) return;
+  for (const t of MONACO_THEMES) {
+    if (t.data) {
+      try {
+        window.monaco.editor.defineTheme(t.id, t.data);
+      } catch {
+        // Theme already registered
+      }
+    }
+  }
+}
+
+export function obfuscateScriptCode(sourceCode) {
+  if (!sourceCode || typeof sourceCode !== "string") return "";
+  const utf8Bytes = new TextEncoder().encode(sourceCode);
+  let binaryStr = "";
+  for (let i = 0; i < utf8Bytes.length; i++) {
+    binaryStr += String.fromCharCode(utf8Bytes[i]);
+  }
+  const b64 = btoa(binaryStr);
+
+  const maskedChunks = [];
+  for (let i = 0; i < b64.length; i += 64) {
+    maskedChunks.push(JSON.stringify(b64.slice(i, i + 64)));
+  }
+  const payloadArray = maskedChunks.join(",\n  ");
+
+  return `/**
+ * @anedikit-obfuscated v1.0
+ * Protected User Kit Execution Payload
+ */
+(function(_0x8a1e,_0x4f2c){
+  const _0x3b9d=[
+  ${payloadArray}
+  ];
+  const _0x1c7a=function(_0x9d2e){
+    const _0x5f1b=_0x3b9d.join("");
+    const _0x2e4c=atob(_0x5f1b);
+    const _0x7a3d=new Uint8Array(_0x2e4c.length);
+    for(let _0x4b1f=0;_0x4b1f<_0x2e4c.length;_0x4b1f++){
+      _0x7a3d[_0x4b1f]=_0x2e4c.charCodeAt(_0x4b1f);
+    }
+    return new TextDecoder().decode(_0x7a3d);
+  };
+  return (new Function(_0x1c7a()))();
+})();`;
+}
+
+export function deobfuscateScriptCode(code) {
+  if (!code || typeof code !== "string") return null;
+
+  if (code.includes("@anedikit-obfuscated")) {
+    const arrayMatch = code.match(/const\s+_0x3b9d\s*=\s*\[([\s\S]*?)\];/);
+    if (arrayMatch && arrayMatch[1]) {
+      try {
+        const items = JSON.parse(`[${arrayMatch[1]}]`);
+        const b64 = items.join("");
+        const raw = atob(b64);
+        const bytes = new Uint8Array(raw.length);
+        for (let i = 0; i < raw.length; i++) {
+          bytes[i] = raw.charCodeAt(i);
+        }
+        return new TextDecoder().decode(bytes);
+      } catch (_) {}
+    }
+  }
+
+  // Fallback pattern matching for base64 eval
+  const b64Match = code.match(/atob\(["']([A-Za-z0-9+/=]+)["']\)/) || code.match(/["']([A-Za-z0-9+/=]{40,})["']/);
+  if (b64Match && b64Match[1]) {
+    try {
+      const raw = atob(b64Match[1]);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) {
+        bytes[i] = raw.charCodeAt(i);
+      }
+      return new TextDecoder().decode(bytes);
+    } catch (_) {}
+  }
+
+  return null;
+}
+
 // -------------------------------------------------------------
 // TAB 3: SCRIPT EDITOR (MONACO EDITOR - Zero outer border/padding, Flush layout)
 // -------------------------------------------------------------
@@ -2526,24 +3041,48 @@ function renderKitScriptTab() {
   const container = document.getElementById("kit-tab-content");
   if (!container || !activeKit) return;
 
+  const currentTheme = getSavedScriptTheme();
+
+  const themeOptionsHtml = MONACO_THEMES.map(
+    (t) => `<option value="${t.id}" ${t.id === currentTheme ? "selected" : ""}>${escapeHtml(t.name)}</option>`
+  ).join("");
+
   container.innerHTML = `
     <div class="kit-script-editor-wrapper p-0 m-0 border-0 rounded-0" style="margin: -1.5rem -1.5rem -1.5rem -1.5rem !important; width: calc(100% + 3rem); height: calc(100vh - 106px);">
       <!-- Overlay 3-Dot Dropdown Menu on Top Right of Editor -->
       <div class="dropdown kit-script-floating-menu">
         <button class="btn btn-dark btn-sm border bg-body-tertiary text-body shadow-sm py-1 px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Script Options">
-          <i class="bi bi-three-dots-vertical"></i>
+          <ion-icon name="ellipsis-vertical-outline"></ion-icon>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width: 220px;">
-          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-save-kit-script"><i class="bi bi-check2 text-success"></i>Save Script</a></li>
-          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-format-kit-script"><i class="bi bi-code text-secondary"></i>Format Code</a></li>
-          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-insert-vars-boilerplate"><i class="bi bi-box-arrow-in-down text-primary"></i>Insert Block Variables</a></li>
+        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width: 275px;">
+          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-save-kit-script"><ion-icon name="checkmark-outline" class="text-success"></ion-icon>Save Script</a></li>
+          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-format-kit-script"><ion-icon name="code-outline" class="text-secondary"></ion-icon>Format Code</a></li>
+          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-insert-vars-boilerplate"><ion-icon name="download-outline" class="text-primary"></ion-icon>Insert Block Variables</a></li>
           <li><hr class="dropdown-divider my-1"></li>
-          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-copy-kit-script"><i class="bi bi-clipboard text-secondary"></i>Copy Script</a></li>
-          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-export-kit-script"><i class="bi bi-download text-secondary"></i>Export Script (.js)</a></li>
-          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-import-kit-script"><i class="bi bi-upload text-secondary"></i>Import Script (.js)</a></li>
+          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-obfuscate-kit-script"><ion-icon name="lock-closed-outline" class="text-warning"></ion-icon>Obfuscate Script</a></li>
+          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-unobfuscate-kit-script"><ion-icon name="lock-open-outline" class="text-info"></ion-icon>Unobfuscate Script</a></li>
           <li><hr class="dropdown-divider my-1"></li>
-          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-insert-template-script"><i class="bi bi-file-earmark-code text-secondary"></i>Reset to Template</a></li>
-          <li><a class="dropdown-item small text-danger d-flex align-items-center gap-2" href="#" id="btn-clear-kit-script"><i class="bi bi-trash"></i>Clear Script</a></li>
+          <li class="dropdown-header small text-body-secondary py-1">Editor Theme</li>
+          <li class="px-3 py-1">
+            <div class="input-group input-group-sm">
+              <button class="btn btn-outline-secondary" type="button" id="btn-prev-monaco-theme" title="Previous theme">
+                <ion-icon name="chevron-back-outline"></ion-icon>
+              </button>
+              <select class="form-select form-select-sm small font-sans" id="select-monaco-theme" style="cursor: pointer;">
+                ${themeOptionsHtml}
+              </select>
+              <button class="btn btn-outline-secondary" type="button" id="btn-next-monaco-theme" title="Next theme">
+                <ion-icon name="chevron-forward-outline"></ion-icon>
+              </button>
+            </div>
+          </li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-copy-kit-script"><ion-icon name="copy-outline" class="text-secondary"></ion-icon>Copy Script</a></li>
+          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-export-kit-script"><ion-icon name="download-outline" class="text-secondary"></ion-icon>Export Script (.js)</a></li>
+          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-import-kit-script"><ion-icon name="cloud-upload-outline" class="text-secondary"></ion-icon>Import Script (.js)</a></li>
+          <li><hr class="dropdown-divider my-1"></li>
+          <li><a class="dropdown-item small d-flex align-items-center gap-2" href="#" id="btn-insert-template-script"><ion-icon name="code-working-outline" class="text-secondary"></ion-icon>Reset to Template</a></li>
+          <li><a class="dropdown-item small text-danger d-flex align-items-center gap-2" href="#" id="btn-clear-kit-script"><ion-icon name="trash-outline"></ion-icon>Clear Script</a></li>
         </ul>
       </div>
 
@@ -2567,6 +3106,50 @@ function renderKitScriptTab() {
   const btnImportScript = container.querySelector("#btn-import-kit-script");
   const btnResetTpl = container.querySelector("#btn-insert-template-script");
   const btnClearScript = container.querySelector("#btn-clear-kit-script");
+  const selectTheme = container.querySelector("#select-monaco-theme");
+  const btnPrevTheme = container.querySelector("#btn-prev-monaco-theme");
+  const btnNextTheme = container.querySelector("#btn-next-monaco-theme");
+
+  const applyThemeById = (themeId) => {
+    saveScriptTheme(themeId);
+    if (selectTheme) selectTheme.value = themeId;
+    if (window.monaco && window.monaco.editor) {
+      registerMonacoThemes();
+      window.monaco.editor.setTheme(themeId);
+    }
+  };
+
+  if (selectTheme) {
+    selectTheme.addEventListener("change", (e) => {
+      e.stopPropagation();
+      applyThemeById(selectTheme.value);
+    });
+    selectTheme.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+  }
+
+  if (btnPrevTheme) {
+    btnPrevTheme.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const curr = getSavedScriptTheme();
+      const idx = MONACO_THEMES.findIndex((t) => t.id === curr);
+      const prevIdx = (idx - 1 + MONACO_THEMES.length) % MONACO_THEMES.length;
+      applyThemeById(MONACO_THEMES[prevIdx].id);
+    });
+  }
+
+  if (btnNextTheme) {
+    btnNextTheme.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const curr = getSavedScriptTheme();
+      const idx = MONACO_THEMES.findIndex((t) => t.id === curr);
+      const nextIdx = (idx + 1) % MONACO_THEMES.length;
+      applyThemeById(MONACO_THEMES[nextIdx].id);
+    });
+  }
 
   const triggerSaveScript = () => {
     if (monacoEditorInstance) {
@@ -2577,7 +3160,7 @@ function renderKitScriptTab() {
     saveUserKit(activeKit);
     if (btnSave) {
       const origHtml = btnSave.innerHTML;
-      btnSave.innerHTML = `<i class="bi bi-check2-all text-success"></i> Saved!`;
+      btnSave.innerHTML = `<ion-icon name="checkmark-done-outline" class="text-success"></ion-icon> Saved!`;
       setTimeout(() => (btnSave.innerHTML = origHtml), 1500);
     }
   };
@@ -2588,11 +3171,13 @@ function renderKitScriptTab() {
 
     if (fallbackEditor) fallbackEditor.remove();
 
-    const isLight = document.documentElement.getAttribute("data-bs-theme") === "light";
+    registerMonacoThemes();
+    const activeTheme = getSavedScriptTheme();
+
     monacoEditorInstance = window.monaco.editor.create(monacoContainer, {
       value: activeKit.script || "",
       language: "javascript",
-      theme: isLight ? "vs" : "vs-dark",
+      theme: activeTheme,
       automaticLayout: true,
       minimap: { enabled: false },
       fontSize: 13,
@@ -2662,12 +3247,63 @@ function renderKitScriptTab() {
     });
   }
 
+  const btnObfuscate = container.querySelector("#btn-obfuscate-kit-script");
+  const btnUnobfuscate = container.querySelector("#btn-unobfuscate-kit-script");
+
+  if (btnObfuscate) {
+    btnObfuscate.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const code = monacoEditorInstance ? monacoEditorInstance.getValue() : (fallbackEditor ? fallbackEditor.value : activeKit.script || "");
+      if (!code.trim()) {
+        await showCustomKitAlert("There is no script code to obfuscate.", "Obfuscation");
+        return;
+      }
+      if (code.includes("@anedikit-obfuscated")) {
+        await showCustomKitAlert("This script is already obfuscated.", "Obfuscation");
+        return;
+      }
+      const obfuscated = obfuscateScriptCode(code);
+      if (monacoEditorInstance) {
+        monacoEditorInstance.setValue(obfuscated);
+      } else if (fallbackEditor) {
+        fallbackEditor.value = obfuscated;
+      }
+      activeKit.script = obfuscated;
+      saveUserKit(activeKit);
+      await showCustomKitAlert("Script successfully obfuscated with protected execution payload.", "Obfuscation");
+    });
+  }
+
+  if (btnUnobfuscate) {
+    btnUnobfuscate.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const code = monacoEditorInstance ? monacoEditorInstance.getValue() : (fallbackEditor ? fallbackEditor.value : activeKit.script || "");
+      if (!code.trim()) {
+        await showCustomKitAlert("There is no script code to unobfuscate.", "Unobfuscation");
+        return;
+      }
+      const deobfuscated = deobfuscateScriptCode(code);
+      if (deobfuscated !== null) {
+        if (monacoEditorInstance) {
+          monacoEditorInstance.setValue(deobfuscated);
+        } else if (fallbackEditor) {
+          fallbackEditor.value = deobfuscated;
+        }
+        activeKit.script = deobfuscated;
+        saveUserKit(activeKit);
+        await showCustomKitAlert("Script successfully unobfuscated to 100% original source code.", "Unobfuscation");
+      } else {
+        await showCustomKitAlert("The current script does not appear to be an obfuscated script payload.", "Unobfuscation");
+      }
+    });
+  }
+
   if (btnInsertVars) {
-    btnInsertVars.addEventListener("click", (e) => {
+    btnInsertVars.addEventListener("click", async (e) => {
       e.preventDefault();
       const blockIds = (activeKit.blocks || []).filter((b) => b.id).map((b) => b.id);
       if (blockIds.length === 0) {
-        alert("No blocks found in this kit to extract variables from.");
+        await showCustomKitAlert("No blocks found in this kit to extract variables from.", "Insert Variables");
         return;
       }
       const boilerplate = `  // Block parameters from UI\n  const { ${blockIds.join(", ")} } = ctx.values;\n`;
@@ -2697,7 +3333,7 @@ function renderKitScriptTab() {
       const code = monacoEditorInstance ? monacoEditorInstance.getValue() : (fallbackEditor ? fallbackEditor.value : activeKit.script || "");
       await navigator.clipboard.writeText(code);
       const origHtml = btnCopyScript.innerHTML;
-      btnCopyScript.innerHTML = `<i class="bi bi-check2 text-success"></i> Copied!`;
+      btnCopyScript.innerHTML = `<ion-icon name="checkmark-outline" class="text-success"></ion-icon> Copied!`;
       setTimeout(() => (btnCopyScript.innerHTML = origHtml), 1500);
     });
   }
@@ -2795,7 +3431,7 @@ function renderKitSettingsTab() {
   const container = document.getElementById("kit-tab-content");
   if (!container || !activeKit) return;
 
-  const currentIcon = activeKit.icon || "bi-box-seam";
+  const currentIcon = getIonicIconName(activeKit.icon);
 
   container.innerHTML = `
     <div class="kit-settings-linear-wrapper">
@@ -2809,54 +3445,23 @@ function renderKitSettingsTab() {
             <input type="text" class="form-control small font-sans" id="meta-kit-name" value="${escapeHtml(activeKit.name)}" required />
           </div>
 
-          <!-- Row 2: Kit ID (Unique Identifier) -->
+          <!-- Row 2: Kit ID (Unique Identifier) - Editable -->
           <div class="col-12">
-            <label class="form-label small fw-medium text-body" for="meta-kit-id">Kit ID (Unique Identifier)</label>
-            <input type="text" class="form-control small font-sans bg-body-tertiary" id="meta-kit-id" value="${escapeHtml(activeKit.id)}" readonly />
+            <label class="form-label small fw-medium text-body" for="meta-kit-id">Kit ID *</label>
+            <input type="text" class="form-control small font-monospace" id="meta-kit-id" value="${escapeHtml(activeKit.id)}" required />
             <div class="form-text small text-body-secondary">Unique machine identifier used for namespacing and storage.</div>
           </div>
 
-          <!-- Row 3: Kit Icon with Live Preview -->
-          <div class="col-12">
-            <label class="form-label small fw-medium text-body" for="meta-kit-icon">Kit Icon</label>
-            <div class="input-group">
-              <span class="input-group-text bg-body-tertiary text-primary" id="meta-icon-preview">
-                <i class="bi ${escapeHtml(currentIcon)} fs-6"></i>
-              </span>
-              <select class="form-select small" id="meta-kit-icon" style="cursor: pointer;">
-                <option value="bi-box-seam" ${currentIcon === "bi-box-seam" ? "selected" : ""}>Box Seam (Default)</option>
-                <option value="bi-code-slash" ${currentIcon === "bi-code-slash" ? "selected" : ""}>Code Slash (&lt;/&gt;)</option>
-                <option value="bi-film" ${currentIcon === "bi-film" ? "selected" : ""}>Film / Video</option>
-                <option value="bi-music-note-beamed" ${currentIcon === "bi-music-note-beamed" ? "selected" : ""}>Music / Audio</option>
-                <option value="bi-sliders" ${currentIcon === "bi-sliders" ? "selected" : ""}>Sliders / Parameters</option>
-                <option value="bi-lightning" ${currentIcon === "bi-lightning" ? "selected" : ""}>Lightning / Fast</option>
-                <option value="bi-terminal" ${currentIcon === "bi-terminal" ? "selected" : ""}>Terminal / CLI</option>
-                <option value="bi-gear" ${currentIcon === "bi-gear" ? "selected" : ""}>Gear / Engine</option>
-                <option value="bi-cpu" ${currentIcon === "bi-cpu" ? "selected" : ""}>CPU / Processing</option>
-                <option value="bi-camera-video" ${currentIcon === "bi-camera-video" ? "selected" : ""}>Camera Video</option>
-                <option value="bi-soundwave" ${currentIcon === "bi-soundwave" ? "selected" : ""}>Soundwave / Waves</option>
-                <option value="bi-palette" ${currentIcon === "bi-palette" ? "selected" : ""}>Palette / Visual</option>
-                <option value="bi-magic" ${currentIcon === "bi-magic" ? "selected" : ""}>Magic / Enhancement</option>
-                <option value="bi-scissors" ${currentIcon === "bi-scissors" ? "selected" : ""}>Scissors / Trimming</option>
-                <option value="bi-file-earmark-code" ${currentIcon === "bi-file-earmark-code" ? "selected" : ""}>File Code</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Row 4: Version -->
-          <div class="col-12">
+          <!-- Row 3: Version, Author, License in Same Row -->
+          <div class="col-md-4 col-12">
             <label class="form-label small fw-medium text-body" for="meta-kit-version">Version</label>
             <input type="text" class="form-control small font-monospace" id="meta-kit-version" value="${escapeHtml(activeKit.version || "1.0.0")}" />
           </div>
-
-          <!-- Row 5: Author -->
-          <div class="col-12">
+          <div class="col-md-4 col-12">
             <label class="form-label small fw-medium text-body" for="meta-kit-author">Author</label>
             <input type="text" class="form-control small font-sans" id="meta-kit-author" value="${escapeHtml(activeKit.author || "User")}" />
           </div>
-
-          <!-- Row 6: License -->
-          <div class="col-12">
+          <div class="col-md-4 col-12">
             <label class="form-label small fw-medium text-body" for="meta-kit-license">License</label>
             <select class="form-select small" id="meta-kit-license" style="cursor: pointer;">
               <option value="MIT" ${activeKit.license === "MIT" ? "selected" : ""}>MIT License</option>
@@ -2868,16 +3473,43 @@ function renderKitSettingsTab() {
             </select>
           </div>
 
-          <!-- Row 7: Description -->
+          <!-- Row 4: Kit Icon with Live Preview -->
+          <div class="col-12">
+            <label class="form-label small fw-medium text-body" for="meta-kit-icon">Kit Icon</label>
+            <div class="input-group">
+              <span class="input-group-text bg-body-tertiary text-primary" id="meta-icon-preview">
+                <ion-icon name="${escapeHtml(currentIcon)}" class="fs-6"></ion-icon>
+              </span>
+              <select class="form-select small" id="meta-kit-icon" style="cursor: pointer;">
+                <option value="cube-outline" ${currentIcon === "cube-outline" ? "selected" : ""}>Cube (Default)</option>
+                <option value="code-slash-outline" ${currentIcon === "code-slash-outline" ? "selected" : ""}>Code Slash</option>
+                <option value="film-outline" ${currentIcon === "film-outline" ? "selected" : ""}>Film / Video</option>
+                <option value="musical-notes-outline" ${currentIcon === "musical-notes-outline" ? "selected" : ""}>Music / Audio</option>
+                <option value="options-outline" ${currentIcon === "options-outline" ? "selected" : ""}>Sliders / Parameters</option>
+                <option value="flash-outline" ${currentIcon === "flash-outline" ? "selected" : ""}>Lightning / Fast</option>
+                <option value="terminal-outline" ${currentIcon === "terminal-outline" ? "selected" : ""}>Terminal / CLI</option>
+                <option value="settings-outline" ${currentIcon === "settings-outline" ? "selected" : ""}>Gear / Engine</option>
+                <option value="hardware-chip-outline" ${currentIcon === "hardware-chip-outline" ? "selected" : ""}>CPU / Processing</option>
+                <option value="videocam-outline" ${currentIcon === "videocam-outline" ? "selected" : ""}>Camera Video</option>
+                <option value="pulse-outline" ${currentIcon === "pulse-outline" ? "selected" : ""}>Soundwave / Waves</option>
+                <option value="color-palette-outline" ${currentIcon === "color-palette-outline" ? "selected" : ""}>Palette / Visual</option>
+                <option value="sparkles-outline" ${currentIcon === "sparkles-outline" ? "selected" : ""}>Magic / Enhancement</option>
+                <option value="cut-outline" ${currentIcon === "cut-outline" ? "selected" : ""}>Scissors / Trimming</option>
+                <option value="code-working-outline" ${currentIcon === "code-working-outline" ? "selected" : ""}>File Code</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Row 5: Description -->
           <div class="col-12">
             <label class="form-label small fw-medium text-body" for="meta-kit-desc">Description</label>
             <textarea class="form-control small font-sans" id="meta-kit-desc" rows="3" placeholder="Summary of what this kit does...">${escapeHtml(activeKit.description || "")}</textarea>
           </div>
 
-          <!-- Row 8: Save Action Button -->
+          <!-- Row 6: Save Action Button -->
           <div class="col-12 d-flex justify-content-end mt-2">
             <button class="btn btn-success btn-sm px-4" type="submit" id="btn-save-kit-metadata">
-              <i class="bi bi-check2"></i> Save Settings
+              <ion-icon name="checkmark-outline"></ion-icon> Save Settings
             </button>
           </div>
 
@@ -2890,7 +3522,7 @@ function renderKitSettingsTab() {
   const iconPreview = container.querySelector("#meta-icon-preview");
   if (iconSelect && iconPreview) {
     iconSelect.addEventListener("change", () => {
-      iconPreview.innerHTML = `<i class="bi ${escapeHtml(iconSelect.value)} fs-6"></i>`;
+      iconPreview.innerHTML = `<ion-icon name="${getIonicIconName(iconSelect.value)}" class="fs-6"></ion-icon>`;
     });
   }
 
@@ -2898,6 +3530,23 @@ function renderKitSettingsTab() {
   if (form) {
     form.addEventListener("submit", (e) => {
       e.preventDefault();
+      const oldId = activeKit.id;
+      const rawNewId = container.querySelector("#meta-kit-id")?.value || "";
+      const newId = rawNewId.trim().toLowerCase();
+
+      if (!newId) {
+        showCustomKitAlert("Kit ID cannot be empty.", "Edit Kit ID");
+        return;
+      }
+
+      if (newId !== oldId) {
+        const existing = getUserKitById(newId);
+        if (existing) {
+          showCustomKitAlert(`A kit with ID "${newId}" already exists. Please choose a different ID.`, "Duplicate Kit ID");
+          return;
+        }
+      }
+
       activeKit.name = container.querySelector("#meta-kit-name")?.value || activeKit.name;
       activeKit.version = container.querySelector("#meta-kit-version")?.value || activeKit.version;
       activeKit.author = container.querySelector("#meta-kit-author")?.value || activeKit.author;
@@ -2905,9 +3554,47 @@ function renderKitSettingsTab() {
       activeKit.icon = container.querySelector("#meta-kit-icon")?.value || activeKit.icon;
       activeKit.description = container.querySelector("#meta-kit-desc")?.value || "";
 
+      if (newId !== oldId) {
+        // Migrate saved parameters from old ID key to new ID key
+        const savedParams = getSavedKitParams(oldId);
+        saveKitParams(newId, savedParams);
+
+        // Delete old kit from user kits
+        deleteUserKit(oldId);
+
+        // Update ID on activeKit
+        activeKit.id = newId;
+        saveActiveKit(newId);
+      }
+
       saveUserKit(activeKit);
       renderUserKitsSidebar();
-      renderKitIdeWorkspace();
+
+      // Update top header title, description and tooltips immediately
+      const titleEl = document.getElementById("current-tool-title");
+      const descEl = document.getElementById("current-tool-desc");
+      const headerContainer = document.getElementById("tool-header-text");
+      if (titleEl) {
+        titleEl.textContent = activeKit.name;
+        titleEl.title = activeKit.name;
+      }
+      if (descEl) {
+        descEl.textContent = activeKit.description || "Custom scriptable user module.";
+        descEl.title = activeKit.description || "Custom scriptable user module.";
+      }
+      if (headerContainer) {
+        headerContainer.title = `${activeKit.name} - ${activeKit.description || "Custom scriptable user module."}`;
+      }
+
+      // If ID changed, re-open with new ID
+      if (newId !== oldId) {
+        if (window.switchAppTool) {
+          window.switchAppTool(`kit_${newId}`);
+        }
+        selectAndOpenKit(newId, false, "settings");
+      } else {
+        renderKitIdeWorkspace();
+      }
     });
   }
 }

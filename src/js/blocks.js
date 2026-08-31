@@ -9,8 +9,8 @@ export const BLOCK_CATEGORIES = {
 export const BLOCK_TYPES = {
   file_input: {
     type: "file_input",
-    name: "File Picker",
-    icon: "bi-file-earmark-play",
+    name: "File Input",
+    icon: "film-outline",
     category: BLOCK_CATEGORIES.INPUT,
     description: "Source file picker",
     defaultConfig: () => ({
@@ -24,7 +24,7 @@ export const BLOCK_TYPES = {
   folder_picker: {
     type: "folder_picker",
     name: "Folder Picker",
-    icon: "bi-folder2-open",
+    icon: "folder-open-outline",
     category: BLOCK_CATEGORIES.OUTPUT,
     description: "Target folder selector",
     defaultConfig: () => ({
@@ -38,7 +38,7 @@ export const BLOCK_TYPES = {
   output_filename: {
     type: "output_filename",
     name: "Output Filename",
-    icon: "bi-input-cursor-text",
+    icon: "create-outline",
     category: BLOCK_CATEGORIES.OUTPUT,
     description: "Output file name",
     defaultConfig: () => ({
@@ -52,8 +52,8 @@ export const BLOCK_TYPES = {
   },
   select: {
     type: "select",
-    name: "Dropdown Select",
-    icon: "bi-menu-button-wide",
+    name: "Select",
+    icon: "list-outline",
     category: BLOCK_CATEGORIES.SETTINGS,
     description: "Dropdown menu selection",
     defaultConfig: () => ({
@@ -70,7 +70,7 @@ export const BLOCK_TYPES = {
   text: {
     type: "text",
     name: "Text Input",
-    icon: "bi-type",
+    icon: "text-outline",
     category: BLOCK_CATEGORIES.SETTINGS,
     description: "Single-line text input",
     defaultConfig: () => ({
@@ -84,7 +84,7 @@ export const BLOCK_TYPES = {
   textarea: {
     type: "textarea",
     name: "Text Area",
-    icon: "bi-text-paragraph",
+    icon: "document-text-outline",
     category: BLOCK_CATEGORIES.SETTINGS,
     description: "Multi-line text input",
     defaultConfig: () => ({
@@ -99,7 +99,7 @@ export const BLOCK_TYPES = {
   number: {
     type: "number",
     name: "Number Input",
-    icon: "bi-123",
+    icon: "calculator-outline",
     category: BLOCK_CATEGORIES.SETTINGS,
     description: "Integer or decimal number",
     defaultConfig: () => ({
@@ -116,7 +116,7 @@ export const BLOCK_TYPES = {
   slider: {
     type: "slider",
     name: "Range Slider",
-    icon: "bi-sliders",
+    icon: "options-outline",
     category: BLOCK_CATEGORIES.SETTINGS,
     description: "Numeric range slider",
     defaultConfig: () => ({
@@ -133,7 +133,7 @@ export const BLOCK_TYPES = {
   checkbox: {
     type: "checkbox",
     name: "Toggle Switch",
-    icon: "bi-toggle-on",
+    icon: "toggle-outline",
     category: BLOCK_CATEGORIES.SETTINGS,
     description: "Boolean toggle switch",
     defaultConfig: () => ({
@@ -146,7 +146,7 @@ export const BLOCK_TYPES = {
   radios: {
     type: "radios",
     name: "Radio Choices",
-    icon: "bi-ui-radios",
+    icon: "radio-button-on-outline",
     category: BLOCK_CATEGORIES.SETTINGS,
     description: "Single choice radio group",
     defaultConfig: () => ({
@@ -163,7 +163,7 @@ export const BLOCK_TYPES = {
   alert_box: {
     type: "alert_box",
     name: "Alert",
-    icon: "bi-info-circle",
+    icon: "information-circle-outline",
     category: BLOCK_CATEGORIES.SETTINGS,
     description: "Informative callout box",
     defaultConfig: () => ({
@@ -202,11 +202,11 @@ export function renderBlockHTML(block, currentValue, _kitId) {
           ${labelHtml}
           <div class="input-group">
             <button class="btn btn-outline-secondary btn-browse-block-file" type="button" data-block-id="${block.id}" data-filter="${block.fileFilter || "all"}" title="Browse media file">
-              <i class="bi bi-folder2-open"></i> Browse...
+              <ion-icon name="folder-open-outline"></ion-icon> Browse...
             </button>
             <input type="text" class="form-control small font-sans kit-block-input" id="kit-block-${block.id}" data-block-id="${block.id}" placeholder="${block.placeholder || "Select or drop a media file..."}" value="${escapeHtml(displayVal)}" readonly />
             <button class="btn btn-outline-secondary btn-clear-block-file" type="button" data-block-id="${block.id}" title="Clear selected file">
-              <i class="bi bi-x-lg"></i>
+              <ion-icon name="close-outline"></ion-icon>
             </button>
           </div>
           <div class="kit-file-meta-info d-none mt-2 p-2 border rounded bg-body-tertiary small d-flex align-items-center justify-content-between flex-wrap gap-2" id="kit-file-meta-${block.id}">
@@ -225,7 +225,7 @@ export function renderBlockHTML(block, currentValue, _kitId) {
           ${labelHtml}
           <div class="input-group">
             <button class="btn btn-outline-secondary btn-browse-block-folder" type="button" data-block-id="${block.id}" title="Browse output folder">
-              <i class="bi bi-folder2-open"></i> Choose Folder...
+              <ion-icon name="folder-open-outline"></ion-icon> Choose Folder...
             </button>
             <input type="text" class="form-control small font-sans kit-block-input" id="kit-block-${block.id}" data-block-id="${block.id}" placeholder="${block.placeholder || "Select destination directory..."}" value="${escapeHtml(displayVal)}" readonly />
           </div>
@@ -352,7 +352,7 @@ export function renderBlockHTML(block, currentValue, _kitId) {
       const variant = block.variant || "info";
       return `
         <div class="alert alert-${variant} d-flex align-items-start gap-2 py-2 px-3 mb-3 small" role="alert" data-block-id="${block.id}">
-          <i class="bi bi-info-circle flex-shrink-0 mt-1"></i>
+          <ion-icon name="information-circle-outline" class="flex-shrink-0 mt-1"></ion-icon>
           <div>
             ${block.title ? `<div class="fw-semibold">${escapeHtml(block.title)}</div>` : ""}
             <div>${escapeHtml(block.content || "")}</div>
@@ -365,11 +365,11 @@ export function renderBlockHTML(block, currentValue, _kitId) {
       return `
         <div class="alert alert-warning small d-flex justify-content-between align-items-center mb-3 py-2 px-3" role="alert" data-block-id="${block.id}">
           <div class="d-flex align-items-center gap-2 text-truncate me-2">
-            <i class="bi bi-exclamation-triangle flex-shrink-0 text-warning"></i>
+            <ion-icon name="warning-outline" class="flex-shrink-0 text-warning"></ion-icon>
             <span class="text-truncate">Unknown or deprecated block: <strong>${escapeHtml(block.type)}</strong> (ID: <code class="text-body">${escapeHtml(block.id)}</code>)</span>
           </div>
           <button class="btn btn-outline-danger btn-sm py-0 px-2 flex-shrink-0 btn-remove-unknown-block" type="button" data-block-id="${block.id}" title="Remove this unknown block">
-            <i class="bi bi-trash me-1"></i>Remove Block
+            <ion-icon name="trash-outline" class="me-1"></ion-icon>Remove Block
           </button>
         </div>
       `;

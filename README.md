@@ -58,7 +58,7 @@ The release files will be in the `build/` folder:
 
 - Desktop Framework: Tauri v2
 - Backend and Systems: Rust, `serde`, `serde_json`, `rfd`, `base64`, `tauri-plugin-opener`
-- Frontend UI: HTML5, CSS3, JavaScript (ES Modules), Bootstrap 5, Bootstrap Icons
+- Frontend UI: HTML5, CSS3, JavaScript (ES Modules), Bootstrap 5, Ionicons
 - Media Processing: FFmpeg (transcoding, trimming, merging, compressing, filtering, palette generation), yt-dlp (stream/playlist downloading and metadata extraction)
 - AI and Computer Vision: Python 3, `rembg`, `onnxruntime`, `opencv-python`, `Pillow`, `numpy`, `tqdm`
 - Build and Packaging: Node.js, npm, NSIS, WiX Toolset

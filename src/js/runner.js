@@ -844,12 +844,12 @@ export function initLogCopyButton() {
 
       const originalTitle = btnCopy.getAttribute("title") || "Copy execution log to clipboard";
       btnCopy.classList.add("copied");
-      btnCopy.innerHTML = `<i class="bi bi-check2"></i>`;
+      btnCopy.innerHTML = `<ion-icon name="checkmark-outline"></ion-icon>`;
       btnCopy.setAttribute("title", "Copied to clipboard!");
 
       setTimeout(() => {
         btnCopy.classList.remove("copied");
-        btnCopy.innerHTML = `<i class="bi bi-clipboard"></i>`;
+        btnCopy.innerHTML = `<ion-icon name="copy-outline"></ion-icon>`;
         btnCopy.setAttribute("title", originalTitle);
       }, 1800);
     } catch (err) {

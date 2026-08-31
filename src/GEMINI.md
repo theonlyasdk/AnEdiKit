@@ -90,17 +90,28 @@ Avoid:
 - Avoid excessive use of custom CSS
 - Keep custom CSS limited to styles that Bootstrap cannot provide
 - Keep responsive behavior consistent with Bootstrap 5
-- Use Bootstrap icons or another consistent icon set instead of random icons
+- Use Ionicons across the app for a crisp, modern, consistent icon set
 - Do not mix unrelated design systems with Bootstrap
 - When unsure, choose the closest Bootstrap 5 pattern instead of inventing a new one
 
 # LocalStorage Key System
 
-All localStorage keys must follow the `anedikit:` namespace convention:
-- `anedikit:active_tool`: Currently selected active sidebar tool ID (e.g. `convert`, `extract_audio`, `trim`, `compress`, `merge`, `mute_replace`, `gif_frames`, `custom`, `settings`).
+All localStorage keys must follow the hierarchical `anedikit:` namespace convention:
+- `anedikit:settings:active_tool`: Currently selected active sidebar tool ID (e.g. `convert`, `extract_audio`, `trim`, `compress`, `merge`, `mute_replace`, `gif_frames`, `custom`, `settings`).
 - `anedikit:settings`: Application settings JSON object (output directory, overwrite prompt, hardware acceleration engine, thread count, default video codec, default speed preset, default audio format, default audio bitrate).
-- `anedikit:last_input_file`: Path of the most recently chosen media file.
-- `anedikit:tool_params:<tool_id>`: Saved parameters per specific tool view.
+- `anedikit:settings:last_input_file`: Path of the most recently chosen media file.
+- `anedikit:settings:last_ytdlp_out_dir`: Default/last used download destination folder for yt-dlp tools.
+- `anedikit:settings:last_image_ai_out_dir`: Default/last used output folder for Image & AI tools.
+- `anedikit:settings:theme`: Custom theme color palette and typography configuration.
+- `anedikit:settings:active_kit`: Active user kit ID string.
+- `anedikit:settings:active_kit_tab:<kit_id>`: Remembered active IDE tab per specific kit (e.g. runner, builder, script, settings).
+- `anedikit:settings:script_theme`: Active Monaco editor syntax theme identifier in User Kit Script Editor.
+- `anedikit:tools:batch:queue`: List of queued media files for batch processing.
+- `anedikit:tools:image_ai:queue`: List of queued image files for AI processing.
+- `anedikit:tools:image_ai:replace_source`: In-place source replacement toggle for AI images.
+- `anedikit:tools:ytdlp:filename_format`: Global template format string for downloaded filenames.
+- `anedikit:tools:user_kits`: Array of custom user kit definitions.
+- `anedikit:tools:params:<tool_id>`: Saved parameters and properties array per specific tool view.
 
 # Success criteria
 

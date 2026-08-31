@@ -94,13 +94,13 @@ export function previewFormatString(formatStr) {
 
 export function getSavedYtDlpFormat() {
   const settings = loadSettings();
-  return settings.ytdlpFilenameFormat || localStorage.getItem("anedikit:ytdlp_filename_format") || DEFAULT_FORMAT;
+  return settings.ytdlpFilenameFormat || localStorage.getItem("anedikit:tools:ytdlp:filename_format") || DEFAULT_FORMAT;
 }
 
 export function saveYtDlpFormat(formatStr) {
   const clean = formatStr?.trim() || DEFAULT_FORMAT;
   try {
-    localStorage.setItem("anedikit:ytdlp_filename_format", clean);
+    localStorage.setItem("anedikit:tools:ytdlp:filename_format", clean);
     const settings = loadSettings();
     settings.ytdlpFilenameFormat = clean;
     saveSettings(settings);
@@ -139,7 +139,7 @@ export function renderFormatEditorList() {
     const dragHandle = document.createElement("span");
     dragHandle.className = "format-drag-handle text-secondary cursor-grab p-1";
     dragHandle.title = "Drag vertically to reorder";
-    dragHandle.innerHTML = `<i class="bi bi-grip-vertical fs-5"></i>`;
+    dragHandle.innerHTML = `<ion-icon name="reorder-two-outline" class="fs-5"></ion-icon>`;
     leftCol.appendChild(dragHandle);
 
     if (item.type === "token") {
@@ -182,7 +182,7 @@ export function renderFormatEditorList() {
     btnUp.type = "button";
     btnUp.className = "btn btn-outline-secondary btn-item-up";
     btnUp.title = "Move Up";
-    btnUp.innerHTML = `<i class="bi bi-chevron-up"></i>`;
+    btnUp.innerHTML = `<ion-icon name="chevron-up-outline"></ion-icon>`;
     btnUp.disabled = index === 0;
     btnUp.addEventListener("click", () => {
       if (index > 0) {
@@ -197,7 +197,7 @@ export function renderFormatEditorList() {
     btnDown.type = "button";
     btnDown.className = "btn btn-outline-secondary btn-item-down";
     btnDown.title = "Move Down";
-    btnDown.innerHTML = `<i class="bi bi-chevron-down"></i>`;
+    btnDown.innerHTML = `<ion-icon name="chevron-down-outline"></ion-icon>`;
     btnDown.disabled = index === currentFormatItems.length - 1;
     btnDown.addEventListener("click", () => {
       if (index < currentFormatItems.length - 1) {
@@ -212,7 +212,7 @@ export function renderFormatEditorList() {
     btnDel.type = "button";
     btnDel.className = "btn btn-outline-danger btn-item-delete";
     btnDel.title = "Delete Field";
-    btnDel.innerHTML = `<i class="bi bi-trash3"></i>`;
+    btnDel.innerHTML = `<ion-icon name="trash-outline"></ion-icon>`;
     btnDel.addEventListener("click", () => {
       currentFormatItems.splice(index, 1);
       renderFormatEditorList();
@@ -438,6 +438,7 @@ export function initYtDlpFormatEditor() {
       saveYtDlpFormat(finalFmt);
       const modal = window.bootstrap.Modal.getInstance(modalEl);
       if (modal) modal.hide();
+      window.dispatchEvent(new CustomEvent("anedikit:format_updated", { detail: { format: finalFmt } }));
     });
   }
 }

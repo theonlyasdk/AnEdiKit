@@ -33,6 +33,11 @@ export const TOOL_METADATA = {
     desc: "Remove handheld camera shakes and stabilize action or drone footage using native FFmpeg algorithms.",
     viewId: "view-stabilize",
   },
+  loop_duration: {
+    title: "Loop to Duration",
+    desc: "Repeat and loop videos or audio to an exact target duration or repeat count with seamless stream copy.",
+    viewId: "view-loop_duration",
+  },
   normalize: {
     title: "Volume Normalization & Loudness",
     desc: "Standardize audio loudness to YouTube, Spotify, Podcasts, or broadcast EBU R128 standards.",
@@ -254,7 +259,10 @@ export function switchTool(toolId, onToolChanged) {
     void headerContainer.offsetWidth; // force reflow
 
     titleEl.textContent = toolTitle;
+    titleEl.title = toolTitle;
     descEl.textContent = toolDesc;
+    descEl.title = toolDesc;
+    headerContainer.title = `${toolTitle} - ${toolDesc}`;
 
     const animClass = movingDown ? "slide-from-bottom" : "slide-from-top";
     headerContainer.classList.add(animClass);

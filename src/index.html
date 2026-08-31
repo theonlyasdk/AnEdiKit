@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="styles.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script type="module" src="vendor/ionicons/ionicons.esm.js"></script>
     <script type="module" src="main.js" defer></script>
   </head>
 
@@ -18,7 +19,7 @@
       <header class="d-flex border-bottom bg-body flex-shrink-0" style="height: 56px;">
         <div class="d-flex align-items-center justify-content-center px-3 border-end flex-shrink-0 header-brand-col" style="width: 280px;">
           <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn" id="btn-sidebar-toggle" title="AnEdiKit - Click Logo for Credits / Scroll to Switch Tools">
-            <i class="bi bi-list text-primary fs-4 lh-1 d-md-none" id="brand-logo-icon" role="button" tabindex="0" title="Toggle Navigation"></i>
+            <ion-icon name="menu-outline" class="text-primary fs-4 lh-1 d-md-none" id="brand-logo-icon" role="button" tabindex="0" title="Toggle Navigation"></ion-icon>
             <h1 class="fs-4 mb-0 fw-light text-body user-select-none" id="brand-logo-title" role="button" tabindex="0" title="About AnEdiKit Credits">AnEdiKit</h1>
           </div>
         </div>
@@ -42,101 +43,105 @@
             <div class="sidebar-section-header">FFmpeg Tools</div>
             <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
               <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
-                <i class="bi bi-film text-body-secondary"></i>
+                <ion-icon name="film-outline" class="text-body-secondary"></ion-icon>
                 <span>Convert Video</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress" type="button" title="Compress video for Discord, WhatsApp, or custom target size">
-                <i class="bi bi-file-earmark-zip text-body-secondary"></i>
+                <ion-icon name="archive-outline" class="text-body-secondary"></ion-icon>
                 <span>Compress Video</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="trim" type="button" title="Trim or cut media with timestamps">
-                <i class="bi bi-scissors text-body-secondary"></i>
+                <ion-icon name="cut-outline" class="text-body-secondary"></ion-icon>
                 <span>Trim and Cut</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="speed_motion" type="button" title="Speed up, slow down, timelapse, and optical flow interpolation">
-                <i class="bi bi-speedometer2 text-body-secondary"></i>
+                <ion-icon name="speedometer-outline" class="text-body-secondary"></ion-icon>
                 <span>Speed &amp; Motion</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="aspect_crop" type="button" title="Aspect ratio presets, vertical video crop, and background padding">
-                <i class="bi bi-aspect-ratio text-body-secondary"></i>
+                <ion-icon name="crop-outline" class="text-body-secondary"></ion-icon>
                 <span>Aspect &amp; Crop</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="stabilize" type="button" title="Remove shaky camera motion and stabilize handheld video">
-                <i class="bi bi-camera-reels text-body-secondary"></i>
+                <ion-icon name="videocam-outline" class="text-body-secondary"></ion-icon>
                 <span>Video Stabilization</span>
               </button>
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="loop_duration" type="button" title="Repeat video or audio to an exact duration or loop count">
+                <ion-icon name="repeat-outline" class="text-body-secondary"></ion-icon>
+                <span>Loop to Duration</span>
+              </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="normalize" type="button" title="Standardize audio loudness to Spotify, YouTube, or EBU R128">
-                <i class="bi bi-sliders text-body-secondary"></i>
+                <ion-icon name="options-outline" class="text-body-secondary"></ion-icon>
                 <span>Normalize Loudness</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="mute_replace" type="button" title="Mute or replace background audio">
-                <i class="bi bi-volume-mute text-body-secondary"></i>
+                <ion-icon name="volume-mute-outline" class="text-body-secondary"></ion-icon>
                 <span>Mute or Replace Audio</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="gif_frames" type="button" title="Generate animated GIFs or extract image frames">
-                <i class="bi bi-images text-body-secondary"></i>
+                <ion-icon name="images-outline" class="text-body-secondary"></ion-icon>
                 <span>GIF and Frames</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="extract_audio" type="button" title="Extract audio tracks or convert audio formats">
-                <i class="bi bi-music-note-beamed text-body-secondary"></i>
+                <ion-icon name="musical-notes-outline" class="text-body-secondary"></ion-icon>
                 <span>Extract and Convert Audio</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress_audio" type="button" title="Compress audio files with target sizes, bitrates, channels, and Opus/MP3/AAC codecs">
-                <i class="bi bi-soundwave text-body-secondary"></i>
+                <ion-icon name="pulse-outline" class="text-body-secondary"></ion-icon>
                 <span>Compress Audio</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="merge" type="button" title="Combine multiple audio or video files">
-                <i class="bi bi-collection-play text-body-secondary"></i>
+                <ion-icon name="library-outline" class="text-body-secondary"></ion-icon>
                 <span>Merge and Concat</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="custom" type="button" title="Run custom FFmpeg commands with live preview">
-                <i class="bi bi-terminal text-body-secondary"></i>
+                <ion-icon name="terminal-outline" class="text-body-secondary"></ion-icon>
                 <span>Custom Command</span>
               </button>
             </nav>
             <div class="sidebar-section-header mt-3">Image &amp; AI Tools</div>
             <nav class="nav nav-pills flex-column gap-1" id="image-ai-nav">
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="bg_remover" type="button" title="Remove background and extract subjects locally using on-device neural models">
-                <i class="bi bi-person-bounding-box text-body-secondary"></i>
+                <ion-icon name="person-circle-outline" class="text-body-secondary"></ion-icon>
                 <span>Background Remover</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ai_upscaler" type="button" title="Super-resolution deep learning 2x, 3x, 4x image upscaling and enhancement">
-                <i class="bi bi-arrows-angle-expand text-body-secondary"></i>
+                <ion-icon name="scan-outline" class="text-body-secondary"></ion-icon>
                 <span>AI Image Upscaler</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="vectorizer" type="button" title="Convert raster images (PNG, JPG) to scalable SVG vectors">
-                <i class="bi bi-bezier2 text-body-secondary"></i>
+                <ion-icon name="shapes-outline" class="text-body-secondary"></ion-icon>
                 <span>Image Vectorizer</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="restore_denoise" type="button" title="Denoise, deblur, and restore low-light or degraded photos">
-                <i class="bi bi-magic text-body-secondary"></i>
+                <ion-icon name="sparkles-outline" class="text-body-secondary"></ion-icon>
                 <span>Restore &amp; Denoise</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="icon_generator" type="button" title="Generate Windows .ico, Apple .icns, Favicon and PWA icon sets">
-                <i class="bi bi-app-indicator text-body-secondary"></i>
+                <ion-icon name="apps-outline" class="text-body-secondary"></ion-icon>
                 <span>Icon Generator</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="metadata_cleaner" type="button" title="Inspect and sanitize EXIF, GPS, and camera metadata">
-                <i class="bi bi-shield-check text-body-secondary"></i>
+                <ion-icon name="shield-checkmark-outline" class="text-body-secondary"></ion-icon>
                 <span>Metadata Cleaner</span>
               </button>
             </nav>
             <div class="sidebar-section-header mt-3">yt-dlp Downloader</div>
             <nav class="nav nav-pills flex-column gap-1" id="ytdlp-nav">
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_video" type="button" title="Download video streams with resolution and container options">
-                <i class="bi bi-download text-body-secondary"></i>
+                <ion-icon name="download-outline" class="text-body-secondary"></ion-icon>
                 <span>Download Video</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_playlist" type="button" title="Fetch and download playlists, channels, or select videos to download">
-                <i class="bi bi-list-stars text-body-secondary"></i>
+                <ion-icon name="list-outline" class="text-body-secondary"></ion-icon>
                 <span>Download Playlist</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_audio" type="button" title="Download audio and extract MP3, M4A, FLAC with metadata">
-                <i class="bi bi-file-earmark-music text-body-secondary"></i>
+                <ion-icon name="musical-note-outline" class="text-body-secondary"></ion-icon>
                 <span>Download Audio</span>
               </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_subtitles" type="button" title="Download subtitles, closed captions, and video thumbnails">
-                <i class="bi bi-card-image text-body-secondary"></i>
+                <ion-icon name="image-outline" class="text-body-secondary"></ion-icon>
                 <span>Subtitles & Thumbnails</span>
               </button>
             </nav>
@@ -145,7 +150,7 @@
             </div>
             <div class="px-1 mb-3">
               <button class="btn btn-outline-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" id="btn-sidebar-new-kit" type="button" title="Create a new custom scriptable Kit">
-                <i class="bi bi-plus-lg"></i> New Kit
+                <ion-icon name="add-outline"></ion-icon> New Kit
               </button>
             </div>
             <nav class="nav nav-pills flex-column gap-1" id="user-kits-nav">
@@ -156,7 +161,7 @@
           <div class="p-2 border-top d-md-none" id="mobile-sidebar-settings-col">
             <nav class="nav nav-pills w-100 position-relative" id="mobile-settings-nav">
               <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
-                <i class="bi bi-gear text-body-secondary"></i>
+                <ion-icon name="settings-outline" class="text-body-secondary"></ion-icon>
                 <span>Settings</span>
               </button>
             </nav>
@@ -176,9 +181,9 @@
                   <div id="single-input-file-wrapper">
                     <div class="section-divider-header">Input Media</div>
                     <div class="input-group mb-2">
-                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-input" title="Select single media file"><i class="bi bi-folder2-open"></i></button>
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-input" title="Select single media file"><ion-icon name="folder-open-outline"></ion-icon></button>
                       <input type="text" class="form-control small" id="input-file-path" placeholder="Select or drop a source media file (or add to queue below)..." readonly />
-                      <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection"><i class="bi bi-x-lg"></i></button>
+                      <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection"><ion-icon name="close-outline"></ion-icon></button>
                     </div>
                   </div>
 
@@ -187,10 +192,10 @@
                     <div class="d-flex justify-content-between align-items-center mb-2">
                       <div class="section-divider-header flex-grow-1 mb-0 me-3">Media Files to Concatenate</div>
                       <div class="btn-group btn-group-sm flex-shrink-0">
-                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-add" title="Add files to merge list"><i class="bi bi-folder-plus"></i></button>
-                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-up" title="Move selected item up"><i class="bi bi-chevron-up"></i></button>
-                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-down" title="Move selected item down"><i class="bi bi-chevron-down"></i></button>
-                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear all files"><i class="bi bi-x-lg"></i></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-add" title="Add files to merge list"><ion-icon name="folder-outline"></ion-icon></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-up" title="Move selected item up"><ion-icon name="chevron-up-outline"></ion-icon></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-down" title="Move selected item down"><ion-icon name="chevron-down-outline"></ion-icon></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear all files"><ion-icon name="close-outline"></ion-icon></button>
                       </div>
                     </div>
                     <div class="list-group list-group-flush border rounded mb-2 small overflow-y-auto" style="max-height: 180px;" id="merge-file-list">
@@ -205,15 +210,15 @@
                         Batch Queue (<span id="batch-queue-count">0</span>&nbsp;items)
                       </div>
                       <div class="btn-group btn-group-sm flex-shrink-0 d-none" id="batch-header-actions">
-                        <button class="btn btn-outline-secondary" type="button" id="btn-batch-add" title="Add files to batch queue"><i class="bi bi-folder-plus"></i></button>
-                        <button class="btn btn-outline-danger" type="button" id="btn-batch-clear" title="Clear batch queue"><i class="bi bi-trash"></i></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-batch-add" title="Add files to batch queue"><ion-icon name="folder-outline"></ion-icon></button>
+                        <button class="btn btn-outline-danger" type="button" id="btn-batch-clear" title="Clear batch queue"><ion-icon name="trash-outline"></ion-icon></button>
                       </div>
                     </div>
                     <div class="list-group list-group-flush border rounded mb-2 overflow-y-auto" style="max-height: 180px;" id="batch-queue-list">
                       <div class="list-group-item text-body-secondary text-center py-4 d-flex flex-column align-items-center justify-content-center gap-2" id="batch-empty-msg">
                         <span>No files queued.</span>
                         <button class="btn btn-outline-primary btn-sm" type="button" id="btn-batch-add-empty" title="Add files to batch queue">
-                          <i class="bi bi-plus-lg"></i> Add to Queue...
+                          <ion-icon name="add-outline"></ion-icon> Add to Queue...
                         </button>
                       </div>
                     </div>
@@ -232,12 +237,12 @@
                     <div class="mt-3" id="output-file-section">
                       <div class="section-divider-header">Output File</div>
                       <div class="input-group mb-0">
-                        <button class="btn btn-outline-secondary" type="button" id="btn-browse-output-dir" title="Choose output folder"><i class="bi bi-folder2-open"></i></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-browse-output-dir" title="Choose output folder"><ion-icon name="folder-open-outline"></ion-icon></button>
                         <input type="text" class="form-control small" id="output-file-name" placeholder="Auto-generated full output path..." spellcheck="false" autocomplete="off" />
                       </div>
                       <!-- File Exists Warning Under Output File -->
                       <div class="form-text text-warning small d-none ui-zoom-in mt-1" id="output-file-exists-warning">
-                        <i class="bi bi-exclamation-triangle-fill me-1"></i> A file with this name already exists in the target folder and will be overwritten.
+                        <ion-icon name="warning-outline" class="me-1"></ion-icon> A file with this name already exists in the target folder and will be overwritten.
                       </div>
                     </div>
                 </div>
@@ -257,7 +262,7 @@
                           <span class="small text-white-50" id="video-overlay-format" style="font-size: 0.7rem;">Video Preview</span>
                         </div>
                         <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-dark text-secondary p-2 text-center rounded-0" id="video-preview-fallback">
-                          <i class="bi bi-film fs-1 text-secondary mb-1" id="video-fallback-icon"></i>
+                          <ion-icon name="film-outline" class="fs-1 text-secondary mb-1" id="video-fallback-icon"></ion-icon>
                           <span class="small text-body-secondary text-truncate w-100" style="font-size: 0.75rem;" id="video-fallback-filename">Video Preview</span>
                         </div>
                         <video id="media-video-preview" class="d-none w-100 h-100 object-fit-contain position-absolute top-0 start-0 z-0" preload="metadata" playsinline></video>
@@ -267,8 +272,8 @@
                       <div class="w-100 h-100 position-absolute top-0 start-0 d-flex flex-column align-items-center justify-content-center p-3 text-center bg-body-tertiary media-preview-layer" id="audio-preview-layer">
                         <img id="audio-art-prev" class="d-none w-100 h-100 object-fit-cover rounded-0 position-absolute top-0 start-0 z-0" alt="Previous Album Art" />
                         <img id="audio-art-img" class="d-none w-100 h-100 object-fit-cover rounded-0 position-absolute top-0 start-0 z-1 media-thumb-fade" alt="Album Art" />
-                        <i class="bi bi-disc fs-1 mb-2 cd-loading-spin text-secondary" id="audio-cd-spinner"></i>
-                        <i class="bi bi-music-note-beamed text-secondary fs-1 mb-2 d-none" id="audio-fallback-icon"></i>
+                        <ion-icon name="disc-outline" class="fs-1 mb-2 cd-loading-spin text-secondary" id="audio-cd-spinner"></ion-icon>
+                        <ion-icon name="musical-notes-outline" class="text-secondary fs-1 mb-2 d-none" id="audio-fallback-icon"></ion-icon>
                         <div class="marquee-container my-1 z-1" id="audio-title-container">
                           <div class="small fw-medium text-body" id="audio-art-title" style="font-size: 0.85rem;">Audio Track</div>
                         </div>
@@ -281,7 +286,7 @@
                         <img id="media-image-preview" class="w-100 h-100 object-fit-contain position-absolute top-0 start-0 z-1" alt="Image Preview" />
                         <div class="w-100 h-100 d-none d-flex flex-column align-items-center justify-content-center bg-dark p-2 text-center rounded-0 z-0" id="image-preview-fallback">
                           <div class="spinner-border spinner-border-sm text-secondary mb-2" id="image-fallback-spinner" role="status" style="width: 1.5rem; height: 1.5rem;"></div>
-                          <i class="bi bi-exclamation-circle-fill fs-1 text-danger mb-1 d-none" id="image-fallback-icon"></i>
+                          <ion-icon name="alert-circle-outline" class="fs-1 text-danger mb-1 d-none" id="image-fallback-icon"></ion-icon>
                           <span class="badge bg-danger text-white mb-1 d-none" id="image-fallback-badge" style="font-size: 0.7rem;">Image was deleted</span>
                           <span class="small text-truncate w-100" style="font-size: 0.75rem;" id="image-fallback-filename">Loading image...</span>
                         </div>
@@ -304,17 +309,17 @@
                   Image Queue (<span id="image-ai-queue-count">0</span>&nbsp;images)
                 </div>
                 <div class="btn-group btn-group-sm flex-shrink-0" id="image-ai-header-actions">
-                  <button class="btn btn-outline-primary d-none" type="button" id="btn-image-add" title="Add images to queue"><i class="bi bi-plus-lg me-1"></i>Add Images...</button>
-                  <button class="btn btn-outline-danger d-none" type="button" id="btn-image-clear" title="Clear image queue"><i class="bi bi-trash"></i></button>
+                  <button class="btn btn-outline-primary d-none" type="button" id="btn-image-add" title="Add images to queue"><ion-icon name="add-outline" class="me-1"></ion-icon>Add Images...</button>
+                  <button class="btn btn-outline-danger d-none" type="button" id="btn-image-clear" title="Clear image queue"><ion-icon name="trash-outline"></ion-icon></button>
                 </div>
               </div>
               <div id="image-ai-queue-list" class="mb-3">
                 <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="image-ai-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
-                  <i class="bi bi-images fs-2 text-secondary opacity-50 mb-1"></i>
+                  <ion-icon name="images-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
                   <span class="fw-medium text-body" id="image-drop-label">Drop images here or click to select</span>
                   <span class="small text-body-secondary" id="image-drop-sublabel">Supports PNG, JPG, WebP, BMP, TIFF, SVG</span>
                   <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-image-add-empty" title="Add images to queue">
-                    <i class="bi bi-folder2-open me-1"></i> Select Images
+                    <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Images
                   </button>
                 </div>
               </div>
@@ -322,7 +327,7 @@
               <div class="mt-3" id="image-ai-outdir-section">
                 <div class="section-divider-header">Output Folder</div>
                 <div class="input-group mb-0">
-                  <button class="btn btn-outline-secondary" type="button" id="btn-browse-image-outdir" title="Choose output folder for AI images"><i class="bi bi-folder2-open"></i></button>
+                  <button class="btn btn-outline-secondary" type="button" id="btn-browse-image-outdir" title="Choose output folder for AI images"><ion-icon name="folder-open-outline"></ion-icon></button>
                   <input type="text" class="form-control small" id="image-ai-output-dir" placeholder="Default Pictures folder..." readonly />
                 </div>
                 <div class="form-text text-body-secondary small mt-1">
@@ -335,14 +340,14 @@
             <div class="mb-4 d-none" id="shared-url-card">
               <div class="section-divider-header">Media Link / URL</div>
               <div class="input-group mb-2">
-                <button class="btn btn-outline-secondary" type="button" id="btn-paste-url" title="Paste URL from clipboard"><i class="bi bi-clipboard"></i></button>
+                <button class="btn btn-outline-secondary" type="button" id="btn-paste-url" title="Paste URL from clipboard"><ion-icon name="copy-outline"></ion-icon></button>
                 <input type="text" class="form-control small font-sans" id="ytdlp-url-input" placeholder="https://www.youtube.com/watch?v=... or Twitch, X, TikTok link" />
-                <button class="btn btn-outline-secondary" type="button" id="btn-clear-url" title="Clear URL input"><i class="bi bi-x-lg"></i></button>
+                <button class="btn btn-outline-secondary" type="button" id="btn-clear-url" title="Clear URL input"><ion-icon name="close-outline"></ion-icon></button>
               </div>
               <div class="mt-3">
                 <div class="section-divider-header">Download Output Folder</div>
                 <div class="input-group mb-2">
-                  <button class="btn btn-outline-secondary" type="button" id="btn-browse-ytdlp-outdir" title="Choose download destination folder"><i class="bi bi-folder2-open"></i></button>
+                  <button class="btn btn-outline-secondary" type="button" id="btn-browse-ytdlp-outdir" title="Choose download destination folder"><ion-icon name="folder-open-outline"></ion-icon></button>
                   <input type="text" class="form-control small" id="ytdlp-output-dir" placeholder="Default downloads folder..." readonly />
                 </div>
               </div>
@@ -350,7 +355,7 @@
                 <div class="section-divider-header">Filename Format</div>
                 <div class="input-group mb-2">
                   <input type="text" class="form-control small font-monospace bg-body-tertiary" id="ytdlp-filename-format" placeholder="%(title)s [%(id)s].%(ext)s" value="%(title)s [%(id)s].%(ext)s" readonly />
-                  <button class="btn btn-outline-secondary d-flex align-items-center gap-1" type="button" id="btn-edit-ytdlp-filename-format" title="Edit output filename format template"><i class="bi bi-pencil-square"></i> Edit</button>
+                  <button class="btn btn-outline-secondary d-flex align-items-center gap-1" type="button" id="btn-edit-ytdlp-filename-format" title="Edit output filename format template"><ion-icon name="create-outline"></ion-icon> Edit</button>
                 </div>
               </div>
             </div>
@@ -586,10 +591,10 @@
                     <!-- Video Filmstrip Thumbnail Strip (Contiguous frames across duration) -->
                     <div id="trim-filmstrip-container" class="d-flex w-100 h-100 position-absolute top-0 start-0 z-0 overflow-hidden rounded">
                       <div class="w-100 h-100 d-flex align-items-center justify-content-center text-secondary small" id="trim-filmstrip-empty">
-                        <span class="text-shimmer"><i class="bi bi-film me-2"></i> Preparing preview...</span>
+                        <span class="text-shimmer"><ion-icon name="film-outline" class="me-2"></ion-icon> Preparing preview...</span>
                       </div>
                       <div class="w-100 h-100 d-none align-items-center justify-content-center text-warning small px-3 text-center" id="trim-filmstrip-unsupported">
-                        <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                        <ion-icon name="warning-outline" class="me-2 text-warning"></ion-icon>
                         <span>Unsupported media type: Still images cannot be trimmed</span>
                       </div>
                     </div>
@@ -634,34 +639,34 @@
                     <!-- Playback controls -->
                     <div class="btn-group btn-group-sm">
                       <button class="btn btn-outline-secondary" type="button" id="btn-trim-step-back-1" title="Step Back 1 Second">
-                        <i class="bi bi-rewind"></i> -1s
+                        <ion-icon name="play-back-outline"></ion-icon> -1s
                       </button>
                       <button class="btn btn-outline-secondary" type="button" id="btn-trim-step-back-frame" title="Step Back 0.1s">
-                        <i class="bi bi-chevron-left"></i> -0.1s
+                        <ion-icon name="chevron-back-outline"></ion-icon> -0.1s
                       </button>
                       <button class="btn btn-outline-primary" type="button" id="btn-trim-play-pause" title="Play / Pause Preview">
-                        <i class="bi bi-play-fill" id="trim-play-icon"></i> Play
+                        <ion-icon name="play" id="trim-play-icon"></ion-icon> Play
                       </button>
                       <button class="btn btn-outline-secondary" type="button" id="btn-trim-step-fwd-frame" title="Step Forward 0.1s">
-                        +0.1s <i class="bi bi-chevron-right"></i>
+                        +0.1s <ion-icon name="chevron-forward-outline"></ion-icon>
                       </button>
                       <button class="btn btn-outline-secondary" type="button" id="btn-trim-step-fwd-1" title="Step Forward 1 Second">
-                        +1s <i class="bi bi-fast-forward"></i>
+                        +1s <ion-icon name="play-forward-outline"></ion-icon>
                       </button>
                     </div>
 
                     <!-- Mark In / Out buttons -->
                     <div class="d-flex gap-2">
                       <button class="btn btn-outline-success btn-sm d-flex align-items-center gap-1" type="button" id="btn-trim-mark-start" title="Set Start timestamp to current playhead position [">
-                        <i class="bi bi-box-arrow-in-right"></i>
+                        <ion-icon name="enter-outline"></ion-icon>
                         <span>Mark Start [</span>
                       </button>
                       <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" type="button" id="btn-trim-mark-end" title="Set End timestamp to current playhead position ]">
                         <span>] Mark End</span>
-                        <i class="bi bi-box-arrow-in-left"></i>
+                        <ion-icon name="exit-outline"></ion-icon>
                       </button>
                       <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-trim-preview-segment" title="Play only the selected segment">
-                        <i class="bi bi-play-btn"></i> Preview Clip
+                        <ion-icon name="play-circle-outline"></ion-icon> Preview Clip
                       </button>
                     </div>
                   </div>
@@ -854,6 +859,126 @@
                 <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="stab-estimate-box">
                   <div>Engine: <strong class="text-body" id="stab-est-engine">FFmpeg Deshake</strong> &bull; Smoothness: <strong class="text-body" id="stab-est-smooth">Medium</strong> &bull; Est. Size: <strong class="text-body" id="stab-est-size">~42.5 MB</strong></div>
                   <div class="text-body-secondary small">Lossless audio stream preserved</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TOOL: Loop Video & Duration Extender -->
+            <div class="tool-view d-none" id="view-loop_duration">
+              <div class="mb-4">
+                <div class="section-divider-header">Loop &amp; Duration Parameters</div>
+                <div class="row g-3">
+                  <!-- Mode Selection -->
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="loop-mode">Loop Mode</label>
+                    <select class="form-select form-select-sm" id="loop-mode">
+                      <option value="duration" selected>Target Duration (Calculate loops to reach exact time)</option>
+                      <option value="count">Repeat Count (Specify exact number of repetitions)</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="loop-engine">Processing Mode</label>
+                    <select class="form-select form-select-sm" id="loop-engine">
+                      <option value="copy" selected>Direct Stream Copy (Lossless &amp; Instant)</option>
+                      <option value="reencode">Re-encode Video &amp; Audio (High Quality)</option>
+                    </select>
+                  </div>
+
+                  <!-- Target Duration Settings -->
+                  <div class="col-12 ui-zoom-in" id="loop-duration-wrapper">
+                    <label class="form-label small fw-medium">Target Duration</label>
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                      <button type="button" class="btn btn-outline-secondary btn-sm btn-loop-preset" data-sec="60">1 Min</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm btn-loop-preset" data-sec="300">5 Min</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm btn-loop-preset" data-sec="600">10 Min</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm btn-loop-preset" data-sec="1800">30 Min</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm btn-loop-preset active" data-sec="3600">1 Hour</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm btn-loop-preset" data-sec="7200">2 Hours</button>
+                      <button type="button" class="btn btn-outline-secondary btn-sm btn-loop-preset" data-sec="36000">10 Hours</button>
+                    </div>
+                    <div class="row g-2 align-items-center">
+                      <div class="col-4 col-sm-3 col-md-2">
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control text-center font-monospace" id="loop-target-hh" min="0" max="999" value="1" />
+                          <span class="input-group-text small">h</span>
+                        </div>
+                      </div>
+                      <div class="col-4 col-sm-3 col-md-2">
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control text-center font-monospace" id="loop-target-mm" min="0" max="59" value="0" />
+                          <span class="input-group-text small">m</span>
+                        </div>
+                      </div>
+                      <div class="col-4 col-sm-3 col-md-2">
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control text-center font-monospace" id="loop-target-ss" min="0" max="59" value="0" />
+                          <span class="input-group-text small">s</span>
+                        </div>
+                      </div>
+                      <div class="col-12 col-md-6">
+                        <div class="small text-body-secondary" id="loop-calc-readout">
+                          Total: <strong class="text-body font-monospace" id="loop-total-time-str">01:00:00</strong> &bull; Calculated Repetitions: <strong class="text-primary font-monospace" id="loop-calc-count">Auto</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Repeat Count Settings -->
+                  <div class="col-12 d-none ui-zoom-in" id="loop-count-wrapper">
+                    <label class="form-label small fw-medium" for="loop-repeat-count">Repeat Count (Total Plays)</label>
+                    <div class="row g-2 align-items-center">
+                      <div class="col-6 col-sm-4 col-md-3">
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control text-center font-monospace" id="loop-repeat-count" min="2" max="10000" value="10" />
+                          <span class="input-group-text small">times</span>
+                        </div>
+                      </div>
+                      <div class="col-6 col-sm-8 col-md-9">
+                        <div class="small text-body-secondary" id="loop-count-time-readout">
+                          Estimated Output Duration: <strong class="text-body font-monospace" id="loop-count-duration-str">Calculating...</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Audio Handling -->
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="loop-audio-mode">Audio Handling</label>
+                    <select class="form-select form-select-sm" id="loop-audio-mode">
+                      <option value="keep" selected>Loop Audio with Video</option>
+                      <option value="mute">Mute / Strip Audio</option>
+                    </select>
+                  </div>
+
+                  <!-- Container / Format -->
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="loop-container">Output Format</label>
+                    <select class="form-select form-select-sm" id="loop-container">
+                      <option value="mp4" selected>MP4 (.mp4)</option>
+                      <option value="mkv">MKV (.mkv)</option>
+                      <option value="webm">WebM (.webm)</option>
+                      <option value="mov">MOV (.mov)</option>
+                      <option value="ts">MPEG-TS (.ts)</option>
+                    </select>
+                  </div>
+
+                  <!-- Re-encode video codec (conditional) -->
+                  <div class="col-md-4 d-none ui-zoom-in" id="loop-reencode-codec-wrapper">
+                    <label class="form-label small fw-medium" for="loop-vcodec">Video Codec</label>
+                    <select class="form-select form-select-sm" id="loop-vcodec">
+                      <option value="libx264" selected>H.264 (libx264)</option>
+                      <option value="libx265">H.265 / HEVC (libx265)</option>
+                      <option value="libsvtav1">AV1 (libsvtav1)</option>
+                      <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="loop-estimate-box">
+                  <div>Mode: <strong class="text-body" id="loop-est-mode">Target Duration (01:00:00)</strong> &bull; Engine: <strong class="text-body" id="loop-est-engine">Direct Stream Copy</strong> &bull; Est. Loops: <strong class="text-body" id="loop-est-loops">Calculating...</strong></div>
+                  <div class="text-body-secondary small">Calculated from media duration</div>
                 </div>
               </div>
             </div>
@@ -1093,7 +1218,7 @@
                   <div class="col-md-6 d-none ui-zoom-in" id="second-audio-wrapper">
                     <label class="form-label small fw-medium" for="second-audio-path">New / Background Audio File</label>
                     <div class="input-group input-group-sm">
-                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-audio" title="Select replacement or background audio file"><i class="bi bi-folder2-open"></i></button>
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-audio" title="Select replacement or background audio file"><ion-icon name="folder-open-outline"></ion-icon></button>
                       <input type="text" class="form-control" id="second-audio-path" placeholder="Choose audio file..." readonly />
                     </div>
                   </div>
@@ -1266,7 +1391,7 @@
                   <div class="col-12">
                     <div class="p-3 border rounded bg-body-tertiary">
                       <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="small fw-semibold text-body"><i class="bi bi-sliders me-1 text-primary"></i> Checkerboard Grid Tuning Parameters</span>
+                        <span class="small fw-semibold text-body"><ion-icon name="options-outline" class="me-1 text-primary"></ion-icon> Checkerboard Grid Tuning Parameters</span>
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Hybrid Neural + Geometric</span>
                       </div>
                       <div class="row g-3">
@@ -1666,7 +1791,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <div class="section-divider-header flex-grow-1 mb-0 me-3">Appearance & Interface</div>
                   <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-customize-theme" data-bs-toggle="modal" data-bs-target="#theme-customizer-modal" title="Customize application colors and export/import theme files">
-                    <i class="bi bi-palette"></i> Customize Theme...
+                    <ion-icon name="color-palette-outline"></ion-icon> Customize Theme...
                   </button>
                 </div>
                 <div class="row g-3">
@@ -1750,7 +1875,7 @@
                     <label class="form-label small fw-medium" for="set-output-dir">Default Output Directory</label>
                     <div class="input-group input-group-sm">
                       <input type="text" class="form-control" id="set-output-dir" value="C:\Users\User\Videos" readonly />
-                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Choose output folder"><i class="bi bi-folder2-open"></i></button>
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Choose output folder"><ion-icon name="folder-open-outline"></ion-icon></button>
                     </div>
                   </div>
                   <div class="col-md-6 d-flex align-items-end">
@@ -1838,7 +1963,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <div class="section-divider-header flex-grow-1 mb-0 me-3">Executables & Environment</div>
                   <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-manage-tools" data-bs-toggle="modal" data-bs-target="#manage-tools-modal" title="Manage, update, and check binaries">
-                    <i class="bi bi-tools"></i> Manage Tools...
+                    <ion-icon name="construct-outline"></ion-icon> Manage Tools...
                   </button>
                 </div>
                 
@@ -1848,8 +1973,8 @@
                     <!-- Card 1: FFmpeg -->
                     <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
                       <div class="d-flex align-items-start justify-content-between">
-                        <i class="bi bi-film fs-2 text-primary lh-1"></i>
-                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" id="status-ffmpeg-installed" title="Installed"></i>
+                        <ion-icon name="film-outline" class="fs-2 text-primary lh-1"></ion-icon>
+                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" id="status-ffmpeg-installed" title="Installed"></ion-icon>
                       </div>
                       <div class="mt-auto">
                         <div class="fs-5 fw-light text-body lh-1 mb-1">FFmpeg</div>
@@ -1860,8 +1985,8 @@
                     <!-- Card 2: FFprobe -->
                     <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
                       <div class="d-flex align-items-start justify-content-between">
-                        <i class="bi bi-info-circle fs-2 text-info lh-1"></i>
-                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" id="status-ffprobe-installed" title="Installed"></i>
+                        <ion-icon name="information-circle-outline" class="fs-2 text-info lh-1"></ion-icon>
+                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" id="status-ffprobe-installed" title="Installed"></ion-icon>
                       </div>
                       <div class="mt-auto">
                         <div class="fs-5 fw-light text-body lh-1 mb-1">FFprobe</div>
@@ -1872,8 +1997,8 @@
                     <!-- Card 3: yt-dlp -->
                     <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
                       <div class="d-flex align-items-start justify-content-between">
-                        <i class="bi bi-cloud-download fs-2 text-danger lh-1"></i>
-                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" id="status-ytdlp-installed" title="Installed"></i>
+                        <ion-icon name="cloud-download-outline" class="fs-2 text-danger lh-1"></ion-icon>
+                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" id="status-ytdlp-installed" title="Installed"></ion-icon>
                       </div>
                       <div class="mt-auto">
                         <div class="fs-5 fw-light text-body lh-1 mb-1">yt-dlp</div>
@@ -1884,8 +2009,8 @@
                     <!-- Card 4: Deno -->
                     <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
                       <div class="d-flex align-items-start justify-content-between">
-                        <i class="bi bi-cpu fs-2 text-success lh-1"></i>
-                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" id="status-deno-installed" title="Installed"></i>
+                        <ion-icon name="hardware-chip-outline" class="fs-2 text-success lh-1"></ion-icon>
+                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" id="status-deno-installed" title="Installed"></ion-icon>
                       </div>
                       <div class="mt-auto">
                         <div class="fs-5 fw-light text-body lh-1 mb-1">Deno</div>
@@ -1896,8 +2021,8 @@
                     <!-- Card 5: Python -->
                     <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
                       <div class="d-flex align-items-start justify-content-between">
-                        <i class="bi bi-code-slash fs-2 text-warning lh-1"></i>
-                        <i class="bi bi-check2 text-success fs-5 flex-shrink-0" title="Available"></i>
+                        <ion-icon name="code-slash-outline" class="fs-2 text-warning lh-1"></ion-icon>
+                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" title="Available"></ion-icon>
                       </div>
                       <div class="mt-auto">
                         <div class="fs-5 fw-light text-body lh-1 mb-1">Python</div>
@@ -1922,7 +2047,7 @@
                 <div class="input-group">
                   <div class="form-control small user-select-all text-body bg-body font-monospace overflow-x-auto d-flex align-items-center" style="min-height: 38px; font-size: 0.8rem; white-space: nowrap;" id="cmd-preview">ffmpeg -i ...</div>
                   <button class="btn btn-outline-secondary" type="button" id="btn-copy-cmd" title="Copy command string">
-                    <i class="bi bi-copy"></i>
+                    <ion-icon name="copy-outline"></ion-icon>
                   </button>
                 </div>
               </div>
@@ -1955,7 +2080,7 @@
                 <div class="card border-secondary-subtle overflow-hidden position-relative">
                   <!-- Copy Log Button at Top Right Corner (faint, no background, visible on hover) -->
                   <button type="button" class="btn btn-sm text-secondary border-0 bg-transparent position-absolute top-0 end-0 m-1 log-copy-btn" id="btn-copy-logs" title="Copy execution log to clipboard" style="z-index: 5;">
-                    <i class="bi bi-clipboard"></i>
+                    <ion-icon name="copy-outline"></ion-icon>
                   </button>
 
                   <!-- Log Box at top (full width, no gap from top, user-selectable text) -->
@@ -1998,7 +2123,7 @@
           <nav class="nav nav-pills w-100 position-relative" id="settings-nav">
             <div class="sidebar-indicator" id="settings-indicator"></div>
             <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
-              <i class="bi bi-gear text-body-secondary"></i>
+              <ion-icon name="settings-outline" class="text-body-secondary"></ion-icon>
               <span>Settings</span>
             </button>
           </nav>
@@ -2024,7 +2149,7 @@
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">
             <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
-              <i class="bi bi-tools text-primary"></i> Manage Tools & Binaries
+              <ion-icon name="construct-outline" class="text-primary"></ion-icon> Manage Tools & Binaries
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
@@ -2038,7 +2163,7 @@
                   <div class="text-body-secondary small">Command-line media audio and video downloader engine.</div>
                 </div>
                 <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-ytdlp">
-                  <i class="bi bi-arrow-repeat"></i> Update yt-dlp
+                  <ion-icon name="repeat-outline"></ion-icon> Update yt-dlp
                 </button>
               </div>
               <div class="d-flex gap-4 mt-2 small">
@@ -2055,7 +2180,7 @@
                   <div class="text-body-secondary small">JavaScript/TypeScript runtime engine used for YouTube deciphering.</div>
                 </div>
                 <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-deno">
-                  <i class="bi bi-arrow-repeat"></i> Update Deno
+                  <ion-icon name="repeat-outline"></ion-icon> Update Deno
                 </button>
               </div>
               <div class="d-flex gap-4 mt-2 small">
@@ -2072,7 +2197,7 @@
                   <div class="text-body-secondary small">Core video and audio transcoding, filtering, and media probing suite.</div>
                 </div>
                 <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-ffmpeg">
-                  <i class="bi bi-arrow-repeat"></i> Update FFmpeg
+                  <ion-icon name="repeat-outline"></ion-icon> Update FFmpeg
                 </button>
               </div>
               <div class="d-flex gap-4 mt-2 small">
@@ -2097,7 +2222,7 @@
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <div class="fw-medium text-body">About Installed Binaries</div>
                 <button class="btn btn-link btn-sm p-0 text-decoration-none d-inline-flex align-items-center gap-1" type="button" id="btn-open-bin-folder" title="Open binaries folder in File Explorer">
-                  <i class="bi bi-folder2-open"></i> Open Folder
+                  <ion-icon name="folder-open-outline"></ion-icon> Open Folder
                 </button>
               </div>
               <div>Binaries are stored in <a href="#" role="button" class="text-primary text-decoration-underline" id="link-open-bin-folder" title="Open %LOCALAPPDATA%\ASDK\Shared\bin in File Explorer"><code>%LOCALAPPDATA%\ASDK\Shared\bin</code></a> or system PATH. Updating downloads official verified release executables directly from GitHub releases.</div>
@@ -2106,7 +2231,7 @@
           </div>
           <div class="modal-footer border-top py-2 px-3 justify-content-between">
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-check-all-updates">
-              <i class="bi bi-arrow-clockwise"></i> Check for Updates
+              <ion-icon name="refresh-outline"></ion-icon> Check for Updates
             </button>
             <button type="button" class="btn btn-primary btn-sm px-3" data-bs-dismiss="modal">Done</button>
           </div>
@@ -2120,7 +2245,7 @@
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">
             <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="creditsModalLabel">
-              <i class="bi bi-info-circle text-primary"></i> About AnEditKit
+              <ion-icon name="information-circle-outline" class="text-primary"></ion-icon> About AnEditKit
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
@@ -2135,7 +2260,7 @@
                   <div class="small text-body-secondary">theonlyasdk &copy; 2026</div>
                 </div>
                 <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2" type="button" id="btn-open-github" title="Open GitHub Profile in Browser">
-                  <i class="bi bi-github"></i>
+                  <ion-icon name="logo-github"></ion-icon>
                   <span>github.com/theonlyasdk</span>
                 </button>
               </div>
@@ -2158,7 +2283,7 @@
         <div class="modal-content bg-body border border-danger-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3 bg-danger-subtle text-danger-emphasis">
             <h5 class="modal-title fs-6 fw-semibold d-flex align-items-center gap-2" id="confirmExitModalLabel">
-              <i class="bi bi-exclamation-triangle-fill text-danger"></i> Task in Progress
+              <ion-icon name="warning-outline" class="text-danger"></ion-icon> Task in Progress
             </h5>
           </div>
           <div class="modal-body p-4">
@@ -2183,7 +2308,7 @@
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">
             <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="themeCustomizerModalLabel">
-              <i class="bi bi-palette text-primary"></i> Customize Theme & Colors
+              <ion-icon name="color-palette-outline" class="text-primary"></ion-icon> Customize Theme & Colors
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
@@ -2206,10 +2331,10 @@
                   <option value="custom">Custom Theme</option>
                 </select>
                 <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-prev" title="Previous Preset">
-                  <i class="bi bi-chevron-left"></i>
+                  <ion-icon name="chevron-back-outline"></ion-icon>
                 </button>
                 <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-next" title="Next Preset">
-                  <i class="bi bi-chevron-right"></i>
+                  <ion-icon name="chevron-forward-outline"></ion-icon>
                 </button>
               </div>
             </div>
@@ -2383,13 +2508,13 @@
           <div class="modal-footer border-top py-2 px-3 d-flex justify-content-between align-items-center">
             <div class="d-flex gap-2">
               <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-import-theme-file" title="Load theme from .txt file">
-                <i class="bi bi-file-earmark-arrow-up"></i> Import Theme...
+                <ion-icon name="document-attach-outline"></ion-icon> Import Theme...
               </button>
               <button class="btn btn-outline-primary btn-sm" type="button" id="btn-export-theme-file" title="Create and save theme .txt file">
-                <i class="bi bi-file-earmark-arrow-down"></i> Export Theme...
+                <ion-icon name="document-text-outline"></ion-icon> Export Theme...
               </button>
               <button class="btn btn-outline-danger btn-sm" type="button" id="btn-reset-theme" title="Reset colors to default">
-                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                <ion-icon name="reload-outline"></ion-icon> Reset
               </button>
               <input type="file" id="theme-file-input" class="d-none" accept=".txt" />
             </div>
@@ -2403,7 +2528,7 @@
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080; margin-top: 56px;" id="notification-toast-container">
       <div class="toast border shadow-lg bg-body toast-slide-in" role="alert" aria-live="assertive" aria-atomic="true" id="finished-toast" data-bs-autohide="false">
         <div class="toast-header border-bottom py-2 px-3">
-          <i class="bi bi-check-circle-fill text-success me-2 fs-6"></i>
+          <ion-icon name="checkmark-circle-outline" class="text-success me-2 fs-6"></ion-icon>
           <strong class="me-auto text-body" id="toast-title">Operation Completed</strong>
           <small class="text-body-secondary">Just now</small>
           <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
@@ -2414,12 +2539,12 @@
           <div class="row g-2">
             <div class="col-6">
               <button class="btn btn-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" id="toast-btn-open-file" type="button" title="Open output file directly">
-                <i class="bi bi-play-circle"></i> Open File
+                <ion-icon name="play-circle-outline"></ion-icon> Open File
               </button>
             </div>
             <div class="col-6">
               <button class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" id="toast-btn-open-folder" type="button" title="Show and select in folder">
-                <i class="bi bi-folder2-open"></i> Open Folder
+                <ion-icon name="folder-open-outline"></ion-icon> Open Folder
               </button>
             </div>
           </div>
@@ -2446,20 +2571,20 @@
               <div class="d-flex align-items-center gap-2">
                 <div class="dropdown">
                   <button class="btn btn-primary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" id="btn-add-format-field" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-plus-lg"></i> Add Field
+                    <ion-icon name="add-outline"></ion-icon> Add Field
                   </button>
                   <ul class="dropdown-menu shadow" id="dropdown-format-tokens" aria-labelledby="btn-add-format-field" style="max-height: 280px; overflow-y: auto;">
                     <!-- Populated dynamically with tokens -->
                   </ul>
                 </div>
                 <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" type="button" id="btn-add-format-text">
-                  <i class="bi bi-plus-lg"></i> Add Text / Separator
+                  <ion-icon name="add-outline"></ion-icon> Add Text / Separator
                 </button>
               </div>
 
               <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" id="btn-format-presets" data-bs-toggle="dropdown" aria-expanded="false">
-                  <i class="bi bi-bookmark"></i> Presets
+                  <ion-icon name="bookmark-outline"></ion-icon> Presets
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="btn-format-presets">
                   <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(title)s [%(id)s].%(ext)s">Never Gonna Give You Up [dQw4w9WgXcQ].mp3</a></li>
@@ -2503,21 +2628,17 @@
           <form id="form-create-kit">
             <div class="modal-header border-bottom py-2 px-3">
               <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="createKitModalLabel">
-                <i class="bi bi-box-seam text-primary"></i> Create New User Kit
+                <ion-icon name="cube-outline" class="text-primary"></ion-icon> Create New User Kit
               </h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
               <div class="row g-3">
-                <div class="col-md-7">
+                <div class="col-12">
                   <label class="form-label small fw-medium text-body" for="kit-wizard-name">Kit Name *</label>
                   <input type="text" class="form-control small font-sans" id="kit-wizard-name" placeholder="e.g. Fast WebM to MP4 Converter" required />
                 </div>
-                <div class="col-md-5">
-                  <label class="form-label small fw-medium text-body" for="kit-wizard-author">Kit Author *</label>
-                  <input type="text" class="form-control small font-sans" id="kit-wizard-author" value="User" required />
-                </div>
-                <div class="col-md-8">
+                <div class="col-12">
                   <label class="form-label small fw-medium text-body" for="kit-wizard-id">Kit ID (Unique Identifier) *</label>
                   <input type="text" class="form-control small font-monospace" id="kit-wizard-id" value="user.new_kit" placeholder="user.kit_name" required />
                   <div class="form-text small text-body-secondary">Auto-generated identifier. Use lowercase letters, digits, and underscores.</div>
@@ -2526,7 +2647,11 @@
                   <label class="form-label small fw-medium text-body" for="kit-wizard-version">Kit Version *</label>
                   <input type="text" class="form-control small font-monospace" id="kit-wizard-version" value="1.0.0" required />
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
+                  <label class="form-label small fw-medium text-body" for="kit-wizard-author">Kit Author *</label>
+                  <input type="text" class="form-control small font-sans" id="kit-wizard-author" value="User" required />
+                </div>
+                <div class="col-md-4">
                   <label class="form-label small fw-medium text-body" for="kit-wizard-license">Kit License</label>
                   <select class="form-select small" id="kit-wizard-license">
                     <option value="MIT" selected>MIT License</option>
@@ -2540,17 +2665,17 @@
                 <div class="col-md-6">
                   <label class="form-label small fw-medium text-body" for="kit-wizard-icon">Kit Icon</label>
                   <select class="form-select small" id="kit-wizard-icon">
-                    <option value="bi-box-seam" selected>Box Seam (Default)</option>
-                    <option value="bi-code-slash">Code Slash (&lt;/&gt;)</option>
-                    <option value="bi-film">Film / Video</option>
-                    <option value="bi-music-note-beamed">Music / Audio</option>
-                    <option value="bi-sliders">Sliders / Parameters</option>
-                    <option value="bi-lightning">Lightning / Fast</option>
-                    <option value="bi-terminal">Terminal / CLI</option>
-                    <option value="bi-gear">Gear / Engine</option>
+                    <option value="cube-outline" selected>Cube (Default)</option>
+                    <option value="code-slash-outline">Code Slash (&lt;/&gt;)</option>
+                    <option value="film-outline">Film / Video</option>
+                    <option value="musical-notes-outline">Music / Audio</option>
+                    <option value="options-outline">Sliders / Parameters</option>
+                    <option value="flash-outline">Lightning / Fast</option>
+                    <option value="terminal-outline">Terminal / CLI</option>
+                    <option value="settings-outline">Gear / Engine</option>
                   </select>
                 </div>
-                <div class="col-12">
+                <div class="col-md-6">
                   <label class="form-label small fw-medium text-body" for="kit-wizard-template">Starter Template</label>
                   <select class="form-select small" id="kit-wizard-template">
                     <option value="converter" selected>Video Format Converter (Inputs, Codecs, CRF, Quality)</option>
@@ -2567,7 +2692,7 @@
             <div class="modal-footer border-top py-2 px-3 justify-content-between">
               <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
               <button type="submit" class="btn btn-primary btn-sm px-4" id="btn-submit-create-kit">
-                <i class="bi bi-plus-lg me-1"></i> Create Kit &amp; Open IDE
+                <ion-icon name="add-outline" class="me-1"></ion-icon> Create Kit &amp; Open IDE
               </button>
             </div>
           </form>
@@ -2589,19 +2714,19 @@
           <!-- View Modes -->
           <div class="btn-group btn-group-sm" role="group">
             <button type="button" class="btn btn-outline-secondary active" id="btn-comp-mode-split" title="Interactive Sliding Window Comparison">
-              <i class="bi bi-layout-split me-1"></i> Split Slider
+              <ion-icon name="grid-outline" class="me-1"></ion-icon> Split Slider
             </button>
             <button type="button" class="btn btn-outline-secondary" id="btn-comp-mode-side" title="Side-by-Side Comparison">
-              <i class="bi bi-layout-three-columns me-1"></i> Side-by-Side
+              <ion-icon name="columns-outline" class="me-1"></ion-icon> Side-by-Side
             </button>
             <button type="button" class="btn btn-outline-secondary" id="btn-comp-mode-fade" title="Opacity Crossfade / Onion Skin">
-              <i class="bi bi-layers me-1"></i> Onion Skin
+              <ion-icon name="layers-outline" class="me-1"></ion-icon> Onion Skin
             </button>
           </div>
           <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="btn-comp-toggle-tuning" title="Toggle Grid Parameters Panel">
-            <i class="bi bi-sliders me-1"></i> Parameters
+            <ion-icon name="options-outline" class="me-1"></ion-icon> Parameters
           </button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-close-x" title="Close comparison"><i class="bi bi-x-lg"></i></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-close-x" title="Close comparison"><ion-icon name="close-outline"></ion-icon></button>
         </div>
       </div>
 
@@ -2613,8 +2738,8 @@
         <!-- Floating Quick Tuning Drawer for Fake Transparency -->
         <div class="comp-tuning-drawer p-3 d-none ui-zoom-in" id="comp-tuning-drawer">
           <div class="d-flex align-items-center justify-content-between mb-2">
-            <span class="small fw-semibold text-body"><i class="bi bi-sliders me-1 text-primary"></i> Grid Parameters</span>
-            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 border-0" id="btn-comp-tuning-close" title="Hide tuning panel"><i class="bi bi-x"></i></button>
+            <span class="small fw-semibold text-body"><ion-icon name="options-outline" class="me-1 text-primary"></ion-icon> Grid Parameters</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 border-0" id="btn-comp-tuning-close" title="Hide tuning panel"><ion-icon name="close-outline"></ion-icon></button>
           </div>
           <div class="d-flex flex-column gap-2">
             <div>
@@ -2639,7 +2764,7 @@
               <input type="range" class="form-range" id="comp-fake-gap-threshold" min="5" max="30" step="1" value="15" />
             </div>
             <button type="button" class="btn btn-primary btn-sm mt-1 w-100 d-flex align-items-center justify-content-center gap-1" id="btn-comp-reapply">
-              <i class="bi bi-arrow-clockwise"></i> Re-apply &amp; Update
+              <ion-icon name="refresh-outline"></ion-icon> Re-apply &amp; Update
             </button>
           </div>
         </div>
@@ -2660,7 +2785,7 @@
             <!-- Sliding Divider Line & Handle -->
             <div class="comp-split-divider-line" id="comp-split-divider" style="left: 50%;">
               <div class="comp-split-divider-handle">
-                <i class="bi bi-chevron-left"></i><i class="bi bi-chevron-right"></i>
+                <ion-icon name="chevron-back-outline"></ion-icon><ion-icon name="chevron-forward-outline"></ion-icon>
               </div>
             </div>
           </div>
@@ -2696,9 +2821,9 @@
         <div class="comp-floating-toolbar p-2 d-flex align-items-center gap-3">
           <!-- Zoom Controls -->
           <div class="btn-group btn-group-sm">
-            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-out" title="Zoom Out"><i class="bi bi-dash-lg"></i></button>
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-out" title="Zoom Out"><ion-icon name="remove-outline"></ion-icon></button>
             <span class="btn btn-outline-secondary py-1 px-2 disabled small font-monospace" id="comp-zoom-text">100%</span>
-            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-in" title="Zoom In"><i class="bi bi-plus-lg"></i></button>
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-in" title="Zoom In"><ion-icon name="add-outline"></ion-icon></button>
           </div>
           <div class="btn-group btn-group-sm">
             <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-fit" title="Fit Image">Fit</button>
@@ -2716,10 +2841,10 @@
           <!-- Action Buttons -->
           <div class="d-flex align-items-center gap-2">
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-copy" title="Copy result to clipboard">
-              <i class="bi bi-clipboard me-1"></i> Copy Result
+              <ion-icon name="copy-outline" class="me-1"></ion-icon> Copy Result
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-show-folder" title="Show output file in File Explorer">
-              <i class="bi bi-folder2-open me-1"></i> Open Folder
+              <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Open Folder
             </button>
           </div>
         </div>
@@ -2731,7 +2856,7 @@
       <div class="image-lightbox-backdrop" id="image-lightbox-backdrop"></div>
       <div class="image-lightbox-close-wrapper">
         <button type="button" class="btn btn-outline-light btn-sm rounded-circle d-flex align-items-center justify-content-center shadow" id="btn-lightbox-close" style="width: 36px; height: 36px;" title="Close preview (Esc)">
-          <i class="bi bi-x-lg"></i>
+          <ion-icon name="close-outline"></ion-icon>
         </button>
       </div>
       <div class="image-lightbox-card" id="image-lightbox-card">
@@ -2765,7 +2890,7 @@
       <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content bg-body border shadow-lg">
           <div class="modal-header py-2 px-3">
-            <h6 class="modal-title fs-6 fw-medium text-body mb-0" id="kit-alert-title"><i class="bi bi-info-circle text-primary me-2"></i>Alert</h6>
+            <h6 class="modal-title fs-6 fw-medium text-body mb-0" id="kit-alert-title"><ion-icon name="information-circle-outline" class="text-primary me-2"></ion-icon>Alert</h6>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-3">
@@ -2783,7 +2908,7 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-body border shadow-lg">
           <div class="modal-header py-2 px-3">
-            <h6 class="modal-title fs-6 fw-medium text-body mb-0" id="kit-prompt-title"><i class="bi bi-chat-left-text text-primary me-2"></i>Prompt</h6>
+            <h6 class="modal-title fs-6 fw-medium text-body mb-0" id="kit-prompt-title"><ion-icon name="chatbubble-ellipses-outline" class="text-primary me-2"></ion-icon>Prompt</h6>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-3">

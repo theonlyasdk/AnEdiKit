@@ -89,11 +89,11 @@ export function renderImageAiQueueUI() {
     listEl.style.overflowY = "visible";
     listEl.innerHTML = `
       <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="image-ai-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
-        <i class="bi bi-images fs-2 text-secondary opacity-50 mb-1"></i>
+        <ion-icon name="images-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
         <span class="fw-medium text-body" id="image-drop-label">Drop images here or click to select</span>
         <span class="small text-body-secondary" id="image-drop-sublabel">Supports PNG, JPG, WebP, BMP, TIFF, SVG</span>
         <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-image-add-empty" title="Add images to queue">
-          <i class="bi bi-folder2-open me-1"></i> Select Images
+          <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Images
         </button>
       </div>
     `;
@@ -127,7 +127,7 @@ export function renderImageAiQueueUI() {
 
   const placeholderHtml = `
     <div id="image-queue-drop-placeholder" class="list-group-item image-queue-drop-placeholder text-primary py-3 text-center d-flex align-items-center justify-content-center gap-2 d-none" style="cursor: pointer;">
-      <i class="bi bi-cloud-arrow-up-fill fs-5 text-primary"></i>
+      <ion-icon name="cloud-upload-outline" class="fs-5 text-primary"></ion-icon>
       <span class="fw-semibold text-primary">Drop here to import</span>
     </div>
   `;
@@ -144,30 +144,30 @@ export function renderImageAiQueueUI() {
       if (item.status === "processing") {
         statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Processing</span>`;
       } else if (item.status === "skipped") {
-        statusBadge = `<span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> Skipped (Missing)</span>`;
+        statusBadge = `<span class="badge bg-warning-subtle text-warning-emphasis"><ion-icon name="warning-outline"></ion-icon> Skipped (Missing)</span>`;
       } else if (item.status === "done") {
-        statusBadge = `<span class="badge bg-success-subtle text-success-emphasis"><i class="bi bi-check-lg"></i> Done</span>`;
+        statusBadge = `<span class="badge bg-success-subtle text-success-emphasis"><ion-icon name="checkmark-outline"></ion-icon> Done</span>`;
         if (item.resultPath) {
-          compareBtn = `<button class="btn btn-primary btn-sm py-0 px-2 btn-image-compare me-1" data-comp-idx="${idx}" type="button" title="View sliding comparison"><i class="bi bi-layout-split me-1"></i> Compare</button>`;
+          compareBtn = `<button class="btn btn-primary btn-sm py-0 px-2 btn-image-compare me-1" data-comp-idx="${idx}" type="button" title="View sliding comparison"><ion-icon name="grid-outline" class="me-1"></ion-icon> Compare</button>`;
         }
       } else if (item.status === "error") {
-        statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-x"></i> Failed</span>`;
+        statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><ion-icon name="close-outline"></ion-icon> Failed</span>`;
       }
 
       return `
         <div class="list-group-item image-queue-item d-flex justify-content-between align-items-center py-2 px-3" data-item-idx="${idx}">
           <div class="d-flex align-items-center gap-2 text-truncate me-2 flex-grow-1">
             <span class="image-queue-drag-handle text-secondary cursor-grab p-1 flex-shrink-0" data-drag-idx="${idx}" title="Drag vertically to reorder">
-              <i class="bi bi-grip-vertical fs-5"></i>
+              <ion-icon name="reorder-two-outline" class="fs-5"></ion-icon>
             </span>
             <div class="d-flex align-items-center gap-3 text-truncate flex-grow-1 btn-image-preview-thumb" data-preview-idx="${idx}" style="cursor: pointer;" title="Click to expand preview">
               <div class="image-queue-thumb-wrapper transparency-grid border flex-shrink-0 position-relative">
-                <img class="image-queue-thumb" src="${assetSrc}" alt="${item.name}" onerror="this.onerror=null; this.classList.add('d-none'); this.nextElementSibling?.classList.remove('d-none'); const qItem = this.closest('.image-queue-item'); if (qItem) { qItem.classList.add('image-item-deleted'); const title = qItem.querySelector('.image-queue-item-title'); if (title) { title.classList.remove('text-body'); title.classList.add('text-danger', 'text-decoration-line-through'); } const badge = qItem.querySelector('.image-queue-status-badge'); if (badge) { badge.className = 'badge bg-danger-subtle text-danger image-queue-status-badge'; badge.innerHTML = '<i class=\\'bi bi-exclamation-circle-fill me-1\\'></i>Deleted'; } }" />
+                <img class="image-queue-thumb" src="${assetSrc}" alt="${item.name}" onerror="this.onerror=null; this.classList.add('d-none'); this.nextElementSibling?.classList.remove('d-none'); const qItem = this.closest('.image-queue-item'); if (qItem) { qItem.classList.add('image-item-deleted'); const title = qItem.querySelector('.image-queue-item-title'); if (title) { title.classList.remove('text-body'); title.classList.add('text-danger', 'text-decoration-line-through'); } const badge = qItem.querySelector('.image-queue-status-badge'); if (badge) { badge.className = 'badge bg-danger-subtle text-danger image-queue-status-badge'; badge.innerHTML = '<ion-icon name=\\'alert-circle-outline\\' class=\\'me-1\\'></ion-icon>Deleted'; } }" />
                 <div class="image-queue-thumb-fallback d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark">
-                  <i class="bi bi-exclamation-circle-fill text-danger fs-5"></i>
+                  <ion-icon name="alert-circle-outline" class="text-danger fs-5"></ion-icon>
                 </div>
                 <div class="image-queue-thumb-overlay">
-                  <i class="bi bi-arrows-angle-expand"></i>
+                  <ion-icon name="scan-outline"></ion-icon>
                 </div>
               </div>
               <div class="d-flex flex-column text-truncate">
@@ -180,7 +180,7 @@ export function renderImageAiQueueUI() {
             <span class="image-queue-status-badge">${statusBadge}</span>
             ${compareBtn}
             <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-image-del" data-del-img-idx="${idx}" type="button" title="Remove from queue">
-              <i class="bi bi-trash"></i>
+              <ion-icon name="trash-outline"></ion-icon>
             </button>
           </div>
         </div>
@@ -294,18 +294,18 @@ function setupImageQueueItemDrag(itemEl, dragHandle, index, listContainer) {
       // Stick strictly to the pointer position relative to starting viewport point
       itemEl.style.transform = `translateY(${totalDeltaY}px)`;
 
-      const currentMid = rects[startIndex].mid + pointerDeltaY;
+      const currentMid = rects[startIndex].mid + totalDeltaY;
 
       // Determine target slot
       let newTarget = startIndex;
       for (let i = 0; i < rects.length; i++) {
         if (i < startIndex) {
-          if (currentMid < rects[i].mid) {
+          if (currentMid < rects[i].top + rects[i].height * 0.5) {
             newTarget = i;
             break;
           }
         } else if (i > startIndex) {
-          if (currentMid > rects[i].mid) {
+          if (currentMid > rects[i].top + rects[i].height * 0.5) {
             newTarget = i;
           }
         }
@@ -335,7 +335,7 @@ function setupImageQueueItemDrag(itemEl, dragHandle, index, listContainer) {
 
     const checkAutoScroll = () => {
       const containerRect = listContainer.getBoundingClientRect();
-      const edgeZone = 40;
+      const edgeZone = 40; // 40px top/bottom threshold zone
       const topThreshold = containerRect.top + edgeZone;
       const bottomThreshold = containerRect.bottom - edgeZone;
 
@@ -394,7 +394,11 @@ function setupImageQueueItemDrag(itemEl, dragHandle, index, listContainer) {
       // Calculate final resting position offset for smooth release transition
       let finalTranslateY = 0;
       if (targetIndex !== startIndex) {
-        finalTranslateY = rects[targetIndex].top - rects[startIndex].top;
+        if (targetIndex > startIndex) {
+          finalTranslateY = rects[targetIndex].bottom - rects[startIndex].bottom;
+        } else {
+          finalTranslateY = rects[targetIndex].top - rects[startIndex].top;
+        }
       }
 
       itemEl.classList.add("is-releasing");

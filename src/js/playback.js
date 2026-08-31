@@ -196,8 +196,8 @@ export class MediaPlaybackController {
     this.onStateChange((isPlaying) => {
       if (btnPlayPause) {
         btnPlayPause.innerHTML = isPlaying
-          ? '<i class="bi bi-pause-fill" id="trim-play-icon"></i> Pause'
-          : '<i class="bi bi-play-fill" id="trim-play-icon"></i> Play';
+          ? '<ion-icon name="pause" id="trim-play-icon"></ion-icon> Pause'
+          : '<ion-icon name="play" id="trim-play-icon"></ion-icon> Play';
       }
     });
 

@@ -12,6 +12,13 @@ import { sharedPlaybackController, MediaPlaybackController } from "./playback.js
 import {
   refreshWaveformDisplay,
   syncMediaDurationToTools,
+  isAudioFile,
+  isImageFile,
+  isVideoFile,
+  formatSecondsToTimestamp,
+  parseTimestampToSeconds,
+  extractTimelineThumbnailsAsync,
+  initTrimmerControls,
 } from "./trimmer.js";
 import { addImageFilesToQueue } from "./image_queue.js";
 
@@ -954,7 +961,7 @@ export function renderBatchQueueUI() {
       <div class="list-group-item text-body-secondary text-center py-4 d-flex flex-column align-items-center justify-content-center gap-2" id="batch-empty-msg">
         <span>No files queued.</span>
         <button class="btn btn-outline-primary btn-sm" type="button" id="btn-batch-add-empty" title="Add files to batch queue">
-          <i class="bi bi-plus-lg"></i> Add to Queue...
+          <ion-icon name="add-outline"></ion-icon> Add to Queue...
         </button>
       </div>
     `;
@@ -990,14 +997,14 @@ export function renderBatchQueueUI() {
       if (item.status === "processing") {
         statusBadge = `<span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1"><span class="spinner-border spinner-border-sm" style="width: 10px; height: 10px;" role="status"></span> Active</span>`;
       } else if (item.status === "skipped") {
-        statusBadge = `<span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> Skipped (Missing)</span>`;
+        statusBadge = `<span class="badge bg-warning-subtle text-warning-emphasis"><ion-icon name="warning-outline"></ion-icon> Skipped (Missing)</span>`;
       } else if (item.status === "error") {
-        statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-x"></i> Failed</span>`;
+        statusBadge = `<span class="badge bg-danger-subtle text-danger-emphasis"><ion-icon name="close-outline"></ion-icon> Failed</span>`;
       }
 
       let leadingCheckBtn = "";
       if (item.status === "done") {
-        leadingCheckBtn = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fs-7 flex-shrink-0"><i class="bi bi-check-lg"></i></span>`;
+        leadingCheckBtn = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fs-7 flex-shrink-0"><ion-icon name="checkmark-outline"></ion-icon></span>`;
       }
 
       const isSelected = idx === selectedBatchIdx;
@@ -1005,7 +1012,7 @@ export function renderBatchQueueUI() {
         <div class="batch-queue-item list-group-item list-group-item-action ${isSelected ? 'active' : 'bg-body-tertiary'} px-3 py-1 d-flex flex-row align-items-center justify-content-between gap-2" data-batch-idx="${idx}" style="cursor: pointer;">
           <div class="d-flex align-items-center gap-2 flex-grow-1 overflow-hidden">
             <span class="batch-queue-drag-handle format-drag-handle ${isSelected ? 'text-white' : 'text-secondary'} cursor-grab p-1 flex-shrink-0" data-drag-idx="${idx}" title="Drag vertically to reorder">
-              <i class="bi bi-grip-vertical fs-5"></i>
+              <ion-icon name="reorder-two-outline" class="fs-5"></ion-icon>
             </span>
             ${leadingCheckBtn}
             <span class="fw-medium ${isSelected ? 'text-white' : 'text-body'} text-truncate" style="font-size: 0.88rem;"><strong class="me-2 ${isSelected ? 'text-white' : 'text-body-secondary'}">${idx + 1}.</strong>${item.name}</span>
@@ -1013,7 +1020,7 @@ export function renderBatchQueueUI() {
           <div class="d-flex align-items-center gap-2 flex-shrink-0">
             ${statusBadge}
             <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-batch-del btn-item-delete ${isSelected ? 'btn-outline-light text-white' : ''}" data-del-batch-idx="${idx}" type="button" title="Delete file from queue">
-              <i class="bi bi-trash3"></i>
+              <ion-icon name="trash-outline"></ion-icon>
             </button>
           </div>
         </div>
@@ -1137,12 +1144,12 @@ function setupBatchQueueItemDrag(itemEl, dragHandle, index, listContainer) {
       let newTarget = startIndex;
       for (let i = 0; i < rects.length; i++) {
         if (i < startIndex) {
-          if (currentMid < rects[i].mid) {
+          if (currentMid < rects[i].top + rects[i].height * 0.5) {
             newTarget = i;
             break;
           }
         } else if (i > startIndex) {
-          if (currentMid > rects[i].mid) {
+          if (currentMid > rects[i].top + rects[i].height * 0.5) {
             newTarget = i;
           }
         }
@@ -1227,7 +1234,11 @@ function setupBatchQueueItemDrag(itemEl, dragHandle, index, listContainer) {
       // Calculate final resting position offset for smooth release transition
       let finalTranslateY = 0;
       if (targetIndex !== startIndex) {
-        finalTranslateY = rects[targetIndex].top - rects[startIndex].top;
+        if (targetIndex > startIndex) {
+          finalTranslateY = rects[targetIndex].bottom - rects[startIndex].bottom;
+        } else {
+          finalTranslateY = rects[targetIndex].top - rects[startIndex].top;
+        }
       }
 
       itemEl.classList.add("is-releasing");

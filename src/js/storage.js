@@ -1,16 +1,20 @@
 // LocalStorage Key System & Persistence Module
 export const STORAGE_KEYS = {
-  ACTIVE_TOOL: "anedikit:active_tool",
+  ACTIVE_TOOL: "anedikit:settings:active_tool",
   SETTINGS: "anedikit:settings",
-  LAST_INPUT_FILE: "anedikit:last_input_file",
-  YTDLP_LAST_DOWNLOAD_DIR: "anedikit:last_ytdlp_out_dir",
-  IMAGE_AI_LAST_OUT_DIR: "anedikit:last_image_ai_out_dir",
-  BATCH_QUEUE: "anedikit:batch_queue",
-  IMAGE_AI_QUEUE: "anedikit:image_ai_queue",
-  AI_REPLACE_SOURCE: "anedikit:ai_replace_source",
-  USER_KITS: "anedikit:user_kits",
-  ACTIVE_KIT: "anedikit:active_kit",
-  TOOL_PARAMS_PREFIX: "anedikit:tool_params:",
+  LAST_INPUT_FILE: "anedikit:settings:last_input_file",
+  YTDLP_LAST_DOWNLOAD_DIR: "anedikit:settings:last_ytdlp_out_dir",
+  IMAGE_AI_LAST_OUT_DIR: "anedikit:settings:last_image_ai_out_dir",
+  BATCH_QUEUE: "anedikit:tools:batch:queue",
+  IMAGE_AI_QUEUE: "anedikit:tools:image_ai:queue",
+  AI_REPLACE_SOURCE: "anedikit:tools:image_ai:replace_source",
+  USER_KITS: "anedikit:tools:user_kits",
+  ACTIVE_KIT: "anedikit:settings:active_kit",
+  TOOL_PARAMS_PREFIX: "anedikit:tools:params:",
+  CUSTOM_THEME: "anedikit:settings:theme",
+  YTDLP_FILENAME_FORMAT: "anedikit:tools:ytdlp:filename_format",
+  SCRIPT_THEME: "anedikit:settings:script_theme",
+  ACTIVE_KIT_TAB_PREFIX: "anedikit:settings:active_kit_tab:",
 };
 
 export const DEFAULT_SETTINGS = {
@@ -253,23 +257,96 @@ export function saveActiveKit(id) {
   }
 }
 
+export function getSavedToolParams(toolId) {
+  if (!toolId) return null;
+  try {
+    const raw = localStorage.getItem(`${STORAGE_KEYS.TOOL_PARAMS_PREFIX}${toolId}`);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn(`Failed to load tool params for ${toolId}:`, err);
+    return null;
+  }
+}
+
+export function saveToolParams(toolId, paramsData) {
+  if (!toolId) return;
+  try {
+    let payload;
+    if (paramsData && Array.isArray(paramsData.properties)) {
+      payload = { moduleId: toolId, ...paramsData };
+    } else if (Array.isArray(paramsData)) {
+      payload = { moduleId: toolId, properties: paramsData };
+    } else if (typeof paramsData === "object" && paramsData !== null) {
+      const properties = Object.entries(paramsData).map(([id, value]) => ({
+        id,
+        value,
+        type: typeof value === "boolean" ? "checkbox" : "text",
+      }));
+      payload = { moduleId: toolId, properties };
+    } else {
+      payload = { moduleId: toolId, properties: [] };
+    }
+    payload.updatedAt = new Date().toISOString();
+    localStorage.setItem(`${STORAGE_KEYS.TOOL_PARAMS_PREFIX}${toolId}`, JSON.stringify(payload));
+  } catch (err) {
+    console.warn(`Failed to save tool params for ${toolId}:`, err);
+  }
+}
+
 export function getSavedKitParams(kitId) {
   if (!kitId) return {};
-  try {
-    const raw = localStorage.getItem(`${STORAGE_KEYS.TOOL_PARAMS_PREFIX}kit_${kitId}`);
-    return raw ? JSON.parse(raw) : {};
-  } catch (err) {
-    console.warn(`Failed to load kit params for kit_${kitId}:`, err);
-    return {};
+  const data = getSavedToolParams(`kit_${kitId}`);
+  if (!data) return {};
+  if (data.properties && Array.isArray(data.properties)) {
+    const dict = {};
+    for (const prop of data.properties) {
+      if (prop && prop.id) dict[prop.id] = prop.value;
+    }
+    return dict;
   }
+  return data;
 }
 
 export function saveKitParams(kitId, params) {
   if (!kitId) return;
+  saveToolParams(`kit_${kitId}`, params);
+}
+
+export function getSavedScriptTheme() {
   try {
-    localStorage.setItem(`${STORAGE_KEYS.TOOL_PARAMS_PREFIX}kit_${kitId}`, JSON.stringify(params || {}));
+    return localStorage.getItem(STORAGE_KEYS.SCRIPT_THEME) || "vs-dark";
   } catch (err) {
-    console.warn(`Failed to save kit params for kit_${kitId}:`, err);
+    console.warn("Failed to read script theme:", err);
+    return "vs-dark";
+  }
+}
+
+export function saveScriptTheme(themeId) {
+  try {
+    if (!themeId) return;
+    localStorage.setItem(STORAGE_KEYS.SCRIPT_THEME, themeId);
+  } catch (err) {
+    console.warn("Failed to save script theme:", err);
+  }
+}
+
+export function getSavedKitActiveTab(kitId, defaultTab = "runner") {
+  if (!kitId) return defaultTab;
+  try {
+    return localStorage.getItem(`${STORAGE_KEYS.ACTIVE_KIT_TAB_PREFIX}${kitId}`) || defaultTab;
+  } catch (err) {
+    console.warn(`Failed to read active tab for kit ${kitId}:`, err);
+    return defaultTab;
+  }
+}
+
+export function saveKitActiveTab(kitId, tabName) {
+  if (!kitId || !tabName) return;
+  try {
+    localStorage.setItem(`${STORAGE_KEYS.ACTIVE_KIT_TAB_PREFIX}${kitId}`, tabName);
+  } catch (err) {
+    console.warn(`Failed to save active tab for kit ${kitId}:`, err);
   }
 }
 

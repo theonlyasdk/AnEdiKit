@@ -100,7 +100,8 @@ export class ImagePreviewProvider extends MediaPreviewProvider {
       if (imageFallback) imageFallback.classList.remove("d-none");
       if (imageFallbackSpinner) imageFallbackSpinner.classList.add("d-none");
       if (imageFallbackIcon) {
-        imageFallbackIcon.className = "bi bi-exclamation-circle-fill fs-1 text-danger mb-1";
+        imageFallbackIcon.className = "fs-1 text-danger mb-1";
+        imageFallbackIcon.setAttribute("name", "alert-circle-outline");
         imageFallbackIcon.classList.remove("d-none");
       }
       if (imageFallbackBadge) {

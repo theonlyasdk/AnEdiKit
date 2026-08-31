@@ -243,7 +243,7 @@ export function setAnimationsEnabled(enabled) {
 
 export function loadSavedTheme() {
   try {
-    const raw = localStorage.getItem("anedikit:custom_theme");
+    const raw = localStorage.getItem("anedikit:settings:theme");
     if (raw) {
       return JSON.parse(raw);
     }
@@ -255,7 +255,7 @@ export function loadSavedTheme() {
 
 export function saveCurrentTheme(themeObj) {
   try {
-    localStorage.setItem("anedikit:custom_theme", JSON.stringify(themeObj));
+    localStorage.setItem("anedikit:settings:theme", JSON.stringify(themeObj));
   } catch (e) {
     console.warn("saveCurrentTheme error:", e);
   }

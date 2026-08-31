@@ -1,5 +1,5 @@
 // AnEdiKit - Modular Application Entry Point
-import { loadSettings, saveSettings, getLastYtDlpOutDir, saveLastYtDlpOutDir, getLastImageAiOutDir, saveLastImageAiOutDir, saveAiReplaceSource } from "./js/storage.js";
+import { loadSettings, saveSettings, getLastYtDlpOutDir, saveLastYtDlpOutDir, getLastImageAiOutDir, saveLastImageAiOutDir, saveAiReplaceSource, getSavedToolParams, saveToolParams } from "./js/storage.js";
 import {
   selectMediaFile,
   selectMediaFiles,
@@ -48,6 +48,134 @@ let userHasCustomOutputName = false;
 let playlistVideos = [];
 let isFetchingPlaylist = false;
 let fetchedPlaylistUrl = "";
+
+export function saveActiveModuleState(toolId) {
+  if (!toolId || toolId === "settings" || toolId.startsWith("kit_")) return;
+  const viewId = TOOL_METADATA[toolId]?.viewId || `view-${toolId}`;
+  const viewEl = document.getElementById(viewId);
+  if (!viewEl) return;
+
+  const properties = [];
+
+  // 1. Collect all inputs, selects, and textareas inside the tool view
+  const inputs = viewEl.querySelectorAll("select, input, textarea");
+  inputs.forEach((el) => {
+    if (!el.id && !el.name) return;
+    const propId = el.id || el.name;
+    if (el.type === "checkbox") {
+      properties.push({ id: propId, value: el.checked, type: "checkbox" });
+    } else if (el.type === "radio") {
+      if (el.checked) {
+        properties.push({ id: propId, value: el.value, type: "radio" });
+      }
+    } else if (el.type === "range" || el.type === "number") {
+      properties.push({ id: propId, value: el.value, type: el.type });
+    } else {
+      properties.push({ id: propId, value: el.value, type: el.type || "text" });
+    }
+  });
+
+  // 2. Collect shared context for yt-dlp downloader modules
+  if (toolId.startsWith("ytdlp_")) {
+    const ytdlpOut = document.getElementById("ytdlp-output-dir");
+    if (ytdlpOut) {
+      properties.push({ id: "ytdlp-output-dir", value: ytdlpOut.value || "", type: "text" });
+    }
+    const ytdlpFmt = document.getElementById("ytdlp-filename-format");
+    if (ytdlpFmt) {
+      properties.push({ id: "ytdlp-filename-format", value: ytdlpFmt.value || "", type: "text" });
+    }
+  }
+
+  // 3. Collect shared context for Image & AI modules
+  const isImageTool = [
+    "bg_remover",
+    "ai_upscaler",
+    "vectorizer",
+    "restore_denoise",
+    "icon_generator",
+    "metadata_cleaner",
+  ].includes(toolId);
+
+  if (isImageTool) {
+    const imgOut = document.getElementById("image-ai-output-dir");
+    if (imgOut) {
+      properties.push({ id: "image-ai-output-dir", value: imgOut.value || "", type: "text" });
+    }
+    const replaceSw = document.getElementById("ai-replace-source");
+    if (replaceSw) {
+      properties.push({ id: "ai-replace-source", value: replaceSw.checked, type: "checkbox" });
+    }
+  }
+
+  saveToolParams(toolId, { moduleId: toolId, properties });
+}
+
+export function restoreModuleState(toolId) {
+  if (!toolId || toolId === "settings" || toolId.startsWith("kit_")) return;
+  const saved = getSavedToolParams(toolId);
+  if (!saved || !Array.isArray(saved.properties)) return;
+
+  for (const prop of saved.properties) {
+    if (!prop || !prop.id) continue;
+    const el = document.getElementById(prop.id);
+    if (!el) continue;
+
+    if (prop.type === "checkbox" || el.type === "checkbox") {
+      el.checked = !!prop.value;
+    } else if (prop.type === "radio" || el.type === "radio") {
+      if (el.value === prop.value) el.checked = true;
+    } else if (prop.value !== undefined && prop.value !== null) {
+      el.value = prop.value;
+    }
+  }
+
+  // Sync range slider labels if any
+  const gridTol = document.getElementById("fake-grid-tolerance");
+  const gridTolVal = document.getElementById("fake-grid-tolerance-val");
+  if (gridTol && gridTolVal) gridTolVal.textContent = gridTol.value;
+
+  const gapThresh = document.getElementById("fake-gap-threshold");
+  const gapThreshVal = document.getElementById("fake-gap-threshold-val");
+  if (gapThresh && gapThreshVal) gapThreshVal.textContent = gapThresh.value;
+
+  const bgColorPicker = document.getElementById("bg-color-picker");
+  const bgColorInput = document.getElementById("bg-color");
+  if (bgColorPicker && bgColorInput && /^#[0-9A-Fa-f]{6}$/.test(bgColorInput.value)) {
+    bgColorPicker.value = bgColorInput.value;
+  }
+}
+
+export function restoreAllModulesState() {
+  const tools = [
+    "convert",
+    "compress",
+    "trim",
+    "speed_motion",
+    "aspect_crop",
+    "stabilize",
+    "normalize",
+    "mute_replace",
+    "gif_frames",
+    "extract_audio",
+    "compress_audio",
+    "merge",
+    "custom",
+    "bg_remover",
+    "ai_upscaler",
+    "vectorizer",
+    "restore_denoise",
+    "icon_generator",
+    "metadata_cleaner",
+    "ytdlp_video",
+    "ytdlp_playlist",
+    "ytdlp_audio",
+    "ytdlp_subtitles",
+  ];
+  for (const toolId of tools) {
+    restoreModuleState(toolId);
+  }
+}
 
 export function renderPlaylistEntries() {
   const container = document.getElementById("playlist-entries-panel");
@@ -200,6 +328,10 @@ export function getSmartOutputFileName(inputFile, toolId) {
     case "stabilize": {
       const container = document.getElementById("stab-container")?.value || "mp4";
       return `${baseName}_stabilized.${container}`;
+    }
+    case "loop_duration": {
+      const container = document.getElementById("loop-container")?.value || "mp4";
+      return `${baseName}_looped.${container}`;
     }
     case "normalize": {
       const videoMode = document.getElementById("norm-video-mode")?.value || "copy";
@@ -798,6 +930,49 @@ export function updateEstimatesUI() {
     stabSizeEl.textContent = formatSize(srcSizeMb * 1.02);
   }
 
+  // 3.75. Loop & Duration Extender Estimate
+  const loopEstMode = document.getElementById("loop-est-mode");
+  const loopEstEngine = document.getElementById("loop-est-engine");
+  const loopEstLoops = document.getElementById("loop-est-loops");
+  const loopTotalTimeStr = document.getElementById("loop-total-time-str");
+  const loopCalcCount = document.getElementById("loop-calc-count");
+  const loopCountDurationStr = document.getElementById("loop-count-duration-str");
+
+  if (loopEstMode && loopEstEngine && loopEstLoops) {
+    const mode = document.getElementById("loop-mode")?.value || "duration";
+    const engine = document.getElementById("loop-engine")?.value || "copy";
+
+    if (mode === "duration") {
+      const hh = parseInt(document.getElementById("loop-target-hh")?.value, 10) || 0;
+      const mm = parseInt(document.getElementById("loop-target-mm")?.value, 10) || 0;
+      const ss = parseInt(document.getElementById("loop-target-ss")?.value, 10) || 0;
+      const totalSec = Math.max(1, hh * 3600 + mm * 60 + ss);
+      const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+      const neededLoops = Math.max(1, Math.ceil(totalSec / Math.max(0.1, durSec)));
+
+      if (loopTotalTimeStr) loopTotalTimeStr.textContent = timeStr;
+      if (loopCalcCount) loopCalcCount.textContent = `${neededLoops} repeats`;
+
+      loopEstMode.textContent = `Target Duration (${timeStr})`;
+      const estTotalMb = (srcSizeMb * (totalSec / Math.max(1, durSec)));
+      loopEstLoops.textContent = `${neededLoops} loops (${formatSize(estTotalMb)})`;
+    } else {
+      const count = parseInt(document.getElementById("loop-repeat-count")?.value, 10) || 10;
+      const totalSec = Math.round(durSec * count);
+      const hh = Math.floor(totalSec / 3600);
+      const mm = Math.floor((totalSec % 3600) / 60);
+      const ss = totalSec % 60;
+      const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+
+      if (loopCountDurationStr) loopCountDurationStr.textContent = timeStr;
+      loopEstMode.textContent = `Repeat Count (${count}x)`;
+      const estTotalMb = srcSizeMb * count;
+      loopEstLoops.textContent = `${count} repeats (${timeStr}, ${formatSize(estTotalMb)})`;
+    }
+
+    loopEstEngine.textContent = engine === "copy" ? "Direct Stream Copy (Lossless)" : "Re-encode";
+  }
+
   // 3.8. Volume Normalization Estimate
   const normTargetEl = document.getElementById("norm-est-target");
   const normVideoEl = document.getElementById("norm-est-video");
@@ -972,6 +1147,23 @@ export function syncFormatSpecificUI() {
     speedCustomWrapper.classList.toggle("d-none", speedPreset !== "custom");
   }
 
+  // 4.5. Loop & Duration Extender tool sync
+  const loopMode = document.getElementById("loop-mode")?.value || "duration";
+  const loopEngine = document.getElementById("loop-engine")?.value || "copy";
+  const loopDurationWrapper = document.getElementById("loop-duration-wrapper");
+  const loopCountWrapper = document.getElementById("loop-count-wrapper");
+  const loopReencodeCodecWrapper = document.getElementById("loop-reencode-codec-wrapper");
+
+  if (loopDurationWrapper) {
+    loopDurationWrapper.classList.toggle("d-none", loopMode !== "duration");
+  }
+  if (loopCountWrapper) {
+    loopCountWrapper.classList.toggle("d-none", loopMode !== "count");
+  }
+  if (loopReencodeCodecWrapper) {
+    loopReencodeCodecWrapper.classList.toggle("d-none", loopEngine !== "reencode");
+  }
+
   // 5. Volume Normalization custom LUFS wrapper sync
   const normTarget = document.getElementById("norm-target")?.value || "spotify_youtube";
   const normCustomWrapper = document.getElementById("norm-custom-wrapper");
@@ -1046,7 +1238,7 @@ function bindFormEvents() {
   });
 
   // Update command preview whenever any form element changes
-  const formElements = document.querySelectorAll("select, input");
+  const formElements = document.querySelectorAll("select, input, textarea");
   formElements.forEach((el) => {
     el.addEventListener("input", (e) => {
       if (e.target.id === "output-file-name") {
@@ -1054,6 +1246,8 @@ function bindFormEvents() {
       }
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
+      } else {
+        saveActiveModuleState(getCurrentActiveTool());
       }
       syncFormatSpecificUI();
       if (
@@ -1068,6 +1262,9 @@ function bindFormEvents() {
         e.target.id === "crop-container" ||
         e.target.id === "crop-ratio" ||
         e.target.id === "stab-container" ||
+        e.target.id === "loop-container" ||
+        e.target.id === "loop-mode" ||
+        e.target.id === "loop-engine" ||
         e.target.id === "norm-video-mode" ||
         e.target.id === "norm-acodec"
       ) {
@@ -1081,6 +1278,8 @@ function bindFormEvents() {
       }
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
+      } else {
+        saveActiveModuleState(getCurrentActiveTool());
       }
       syncFormatSpecificUI();
       if (
@@ -1095,6 +1294,9 @@ function bindFormEvents() {
         e.target.id === "crop-container" ||
         e.target.id === "crop-ratio" ||
         e.target.id === "stab-container" ||
+        e.target.id === "loop-container" ||
+        e.target.id === "loop-mode" ||
+        e.target.id === "loop-engine" ||
         e.target.id === "norm-video-mode" ||
         e.target.id === "norm-acodec"
       ) {
@@ -1102,6 +1304,33 @@ function bindFormEvents() {
       }
       updateCommandPreview();
     });
+  });
+
+  // Loop & Duration Extender preset buttons
+  document.querySelectorAll(".btn-loop-preset").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.querySelectorAll(".btn-loop-preset").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      const sec = parseInt(btn.dataset.sec, 10) || 3600;
+      const hh = Math.floor(sec / 3600);
+      const mm = Math.floor((sec % 3600) / 60);
+      const ss = sec % 60;
+      const inH = document.getElementById("loop-target-hh");
+      const inM = document.getElementById("loop-target-mm");
+      const inS = document.getElementById("loop-target-ss");
+      if (inH) inH.value = hh;
+      if (inM) inM.value = mm;
+      if (inS) inS.value = ss;
+      syncFormatSpecificUI();
+      updateEstimatesUI();
+      updateCommandPreview();
+    });
+  });
+
+  window.addEventListener("anedikit:format_updated", () => {
+    saveActiveModuleState(getCurrentActiveTool());
+    updateCommandPreview();
   });
 
   window.addEventListener("anedikit:job_finished", () => {
@@ -1129,7 +1358,7 @@ function bindFormEvents() {
       const btnReapply = document.getElementById("btn-comp-reapply");
       if (btnReapply) {
         btnReapply.disabled = false;
-        btnReapply.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Re-apply &amp; Update`;
+        btnReapply.innerHTML = `<ion-icon name="refresh-outline"></ion-icon> Re-apply &amp; Update`;
       }
     }
   });
@@ -1343,6 +1572,7 @@ function bindFormEvents() {
       if (folder) {
         if (ytdlpOutInput) ytdlpOutInput.value = folder;
         saveLastYtDlpOutDir(folder);
+        saveActiveModuleState(getCurrentActiveTool());
         updateCommandPreview();
       }
     });
@@ -1400,6 +1630,7 @@ function bindFormEvents() {
       if (folder) {
         if (imageAiOutDirInput) imageAiOutDirInput.value = folder;
         saveLastImageAiOutDir(folder);
+        saveActiveModuleState(getCurrentActiveTool());
         updateCommandPreview();
       }
     });
@@ -1603,6 +1834,7 @@ function bindFormEvents() {
       }
       const mediaInfo = getCurrentMediaInfo();
       if (mediaInfo) syncMediaDurationToTools(mediaInfo);
+      saveActiveModuleState(activeTool);
       updateAutoOutputFilename(true);
       updateCommandPreview();
     });
@@ -1614,11 +1846,11 @@ function bindFormEvents() {
     btnCopy.addEventListener("click", () => {
       const cmdText = document.getElementById("cmd-preview")?.textContent || "";
       navigator.clipboard.writeText(cmdText).then(() => {
-        btnCopy.innerHTML = '<i class="bi bi-check2"></i>';
+        btnCopy.innerHTML = '<ion-icon name="checkmark-outline"></ion-icon>';
         btnCopy.classList.remove("btn-outline-secondary");
         btnCopy.classList.add("btn-success");
         setTimeout(() => {
-          btnCopy.innerHTML = '<i class="bi bi-copy"></i>';
+          btnCopy.innerHTML = '<ion-icon name="copy-outline"></ion-icon>';
           btnCopy.classList.remove("btn-success");
           btnCopy.classList.add("btn-outline-secondary");
         }, 1500);
@@ -1815,6 +2047,7 @@ function bindFormEvents() {
   if (aiReplaceSwitch) {
     aiReplaceSwitch.addEventListener("change", () => {
       saveAiReplaceSource(aiReplaceSwitch.checked);
+      saveActiveModuleState(getCurrentActiveTool());
       updateCommandPreview();
     });
   }
@@ -1835,7 +2068,7 @@ function renderMergeList() {
       (f, idx) => `
       <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 ${idx === selectedMergeIdx ? 'active' : ''}" data-item-idx="${idx}" style="cursor: pointer;">
         <span class="text-truncate small"><strong class="me-2">${idx + 1}.</strong>${f}</span>
-        <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-merge-del ${idx === selectedMergeIdx ? 'btn-outline-light' : ''}" data-idx="${idx}" type="button"><i class="bi bi-x"></i></button>
+        <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-merge-del ${idx === selectedMergeIdx ? 'btn-outline-light' : ''}" data-idx="${idx}" type="button"><ion-icon name="close-outline"></ion-icon></button>
       </div>
     `,
     )
@@ -1990,6 +2223,7 @@ function syncSettingsFromUI() {
 document.addEventListener("DOMContentLoaded", () => {
   initThemeManager();
   populateSettingsUI();
+  restoreAllModulesState();
 
   const ytdlpOutInput = document.getElementById("ytdlp-output-dir");
   if (ytdlpOutInput) {
@@ -2052,6 +2286,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   initNavigation((toolId) => {
+    restoreModuleState(toolId);
     const mediaInfo = getCurrentMediaInfo();
     if (mediaInfo) {
       syncMediaDurationToTools(mediaInfo);
