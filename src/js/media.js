@@ -973,16 +973,20 @@ export function renderBatchQueueUI() {
         </button>
       </div>
     `;
-    const btnEmptyAdd = document.getElementById("btn-batch-add-empty");
     const emptyMsg = document.getElementById("batch-empty-msg");
-    const pickHandler = async () => {
-      await selectMediaFiles("all");
-    };
-    if (btnEmptyAdd) btnEmptyAdd.addEventListener("click", pickHandler);
     if (emptyMsg) {
       attachFluentRipple(emptyMsg);
-      emptyMsg.addEventListener("click", (e) => {
-        if (!e.target.closest("button")) pickHandler();
+      // Single delegated listener: button clicks bubble up here, so no
+      // separate button listener (that caused 2 dialogs in a row).
+      // Re-entrancy guard ignores clicks while the picker is open.
+      emptyMsg.addEventListener("click", async () => {
+        if (emptyMsg.dataset.picking === "1") return;
+        emptyMsg.dataset.picking = "1";
+        try {
+          await selectMediaFiles("all");
+        } finally {
+          delete emptyMsg.dataset.picking;
+        }
       });
     }
     if (btnExecute && btnExecute.textContent !== "Cancel") {

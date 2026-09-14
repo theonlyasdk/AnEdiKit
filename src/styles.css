@@ -286,16 +286,35 @@ a:active,
   margin-left: 0.75rem;
 }
 
-/* Sidebar base */
+/* Sidebar base — pulled up under the transparent header so nav items scroll
+   behind the frosted brand cell (mirrors the absolute footer overlay). */
 .sidebar {
   position: relative;
+}
+
+#main-sidebar {
+  margin-top: -56px;
+  z-index: 10;
+}
+
+body.with-system-titlebar #main-sidebar {
+  margin-top: -48px;
 }
 
 #sidebar-scroll-container {
   scroll-behavior: smooth;
   scroll-padding-top: 44px;
   scroll-padding-bottom: 64px;
+  padding-top: calc(56px + 12px) !important;
   padding-bottom: 64px !important;
+  /* Classic flex-scroll guard: allow the container to shrink inside the
+     flex column so overflow-y actually scrolls instead of growing. */
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+body.with-system-titlebar #sidebar-scroll-container {
+  padding-top: calc(48px + 12px) !important;
 }
 
 /* Unified footer bar — single row: Settings (280px, frosted) + status.
@@ -328,12 +347,12 @@ a:active,
 #footer-settings-col {
   background: linear-gradient(
     to bottom,
-    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.55) 0%,
-    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.78) 100%
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.4) 0%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.6) 100%
   ) !important;
-  background-color: rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.62) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  backdrop-filter: blur(12px) saturate(180%);
+  background-color: rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.5) !important;
+  -webkit-backdrop-filter: blur(4px) saturate(140%);
+  backdrop-filter: blur(4px) saturate(140%);
 }
 
 .sidebar {
@@ -588,9 +607,9 @@ a:active,
 }
 
 .header-brand-col {
-  background-color: rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.78);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  backdrop-filter: blur(12px) saturate(180%);
+  background-color: rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.5);
+  -webkit-backdrop-filter: blur(4px) saturate(140%);
+  backdrop-filter: blur(4px) saturate(140%);
   z-index: 10;
   position: relative;
 }
@@ -622,6 +641,19 @@ a:active,
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
     box-shadow: none;
+  }
+
+  /* Drawer keeps its own solid bg and starts below the header.
+     z-index must be re-declared here: the base #main-sidebar rule (ID
+     specificity) would otherwise keep it at z-index 10, hidden behind
+     the backdrop/content so "nothing shows up". */
+  #main-sidebar {
+    margin-top: 0;
+    z-index: 1040;
+  }
+
+  #sidebar-scroll-container {
+    padding-top: 0.5rem !important;
   }
 
   .sidebar.show-sidebar {
@@ -958,7 +990,14 @@ html.no-animations *::after {
   background-color: var(--bs-secondary-color);
 }
 
-/* Button Inline Progress with Solid Fill */
+/* Button Inline Progress with Solid Fill.
+   The fill edge is driven by the registered --btn-progress custom property
+   so it smoothly lerps between ticks instead of snapping. */
+@property --btn-progress {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
 .btn-updating-progress {
   position: relative !important;
   overflow: hidden !important;
@@ -966,6 +1005,23 @@ html.no-animations *::after {
   border-width: 0 !important;
   box-shadow: none !important;
   background-color: var(--bs-secondary-bg) !important;
+  background-image: linear-gradient(
+    to right,
+    var(--bs-primary) 0%,
+    var(--bs-primary) var(--btn-progress, 0%),
+    var(--bs-secondary-bg) var(--btn-progress, 0%),
+    var(--bs-secondary-bg) 100%
+  ) !important;
+  transition: --btn-progress 0.38s linear;
+}
+
+/* Manage Tools modal: per-tool action buttons fill the row on narrow screens.
+   Attribute selector is used because JS rewrites btn className during updates. */
+@media (max-width: 576px) {
+  #manage-tools-list-container [id^="btn-update-"] {
+    flex: 1 1 100% !important;
+    width: 100%;
+  }
 }
 
 /* Nested Corner Radius: Inner Radius = Outer Radius - Padding */
@@ -2070,6 +2126,14 @@ body.with-system-titlebar .header-brand-col {
 
 #top-header-bar {
   cursor: default;
+  position: relative;
+  z-index: 30;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.header-caption-controls {
+  background-color: var(--bs-body-bg);
 }
 
 .header-caption-controls {

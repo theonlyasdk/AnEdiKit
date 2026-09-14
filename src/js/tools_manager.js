@@ -276,7 +276,10 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
 
   const updateProgressStyles = (pct, stageText = "Updating", speedVal = null, etaVal = null) => {
     if (!btn) return;
-    btn.style.background = `linear-gradient(to right, var(--bs-primary) 0%, var(--bs-primary) ${pct}%, var(--bs-secondary-bg) ${pct}%, var(--bs-secondary-bg) 100%)`;
+    // Drive the class gradient via the registered custom property so the
+    // fill edge transitions (lerps) instead of snapping between ticks.
+    btn.style.removeProperty("background");
+    btn.style.setProperty("--btn-progress", `${pct}%`);
     btn.style.border = "none";
     btn.style.boxShadow = "none";
     btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style="width: 0.82rem; height: 0.82rem;"></span> ${stageText} ${pct}%`;
@@ -355,6 +358,7 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
         btn.disabled = originalBtnDisabled;
         btn.classList.remove("pe-none", "btn-updating-progress", "btn-danger", "text-white", "border-0");
         btn.style.background = "";
+        btn.style.removeProperty("--btn-progress");
         btn.style.border = "";
         btn.style.boxShadow = "";
         if (originalBtnClass) btn.className = originalBtnClass;
@@ -377,6 +381,7 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
         btn.disabled = originalBtnDisabled;
         btn.classList.remove("pe-none", "btn-updating-progress", "btn-success", "text-white", "border-0");
         btn.style.background = "";
+        btn.style.removeProperty("--btn-progress");
         btn.style.border = "";
         btn.style.boxShadow = "";
         if (originalBtnClass) btn.className = originalBtnClass;

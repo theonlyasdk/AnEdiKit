@@ -17,14 +17,14 @@
   <body class="bg-body-tertiary with-system-titlebar">
     <div class="d-flex flex-column vh-100 overflow-hidden" id="app-root">
       <!-- Unified Top Header Bar (also acts as the custom title bar when system title bar is disabled) -->
-      <header class="d-flex border-bottom bg-body flex-shrink-0" id="top-header-bar" style="height: 56px;">
+      <header class="d-flex border-bottom flex-shrink-0" id="top-header-bar" style="height: 56px;">
         <div class="d-flex align-items-center justify-content-center px-3 border-end flex-shrink-0 header-brand-col" style="width: 280px;">
           <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn" id="btn-sidebar-toggle" title="AnEdiKit - Click Logo for Credits / Scroll to Switch Tools">
             <ion-icon name="menu-outline" class="text-primary fs-4 lh-1 d-md-none" id="brand-logo-icon" role="button" tabindex="0" title="Toggle Navigation"></ion-icon>
             <h1 class="fs-4 mb-0 fw-light text-body user-select-none" id="brand-logo-title" role="button" tabindex="0" title="About AnEdiKit Credits">AnEdiKit</h1>
           </div>
         </div>
-        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden" style="min-width: 0;" data-tauri-drag-region>
+        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden bg-body" style="min-width: 0;" data-tauri-drag-region>
           <div class="d-flex align-items-center gap-3 header-title-animated overflow-hidden w-100" id="tool-header-text" style="min-width: 0;" data-tauri-drag-region>
             <h2 class="fs-4 mb-0 fw-light text-body flex-shrink-0 text-truncate" id="current-tool-title">Convert Video Formats</h2>
             <span class="text-body-secondary small text-truncate" id="current-tool-desc">Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.</span>
@@ -37,8 +37,8 @@
         </div>
       </header>
 
-      <!-- Main Layout Body -->
-      <div class="d-flex flex-grow-1 overflow-hidden position-relative">
+      <!-- Main Layout Body (overflow visible so the sidebar can slide up under the frosted brand cell) -->
+      <div class="d-flex flex-grow-1 position-relative" style="overflow: visible;">
         <!-- Sidebar Backdrop Overlay for Mobile/Small Screens -->
         <div class="sidebar-backdrop d-none" id="sidebar-backdrop"></div>
 

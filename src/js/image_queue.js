@@ -99,19 +99,22 @@ export function renderImageAiQueueUI() {
         </button>
       </div>
     `;
-    const btnEmpty = document.getElementById("btn-image-add-empty");
     const emptyMsg = document.getElementById("image-ai-empty-msg");
-    const pickHandler = async () => {
-      const selected = await selectMediaFiles("image");
-      if (selected && selected.length > 0) {
-        await addImageFilesToQueue(selected);
-      }
-    };
-    if (btnEmpty) btnEmpty.addEventListener("click", pickHandler);
     if (emptyMsg) {
       attachFluentRipple(emptyMsg);
-      emptyMsg.addEventListener("click", (e) => {
-        if (!e.target.closest("button")) pickHandler();
+      // Single delegated listener: button clicks bubble up here, so no
+      // separate button listener (that caused 2 dialogs in a row).
+      emptyMsg.addEventListener("click", async () => {
+        if (emptyMsg.dataset.picking === "1") return;
+        emptyMsg.dataset.picking = "1";
+        try {
+          const selected = await selectMediaFiles("image");
+          if (selected && selected.length > 0) {
+            await addImageFilesToQueue(selected);
+          }
+        } finally {
+          delete emptyMsg.dataset.picking;
+        }
       });
     }
 

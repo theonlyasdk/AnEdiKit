@@ -2123,32 +2123,35 @@ function renderMergeList() {
         </button>
       </div>
     `;
-    const btnEmpty = document.getElementById("btn-merge-add-empty");
     const emptyMsg = document.getElementById("merge-empty-msg");
-    const pickMergeHandler = async () => {
-      if (window.__TAURI__?.core?.invoke) {
+    if (emptyMsg) {
+      attachFluentRipple(emptyMsg);
+      // Single delegated listener: button clicks bubble up here, so no
+      // separate button listener (that caused 2 dialogs in a row).
+      emptyMsg.addEventListener("click", async () => {
+        if (emptyMsg.dataset.picking === "1") return;
+        emptyMsg.dataset.picking = "1";
         try {
-          const picked = await window.__TAURI__.core.invoke("pick_files", { filter_mode: "all" });
-          if (picked && picked.length > 0) {
-            mergeFiles.push(...picked);
+          if (window.__TAURI__?.core?.invoke) {
+            try {
+              const picked = await window.__TAURI__.core.invoke("pick_files", { filter_mode: "all" });
+              if (picked && picked.length > 0) {
+                mergeFiles.push(...picked);
+                renderMergeList();
+                updateCommandPreview();
+              }
+            } catch (e) {
+              console.warn("pick_files error:", e);
+            }
+          } else {
+            const mockFile = `C:\\Users\\User\\Videos\\clip_${mergeFiles.length + 1}.mp4`;
+            mergeFiles.push(mockFile);
             renderMergeList();
             updateCommandPreview();
           }
-        } catch (e) {
-          console.warn("pick_files error:", e);
+        } finally {
+          delete emptyMsg.dataset.picking;
         }
-      } else {
-        const mockFile = `C:\\Users\\User\\Videos\\clip_${mergeFiles.length + 1}.mp4`;
-        mergeFiles.push(mockFile);
-        renderMergeList();
-        updateCommandPreview();
-      }
-    };
-    if (btnEmpty) btnEmpty.addEventListener("click", pickMergeHandler);
-    if (emptyMsg) {
-      attachFluentRipple(emptyMsg);
-      emptyMsg.addEventListener("click", (e) => {
-        if (!e.target.closest("button")) pickMergeHandler();
       });
     }
     return;
@@ -2555,23 +2558,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initToolsManager();
   initKitsManager();
   initM3Switches();
-  const initialImageEmpty = document.getElementById("image-ai-empty-msg");
-  if (initialImageEmpty) {
-    attachFluentRipple(initialImageEmpty);
-  }
-  const initialBatchEmpty = document.getElementById("batch-empty-msg");
-  if (initialBatchEmpty) {
-    attachFluentRipple(initialBatchEmpty);
-    initialBatchEmpty.addEventListener("click", (e) => {
-      if (!e.target.closest("button") && typeof selectMediaFiles === "function") {
-        selectMediaFiles("all");
-      }
-    });
-  }
-  const initialMergeEmpty = document.getElementById("merge-empty-msg");
-  if (initialMergeEmpty) {
-    attachFluentRipple(initialMergeEmpty);
-  }
+  // NOTE: empty-state click/ripple wiring lives in renderBatchQueueUI()
+  // (media.js), renderImageAiQueueUI() (image_queue.js) and renderMergeList()
+  // below. Do NOT attach extra listeners here — that opened 2 file dialogs
+  // in a row for a single click.
   renderMergeList();
   syncFormatSpecificUI();
   updateAutoOutputFilename(true);
