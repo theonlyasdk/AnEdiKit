@@ -1,3 +1,5 @@
+@import "./motion-tokens.css";
+
 :root {
   --bs-body-font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif;
   font-size: 17px;
@@ -624,13 +626,30 @@ body.with-system-titlebar #sidebar-scroll-container {
   user-select: none;
 }
 
-#brand-logo-icon {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+/* Real <button> hamburger: the inner icon keeps the global
+   pointer-events:none, so presses always land on the button itself — no
+   shadow-DOM retargeting quirks, and the drag exclusion matches `button`
+   unconditionally. Generous hit area via padding (layout-neutral margins). */
+#btn-mobile-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 6px;
+  margin: -6px;
   cursor: pointer;
-  /* Global ion-icon rule sets pointer-events:none (so icons inside buttons
-     don't swallow clicks). The hamburger IS the click target, so opt back
-     in — otherwise clicks fall through and the drawer never toggles. */
-  pointer-events: auto;
+  color: var(--bs-primary);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+}
+
+#btn-mobile-menu:hover,
+#btn-mobile-menu:focus,
+#btn-mobile-menu:active {
+  background: transparent;
+  outline: none;
+  box-shadow: none;
 }
 
 .header-brand-col {
@@ -639,6 +658,10 @@ body.with-system-titlebar #sidebar-scroll-container {
   backdrop-filter: blur(4px) saturate(140%);
   z-index: 10;
   position: relative;
+  /* Never let native window-dragging claim presses on the brand cell or
+     hamburger in Tauri (a drag swallow would eat the click entirely). */
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 /* Responsive Collapsible Sidebar & Hamburger Drawer */
@@ -646,7 +669,7 @@ body.with-system-titlebar #sidebar-scroll-container {
   .brand-header-btn {
     cursor: pointer;
   }
-  .brand-header-btn:hover #brand-logo-icon {
+  .brand-header-btn:hover #btn-mobile-menu {
     transform: scale(1.1);
   }
   .brand-header-btn:active {
@@ -694,7 +717,9 @@ body.with-system-titlebar #sidebar-scroll-container {
 
   .sidebar.show-sidebar {
     transform: translateX(0);
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.6);
+    /* Shadow on the open edge only — a full-bleed shadow strips across the
+       top bar and reads as a glitch. */
+    box-shadow: 16px 0 32px -12px rgba(0, 0, 0, 0.65);
   }
 
   .sidebar-backdrop {
@@ -848,9 +873,12 @@ html.no-animations *::after {
   transition: none !important;
 }
 
-/* Custom Theme Workspace Pane Background */
+/* Custom Theme Workspace Pane Background.
+   Bottom padding clears the absolute footer overlay so the last item never
+   ends flush against (or under) it. */
 #tool-workspace {
   background-color: var(--anedikit-pane-bg, var(--bs-tertiary-bg)) !important;
+  padding-bottom: calc(56px + 1rem) !important;
 }
 
 /* Material Design 3 Toggle Switch */

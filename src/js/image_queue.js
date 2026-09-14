@@ -5,7 +5,7 @@ import {
 } from "./storage.js";
 import { selectMediaFiles } from "./media.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
-import { attachFluentRipple } from "./navigation.js";
+import { attachFluentRipple, animateQueueHeight } from "./navigation.js";
 
 let imageAiQueue = loadSavedImageAiQueue();
 
@@ -75,6 +75,10 @@ export async function addImageFilesToQueue(paths) {
 }
 
 export function renderImageAiQueueUI() {
+  animateQueueHeight(document.getElementById("image-ai-queue-list"), renderImageAiQueueUIInner);
+}
+
+function renderImageAiQueueUIInner() {
   const countEl = document.getElementById("image-ai-queue-count");
   const listEl = document.getElementById("image-ai-queue-list");
   const btnAdd = document.getElementById("btn-image-add");

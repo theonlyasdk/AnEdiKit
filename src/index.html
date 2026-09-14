@@ -20,7 +20,9 @@
       <header class="d-flex border-bottom flex-shrink-0" id="top-header-bar" style="height: 56px;">
         <div class="d-flex align-items-center justify-content-center px-3 border-end flex-shrink-0 header-brand-col" style="width: 280px;">
           <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn" id="btn-sidebar-toggle" title="AnEdiKit - Click Logo for Credits / Scroll to Switch Tools">
-            <ion-icon name="menu-outline" class="text-primary fs-4 lh-1 d-md-none" id="brand-logo-icon" role="button" tabindex="0" title="Toggle Navigation"></ion-icon>
+            <button type="button" class="brand-menu-btn d-md-none" id="btn-mobile-menu" title="Toggle Navigation" aria-label="Toggle navigation menu">
+              <ion-icon name="menu-outline" class="text-primary fs-4 lh-1"></ion-icon>
+            </button>
             <h1 class="fs-4 mb-0 fw-light text-body user-select-none" id="brand-logo-title" role="button" tabindex="0" title="About AnEdiKit Credits">AnEdiKit</h1>
           </div>
         </div>
@@ -608,7 +610,7 @@
                     <!-- Video Filmstrip Thumbnail Strip (Contiguous frames across duration) -->
                     <div id="trim-filmstrip-container" class="d-flex w-100 h-100 position-absolute top-0 start-0 z-0 overflow-hidden rounded">
                       <div class="w-100 h-100 d-flex align-items-center justify-content-center text-secondary small" id="trim-filmstrip-empty">
-                        <span class="text-shimmer"><ion-icon name="film-outline" class="me-2"></ion-icon> Preparing preview...</span>
+                        <span><ion-icon name="film-outline" class="me-2"></ion-icon> Select a media file to preview the timeline</span>
                       </div>
                       <div class="w-100 h-100 d-none align-items-center justify-content-center text-warning small px-3 text-center" id="trim-filmstrip-unsupported">
                         <ion-icon name="warning-outline" class="me-2 text-warning"></ion-icon>
@@ -731,22 +733,25 @@
                 <div class="section-divider-header">Speed &amp; Motion Parameters</div>
                 <div class="row g-3">
                   <div class="col-md-4">
-                    <label class="form-label small fw-medium" for="speed-preset">Speed Multiplier</label>
-                    <select class="form-select form-select-sm" id="speed-preset">
-                      <option value="0.25">0.25x (Super Slow-Mo 4x)</option>
-                      <option value="0.5">0.5x (Half Speed 2x)</option>
-                      <option value="0.75">0.75x (Slightly Slower)</option>
-                      <option value="1.25">1.25x (Faster Review)</option>
-                      <option value="1.5">1.5x (Speed Up 1.5x)</option>
-                      <option value="2.0" selected>2.0x (Double Speed / Fast Forward)</option>
-                      <option value="4.0">4.0x (Timelapse 4x)</option>
-                      <option value="8.0">8.0x (Timelapse 8x)</option>
-                      <option value="16.0">16.0x (Hyperlapse 16x)</option>
-                      <option value="custom">Custom Multiplier</option>
-                    </select>
+                    <div class="d-flex justify-content-between align-items-center gap-2">
+                      <label class="form-label small fw-medium mb-1" for="speed-preset">Speed Multiplier</label>
+                      <select class="form-select form-select-sm w-auto py-0" id="speed-preset-select" title="Quick speed presets" style="font-size: 0.8rem;">
+                        <option value="0.25">0.25x</option>
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1">1x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2" selected>2x</option>
+                        <option value="4">4x</option>
+                        <option value="8">8x</option>
+                        <option value="16">16x</option>
+                      </select>
+                    </div>
+                    <input type="range" class="form-range" id="speed-preset" min="0.25" max="16" step="0.25" value="2.0" title="Speed multiplier (0.25x to 16x)" />
                   </div>
-                  <div class="col-md-4 d-none ui-zoom-in" id="speed-custom-wrapper">
-                    <label class="form-label small fw-medium" for="speed-custom-val">Custom Speed (0.1x to 100x)</label>
+                  <div class="col-md-4 ui-zoom-in" id="speed-custom-wrapper">
+                    <label class="form-label small fw-medium" for="speed-custom-val">Exact Value (0.1x to 100x)</label>
                     <input type="number" class="form-control form-control-sm font-sans" id="speed-custom-val" value="2.0" min="0.1" max="100" step="0.1" />
                   </div>
                   <div class="col-md-4">
@@ -1352,7 +1357,7 @@
                 </div>
                 <div class="mb-2">
                   <label class="form-label small fw-medium" for="custom-args">Custom FFmpeg Arguments (Injected between input and output)</label>
-                  <input type="text" class="form-control form-control-sm font-monospace" id="custom-args" placeholder="-c:v libx264 -crf 20 -c:a copy" value="-c:v libx264 -crf 20 -c:a copy" />
+                  <textarea class="form-control form-control-sm font-monospace" id="custom-args" rows="3" style="resize: vertical;" placeholder="-c:v libx264 -crf 20 -c:a copy">-c:v libx264 -crf 20 -c:a copy</textarea>
                 </div>
                 <div class="text-body-secondary small">
                   Arguments are automatically wrapped with <code class="text-body-secondary">-i &lt;source_file&gt;</code> and destination path.

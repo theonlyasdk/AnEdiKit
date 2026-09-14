@@ -52,7 +52,7 @@ function downloadFile(url, destPath) {
 // Read configuration metadata (product name, version, title)
 function getAppMetadata() {
   let productName = 'AnEdiKit';
-  let version = '0.1.0';
+  let version = '0.2.0';
 
   const tauriConfPath = path.join(tauriDir, 'tauri.conf.json');
   if (fs.existsSync(tauriConfPath)) {

@@ -424,6 +424,10 @@ export function toggleMobileSidebar() {
   if (!sidebar) return;
   const isShown = sidebar.classList.toggle("show-sidebar");
   if (backdrop) backdrop.classList.toggle("d-none", !isShown);
+  // Audible tap feedback in the status bar: proves the press reached the
+  // handler (vs being swallowed before dispatch, e.g. by native dragging).
+  const statusMsg = document.getElementById("status-message");
+  if (statusMsg) statusMsg.textContent = isShown ? "Sidebar opened" : "Sidebar closed";
 }
 
 export function attachFluentRipple(element) {
@@ -447,6 +451,91 @@ export function attachFluentRipple(element) {
       ripple.remove();
     });
   });
+}
+
+// Smoothly morph a queue container across a re-render (empty drop card <->
+// populated list) instead of snapping, using compositor-only properties
+// (opacity, clip-path, transform) — never height/width, so no per-frame
+// page reflow and no stutter under the frosted overlays.
+// The old content fades out, swaps mid-flight, then the new content blooms
+// in with a top-down clip reveal + rise. Same-state updates (row add/remove,
+// status flips) render instantly so batch progress never flickers.
+// Usage: animateQueueHeight(listEl, () => { ...existing render body... }).
+export function animateQueueHeight(container, renderFn) {
+  if (typeof renderFn !== "function") return;
+  if (!container) {
+    renderFn();
+    return;
+  }
+  // Snap-finish any in-flight morph so rapid updates never stack.
+  if (container._qhCleanup) {
+    const fin = container._qhCleanup;
+    container._qhCleanup = null;
+    fin();
+  }
+
+  const reduceMotion =
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
+    document.documentElement.classList.contains("no-animations");
+  if (reduceMotion || !container.offsetHeight) {
+    renderFn();
+    return;
+  }
+
+  const isEmptyCard = () => !!container.querySelector('[id$="-empty-msg"]');
+  const wasEmpty = isEmptyCard();
+
+  let finished = false;
+  let phaseTimer = 0;
+  const restore = () => {
+    container.style.opacity = "";
+    container.style.clipPath = "";
+    container.style.transform = "";
+    container.style.pointerEvents = "";
+    container.style.transition = "";
+  };
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(phaseTimer);
+    container.removeEventListener("transitionend", onRevealEnd);
+    restore();
+    if (container._qhCleanup === finish) container._qhCleanup = null;
+  };
+  container._qhCleanup = finish;
+
+  // Same-state refresh: render plainly, no motion at all.
+  renderFn();
+  const stillEmpty = isEmptyCard();
+  if (wasEmpty === stillEmpty) {
+    finish();
+    return;
+  }
+
+  // Emptiness flipped: everything above ran synchronously, so no paint
+  // happened yet — arm the hidden pre-state, then bloom the fresh content
+  // in with a clip reveal + rise. One clean entrance, no double flash.
+  const endH = container.offsetHeight;
+  container.style.pointerEvents = "none";
+  container.style.opacity = "0";
+  container.style.transform = "translateY(var(--distance-base))";
+  if (endH > 0) container.style.clipPath = `inset(0 0 ${endH}px 0)`;
+  // Commit the hidden pre-state before arming the transition.
+  void container.offsetHeight;
+  // Entrance: reveal (--duration-slow, resize/panel-open lane) with a
+  // quicker fade + rise (--duration-fast) layered over it.
+  container.style.transition =
+    "clip-path var(--duration-slow) var(--ease-smooth-out), opacity var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out)";
+  container.style.clipPath = "inset(0 0 0px 0)";
+  container.style.opacity = "1";
+  container.style.transform = "translateY(0)";
+  container.addEventListener("transitionend", onRevealEnd);
+  phaseTimer = setTimeout(finish, 600);
+
+  function onRevealEnd(e) {
+    if (!e || e.target !== container) return;
+    if (e.propertyName === "clip-path") finish();
+  }
 }
 
 // Bind edge hover proximity and ripple effects to any sidebar button
@@ -479,32 +568,24 @@ export function initNavigation(onToolChanged) {
   const btnToggle = document.getElementById("btn-sidebar-toggle");
   const backdrop = document.getElementById("sidebar-backdrop");
 
-  // Mobile drawer toggle — triple-redundant by design. The hamburger icon
-  // itself can miss clicks (icon web-component retargeting, fall-through
-  // targets, native drag quirks in Tauri), so the whole brand cell also
-  // toggles, strictly gated to small widths so desktop is unaffected.
-  // Icon handler stops propagation so the two never double-fire (which
-  // would open+close = look dead).
+  // Mobile drawer toggle. The hamburger is a real <button> (hits always land
+  // on it, keyboard works natively, and the window-drag exclusion matches
+  // `button` unconditionally). The whole brand cell also toggles, strictly
+  // gated to small widths so desktop is unaffected. Button handler stops
+  // propagation so the two never double-fire (open+close = looks dead).
   const isSmallWidth = () => window.innerWidth <= 768;
-  const brandLogoIcon = document.getElementById("brand-logo-icon");
-  if (brandLogoIcon) {
-    brandLogoIcon.addEventListener("click", (e) => {
+  const mobileMenuBtn = document.getElementById("btn-mobile-menu");
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       toggleMobileSidebar();
-    });
-    brandLogoIcon.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleMobileSidebar();
-      }
     });
   }
   if (btnToggle) {
     btnToggle.addEventListener("click", (e) => {
       if (!isSmallWidth()) return;
-      // Icon already handled it (and stopped propagation); this catches
-      // clicks that land on the title/padding around the icon instead.
+      // Button already handled it (and stopped propagation); this catches
+      // clicks that land on the title/padding around the button instead.
       toggleMobileSidebar();
     });
   }

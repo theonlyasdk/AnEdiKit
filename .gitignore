@@ -30,3 +30,5 @@ meedia-studio
 __pycache__/
 *.pyc
 docs/todo.txt
+.agents/
+skills-lock.json

@@ -76,6 +76,11 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
   if (!container || !filePath) return;
 
   const thisToken = ++currentTimelineExtractToken;
+  // A file is actually loading now: swap the idle prompt for the shimmer.
+  const pendingEl = document.getElementById("trim-filmstrip-empty");
+  if (pendingEl && !pendingEl.classList.contains("d-none")) {
+    pendingEl.innerHTML = '<span class="text-shimmer"><ion-icon name="film-outline" class="me-2"></ion-icon> Preparing preview...</span>';
+  }
   const currentMediaInfo = getCurrentMediaInfo();
   const isAudio = isAudioFile(filePath) || currentMediaInfo?.video_codec === "None" || currentMediaInfo?.resolution === "N/A";
   const isImage = isImageFile(filePath);

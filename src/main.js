@@ -34,7 +34,7 @@ import {
   isJobRunning,
   initJobRunner,
 } from "./js/runner.js";
-import { initNavigation, getCurrentActiveTool, TOOL_METADATA, attachFluentRipple } from "./js/navigation.js";
+import { initNavigation, getCurrentActiveTool, TOOL_METADATA, attachFluentRipple, animateQueueHeight } from "./js/navigation.js";
 import { initToolsManager } from "./js/tools_manager.js";
 import { initThemeManager } from "./js/theme.js";
 import { initComparisonModal, openComparisonModal, setComparisonShimmer } from "./js/comparison.js";
@@ -145,6 +145,9 @@ export function restoreModuleState(toolId) {
   if (bgColorPicker && bgColorInput && /^#[0-9A-Fa-f]{6}$/.test(bgColorInput.value)) {
     bgColorPicker.value = bgColorInput.value;
   }
+
+  // Sync speed slider badge/number (restoring .value fires no events)
+  syncSpeedSliderUI();
 }
 
 export function restoreAllModulesState() {
@@ -317,9 +320,8 @@ export function getSmartOutputFileName(inputFile, toolId) {
     }
     case "speed_motion": {
       const container = document.getElementById("speed-container")?.value || "mp4";
-      const preset = document.getElementById("speed-preset")?.value || "2.0";
-      const sp = preset === "custom" ? (document.getElementById("speed-custom-val")?.value || "2.0") : preset;
-      return `${baseName}_${sp}x.${container}`;
+      const spNum = parseFloat(document.getElementById("speed-preset")?.value) || 2.0;
+      return `${baseName}_${formatSpeedValue(spNum)}x.${container}`;
     }
     case "aspect_crop": {
       const container = document.getElementById("crop-container")?.value || "mp4";
@@ -1075,6 +1077,52 @@ export function updateEstimatesUI() {
   }
 }
 
+// Display formatting for speed values: integers keep one decimal ("2.0")
+// to match the historic preset labels, others stay compact ("0.25").
+export function formatSpeedValue(v) {
+  const n = typeof v === "number" ? v : parseFloat(v);
+  if (!Number.isFinite(n)) return "2.0";
+  return Number.isInteger(n) ? n.toFixed(1) : String(Math.round(n * 100) / 100);
+}
+
+// Keeps the speed slider, preset dropdown, and exact-value number input in
+// sync. Slider is the single source of truth (0.25x–16x); the dropdown
+// quick-picks presets (showing a "Custom" entry for off-preset values) and
+// the number box allows arbitrary 0.1x–100x entry, both pushing clamped
+// values back to the slider.
+const SPEED_PRESETS = ["0.25", "0.5", "0.75", "1", "1.25", "1.5", "2", "4", "8", "16"];
+export function syncSpeedSliderUI() {
+  const slider = document.getElementById("speed-preset");
+  const num = document.getElementById("speed-custom-val");
+  const sel = document.getElementById("speed-preset-select");
+  if (!slider) return;
+  if (num && document.activeElement === num) {
+    const nv = parseFloat(num.value);
+    if (Number.isFinite(nv)) {
+      slider.value = String(Math.min(16, Math.max(0.25, nv)));
+    }
+  } else if (num) {
+    num.value = slider.value;
+  }
+  if (sel) {
+    const key = String(parseFloat(slider.value) || 2);
+    let customOpt = sel.querySelector("option[data-custom]");
+    if (SPEED_PRESETS.includes(key)) {
+      if (customOpt) customOpt.remove();
+      sel.value = key;
+    } else {
+      if (!customOpt) {
+        customOpt = document.createElement("option");
+        customOpt.dataset.custom = "1";
+        sel.appendChild(customOpt);
+      }
+      customOpt.value = key;
+      customOpt.textContent = `${formatSpeedValue(key)}x`;
+      sel.value = key;
+    }
+  }
+}
+
 export function syncFormatSpecificUI() {
   // 1. Convert Video tool format sync
   const cvtContainer = document.getElementById("cvt-container")?.value || "mp4";
@@ -1162,12 +1210,9 @@ export function syncFormatSpecificUI() {
     if (gifSnapWrapper) gifSnapWrapper.classList.add("d-none");
   }
 
-  // 4. Speed & Motion tool custom wrapper sync
-  const speedPreset = document.getElementById("speed-preset")?.value || "2.0";
-  const speedCustomWrapper = document.getElementById("speed-custom-wrapper");
-  if (speedCustomWrapper) {
-    speedCustomWrapper.classList.toggle("d-none", speedPreset !== "custom");
-  }
+  // 4. Speed & Motion slider <-> number <-> badge sync (runs on every
+  // input/change via the generic form listener, and on tool switches)
+  syncSpeedSliderUI();
 
   // 4.5. Loop & Duration Extender tool sync
   const loopMode = document.getElementById("loop-mode")?.value || "duration";
@@ -1266,6 +1311,13 @@ function bindFormEvents() {
       if (e.target.id === "output-file-name") {
         userHasCustomOutputName = true;
       }
+      // Preset dropdown pushes into the slider first so everything downstream
+      // (save, sync, filename, preview) sees the fresh value.
+      if (e.target.id === "speed-preset-select") {
+        const sl = document.getElementById("speed-preset");
+        const sv = parseFloat(e.target.value);
+        if (sl && Number.isFinite(sv)) sl.value = String(Math.min(16, Math.max(0.25, sv)));
+      }
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
       } else {
@@ -1306,6 +1358,11 @@ function bindFormEvents() {
     el.addEventListener("change", (e) => {
       if (e.target.id === "output-file-name") {
         userHasCustomOutputName = true;
+      }
+      if (e.target.id === "speed-preset-select") {
+        const sl = document.getElementById("speed-preset");
+        const sv = parseFloat(e.target.value);
+        if (sl && Number.isFinite(sv)) sl.value = String(Math.min(16, Math.max(0.25, sv)));
       }
       if (el.closest("#view-settings")) {
         syncSettingsFromUI();
@@ -1897,11 +1954,10 @@ function bindFormEvents() {
     btnCopy.addEventListener("click", () => {
       const cmdText = document.getElementById("cmd-preview")?.textContent || "";
       navigator.clipboard.writeText(cmdText).then(() => {
-        btnCopy.innerHTML = '<ion-icon name="checkmark-outline"></ion-icon>';
+        animateCopyConfirm(btnCopy.querySelector("ion-icon"), { holdMs: 1200 });
         btnCopy.classList.remove("btn-outline-secondary");
         btnCopy.classList.add("btn-success");
         setTimeout(() => {
-          btnCopy.innerHTML = '<ion-icon name="copy-outline"></ion-icon>';
           btnCopy.classList.remove("btn-success");
           btnCopy.classList.add("btn-outline-secondary");
         }, 1500);
@@ -2105,6 +2161,10 @@ function bindFormEvents() {
 }
 
 function renderMergeList() {
+  animateQueueHeight(document.getElementById("merge-file-list"), renderMergeListInner);
+}
+
+function renderMergeListInner() {
   const mergeList = document.getElementById("merge-file-list");
   if (!mergeList) return;
 
@@ -2369,6 +2429,10 @@ function initCaptionControls() {
   // Tauri v2 mechanism - the data-tauri-drag-region attribute alone is not
   // enough once decorations are toggled at runtime.
   bar.addEventListener("mousedown", (e) => {
+    // Native decorations already drag the window: only take over presses
+    // when the custom title bar is active, so a drag gesture can never
+    // swallow clicks (e.g. the hamburger) in system-titlebar mode.
+    if (document.body.classList.contains("with-system-titlebar")) return;
     if (e.button !== 0) return;
     if (e.target.closest(".header-caption-controls, button, a, input, select, textarea, [role=\"button\"]")) return;
     const win = getTauriWindow();
@@ -2381,6 +2445,7 @@ function initCaptionControls() {
 
   // Double-click on the drag region toggles maximize (Windows 10 behavior)
   bar.addEventListener("dblclick", (e) => {
+    if (document.body.classList.contains("with-system-titlebar")) return;
     if (e.target.closest(".header-caption-controls, button, a, input, select, textarea, [role=\"button\"]")) return;
     toggleMax();
   });

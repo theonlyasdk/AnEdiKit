@@ -22,7 +22,7 @@ import {
 } from "./trimmer.js";
 import { addImageFilesToQueue } from "./image_queue.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
-import { attachFluentRipple } from "./navigation.js";
+import { attachFluentRipple, animateQueueHeight } from "./navigation.js";
 
 let currentInputFile = "";
 let currentMediaInfo = null;
@@ -946,6 +946,10 @@ export function updateBatchItemStatus(index, status) {
 }
 
 export function renderBatchQueueUI() {
+  animateQueueHeight(document.getElementById("batch-queue-list"), renderBatchQueueUIInner);
+}
+
+function renderBatchQueueUIInner() {
   const container = document.getElementById("batch-queue-container");
   const list = document.getElementById("batch-queue-list");
   const countEl = document.getElementById("batch-queue-count");
