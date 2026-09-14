@@ -275,7 +275,7 @@ a:active,
    into the dead zone so no visible gap remains. Its top edge dissolves
    behind the brand frost for a connected look. */
 .sidebar-section-first {
-  margin-top: -6px;
+  margin-top: -2px;
   padding-top: 0.5rem;
 }
 
