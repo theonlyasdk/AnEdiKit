@@ -276,7 +276,7 @@ a:active,
    behind the brand frost for a connected look. */
 .sidebar-section-first {
   margin-top: -2px;
-  padding-top: 0.5rem;
+  padding-top: 0.75rem;
 }
 
 .sidebar-section-header::before,
