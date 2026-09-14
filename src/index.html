@@ -7,27 +7,33 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="kits/kits.css" />
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
     <script type="module" src="vendor/ionicons/ionicons.esm.js"></script>
     <script type="module" src="main.js" defer></script>
   </head>
 
-  <body class="bg-body-tertiary">
+  <body class="bg-body-tertiary with-system-titlebar">
     <div class="d-flex flex-column vh-100 overflow-hidden" id="app-root">
-      <!-- Unified Top Header Bar -->
-      <header class="d-flex border-bottom bg-body flex-shrink-0" style="height: 56px;">
+      <!-- Unified Top Header Bar (also acts as the custom title bar when system title bar is disabled) -->
+      <header class="d-flex border-bottom bg-body flex-shrink-0" id="top-header-bar" style="height: 56px;">
         <div class="d-flex align-items-center justify-content-center px-3 border-end flex-shrink-0 header-brand-col" style="width: 280px;">
           <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn" id="btn-sidebar-toggle" title="AnEdiKit - Click Logo for Credits / Scroll to Switch Tools">
             <ion-icon name="menu-outline" class="text-primary fs-4 lh-1 d-md-none" id="brand-logo-icon" role="button" tabindex="0" title="Toggle Navigation"></ion-icon>
             <h1 class="fs-4 mb-0 fw-light text-body user-select-none" id="brand-logo-title" role="button" tabindex="0" title="About AnEdiKit Credits">AnEdiKit</h1>
           </div>
         </div>
-        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden" style="min-width: 0;">
-          <div class="d-flex align-items-center gap-3 header-title-animated overflow-hidden w-100" id="tool-header-text" style="min-width: 0;">
+        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden" style="min-width: 0;" data-tauri-drag-region>
+          <div class="d-flex align-items-center gap-3 header-title-animated overflow-hidden w-100" id="tool-header-text" style="min-width: 0;" data-tauri-drag-region>
             <h2 class="fs-4 mb-0 fw-light text-body flex-shrink-0 text-truncate" id="current-tool-title">Convert Video Formats</h2>
             <span class="text-body-secondary small text-truncate" id="current-tool-desc">Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.</span>
           </div>
+        </div>
+        <div class="header-caption-controls">
+          <button type="button" class="header-caption-btn" id="win-minimize" title="Minimize" tabindex="-1"><span class="tb-glyph">&#xE921;</span></button>
+          <button type="button" class="header-caption-btn" id="win-maximize" title="Maximize" tabindex="-1"><span class="tb-glyph" id="win-maximize-icon">&#xE922;</span></button>
+          <button type="button" class="header-caption-btn header-caption-close" id="win-close" title="Close" tabindex="-1"><span class="tb-glyph">&#xE8BB;</span></button>
         </div>
       </header>
 
@@ -40,7 +46,7 @@
         <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" id="main-sidebar" style="width: 280px;">
           <div class="overflow-y-auto flex-grow-1 p-2 position-relative" id="sidebar-scroll-container">
             <div class="sidebar-indicator" id="sidebar-indicator"></div>
-            <div class="sidebar-section-header">FFmpeg Tools</div>
+            <div class="sidebar-section-header">FFmpeg</div>
             <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
               <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
                 <ion-icon name="film-outline" class="text-body-secondary"></ion-icon>
@@ -126,8 +132,12 @@
                 <span>Metadata Cleaner</span>
               </button>
             </nav>
-            <div class="sidebar-section-header mt-3">yt-dlp Downloader</div>
+            <div class="sidebar-section-header mt-3">yt-dlp</div>
             <nav class="nav nav-pills flex-column gap-1" id="ytdlp-nav">
+              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_audio" type="button" title="Download audio and extract MP3, M4A, FLAC with metadata">
+                <ion-icon name="musical-note-outline" class="text-body-secondary"></ion-icon>
+                <span>Download Audio</span>
+              </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_video" type="button" title="Download video streams with resolution and container options">
                 <ion-icon name="download-outline" class="text-body-secondary"></ion-icon>
                 <span>Download Video</span>
@@ -136,26 +146,24 @@
                 <ion-icon name="list-outline" class="text-body-secondary"></ion-icon>
                 <span>Download Playlist</span>
               </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_audio" type="button" title="Download audio and extract MP3, M4A, FLAC with metadata">
-                <ion-icon name="musical-note-outline" class="text-body-secondary"></ion-icon>
-                <span>Download Audio</span>
-              </button>
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_subtitles" type="button" title="Download subtitles, closed captions, and video thumbnails">
                 <ion-icon name="image-outline" class="text-body-secondary"></ion-icon>
                 <span>Subtitles & Thumbnails</span>
               </button>
             </nav>
-            <div class="sidebar-section-header mt-3 d-flex align-items-center justify-content-between">
-              <span>User Kits</span>
+            <div id="sidebar-user-kits-section" class="d-none">
+              <div class="sidebar-section-header mt-3 d-flex align-items-center justify-content-between">
+                <span>User Kits</span>
+              </div>
+              <div class="px-1 mb-3">
+                <button class="btn btn-outline-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" id="btn-sidebar-new-kit" type="button" title="Create a new custom scriptable Kit">
+                  <ion-icon name="add-outline"></ion-icon> New Kit
+                </button>
+              </div>
+              <nav class="nav nav-pills flex-column gap-1" id="user-kits-nav">
+                <!-- Dynamically populated from saved user kits -->
+              </nav>
             </div>
-            <div class="px-1 mb-3">
-              <button class="btn btn-outline-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" id="btn-sidebar-new-kit" type="button" title="Create a new custom scriptable Kit">
-                <ion-icon name="add-outline"></ion-icon> New Kit
-              </button>
-            </div>
-            <nav class="nav nav-pills flex-column gap-1" id="user-kits-nav">
-              <!-- Dynamically populated from saved user kits -->
-            </nav>
           </div>
           <!-- Mobile Sidebar Settings (Visible inside sidebar drawer in small width mode) -->
           <div class="p-2 border-top d-md-none" id="mobile-sidebar-settings-col">
@@ -198,8 +206,15 @@
                         <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear all files"><ion-icon name="close-outline"></ion-icon></button>
                       </div>
                     </div>
-                    <div class="list-group list-group-flush border rounded mb-2 small overflow-y-auto" style="max-height: 180px;" id="merge-file-list">
-                      <div class="list-group-item text-body-secondary text-center py-4" id="merge-empty-msg">No files added. Click Add Files to queue items for merging.</div>
+                    <div class="mb-2 small" id="merge-file-list">
+                      <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="merge-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
+                        <ion-icon name="library-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
+                        <span class="fw-medium text-body" id="merge-drop-label">Drop media files here or click to select</span>
+                        <span class="small text-body-secondary" id="merge-drop-sublabel">Supports MP4, MKV, WebM, MOV, AVI, MP3, WAV, FLAC</span>
+                        <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-merge-add-empty" title="Add files to merge list">
+                          <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Files
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -214,11 +229,13 @@
                         <button class="btn btn-outline-danger" type="button" id="btn-batch-clear" title="Clear batch queue"><ion-icon name="trash-outline"></ion-icon></button>
                       </div>
                     </div>
-                    <div class="list-group list-group-flush border rounded mb-2 overflow-y-auto" style="max-height: 180px;" id="batch-queue-list">
-                      <div class="list-group-item text-body-secondary text-center py-4 d-flex flex-column align-items-center justify-content-center gap-2" id="batch-empty-msg">
-                        <span>No files queued.</span>
-                        <button class="btn btn-outline-primary btn-sm" type="button" id="btn-batch-add-empty" title="Add files to batch queue">
-                          <ion-icon name="add-outline"></ion-icon> Add to Queue...
+                    <div class="mb-2" id="batch-queue-list">
+                      <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="batch-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
+                        <ion-icon name="film-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
+                        <span class="fw-medium text-body" id="batch-drop-label">Drop files here or click to select</span>
+                        <span class="small text-body-secondary" id="batch-drop-sublabel">Supports MP4, MKV, WebM, MOV, AVI, MP3, WAV, FLAC</span>
+                        <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-batch-add-empty" title="Add files to batch queue">
+                          <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Files
                         </button>
                       </div>
                     </div>
@@ -1790,22 +1807,197 @@
               <!-- Section: Appearance & Interface -->
               <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Appearance & Interface</div>
+                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Appearance &amp; Interface</div>
                   <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-customize-theme" data-bs-toggle="modal" data-bs-target="#theme-customizer-modal" title="Customize application colors and export/import theme files">
-                    <ion-icon name="color-palette-outline"></ion-icon> Customize Theme...
+                    <ion-icon name="color-palette-outline" class="me-1"></ion-icon> Customize Theme...
                   </button>
                 </div>
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" role="switch" id="set-enable-notifications" checked />
-                      <label class="form-check-label small" for="set-enable-notifications">Show System Notification & Toast on Task Complete</label>
+                <div class="settings-group-card">
+                  <!-- Row 1: Task Notifications -->
+                  <label class="settings-row clickable" for="set-enable-notifications" title="Toggle desktop notifications when jobs complete">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Task Notifications</div>
+                      <div class="text-body-secondary small">Show desktop notification and banner toast when media processing completes</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-enable-notifications" checked />
+                    </div>
+                  </label>
+
+                  <!-- Row 2: Reduce Motion -->
+                  <label class="settings-row clickable" for="set-disable-animations" title="Disable UI animations and transitions">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Reduce Motion</div>
+                      <div class="text-body-secondary small">Disable UI animations, view transitions, and zoom effects</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-disable-animations" />
+                    </div>
+                  </label>
+
+                  <!-- Row 3: Enable User Kits -->
+                  <label class="settings-row clickable" for="set-enable-user-kits" title="Toggle User Kits in the sidebar">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">User Kits &amp; Custom Modules</div>
+                      <div class="text-body-secondary small">Enable custom scriptable modules, block builder, and runner in the sidebar</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-enable-user-kits" />
+                    </div>
+                  </label>
+
+                  <!-- Row 4: Use System Title Bar -->
+                  <label class="settings-row clickable" for="set-use-system-titlebar" title="Toggle between unified custom header and standard system window title bar">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Use System Title Bar</div>
+                      <div class="text-body-secondary small">Use native operating system title bar instead of custom integrated header bar</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-use-system-titlebar" />
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+
+              <!-- Section: Storage & Directories -->
+              <div class="mb-4">
+                <div class="section-divider-header mb-2">Storage &amp; Directories</div>
+                <div class="settings-group-card">
+                  <!-- Row 1: Default Output Directory -->
+                  <div class="settings-row-content">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                      <label class="fw-medium text-body mb-0" for="set-output-dir">Default Output Directory</label>
+                    </div>
+                    <div class="text-body-secondary small mb-2">Default folder where converted and processed media files are saved</div>
+                    <div class="input-group input-group-sm">
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Choose output folder">
+                        <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Browse
+                      </button>
+                      <input type="text" class="form-control font-monospace" id="set-output-dir" value="C:\Users\User\Videos" readonly />
+                    </div>
+
+                  </div>
+
+                  <!-- Row 2: Prompt Overwrite -->
+                  <label class="settings-row clickable" for="set-prompt-overwrite" title="Prompt before overwriting existing files">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Overwrite Confirmation</div>
+                      <div class="text-body-secondary small">Prompt for confirmation before overwriting an existing destination file</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-prompt-overwrite" checked />
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Section: Hardware Acceleration & Performance -->
+              <div class="mb-4">
+                <div class="section-divider-header mb-2">Hardware Acceleration &amp; Performance</div>
+                <div class="settings-group-card">
+                  <!-- Row 1: Hardware Acceleration Engine -->
+                  <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                    <div class="me-sm-3 flex-grow-1">
+                      <label class="fw-medium text-body mb-0" for="set-hwaccel">Hardware Acceleration Engine</label>
+                      <div class="text-body-secondary small">Select GPU encoder (NVIDIA NVENC, Intel QuickSync, AMD AMF) or CPU</div>
+                    </div>
+                    <div class="flex-shrink-0" style="min-width: 220px; max-width: 320px;">
+                      <select class="form-select form-select-sm" id="set-hwaccel" title="Select hardware acceleration engine">
+                        <option value="auto" selected>Auto</option>
+                        <option value="cuda">NVIDIA NVENC (CUDA)</option>
+                        <option value="qsv">Intel QuickSync (QSV)</option>
+                        <option value="amf">AMD AMF</option>
+                        <option value="cpu">CPU</option>
+                      </select>
                     </div>
                   </div>
-                  <div class="col-md-6">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input" type="checkbox" role="switch" id="set-disable-animations" />
-                      <label class="form-check-label small" for="set-disable-animations">Disable UI Animations & Transitions (Reduce Motion)</label>
+
+                  <!-- Row 2: Encoding Threads -->
+                  <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                    <div class="me-sm-3 flex-grow-1">
+                      <label class="fw-medium text-body mb-0" for="set-threads">Encoding Threads</label>
+                      <div class="text-body-secondary small">Number of parallel worker threads allocated to FFmpeg operations</div>
+                    </div>
+                    <div class="flex-shrink-0" style="min-width: 160px; max-width: 200px;">
+                      <select class="form-select form-select-sm" id="set-threads" title="Select encoding thread count">
+                        <option value="0" selected>Auto (0)</option>
+                        <option value="2">2 Threads</option>
+                        <option value="4">4 Threads</option>
+                        <option value="8">8 Threads</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section: Encoding Defaults -->
+              <div class="mb-4">
+                <div class="section-divider-header mb-2">Encoding Defaults</div>
+                <div class="settings-group-card">
+                  <!-- Row 1: Default Video Codec -->
+                  <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                    <div class="me-sm-3 flex-grow-1">
+                      <label class="fw-medium text-body mb-0" for="set-def-vcodec">Default Video Codec</label>
+                      <div class="text-body-secondary small">Primary codec format for video encoding across conversion tools</div>
+                    </div>
+                    <div class="flex-shrink-0" style="min-width: 240px; max-width: 340px;">
+                      <select class="form-select form-select-sm" id="set-def-vcodec" title="Default video codec">
+                        <option value="libx264" selected>H.264 (libx264 - Maximum Compatibility)</option>
+                        <option value="libx265">H.265 / HEVC (libx265)</option>
+                        <option value="libsvtav1">AV1 (libsvtav1)</option>
+                        <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Row 2: Default Speed Preset -->
+                  <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                    <div class="me-sm-3 flex-grow-1">
+                      <label class="fw-medium text-body mb-0" for="set-def-speed">Default Speed Preset</label>
+                      <div class="text-body-secondary small">Balancing compression efficiency versus encoding execution speed</div>
+                    </div>
+                    <div class="flex-shrink-0" style="min-width: 180px; max-width: 220px;">
+                      <select class="form-select form-select-sm" id="set-def-speed" title="Default speed preset">
+                        <option value="ultrafast">Ultrafast</option>
+                        <option value="veryfast">Very Fast</option>
+                        <option value="fast">Fast</option>
+                        <option value="medium" selected>Medium (Standard)</option>
+                        <option value="slow">Slow</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Row 3: Default Audio Format -->
+                  <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                    <div class="me-sm-3 flex-grow-1">
+                      <label class="fw-medium text-body mb-0" for="set-def-aformat">Default Audio Format</label>
+                      <div class="text-body-secondary small">Preferred container format when extracting or saving standalone audio</div>
+                    </div>
+                    <div class="flex-shrink-0" style="min-width: 180px; max-width: 220px;">
+                      <select class="form-select form-select-sm" id="set-def-aformat" title="Default audio format">
+                        <option value="mp3" selected>MP3 (.mp3)</option>
+                        <option value="m4a">M4A (.m4a / AAC)</option>
+                        <option value="opus">Opus (.opus)</option>
+                        <option value="flac">FLAC (.flac)</option>
+                        <option value="wav">WAV (.wav)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Row 4: Default Audio Bitrate -->
+                  <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                    <div class="me-sm-3 flex-grow-1">
+                      <label class="fw-medium text-body mb-0" for="set-def-abitrate">Default Audio Bitrate</label>
+                      <div class="text-body-secondary small">Target audio bitrate for re-encoded audio tracks</div>
+                    </div>
+                    <div class="flex-shrink-0" style="min-width: 180px; max-width: 220px;">
+                      <select class="form-select form-select-sm" id="set-def-abitrate" title="Default audio bitrate">
+                        <option value="320k">320 kbps</option>
+                        <option value="256k" selected>256 kbps</option>
+                        <option value="192k">192 kbps</option>
+                        <option value="128k">128 kbps</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -1813,222 +2005,101 @@
 
               <!-- Section: yt-dlp Downloader Configuration -->
               <div class="mb-4">
-                <div class="section-divider-header">yt-dlp Downloader Configuration</div>
-                <div class="row g-3 mb-2">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-ytdlp-cookies">Browser Cookies Source (For Member / Age-Gated Content)</label>
-                    <select class="form-select form-select-sm" id="set-ytdlp-cookies">
-                      <option value="none" selected>None / Anonymous Download</option>
-                      <option value="chrome">Google Chrome</option>
-                      <option value="firefox">Mozilla Firefox</option>
-                      <option value="edge">Microsoft Edge</option>
-                      <option value="brave">Brave Browser</option>
-                      <option value="opera">Opera</option>
-                      <option value="vivaldi">Vivaldi</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-ytdlp-ratelimit">Download Speed Limit</label>
-                    <select class="form-select form-select-sm" id="set-ytdlp-ratelimit">
-                      <option value="none" selected>Unlimited (Maximum Bandwidth)</option>
-                      <option value="50M">50 MB/s</option>
-                      <option value="20M">20 MB/s</option>
-                      <option value="10M">10 MB/s</option>
-                      <option value="5M">5 MB/s</option>
-                      <option value="2M">2 MB/s</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="row g-3 mb-2">
-                  <div class="col-md-6">
-                    <div class="form-check form-switch pt-1">
-                      <input class="form-check-input" type="checkbox" role="switch" id="set-ytdlp-sponsorblock" />
-                      <label class="form-check-label" for="set-ytdlp-sponsorblock">Auto-Remove Sponsored Segments (SponsorBlock)</label>
+                <div class="section-divider-header mb-2">yt-dlp Downloader Configuration</div>
+                <div class="settings-group-card">
+                  <!-- Row 1: Browser Cookies Source -->
+                  <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                    <div class="me-sm-3 flex-grow-1">
+                      <label class="fw-medium text-body mb-0" for="set-ytdlp-cookies">Browser Cookies Source</label>
+                      <div class="text-body-secondary small">Import browser cookies for member-only or age-gated media downloads</div>
+                    </div>
+                    <div class="flex-shrink-0" style="min-width: 220px; max-width: 280px;">
+                      <select class="form-select form-select-sm" id="set-ytdlp-cookies" title="Select browser cookies source">
+                        <option value="none" selected>None / Anonymous Download</option>
+                        <option value="chrome">Google Chrome</option>
+                        <option value="firefox">Mozilla Firefox</option>
+                        <option value="edge">Microsoft Edge</option>
+                        <option value="brave">Brave Browser</option>
+                        <option value="opera">Opera</option>
+                        <option value="vivaldi">Vivaldi</option>
+                      </select>
                     </div>
                   </div>
-                  <div class="col-md-6">
-                    <div class="form-check form-switch pt-1">
-                      <input class="form-check-input" type="checkbox" role="switch" id="set-ytdlp-geo-bypass" checked />
-                      <label class="form-check-label" for="set-ytdlp-geo-bypass">Bypass Geographic Restrictions</label>
-                    </div>
-                  </div>
-                </div>
-                <div class="row g-3 mb-2">
-                  <div class="col-md-12">
-                    <div class="form-check form-switch pt-1">
-                      <input class="form-check-input" type="checkbox" role="switch" id="set-ytdlp-autopaste" checked />
-                      <label class="form-check-label" for="set-ytdlp-autopaste">Auto-Paste Video Links from Clipboard on Tool Switch & Window Focus</label>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label class="form-label small fw-medium" for="set-ytdlp-custom-args">Global Additional yt-dlp Flags</label>
-                  <input type="text" class="form-control form-control-sm font-monospace" id="set-ytdlp-custom-args" placeholder="--concurrent-fragments 5 --retries 10" />
-                  <div class="text-body-secondary small mt-1" style="font-size: 0.75rem;">Flags, cookies, and rate limits configured here automatically apply across all yt-dlp downloader operations.</div>
-                </div>
-              </div>
 
-              <!-- Section 1: Storage and Paths -->
-              <div class="mb-4">
-                <div class="section-divider-header">Storage and Directories</div>
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-output-dir">Default Output Directory</label>
-                    <div class="input-group input-group-sm">
-                      <input type="text" class="form-control" id="set-output-dir" value="C:\Users\User\Videos" readonly />
-                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-outdir" title="Choose output folder"><ion-icon name="folder-open-outline"></ion-icon></button>
+                  <!-- Row 2: Download Speed Limit -->
+                  <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                    <div class="me-sm-3 flex-grow-1">
+                      <label class="fw-medium text-body mb-0" for="set-ytdlp-ratelimit">Download Speed Limit</label>
+                      <div class="text-body-secondary small">Throttle maximum network bandwidth consumed per active download</div>
+                    </div>
+                    <div class="flex-shrink-0" style="min-width: 220px; max-width: 280px;">
+                      <select class="form-select form-select-sm" id="set-ytdlp-ratelimit" title="Select download speed limit">
+                        <option value="none" selected>Unlimited (Maximum Bandwidth)</option>
+                        <option value="50M">50 MB/s</option>
+                        <option value="20M">20 MB/s</option>
+                        <option value="10M">10 MB/s</option>
+                        <option value="5M">5 MB/s</option>
+                        <option value="2M">2 MB/s</option>
+                      </select>
                     </div>
                   </div>
-                  <div class="col-md-6 d-flex align-items-end">
-                    <div class="form-check form-switch pb-1">
-                      <input class="form-check-input" type="checkbox" role="switch" id="set-prompt-overwrite" checked />
-                      <label class="form-check-label small" for="set-prompt-overwrite">Prompt before overwriting existing files</label>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              <!-- Section 2: Hardware Acceleration & Performance -->
-              <div class="mb-4">
-                <div class="section-divider-header">Hardware Acceleration & Performance</div>
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-hwaccel">Hardware Acceleration Engine</label>
-                    <select class="form-select form-select-sm" id="set-hwaccel">
-                      <option value="auto" selected>Auto</option>
-                      <option value="cuda">NVIDIA NVENC (CUDA)</option>
-                      <option value="qsv">Intel QuickSync (QSV)</option>
-                      <option value="amf">AMD AMF</option>
-                      <option value="cpu">CPU</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-threads">Encoding Threads</label>
-                    <select class="form-select form-select-sm" id="set-threads">
-                      <option value="0" selected>Auto (0)</option>
-                      <option value="2">2 Threads</option>
-                      <option value="4">4 Threads</option>
-                      <option value="8">8 Threads</option>
-                    </select>
+                  <!-- Row 3: Switch - Auto-Remove Sponsored Segments (SponsorBlock) -->
+                  <label class="settings-row clickable" for="set-ytdlp-sponsorblock" title="Auto-Remove Sponsored Segments with SponsorBlock">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Auto-Remove Sponsored Segments (SponsorBlock)</div>
+                      <div class="text-body-secondary small">Skip sponsor integrations, intros, self-promos, and credits</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-ytdlp-sponsorblock" />
+                    </div>
+                  </label>
+
+                  <!-- Row 4: Switch - Bypass Geographic Restrictions -->
+                  <label class="settings-row clickable" for="set-ytdlp-geo-bypass" title="Bypass geographic region blocks">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Bypass Geographic Restrictions</div>
+                      <div class="text-body-secondary small">Spoof client headers to bypass regional geo-blocking when supported</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-ytdlp-geo-bypass" checked />
+                    </div>
+                  </label>
+
+                  <!-- Row 5: Switch - Auto-Paste Video Links -->
+                  <label class="settings-row clickable" for="set-ytdlp-autopaste" title="Auto-Paste links from clipboard">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Auto-Paste Video Links from Clipboard</div>
+                      <div class="text-body-secondary small">Automatically paste media URLs on downloader tool switch &amp; window focus</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-ytdlp-autopaste" checked />
+                    </div>
+                  </label>
+
+                  <!-- Row 6: Global Additional yt-dlp Flags -->
+                  <div class="settings-row-content">
+                    <label class="fw-medium text-body mb-1" for="set-ytdlp-custom-args">Global Additional yt-dlp Flags</label>
+                    <div class="text-body-secondary small mb-2">Flags, cookies, and rate limits configured here automatically apply across all yt-dlp downloader operations.</div>
+                    <input type="text" class="form-control form-control-sm font-monospace" id="set-ytdlp-custom-args" placeholder="--concurrent-fragments 5 --retries 10" />
                   </div>
                 </div>
               </div>
 
-              <!-- Section 3: Encoding Defaults -->
-              <div class="mb-4">
-                <div class="section-divider-header">Encoding Defaults</div>
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-def-vcodec">Default Video Codec</label>
-                    <select class="form-select form-select-sm" id="set-def-vcodec">
-                      <option value="libx264" selected>H.264 (libx264 - Maximum Compatibility)</option>
-                      <option value="libx265">H.265 / HEVC (libx265)</option>
-                      <option value="libsvtav1">AV1 (libsvtav1)</option>
-                      <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-def-speed">Default Speed Preset</label>
-                    <select class="form-select form-select-sm" id="set-def-speed">
-                      <option value="ultrafast">Ultrafast</option>
-                      <option value="veryfast">Very Fast</option>
-                      <option value="fast">Fast</option>
-                      <option value="medium" selected>Medium (Standard)</option>
-                      <option value="slow">Slow</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-def-aformat">Default Audio Format</label>
-                    <select class="form-select form-select-sm" id="set-def-aformat">
-                      <option value="mp3" selected>MP3 (.mp3)</option>
-                      <option value="m4a">M4A (.m4a / AAC)</option>
-                      <option value="opus">Opus (.opus)</option>
-                      <option value="flac">FLAC (.flac)</option>
-                      <option value="wav">WAV (.wav)</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label small fw-medium" for="set-def-abitrate">Default Audio Bitrate</label>
-                    <select class="form-select form-select-sm" id="set-def-abitrate">
-                      <option value="320k">320 kbps</option>
-                      <option value="256k" selected>256 kbps</option>
-                      <option value="192k">192 kbps</option>
-                      <option value="128k">128 kbps</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Section 4: Executables & Environment (Horizontal Scrolling Cards) -->
+              <!-- Section: Executables & Environment (Horizontal Scrolling Cards) -->
               <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Executables & Environment</div>
+                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Executables &amp; Environment</div>
                   <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-manage-tools" data-bs-toggle="modal" data-bs-target="#manage-tools-modal" title="Manage, update, and check binaries">
-                    <ion-icon name="construct-outline"></ion-icon> Manage Tools...
+                    <ion-icon name="construct-outline" class="me-1"></ion-icon> Manage Tools...
                   </button>
                 </div>
                 
-                <!-- Scrollable Cards Row with Edge Gradient Shading -->
-                <div class="scroll-cards-wrapper position-relative">
-                  <div class="scroll-cards-container d-flex flex-nowrap overflow-x-auto py-2 px-1" id="executables-scroll-container" style="gap: 14px;">
-                    <!-- Card 1: FFmpeg -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
-                      <div class="d-flex align-items-start justify-content-between">
-                        <ion-icon name="film-outline" class="fs-2 text-primary lh-1"></ion-icon>
-                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" id="status-ffmpeg-installed" title="Installed"></ion-icon>
-                      </div>
-                      <div class="mt-auto">
-                        <div class="fs-5 fw-light text-body lh-1 mb-1">FFmpeg</div>
-                        <div class="text-body-secondary small" style="font-size: 0.75rem;">Core Video & Audio Engine</div>
-                      </div>
-                    </div>
-
-                    <!-- Card 2: FFprobe -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
-                      <div class="d-flex align-items-start justify-content-between">
-                        <ion-icon name="information-circle-outline" class="fs-2 text-info lh-1"></ion-icon>
-                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" id="status-ffprobe-installed" title="Installed"></ion-icon>
-                      </div>
-                      <div class="mt-auto">
-                        <div class="fs-5 fw-light text-body lh-1 mb-1">FFprobe</div>
-                        <div class="text-body-secondary small" style="font-size: 0.75rem;">Media Stream Analyzer</div>
-                      </div>
-                    </div>
-
-                    <!-- Card 3: yt-dlp -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
-                      <div class="d-flex align-items-start justify-content-between">
-                        <ion-icon name="cloud-download-outline" class="fs-2 text-danger lh-1"></ion-icon>
-                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" id="status-ytdlp-installed" title="Installed"></ion-icon>
-                      </div>
-                      <div class="mt-auto">
-                        <div class="fs-5 fw-light text-body lh-1 mb-1">yt-dlp</div>
-                        <div class="text-body-secondary small" style="font-size: 0.75rem;">Media & Video Downloader</div>
-                      </div>
-                    </div>
-
-                    <!-- Card 4: Deno -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
-                      <div class="d-flex align-items-start justify-content-between">
-                        <ion-icon name="hardware-chip-outline" class="fs-2 text-success lh-1"></ion-icon>
-                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" id="status-deno-installed" title="Installed"></ion-icon>
-                      </div>
-                      <div class="mt-auto">
-                        <div class="fs-5 fw-light text-body lh-1 mb-1">Deno</div>
-                        <div class="text-body-secondary small" style="font-size: 0.75rem;">Runtime & Script Runner</div>
-                      </div>
-                    </div>
-
-                    <!-- Card 5: Python -->
-                    <div class="card p-3 border rounded bg-body-tertiary flex-shrink-0 env-tool-card">
-                      <div class="d-flex align-items-start justify-content-between">
-                        <ion-icon name="code-slash-outline" class="fs-2 text-warning lh-1"></ion-icon>
-                        <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" title="Available"></ion-icon>
-                      </div>
-                      <div class="mt-auto">
-                        <div class="fs-5 fw-light text-body lh-1 mb-1">Python</div>
-                        <div class="text-body-secondary small" style="font-size: 0.75rem;">AI & Image Neural Engine</div>
-                      </div>
+                <div class="settings-group-card executables-group-card">
+                  <!-- Scrollable Cards Row with Edge Gradient Shading -->
+                  <div class="scroll-cards-wrapper position-relative">
+                    <div class="scroll-cards-container d-flex flex-nowrap overflow-x-auto p-0" id="executables-scroll-container" style="gap: 14px;">
+                      <!-- Dynamic Executable Cards rendered by tools_manager.js from tools-manifest.json -->
                     </div>
                   </div>
                 </div>
@@ -2118,9 +2189,9 @@
         </main>
       </div>
 
-      <!-- Unified Bottom Status & Control Bar Row -->
-      <footer class="d-flex border-top bg-body flex-shrink-0" style="height: 56px;">
-        <div class="d-none d-md-flex align-items-center p-2 border-end flex-shrink-0 bottom-settings-col" style="width: 280px;">
+      <!-- Unified Bottom Status & Control Bar Row — single footer row: Settings (left 280px) + status bar (right). Left cell has frosted glass so scroll behind it blurs. -->
+      <footer class="d-flex border-top flex-shrink-0" id="bottom-footer-bar" style="height: 56px;">
+        <div class="d-none d-md-flex align-items-center p-2 border-end flex-shrink-0" id="footer-settings-col" style="width: 280px;">
           <nav class="nav nav-pills w-100 position-relative" id="settings-nav">
             <div class="sidebar-indicator" id="settings-indicator"></div>
             <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
@@ -2156,70 +2227,20 @@
           </div>
           <div class="modal-body p-3">
             
-            <!-- Tool 1: yt-dlp -->
-            <div class="p-3 border rounded mb-3 bg-body-tertiary">
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
-                  <div class="fw-semibold text-body">yt-dlp</div>
-                  <div class="text-body-secondary small">Command-line media audio and video downloader engine.</div>
-                </div>
-                <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-ytdlp">
-                  <ion-icon name="repeat-outline"></ion-icon> Update yt-dlp
-                </button>
-              </div>
-              <div class="d-flex gap-4 mt-2 small">
-                <div>Installed: <span class="text-body fw-medium" id="ytdlp-local-ver"><span class="meta-loading-pulse">...</span></span></div>
-                <div>Latest: <span class="text-body fw-medium" id="ytdlp-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
+            <!-- Update Error / Status Alert Banner -->
+            <div class="alert alert-danger alert-dismissible fade show py-2 px-3 small d-none" id="tool-update-alert" role="alert">
+              <div class="d-flex align-items-center gap-2">
+                <ion-icon name="alert-circle-outline" class="fs-5 flex-shrink-0 text-danger"></ion-icon>
+                <div class="flex-grow-1" id="tool-update-alert-msg"></div>
+                <button type="button" class="btn-close py-2" id="btn-close-tool-alert" aria-label="Close"></button>
               </div>
             </div>
 
-            <!-- Tool 2: Deno -->
-            <div class="p-3 border rounded mb-3 bg-body-tertiary">
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
-                  <div class="fw-semibold text-body">Deno</div>
-                  <div class="text-body-secondary small">JavaScript/TypeScript runtime engine used for YouTube deciphering.</div>
-                </div>
-                <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-deno">
-                  <ion-icon name="repeat-outline"></ion-icon> Update Deno
-                </button>
-              </div>
-              <div class="d-flex gap-4 mt-2 small">
-                <div>Installed: <span class="text-body fw-medium" id="deno-local-ver"><span class="meta-loading-pulse">...</span></span></div>
-                <div>Latest: <span class="text-body fw-medium" id="deno-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
-              </div>
-            </div>
-
-            <!-- Tool 3: FFmpeg & FFprobe -->
-            <div class="p-3 border rounded mb-3 bg-body-tertiary">
-              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <div>
-                  <div class="fw-semibold text-body">FFmpeg & FFprobe</div>
-                  <div class="text-body-secondary small">Core video and audio transcoding, filtering, and media probing suite.</div>
-                </div>
-                <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-ffmpeg">
-                  <ion-icon name="repeat-outline"></ion-icon> Update FFmpeg
-                </button>
-              </div>
-              <div class="d-flex gap-4 mt-2 small">
-                <div>Installed: <span class="text-body fw-medium" id="ffmpeg-local-ver"><span class="meta-loading-pulse">...</span></span></div>
-                <div>Latest: <span class="text-body fw-medium" id="ffmpeg-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
-              </div>
-            </div>
-
-            <!-- Update progress banner (conditional) -->
-            <div class="mb-3 d-none ui-zoom-in" id="tool-update-progress-container">
-              <div class="d-flex justify-content-between small text-body-secondary mb-1">
-                <span id="tool-update-status">Downloading update...</span>
-                <span id="tool-update-pct">0%</span>
-              </div>
-              <div class="progress" style="height: 6px;">
-                <div class="progress-bar progress-bar-striped progress-bar-animated" id="tool-update-bar" role="progressbar" style="width: 100%"></div>
-              </div>
-            </div>
+            <!-- Dynamic Tool Rows rendered by tools_manager.js from tools-manifest.json -->
+            <div id="manage-tools-list-container"></div>
 
             <!-- About Tools Collapsible / Information Box -->
-            <div class="p-2 border rounded bg-body small text-body-secondary">
+            <div class="p-2 border rounded bg-body small text-body-secondary mb-0">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <div class="fw-medium text-body">About Installed Binaries</div>
                 <button class="btn btn-link btn-sm p-0 text-decoration-none d-inline-flex align-items-center gap-1" type="button" id="btn-open-bin-folder" title="Open binaries folder in File Explorer">
@@ -2230,10 +2251,21 @@
             </div>
 
           </div>
-          <div class="modal-footer border-top py-2 px-3 justify-content-between">
+          <div class="modal-footer border-0 pt-2 pb-3 px-3 justify-content-between align-items-center">
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-check-all-updates">
               <ion-icon name="refresh-outline"></ion-icon> Check for Updates
             </button>
+            <div class="text-body-secondary small d-none align-items-center gap-2" id="tool-download-speed-badge">
+              <span class="d-inline-flex align-items-center gap-1">
+                <ion-icon name="speedometer-outline" class="text-primary"></ion-icon>
+                <span id="tool-download-speed-text">-- MB/s</span>
+              </span>
+              <span class="text-body-tertiary" id="tool-download-speed-sep">&bull;</span>
+              <span class="d-inline-flex align-items-center gap-1 text-body-secondary" id="tool-download-eta-container">
+                <ion-icon name="time-outline" class="text-secondary"></ion-icon>
+                <span id="tool-download-eta-text">-- left</span>
+              </span>
+            </div>
             <button type="button" class="btn btn-primary btn-sm px-3" data-bs-dismiss="modal">Done</button>
           </div>
         </div>

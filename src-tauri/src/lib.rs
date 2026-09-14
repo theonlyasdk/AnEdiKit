@@ -229,7 +229,7 @@ pub struct ToolVersionsInfo {
 }
 
 #[tauri::command]
-fn check_tool_versions() -> ToolVersionsInfo {
+fn check_tool_versions() -> HashMap<String, String> {
     let t_ytdlp = std::thread::spawn(|| {
         let bin = find_binary("yt-dlp");
         let mut cmd = Command::new(&bin);
@@ -256,8 +256,13 @@ fn check_tool_versions() -> ToolVersionsInfo {
             if out.status.success() {
                 if let Ok(s) = String::from_utf8(out.stdout) {
                     if let Some(line1) = s.lines().next() {
-                        let ver = line1.replace("deno", "").trim().to_string();
-                        return if ver.is_empty() { line1.trim().to_string() } else { ver };
+                        let parts: Vec<&str> = line1.split_whitespace().collect();
+                        if parts.len() >= 2 {
+                            return parts[1].trim_start_matches('v').to_string();
+                        } else {
+                            let ver = line1.replace("deno", "").trim().trim_start_matches('v').to_string();
+                            return if ver.is_empty() { line1.trim().to_string() } else { ver };
+                        }
                     }
                 }
             }
@@ -274,12 +279,26 @@ fn check_tool_versions() -> ToolVersionsInfo {
         if let Ok(out) = cmd.output() {
             if out.status.success() {
                 if let Ok(s) = String::from_utf8(out.stdout) {
+                    // Extract date stamp or release version e.g. from extra-version=20260811 or N-...-20260811
+                    if let Some(pos) = s.find("extra-version=") {
+                        let sub = &s[pos + 14..];
+                        let date_str = sub.chars().take_while(|c| c.is_ascii_digit()).collect::<String>();
+                        if date_str.len() == 8 {
+                            return format!("{}-{}-{}", &date_str[0..4], &date_str[4..6], &date_str[6..8]);
+                        }
+                    }
                     if let Some(line1) = s.lines().next() {
                         let parts: Vec<&str> = line1.split_whitespace().collect();
                         if parts.len() >= 3 {
-                            return parts[2].to_string();
-                        } else {
-                            return line1.trim().to_string();
+                            let raw_ver = parts[2];
+                            // Check if git commit/date format e.g. N-126060-g03dc244a69-20260811
+                            if let Some(last_dash) = raw_ver.rfind('-') {
+                                let date_candidate = &raw_ver[last_dash + 1..];
+                                if date_candidate.len() == 8 && date_candidate.chars().all(|c| c.is_ascii_digit()) {
+                                    return format!("{}-{}-{}", &date_candidate[0..4], &date_candidate[4..6], &date_candidate[6..8]);
+                                }
+                            }
+                            return raw_ver.to_string();
                         }
                     }
                 }
@@ -297,12 +316,24 @@ fn check_tool_versions() -> ToolVersionsInfo {
         if let Ok(out) = cmd.output() {
             if out.status.success() {
                 if let Ok(s) = String::from_utf8(out.stdout) {
+                    if let Some(pos) = s.find("extra-version=") {
+                        let sub = &s[pos + 14..];
+                        let date_str = sub.chars().take_while(|c| c.is_ascii_digit()).collect::<String>();
+                        if date_str.len() == 8 {
+                            return format!("{}-{}-{}", &date_str[0..4], &date_str[4..6], &date_str[6..8]);
+                        }
+                    }
                     if let Some(line1) = s.lines().next() {
                         let parts: Vec<&str> = line1.split_whitespace().collect();
                         if parts.len() >= 3 {
-                            return parts[2].to_string();
-                        } else {
-                            return line1.trim().to_string();
+                            let raw_ver = parts[2];
+                            if let Some(last_dash) = raw_ver.rfind('-') {
+                                let date_candidate = &raw_ver[last_dash + 1..];
+                                if date_candidate.len() == 8 && date_candidate.chars().all(|c| c.is_ascii_digit()) {
+                                    return format!("{}-{}-{}", &date_candidate[0..4], &date_candidate[4..6], &date_candidate[6..8]);
+                                }
+                            }
+                            return raw_ver.to_string();
                         }
                     }
                 }
@@ -311,12 +342,29 @@ fn check_tool_versions() -> ToolVersionsInfo {
         "Not Found".to_string()
     });
 
-    ToolVersionsInfo {
-        ytdlp_installed: t_ytdlp.join().unwrap_or_else(|_| "Not Found".into()),
-        deno_installed: t_deno.join().unwrap_or_else(|_| "Not Found".into()),
-        ffmpeg_installed: t_ffmpeg.join().unwrap_or_else(|_| "Not Found".into()),
-        ffprobe_installed: t_ffprobe.join().unwrap_or_else(|_| "Not Found".into()),
-    }
+    let ytdlp_ver = t_ytdlp.join().unwrap_or_else(|_| "Not Found".into());
+    let deno_ver = t_deno.join().unwrap_or_else(|_| "Not Found".into());
+    let ffmpeg_ver = t_ffmpeg.join().unwrap_or_else(|_| "Not Found".into());
+    let ffprobe_ver = t_ffprobe.join().unwrap_or_else(|_| "Not Found".into());
+
+    let mut map = HashMap::new();
+    map.insert("ytdlp".to_string(), ytdlp_ver.clone());
+    map.insert("yt-dlp".to_string(), ytdlp_ver.clone());
+    map.insert("ytdlp_installed".to_string(), ytdlp_ver);
+
+    map.insert("deno".to_string(), deno_ver.clone());
+    map.insert("deno_installed".to_string(), deno_ver);
+
+    map.insert("ffmpeg".to_string(), ffmpeg_ver.clone());
+    map.insert("ffmpeg_installed".to_string(), ffmpeg_ver);
+
+    map.insert("ffprobe".to_string(), ffprobe_ver.clone());
+    map.insert("ffprobe_installed".to_string(), ffprobe_ver);
+
+    map.insert("python".to_string(), "Available".to_string());
+    map.insert("python_installed".to_string(), "Available".to_string());
+
+    map
 }
 
 fn find_binary(bin: &str) -> String {
@@ -1078,7 +1126,24 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
         let ytdlp_bin = find_binary("yt-dlp");
         let mut cmd = Command::new(&ytdlp_bin);
         // Force newline and no-colors mode for reliable stream progress parsing
-        let mut full_args = vec!["--newline".to_string(), "--no-colors".to_string(), "--progress".to_string()];
+        // (ytdlnis: --newline). Don't duplicate flags the frontend already sent.
+        let mut full_args: Vec<String> = Vec::new();
+        let has = |f: &str| args.iter().any(|a| a == f);
+        if !has("--newline") {
+            full_args.push("--newline".to_string());
+        }
+        if !has("--no-colors") && !has("--no-color") {
+            full_args.push("--no-colors".to_string());
+        }
+        if !has("--progress") {
+            full_args.push("--progress".to_string());
+        }
+        // Final filepath report (ytdlnis: --print after_move:'%(filepath)s').
+        // Lets the UI show the real file instead of just the output folder.
+        if !args.iter().any(|a| a == "after_move:filepath") && !args.iter().any(|a| a.contains("after_move")) {
+            full_args.push("--print".to_string());
+            full_args.push("after_move:filepath:%(filepath,_filename)s".to_string());
+        }
         full_args.extend(args);
         cmd.args(&full_args);
         cmd.stdout(Stdio::piped());
@@ -1111,14 +1176,17 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
 
-        // Stdout reader for yt-dlp download progress and stdout logs
+        // Stdout reader for yt-dlp download progress and stdout logs.
+        // NOTE: yt-dlp writes progress to stdout with --newline, but warnings,
+        // fragment retries and some extractor logs go to stderr -- so both
+        // threads below share the same parsing rules (ytdlnis: StreamGobbler).
         let app_out = app.clone();
         let out_handle = std::thread::spawn(move || {
             if let Some(out) = stdout {
                 let mut cur_pct = 0u32;
-                let mut cur_speed = "0 MiB/s".to_string();
-                let mut cur_eta = "--:--".to_string();
-                let mut cur_size = "".to_string();
+                let mut cur_speed = String::new();
+                let mut cur_eta = String::new();
+                let mut cur_size = String::new();
                 let mut cur_item = 0u32;
                 let mut total_items = 0u32;
                 let mut current_item_name = String::new();
@@ -1131,6 +1199,16 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                     // Emit log line
                     let _ = app_out.emit("ffmpeg-log", LogPayload { line: line.clone() });
 
+                    // Final filepath report: "filepath:/abs/path/file.mp4"
+                    if let Some(path) = line.strip_prefix("filepath:") {
+                        let path = path.trim();
+                        if !path.is_empty() && path != "NA" {
+                            let name = path.split(['/', '\\']).last().unwrap_or(path);
+                            current_item_name = name.to_string();
+                        }
+                        return;
+                    }
+
                     // Parse playlist / batch item progress: [download] Downloading item 3 of 12
                     if let Some(item_idx) = line.find("Downloading item ")
                         .or_else(|| line.find("Downloading video "))
@@ -1139,7 +1217,8 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                         let parts: Vec<&str> = sub.split_whitespace().collect();
                         if let Some(of_pos) = parts.iter().position(|&w| w == "of") {
                             if of_pos > 0 && of_pos + 1 < parts.len() {
-                                if let (Ok(cur), Ok(tot)) = (parts[of_pos - 1].parse::<u32>(), parts[of_pos + 1].parse::<u32>()) {
+                                let tot_raw = parts[of_pos + 1].trim_matches(|c| c == ',' || c == '.' || c == ')');
+                                if let (Ok(cur), Ok(tot)) = (parts[of_pos - 1].parse::<u32>(), tot_raw.parse::<u32>()) {
                                     cur_item = cur;
                                     total_items = tot;
                                 }
@@ -1156,6 +1235,7 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                                 current_item_name = name.to_string();
                             }
                         }
+                        return;
                     } else if line.contains("[Merger] Merging formats into \"") {
                         if let Some(idx) = line.find("into \"") {
                             let path = line[idx + 6..].trim().trim_matches('"');
@@ -1164,37 +1244,71 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                                 current_item_name = name.to_string();
                             }
                         }
+                        return;
+                    } else if line.starts_with("[Info] ") && line.contains("Downloading") {
+                        // e.g. "[Info] Downloading 1 format(s): 248+251" -- post-selection stage
+                        let _ = app_out.emit(
+                            "ffmpeg-progress",
+                            ProgressPayload {
+                                time: "Selecting formats...".to_string(),
+                                eta: None,
+                                fps: "".to_string(),
+                                speed: cur_speed.clone(),
+                                bitrate: cur_size.clone(),
+                                pct: cur_pct.min(99),
+                                playlist_item: if total_items > 0 { Some(cur_item) } else { None },
+                                playlist_total: if total_items > 0 { Some(total_items) } else { None },
+                                current_item_title: if !current_item_name.is_empty() { Some(current_item_name.clone()) } else { None },
+                            },
+                        );
+                        return;
                     }
 
                     // Parse download percentage: [download]  45.2% of  120.50MiB at 12.34MiB/s ETA 00:05
                     // Or: [download] 100% of 15.00MiB in 00:02
-                    if line.contains("[download]") && line.contains('%') {
+                    // Skip non-progress lines like "[download] NA% ..." or fragment notices.
+                    if line.contains("[download]") && line.contains('%') && !line.contains("NA%") {
                         if let Some(pct_idx) = line.find('%') {
                             let before = &line[..pct_idx];
-                            let num_str: String = before.chars().rev().take_while(|c| c.is_digit(10) || *c == '.' || *c == ' ').collect();
+                            let num_str: String = before.chars().rev().take_while(|c| c.is_ascii_digit() || *c == '.' || *c == ' ').collect();
                             let clean_num: String = num_str.chars().rev().collect();
                             if let Ok(pct) = clean_num.trim().parse::<f64>() {
                                 cur_pct = pct.clamp(0.0, 100.0).round() as u32;
+                            } else {
+                                return;
                             }
+                        } else {
+                            return;
                         }
 
                         if let Some(at_idx) = line.find(" at ") {
                             let speed_part = &line[at_idx + 4..];
                             let end = speed_part.find(" ETA").unwrap_or(speed_part.len());
-                            cur_speed = speed_part[..end].trim().to_string();
+                            let s = speed_part[..end].trim();
+                            if !s.is_empty() && s != "NA" {
+                                cur_speed = s.to_string();
+                            }
                         }
 
                         if let Some(eta_idx) = line.find(" ETA ") {
-                            cur_eta = line[eta_idx + 5..].trim().to_string();
+                            let e = line[eta_idx + 5..].trim();
+                            if !e.is_empty() && e != "NA" {
+                                cur_eta = e.to_string();
+                            }
+                        } else if line.contains(" in ") && cur_pct >= 100 {
+                            cur_eta = "00:00:00".to_string();
                         }
 
                         if let Some(of_idx) = line.find(" of ") {
                             let size_part = &line[of_idx + 4..];
                             let end = size_part.find(" at ").or_else(|| size_part.find(" in ")).unwrap_or(size_part.len());
-                            cur_size = size_part[..end].trim().to_string();
+                            let s = size_part[..end].trim();
+                            if !s.is_empty() && s != "NA" {
+                                cur_size = s.to_string();
+                            }
                         }
 
-                        let eta_val = if cur_eta != "--:--" && !cur_eta.is_empty() {
+                        let eta_val = if !cur_eta.is_empty() && cur_eta != "--:--" && cur_eta != "NA" {
                             Some(cur_eta.clone())
                         } else {
                             None
@@ -1203,8 +1317,44 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                         let _ = app_out.emit(
                             "ffmpeg-progress",
                             ProgressPayload {
-                                time: format!("Size: {}", cur_size),
+                                time: if cur_size.is_empty() { "Downloading...".to_string() } else { format!("Size: {}", cur_size) },
                                 eta: eta_val,
+                                fps: "".to_string(),
+                                speed: cur_speed.clone(),
+                                bitrate: cur_size.clone(),
+                                pct: cur_pct.min(100),
+                                playlist_item: if total_items > 0 { Some(cur_item) } else { None },
+                                playlist_total: if total_items > 0 { Some(total_items) } else { None },
+                                current_item_title: if !current_item_name.is_empty() { Some(current_item_name.clone()) } else { None },
+                            },
+                        );
+                    } else if line.contains("[ExtractAudio] Not converting")
+                        || line.contains("Deleting original file")
+                        || (line.contains("[Merger]") && line.contains("Deleting"))
+                        || line.contains("[EmbedThumbnail]")
+                        || line.contains("[Metadata]")
+                        || line.contains("[Subtitles]") {
+                        // Genuine post-processing completion stages only (ytdlnis: keep at
+                        // 99% until after_move). Never jump to 100% on "Destination" lines.
+                        let stage = if line.contains("[ExtractAudio]") {
+                            "Converting audio..."
+                        } else if line.contains("[Merger]") {
+                            "Merging formats..."
+                        } else if line.contains("[EmbedThumbnail]") {
+                            "Embedding thumbnail..."
+                        } else if line.contains("[Metadata]") {
+                            "Embedding metadata..."
+                        } else if line.contains("[Subtitles]") {
+                            "Embedding subtitles..."
+                        } else {
+                            "Finishing..."
+                        };
+                        cur_pct = 99;
+                        let _ = app_out.emit(
+                            "ffmpeg-progress",
+                            ProgressPayload {
+                                time: stage.to_string(),
+                                eta: None,
                                 fps: "".to_string(),
                                 speed: cur_speed.clone(),
                                 bitrate: cur_size.clone(),
@@ -1214,20 +1364,77 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
                                 current_item_title: if !current_item_name.is_empty() { Some(current_item_name.clone()) } else { None },
                             },
                         );
-                    } else if line.contains("100% of") || line.contains("[ExtractAudio]") || line.contains("[Merger]") {
-                        cur_pct = 100;
-                        let _ = app_out.emit(
+                    }
+                });
+            }
+        });
+
+        // Stderr reader: yt-dlp errors AND progress lines (fragmented/aria2c output
+        // also lands here). Parse progress identically, always forward logs.
+        let app_err = app.clone();
+        let err_handle = std::thread::spawn(move || {
+            if let Some(err) = stderr {
+                let cur_pct = std::sync::atomic::AtomicU32::new(0);
+                let mut cur_speed = String::new();
+                let mut cur_eta = String::new();
+                let mut cur_size = String::new();
+                stream_lines(err, move |line| {
+                    let _ = app_err.emit("ffmpeg-log", LogPayload { line: line.clone() });
+                    if CANCEL_REQUESTED.load(Ordering::SeqCst) {
+                        return;
+                    }
+                    if line.contains("[download]") && line.contains('%') && !line.contains("NA%") {
+                        if let Some(pct_idx) = line.find('%') {
+                            let before = &line[..pct_idx];
+                            let num_str: String = before.chars().rev().take_while(|c| c.is_ascii_digit() || *c == '.' || *c == ' ').collect();
+                            let clean_num: String = num_str.chars().rev().collect();
+                            if let Ok(pct) = clean_num.trim().parse::<f64>() {
+                                cur_pct.store(pct.clamp(0.0, 100.0).round() as u32, Ordering::Relaxed);
+                            } else {
+                                return;
+                            }
+                        } else {
+                            return;
+                        }
+                        if let Some(at_idx) = line.find(" at ") {
+                            let speed_part = &line[at_idx + 4..];
+                            let end = speed_part.find(" ETA").unwrap_or(speed_part.len());
+                            let s = speed_part[..end].trim();
+                            if !s.is_empty() && s != "NA" {
+                                cur_speed = s.to_string();
+                            }
+                        }
+                        if let Some(eta_idx) = line.find(" ETA ") {
+                            let e = line[eta_idx + 5..].trim();
+                            if !e.is_empty() && e != "NA" {
+                                cur_eta = e.to_string();
+                            }
+                        }
+                        if let Some(of_idx) = line.find(" of ") {
+                            let size_part = &line[of_idx + 4..];
+                            let end = size_part.find(" at ").or_else(|| size_part.find(" in ")).unwrap_or(size_part.len());
+                            let s = size_part[..end].trim();
+                            if !s.is_empty() && s != "NA" {
+                                cur_size = s.to_string();
+                            }
+                        }
+                        let eta_val = if !cur_eta.is_empty() && cur_eta != "--:--" && cur_eta != "NA" {
+                            Some(cur_eta.clone())
+                        } else {
+                            None
+                        };
+                        let _ = app_err.emit(
                             "ffmpeg-progress",
                             ProgressPayload {
-                                time: "Finishing...".to_string(),
-                                eta: Some("00:00:00".to_string()),
+                                time: if cur_size.is_empty() { "Downloading...".to_string() } else { format!("Size: {}", cur_size) },
+                                eta: eta_val,
                                 fps: "".to_string(),
                                 speed: cur_speed.clone(),
                                 bitrate: cur_size.clone(),
-                                pct: 100,
-                                playlist_item: if total_items > 0 { Some(cur_item) } else { None },
-                                playlist_total: if total_items > 0 { Some(total_items) } else { None },
-                                current_item_title: if !current_item_name.is_empty() { Some(current_item_name.clone()) } else { None },
+                                pct: cur_pct.load(Ordering::Relaxed).min(100),
+                                playlist_item: None,
+                                playlist_total: None,
+                                current_item_title: None,
                             },
                         );
                     }
@@ -1235,15 +1442,6 @@ fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), String>
             }
         });
 
-        // Stderr reader for yt-dlp error logs
-        let app_err = app.clone();
-        let err_handle = std::thread::spawn(move || {
-            if let Some(err) = stderr {
-                stream_lines(err, move |line| {
-                    let _ = app_err.emit("ffmpeg-log", LogPayload { line });
-                });
-            }
-        });
 
         let status = child.wait();
         let _ = out_handle.join();
@@ -1629,14 +1827,15 @@ fn force_exit_app(app: tauri::AppHandle) {
 
 #[tauri::command]
 fn open_file(file_path: String) -> Result<(), String> {
-    let path = std::path::Path::new(&file_path);
+    let decoded = percent_decode_path(&file_path);
+    let path = std::path::Path::new(&decoded);
     if !path.exists() {
         return Err("File does not exist".into());
     }
     #[cfg(windows)]
     {
         let _ = Command::new("cmd")
-            .args(["/C", "start", "", &file_path])
+            .args(["/C", "start", "", &decoded])
             .creation_flags(0x08000000)
             .spawn();
     }
@@ -1645,18 +1844,326 @@ fn open_file(file_path: String) -> Result<(), String> {
 
 #[tauri::command]
 fn show_in_folder(file_path: String) -> Result<(), String> {
-    let path = std::path::Path::new(&file_path);
-    if !path.exists() {
-        return Err("Path does not exist".into());
-    }
+    let decoded = percent_decode_path(&file_path);
+    let path = std::path::Path::new(&decoded);
     #[cfg(windows)]
     {
-        let _ = Command::new("explorer")
-            .args(["/select,", &file_path])
-            .creation_flags(0x08000000)
-            .spawn();
+        if path.is_dir() {
+            // Open the folder itself, not its parent.
+            let _ = Command::new("explorer")
+                .arg(&decoded)
+                .creation_flags(0x08000000)
+                .spawn();
+        } else if path.is_file() {
+            // "/select,<file>" must be ONE argument -- split args make
+            // explorer ignore /select and just open the parent folder.
+            let _ = Command::new("explorer")
+                .arg(format!("/select,{}", decoded))
+                .creation_flags(0x08000000)
+                .spawn();
+        } else if let Some(parent) = path.parent() {
+            // Target missing (e.g. not finished yet): fall back to closest
+            // existing ancestor instead of erroring out.
+            let mut ancestor = parent;
+            loop {
+                if ancestor.exists() {
+                    let _ = Command::new("explorer")
+                        .arg(ancestor.to_string_lossy().as_ref())
+                        .creation_flags(0x08000000)
+                        .spawn();
+                    break;
+                }
+                match ancestor.parent() {
+                    Some(p) if p != ancestor => ancestor = p,
+                    _ => return Err("Path does not exist".into()),
+                }
+            }
+        } else {
+            return Err("Path does not exist".into());
+        }
     }
     Ok(())
+}
+
+fn update_tool_internal(tool_name: String) -> Result<String, String> {
+    // Clear binary path cache so version checks re-evaluate
+    {
+        let mut cache = BINARY_PATH_CACHE.lock().unwrap();
+        *cache = None;
+    }
+
+    let clean_name = tool_name.trim().to_lowercase().replace('_', "-");
+    match clean_name.as_str() {
+        "yt-dlp" | "ytdlp" => {
+            let bin = find_binary("yt-dlp");
+            if bin == "yt-dlp" && !std::path::Path::new(&bin).is_file() {
+                return Err("yt-dlp executable not found on system or in local app data".into());
+            }
+
+            let mut cmd = Command::new(&bin);
+            cmd.arg("-U");
+            #[cfg(windows)]
+            cmd.creation_flags(0x08000000);
+
+            let out = cmd.output().map_err(|e| format!("Failed to execute yt-dlp update: {}", e))?;
+            let stdout_str = String::from_utf8_lossy(&out.stdout).to_string();
+            let stderr_str = String::from_utf8_lossy(&out.stderr).to_string();
+            let combined = format!("{}\n{}", stdout_str.trim(), stderr_str.trim()).trim().to_string();
+
+            // Clear cache again after update so version query sees the fresh binary
+            {
+                let mut cache = BINARY_PATH_CACHE.lock().unwrap();
+                *cache = None;
+            }
+
+            if out.status.success() {
+                Ok(if combined.is_empty() {
+                    "yt-dlp update check completed successfully".into()
+                } else {
+                    combined
+                })
+            } else {
+                Err(if combined.is_empty() {
+                    format!("yt-dlp update failed with exit code {:?}", out.status.code())
+                } else {
+                    combined
+                })
+            }
+        }
+        "deno" => {
+            let target_dir = if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+                std::path::PathBuf::from(local_app_data)
+                    .join("ASDK")
+                    .join("Shared")
+                    .join("bin")
+            } else {
+                return Err("LOCALAPPDATA directory environment variable not found".into());
+            };
+            std::fs::create_dir_all(&target_dir).map_err(|e| format!("Failed to create bin folder: {}", e))?;
+
+            let temp_dir = std::env::temp_dir();
+            let zip_path = temp_dir.join("deno_update.zip");
+            let _ = std::fs::remove_file(&zip_path);
+
+            // Fetch Deno latest release zip from GitHub
+            let download_url = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip";
+            let mut curl_cmd = Command::new("curl.exe");
+            curl_cmd.args([
+                "-fL",
+                "--retry", "3",
+                "--retry-delay", "2",
+                "-o",
+                zip_path.to_string_lossy().as_ref(),
+                download_url,
+            ]);
+            #[cfg(windows)]
+            curl_cmd.creation_flags(0x08000000);
+
+            let curl_out = curl_cmd.output().map_err(|e| format!("Failed to run curl: {}", e))?;
+            if !curl_out.status.success() || !zip_path.exists() {
+                let err_msg = String::from_utf8_lossy(&curl_out.stderr).to_string();
+                let _ = std::fs::remove_file(&zip_path);
+                return Err(format!("Failed to download Deno from GitHub: {}", err_msg.trim()));
+            }
+
+            // Extract deno.exe into destination bin folder using bsdtar
+            let mut tar_cmd = Command::new("tar.exe");
+            tar_cmd.args([
+                "-xf",
+                zip_path.to_string_lossy().as_ref(),
+                "-C",
+                target_dir.to_string_lossy().as_ref(),
+                "deno.exe",
+            ]);
+            #[cfg(windows)]
+            tar_cmd.creation_flags(0x08000000);
+
+            let tar_out = tar_cmd.output().map_err(|e| format!("Failed to run tar: {}", e))?;
+            let _ = std::fs::remove_file(&zip_path);
+
+            if !tar_out.status.success() {
+                let err_msg = String::from_utf8_lossy(&tar_out.stderr).to_string();
+                return Err(format!("Failed to extract Deno archive: {}", err_msg.trim()));
+            }
+
+            // Clear binary path cache
+            {
+                let mut cache = BINARY_PATH_CACHE.lock().unwrap();
+                *cache = None;
+            }
+
+            Ok("Deno successfully downloaded and updated from GitHub releases.".into())
+        }
+        "ffmpeg" | "ffprobe" => {
+            let target_dir = if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+                std::path::PathBuf::from(local_app_data)
+                    .join("ASDK")
+                    .join("Shared")
+                    .join("bin")
+            } else {
+                return Err("LOCALAPPDATA directory environment variable not found".into());
+            };
+            std::fs::create_dir_all(&target_dir).map_err(|e| format!("Failed to create bin folder: {}", e))?;
+
+            let temp_dir = std::env::temp_dir();
+            let zip_path = temp_dir.join("ffmpeg_update.zip");
+            let extract_tmp_dir = temp_dir.join("ffmpeg_update_extracted");
+            let _ = std::fs::remove_file(&zip_path);
+            let _ = std::fs::remove_dir_all(&extract_tmp_dir);
+            let _ = std::fs::create_dir_all(&extract_tmp_dir);
+
+            // Primary source: BtbN/FFmpeg-Builds latest master GPL build
+            let primary_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
+            let mut curl_cmd = Command::new("curl.exe");
+            curl_cmd.args([
+                "-fL",
+                "--retry", "2",
+                "--retry-delay", "1",
+                "-o",
+                zip_path.to_string_lossy().as_ref(),
+                primary_url,
+            ]);
+            #[cfg(windows)]
+            curl_cmd.creation_flags(0x08000000);
+
+            let mut curl_out = curl_cmd.output().map_err(|e| format!("Failed to run curl: {}", e))?;
+            let mut used_fallback = false;
+
+            // Alternative fallback source: ffbinaries/ffbinaries-prebuilt
+            if !curl_out.status.success() || !zip_path.exists() {
+                used_fallback = true;
+                let fallback_ffmpeg = "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffmpeg-6.1-win-64.zip";
+                let fallback_ffprobe = "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffprobe-6.1-win-64.zip";
+
+                let mut fb_cmd = Command::new("curl.exe");
+                fb_cmd.args([
+                    "-fL",
+                    "--retry", "2",
+                    "--retry-delay", "1",
+                    "-o",
+                    zip_path.to_string_lossy().as_ref(),
+                    fallback_ffmpeg,
+                ]);
+                #[cfg(windows)]
+                fb_cmd.creation_flags(0x08000000);
+
+                curl_out = fb_cmd.output().map_err(|e| format!("Failed to run curl for fallback: {}", e))?;
+
+                // Also download ffprobe zip
+                let probe_zip = temp_dir.join("ffprobe_fallback.zip");
+                let mut probe_cmd = Command::new("curl.exe");
+                probe_cmd.args([
+                    "-fL",
+                    "--retry", "2",
+                    "--retry-delay", "1",
+                    "-o",
+                    probe_zip.to_string_lossy().as_ref(),
+                    fallback_ffprobe,
+                ]);
+                #[cfg(windows)]
+                probe_cmd.creation_flags(0x08000000);
+                if let Ok(probe_out) = probe_cmd.output() {
+                    if probe_out.status.success() && probe_zip.exists() {
+                        let mut tar_probe = Command::new("tar.exe");
+                        tar_probe.args([
+                            "-xf",
+                            probe_zip.to_string_lossy().as_ref(),
+                            "-C",
+                            target_dir.to_string_lossy().as_ref(),
+                        ]);
+                        #[cfg(windows)]
+                        tar_probe.creation_flags(0x08000000);
+                        let _ = tar_probe.output();
+                    }
+                }
+                let _ = std::fs::remove_file(&probe_zip);
+            }
+
+            if !curl_out.status.success() || !zip_path.exists() {
+                let err_msg = String::from_utf8_lossy(&curl_out.stderr).to_string();
+                let _ = std::fs::remove_file(&zip_path);
+                let _ = std::fs::remove_dir_all(&extract_tmp_dir);
+                return Err(format!("Failed to download FFmpeg from primary and alternative GitHub sources: {}", err_msg.trim()));
+            }
+
+            // Extract archive into temp folder or directly into target folder
+            let extract_dest = if used_fallback {
+                target_dir.to_string_lossy().to_string()
+            } else {
+                extract_tmp_dir.to_string_lossy().to_string()
+            };
+
+            let mut tar_cmd = Command::new("tar.exe");
+            tar_cmd.args([
+                "-xf",
+                zip_path.to_string_lossy().as_ref(),
+                "-C",
+                &extract_dest,
+            ]);
+            #[cfg(windows)]
+            tar_cmd.creation_flags(0x08000000);
+
+            let tar_out = tar_cmd.output().map_err(|e| format!("Failed to run tar: {}", e))?;
+            let _ = std::fs::remove_file(&zip_path);
+
+            if !tar_out.status.success() {
+                let _ = std::fs::remove_dir_all(&extract_tmp_dir);
+                let err_msg = String::from_utf8_lossy(&tar_out.stderr).to_string();
+                return Err(format!("Failed to extract FFmpeg archive: {}", err_msg.trim()));
+            }
+
+            if !used_fallback {
+                // Locate ffmpeg.exe and ffprobe.exe inside extracted directory structure and copy to destination
+                let mut found_ffmpeg = false;
+                let mut found_ffprobe = false;
+                if let Ok(entries) = std::fs::read_dir(&extract_tmp_dir) {
+                    for entry in entries.flatten() {
+                        let sub_bin = entry.path().join("bin");
+                        if sub_bin.is_dir() {
+                            let src_ffmpeg = sub_bin.join("ffmpeg.exe");
+                            let src_ffprobe = sub_bin.join("ffprobe.exe");
+                            if src_ffmpeg.is_file() {
+                                let _ = std::fs::copy(&src_ffmpeg, target_dir.join("ffmpeg.exe"));
+                                found_ffmpeg = true;
+                            }
+                            if src_ffprobe.is_file() {
+                                let _ = std::fs::copy(&src_ffprobe, target_dir.join("ffprobe.exe"));
+                                found_ffprobe = true;
+                            }
+                        }
+                    }
+                }
+
+                let _ = std::fs::remove_dir_all(&extract_tmp_dir);
+
+                if !found_ffmpeg && !found_ffprobe {
+                    return Err("Could not locate ffmpeg/ffprobe binaries in downloaded release archive.".into());
+                }
+            } else {
+                let _ = std::fs::remove_dir_all(&extract_tmp_dir);
+            }
+
+            // Clear binary path cache
+            {
+                let mut cache = BINARY_PATH_CACHE.lock().unwrap();
+                *cache = None;
+            }
+
+            Ok(if used_fallback {
+                "FFmpeg & FFprobe successfully updated from alternative GitHub release source (ffbinaries).".into()
+            } else {
+                "FFmpeg & FFprobe successfully updated from latest GitHub release.".into()
+            })
+        }
+        _ => Err(format!("Automatic update is not supported for {}.", tool_name)),
+    }
+}
+
+#[tauri::command]
+async fn update_tool(tool_name: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || update_tool_internal(tool_name))
+        .await
+        .map_err(|e| format!("Update task failed: {}", e))?
 }
 
 #[tauri::command]
@@ -1981,11 +2488,30 @@ fn fetch_playlist_videos_internal(url: String) -> Result<Vec<PlaylistVideo>, Str
     }
     let ytdlp_bin = find_binary("yt-dlp");
     let mut cmd = Command::new(&ytdlp_bin);
+    // ytdlnis-style fetch: JSON lines survive tabs/newlines in titles, --flat-playlist
+    // keeps it fast, --ignore-errors/--no-warnings keep one bad item from killing
+    // the whole list, extractor-args dodges the YouTube bot-check.
+    // music.youtube.com uses the web_music client, whose https formats require a
+    // GVS PO token -- forcing web* clients there only yields PO-token warnings.
+    let extractor_clients = if url.trim().contains("music.youtube.com") {
+        "youtube:player_client=android,ios"
+    } else {
+        "youtube:player_client=android,web"
+    };
     cmd.args([
+        "-j",
         "--flat-playlist",
-        "--print",
-        "%(id)s\t%(title)s\t%(url)s\t%(duration)s",
+        "--lazy-playlist",
+        "--ignore-errors",
         "--no-warnings",
+        "-R",
+        "1",
+        "--socket-timeout",
+        "15",
+        "--compat-options",
+        "manifest-filesize-approx",
+        "--extractor-args",
+        extractor_clients,
         url.trim(),
     ]);
 
@@ -1993,20 +2519,110 @@ fn fetch_playlist_videos_internal(url: String) -> Result<Vec<PlaylistVideo>, Str
     cmd.creation_flags(0x08000000);
 
     let output = cmd.output().map_err(|e| format!("Failed to run yt-dlp: {}", e))?;
-    if !output.status.success() {
-        let err = String::from_utf8_lossy(&output.stderr);
-        return Err(if err.trim().is_empty() { "Failed to fetch playlist items".into() } else { err.to_string() });
-    }
-
     let stdout_str = String::from_utf8_lossy(&output.stdout);
+    let stderr_str = String::from_utf8_lossy(&output.stderr);
+
     let mut entries = Vec::new();
     let mut idx = 1;
 
+    // Primary: one JSON object per line (-j). Robust against tabs/quotes in titles
+    // (the old TSV split broke on those) and against %(url)s == NA in flat mode.
     for line in stdout_str.lines() {
         let line = line.trim();
-        if line.is_empty() { continue; }
-        let parts: Vec<&str> = line.split('\t').collect();
-        if !parts.is_empty() {
+        if line.is_empty() || !line.starts_with('{') {
+            continue;
+        }
+        let parsed: serde_json::Value = match serde_json::from_str(line) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        if parsed.get("_type").and_then(|t| t.as_str()) == Some("playlist")
+            && parsed.get("entries").is_some()
+        {
+            continue;
+        }
+        let title_raw = parsed
+            .get("title")
+            .and_then(|t| t.as_str())
+            .or_else(|| parsed.get("alt_title").and_then(|t| t.as_str()))
+            .unwrap_or("");
+        if title_raw == "[Private video]" || title_raw == "[Deleted video]" || title_raw.is_empty() {
+            // Keep numbering stable but skip unusable entries like ytdlnis does.
+            if title_raw == "[Private video]" || title_raw == "[Deleted video]" {
+                idx += 1;
+                continue;
+            }
+        }
+        let title = if title_raw.is_empty() {
+            format!("Video {}", idx)
+        } else {
+            title_raw.to_string()
+        };
+        // Flat playlist often reports url == NA; fall back through webpage_url chain,
+        // then synthesize a watch URL from the id (ytdlnis: webpage_url/original_url/url).
+        let id = parsed
+            .get("id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let url_str = parsed
+            .get("webpage_url")
+            .and_then(|v| v.as_str())
+            .or_else(|| parsed.get("original_url").and_then(|v| v.as_str()))
+            .or_else(|| parsed.get("url").and_then(|v| v.as_str()))
+            .filter(|u| !u.is_empty() && *u != "NA")
+            .map(|u| u.to_string())
+            .unwrap_or_else(|| {
+                if !id.is_empty() && !id.starts_with("http") {
+                    format!("https://www.youtube.com/watch?v={}", id)
+                } else if !id.is_empty() {
+                    id.clone()
+                } else {
+                    url.trim().to_string()
+                }
+            });
+        // Flat mode has no durations (NA/null) -- leave None instead of 0 (ytdlnis).
+        let dur = parsed
+            .get("duration")
+            .and_then(|v| v.as_f64())
+            .filter(|d| *d > 0.0);
+
+        let duration_string = dur.map(|d| {
+            let total_sec = d.round() as u64;
+            let h = total_sec / 3600;
+            let m = (total_sec % 3600) / 60;
+            let s = total_sec % 60;
+            if h > 0 {
+                format!("{:02}:{:02}:{:02}", h, m, s)
+            } else {
+                format!("{:02}:{:02}", m, s)
+            }
+        });
+
+        entries.push(PlaylistVideo {
+            index: idx,
+            id,
+            title,
+            url: url_str,
+            duration: dur,
+            duration_string,
+        });
+        idx += 1;
+    }
+
+    // Fallback: legacy TSV print (older yt-dlp without -j quirks) so we never
+    // return empty when stdout had content but JSON parsing found nothing.
+    if entries.is_empty() && !stdout_str.trim().is_empty() {
+        idx = 1;
+        for line in stdout_str.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('{') {
+                continue;
+            }
+            let parts: Vec<&str> = line.split('\t').collect();
+            if parts.is_empty() {
+                continue;
+            }
             let id = parts[0].to_string();
             let title = if parts.len() > 1 && !parts[1].is_empty() && parts[1] != "NA" {
                 parts[1].to_string()
@@ -2021,7 +2637,7 @@ fn fetch_playlist_videos_internal(url: String) -> Result<Vec<PlaylistVideo>, Str
                 id.clone()
             };
             let dur = if parts.len() > 3 {
-                parts[3].parse::<f64>().ok()
+                parts[3].parse::<f64>().ok().filter(|d| *d > 0.0)
             } else {
                 None
             };
@@ -2051,7 +2667,22 @@ fn fetch_playlist_videos_internal(url: String) -> Result<Vec<PlaylistVideo>, Str
     }
 
     if entries.is_empty() {
-        return Err("No videos found in the specified URL / playlist".into());
+        // Surface yt-dlp's own error (bot-check, private playlist, bad URL) but
+        // trimmed -- raw stderr can be an HTML dump (ytdlnis logs it separately).
+        let err_line = stderr_str
+            .lines()
+            .map(|l| l.trim())
+            .filter(|l| !l.is_empty())
+            .filter(|l| !l.starts_with("WARNING"))
+            .next()
+            .unwrap_or("")
+            .chars()
+            .take(300)
+            .collect::<String>();
+        if output.status.success() || err_line.is_empty() {
+            return Err("No videos found in the specified URL / playlist".into());
+        }
+        return Err(format!("yt-dlp: {}", err_line));
     }
 
     Ok(entries)
@@ -2133,6 +2764,16 @@ async fn extract_timeline_frame(
     .map_err(|e| format!("Async task execution failed: {}", e))?
 }
 
+#[tauri::command]
+fn set_decorations(app: tauri::AppHandle, decorations: bool) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window
+            .set_decorations(decorations)
+            .map_err(|e| format!("Failed to set decorations: {}", e))?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -2174,8 +2815,11 @@ pub fn run() {
             send_system_notification,
             check_file_exists,
             read_image_data,
-            get_hardware_info
+            get_hardware_info,
+            update_tool,
+            set_decorations
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+

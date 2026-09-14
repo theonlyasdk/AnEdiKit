@@ -22,6 +22,7 @@ import {
 } from "./trimmer.js";
 import { addImageFilesToQueue } from "./image_queue.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
+import { attachFluentRipple } from "./navigation.js";
 
 let currentInputFile = "";
 let currentMediaInfo = null;
@@ -958,18 +959,30 @@ export function renderBatchQueueUI() {
 
   if (batchQueue.length === 0) {
     if (headerActions) headerActions.classList.add("d-none");
+    list.className = "mb-2";
+    list.style.maxHeight = "";
+    list.style.overflowY = "visible";
+    list.style.overscrollBehavior = "";
     list.innerHTML = `
-      <div class="list-group-item text-body-secondary text-center py-4 d-flex flex-column align-items-center justify-content-center gap-2" id="batch-empty-msg">
-        <span>No files queued.</span>
-        <button class="btn btn-outline-primary btn-sm" type="button" id="btn-batch-add-empty" title="Add files to batch queue">
-          <ion-icon name="add-outline"></ion-icon> Add to Queue...
+      <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="batch-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
+        <ion-icon name="film-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
+        <span class="fw-medium text-body" id="batch-drop-label">Drop files here or click to select</span>
+        <span class="small text-body-secondary" id="batch-drop-sublabel">Supports MP4, MKV, WebM, MOV, AVI, MP3, WAV, FLAC</span>
+        <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-batch-add-empty" title="Add files to batch queue">
+          <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Files
         </button>
       </div>
     `;
     const btnEmptyAdd = document.getElementById("btn-batch-add-empty");
-    if (btnEmptyAdd) {
-      btnEmptyAdd.addEventListener("click", async () => {
-        await selectMediaFiles("all");
+    const emptyMsg = document.getElementById("batch-empty-msg");
+    const pickHandler = async () => {
+      await selectMediaFiles("all");
+    };
+    if (btnEmptyAdd) btnEmptyAdd.addEventListener("click", pickHandler);
+    if (emptyMsg) {
+      attachFluentRipple(emptyMsg);
+      emptyMsg.addEventListener("click", (e) => {
+        if (!e.target.closest("button")) pickHandler();
       });
     }
     if (btnExecute && btnExecute.textContent !== "Cancel") {
@@ -979,6 +992,10 @@ export function renderBatchQueueUI() {
   }
 
   if (headerActions) headerActions.classList.remove("d-none");
+  list.className = "list-group border rounded overflow-y-auto mb-2";
+  list.style.maxHeight = "180px";
+  list.style.overflowY = "auto";
+  list.style.overscrollBehavior = "contain";
 
   if (inputPathEl) {
     if (batchQueue.length === 1) {
@@ -1138,6 +1155,16 @@ export function initDragAndDrop(onFileSelected) {
       imgDropLabel.textContent = "Drop here to import";
     }
 
+    const batchEmptyMsg = document.getElementById("batch-empty-msg");
+    const batchDropLabel = document.getElementById("batch-drop-label");
+    if (batchEmptyMsg) batchEmptyMsg.classList.add("image-drop-active");
+    if (batchDropLabel) batchDropLabel.textContent = "Drop here to import";
+
+    const mergeEmptyMsg = document.getElementById("merge-empty-msg");
+    const mergeDropLabel = document.getElementById("merge-drop-label");
+    if (mergeEmptyMsg) mergeEmptyMsg.classList.add("image-drop-active");
+    if (mergeDropLabel) mergeDropLabel.textContent = "Drop here to import";
+
     const placeholder = document.getElementById("image-queue-drop-placeholder");
     if (placeholder) {
       placeholder.classList.remove("d-none");
@@ -1160,6 +1187,16 @@ export function initDragAndDrop(onFileSelected) {
     if (imgDropLabel) {
       imgDropLabel.textContent = "Drop images here or click to select";
     }
+
+    const batchEmptyMsg = document.getElementById("batch-empty-msg");
+    const batchDropLabel = document.getElementById("batch-drop-label");
+    if (batchEmptyMsg) batchEmptyMsg.classList.remove("image-drop-active");
+    if (batchDropLabel) batchDropLabel.textContent = "Drop files here or click to select";
+
+    const mergeEmptyMsg = document.getElementById("merge-empty-msg");
+    const mergeDropLabel = document.getElementById("merge-drop-label");
+    if (mergeEmptyMsg) mergeEmptyMsg.classList.remove("image-drop-active");
+    if (mergeDropLabel) mergeDropLabel.textContent = "Drop media files here or click to select";
 
     const placeholder = document.getElementById("image-queue-drop-placeholder");
     if (placeholder) {

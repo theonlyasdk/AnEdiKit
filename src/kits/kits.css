@@ -1,0 +1,171 @@
+/* User Kits & Blocks Builder Styling */
+.kit-builder-row {
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.kit-builder-row:hover {
+  background-color: var(--bs-tertiary-bg) !important;
+}
+
+.kit-builder-row.is-dragging {
+  z-index: 100 !important;
+  position: relative !important;
+  opacity: 0.95;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  background-color: var(--bs-body-bg) !important;
+  border-radius: var(--bs-border-radius);
+  transition: none !important;
+}
+
+.kit-builder-row.is-releasing {
+  z-index: 99 !important;
+  position: relative !important;
+}
+
+.kit-block-drag-handle {
+  cursor: grab !important;
+  touch-action: none;
+}
+
+.kit-block-drag-handle:active {
+  cursor: grabbing !important;
+}
+
+.kit-block-card {
+  transition: border-color 0.15s ease;
+}
+
+.kit-block-curtain {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+  overflow: hidden;
+}
+
+.kit-block-curtain.is-open {
+  grid-template-rows: 1fr;
+}
+
+.kit-block-curtain-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.kit-block-header-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.kit-block-header-row:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.kit-ide-header-bar {
+  margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  width: calc(100% + 3rem);
+}
+
+.kit-segment-nav {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--bs-secondary-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  padding: 2px;
+  gap: 2px;
+  user-select: none;
+}
+
+.kit-segment-btn {
+  position: relative;
+  z-index: 2;
+  border: none !important;
+  background: transparent !important;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--bs-secondary-color) !important;
+  cursor: pointer;
+  border-radius: calc(var(--bs-border-radius) - 2px);
+  transform: none !important;
+  transition: color 0.15s ease;
+}
+
+.kit-segment-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bs-focus-ring-color);
+}
+
+.kit-segment-btn:hover {
+  color: var(--bs-body-color) !important;
+}
+
+.kit-segment-btn.active {
+  color: var(--bs-body-color) !important;
+  font-weight: normal;
+  transform: none !important;
+}
+
+.kit-segment-indicator {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  z-index: 1;
+  background-color: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: calc(var(--bs-border-radius) - 2px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  transform: none;
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), width 0.22s cubic-bezier(0.2, 0, 0, 1);
+  pointer-events: none;
+}
+
+.kit-script-editor-wrapper {
+  margin: -1.5rem -1.5rem -1.5rem -1.5rem;
+  height: calc(100vh - 110px);
+  width: calc(100% + 3rem);
+  position: relative;
+  border: none !important;
+  outline: none !important;
+}
+
+.kit-monaco-wrapper {
+  width: 100%;
+  height: 100%;
+  border: none !important;
+  outline: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.kit-monaco-wrapper .monaco-editor,
+.kit-monaco-wrapper .monaco-editor .overflow-guard {
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+.kit-script-floating-menu {
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  z-index: 20;
+}
+
+#kit-script-editor {
+  tab-size: 2;
+  -moz-tab-size: 2;
+  font-family: var(--bs-font-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace) !important;
+}
+
+.kit-command-output {
+  font-family: var(--bs-font-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace) !important;
+}

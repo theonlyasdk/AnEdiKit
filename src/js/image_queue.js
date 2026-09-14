@@ -5,6 +5,7 @@ import {
 } from "./storage.js";
 import { selectMediaFiles } from "./media.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
+import { attachFluentRipple } from "./navigation.js";
 
 let imageAiQueue = loadSavedImageAiQueue();
 
@@ -107,9 +108,13 @@ export function renderImageAiQueueUI() {
       }
     };
     if (btnEmpty) btnEmpty.addEventListener("click", pickHandler);
-    if (emptyMsg) emptyMsg.addEventListener("click", (e) => {
-      if (!e.target.closest("button")) pickHandler();
-    });
+    if (emptyMsg) {
+      attachFluentRipple(emptyMsg);
+      emptyMsg.addEventListener("click", (e) => {
+        if (!e.target.closest("button")) pickHandler();
+      });
+    }
+
 
     if (btnExecute && btnExecute.textContent !== "Cancel") {
       btnExecute.textContent = "Execute";

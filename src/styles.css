@@ -228,8 +228,11 @@ a:active,
   color: #ffffff !important;
 }
 
-/* Center aligned sidebar section header with side border lines */
+/* Center aligned sidebar section header with side border lines and sticky progressive blur fade */
 .sidebar-section-header {
+  position: sticky;
+  top: -0.5rem;
+  z-index: 5;
   display: flex;
   align-items: center;
   text-align: center;
@@ -237,8 +240,35 @@ a:active,
   font-weight: 600;
   letter-spacing: normal;
   color: var(--bs-secondary-color);
-  padding: 0.5rem 0.5rem;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding: 0.75rem 1rem 0.6rem 1rem;
   margin-bottom: 0.25rem;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.88) 0%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.75) 55%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0) 100%
+  );
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 60%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 60%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.sidebar-section-header > * {
+  pointer-events: auto;
 }
 
 .sidebar-section-header::before,
@@ -254,6 +284,60 @@ a:active,
 
 .sidebar-section-header::after {
   margin-left: 0.75rem;
+}
+
+/* Sidebar base */
+.sidebar {
+  position: relative;
+}
+
+#sidebar-scroll-container {
+  scroll-behavior: smooth;
+  scroll-padding-top: 44px;
+  scroll-padding-bottom: 64px;
+  padding-bottom: 64px !important;
+}
+
+/* Unified footer bar — single row: Settings (280px, frosted) + status.
+   Absolute overlay so Settings cell sits over scroll and its backdrop-filter
+   blurs the nav behind it. Bar itself must be transparent, otherwise the
+   opaque bg blocks the blur. */
+#bottom-footer-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  z-index: 20;
+  background: transparent !important;
+  background-color: transparent !important;
+  overflow: hidden;
+  border-top: 1px solid var(--bs-border-color) !important;
+}
+
+#bottom-control-bar {
+  background-color: var(--bs-body-bg);
+}
+
+#app-root {
+  position: relative;
+}
+
+/* Left 280px footer cell — frosted glass, aligned under sidebar.
+   Footer is absolute overlay, so no extra gap wrapper needed. */
+#footer-settings-col {
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.55) 0%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.78) 100%
+  ) !important;
+  background-color: rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.62) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+}
+
+.sidebar {
+  position: relative;
 }
 
 /* Left-aligned section divider header with extending side lines */
@@ -345,6 +429,12 @@ a:active,
   text-overflow: ellipsis;
   white-space: nowrap;
   cursor: default;
+  /* Segoe UI glyphs are ~1.33em tall but headings use line-height 1.2, so the
+     negative half-leading sliced descenders (e.g. the "g" in "Settings")
+     against overflow: hidden. Give the line box breathing room. */
+  line-height: 1.35;
+  padding-bottom: 2px;
+  margin-bottom: -2px;
 }
 
 /* Tool description hidden by default, slides in left-to-right with fade on title hover */
@@ -497,6 +587,14 @@ a:active,
   cursor: pointer;
 }
 
+.header-brand-col {
+  background-color: rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.78);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  z-index: 10;
+  position: relative;
+}
+
 /* Responsive Collapsible Sidebar & Hamburger Drawer */
 @media (max-width: 768px) {
   .brand-header-btn {
@@ -540,6 +638,10 @@ a:active,
     background: rgba(0, 0, 0, 0.5);
     z-index: 1030;
     animation: fadeInBackdrop 0.2s ease forwards;
+  }
+
+  #sidebar-scroll-container {
+    padding-bottom: 1rem !important;
   }
 }
 
@@ -753,10 +855,16 @@ html.no-animations *::after {
 }
 
 
-/* Horizontal Scrolling Cards with Dynamic Gradient Shading */
+/* Horizontal Scrolling Cards with Dynamic Progressive Blur & Gradient Shading */
+.executables-group-card {
+  --outer-radius: 16px;
+  --card-padding: 12px;
+  padding: var(--card-padding) var(--card-padding) 6px var(--card-padding) !important;
+  border-radius: var(--outer-radius) !important;
+}
+
 .scroll-cards-wrapper {
   position: relative;
-  overflow: hidden;
 }
 
 .scroll-cards-wrapper::before,
@@ -764,22 +872,38 @@ html.no-animations *::after {
   content: "";
   position: absolute;
   top: 0;
-  bottom: 0;
-  width: 36px;
+  bottom: 6px;
+  width: 44px;
   pointer-events: none;
   z-index: 4;
   opacity: 0;
   transition: opacity 0.22s ease;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 .scroll-cards-wrapper::before {
   left: 0;
-  background: linear-gradient(to right, var(--bs-body-bg, #121212) 20%, transparent 100%);
+  background: linear-gradient(
+    to right,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.95) 0%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.7) 40%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 100%);
+  mask-image: linear-gradient(to right, black 0%, transparent 100%);
 }
 
 .scroll-cards-wrapper::after {
   right: 0;
-  background: linear-gradient(to left, var(--bs-body-bg, #121212) 20%, transparent 100%);
+  background: linear-gradient(
+    to left,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.95) 0%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.7) 40%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 100%);
+  mask-image: linear-gradient(to left, black 0%, transparent 100%);
 }
 
 .scroll-cards-wrapper.has-overflow-left::before {
@@ -792,12 +916,27 @@ html.no-animations *::after {
 
 .scroll-cards-container {
   scrollbar-width: thin;
-  scrollbar-color: var(--bs-border-color) transparent;
+  scrollbar-color: transparent transparent;
   scroll-behavior: smooth;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: scrollbar-color 0.2s ease;
+  padding-bottom: 6px !important;
+}
+
+.scroll-cards-container:hover,
+.scroll-cards-wrapper:hover .scroll-cards-container {
+  scrollbar-color: var(--bs-border-color) transparent;
+}
+
+.scroll-cards-container.is-dragging {
+  cursor: grabbing !important;
+  scroll-behavior: auto !important;
 }
 
 .scroll-cards-container::-webkit-scrollbar {
-  height: 5px;
+  height: 6px;
 }
 
 .scroll-cards-container::-webkit-scrollbar-track {
@@ -805,11 +944,34 @@ html.no-animations *::after {
 }
 
 .scroll-cards-container::-webkit-scrollbar-thumb {
-  background-color: var(--bs-border-color);
+  background-color: transparent;
   border-radius: 4px;
+  transition: background-color 0.2s ease;
 }
 
+.scroll-cards-container:hover::-webkit-scrollbar-thumb,
+.scroll-cards-wrapper:hover .scroll-cards-container::-webkit-scrollbar-thumb {
+  background-color: var(--bs-border-color);
+}
+
+.scroll-cards-container::-webkit-scrollbar-thumb:hover {
+  background-color: var(--bs-secondary-color);
+}
+
+/* Button Inline Progress with Solid Fill */
+.btn-updating-progress {
+  position: relative !important;
+  overflow: hidden !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  background-color: var(--bs-secondary-bg) !important;
+}
+
+/* Nested Corner Radius: Inner Radius = Outer Radius - Padding */
 .env-tool-card {
+  --inner-radius: calc(var(--outer-radius, 16px) - var(--card-padding, 12px));
+  border-radius: var(--inner-radius, 4px) !important;
   aspect-ratio: 4 / 3;
   width: 200px;
   display: flex;
@@ -1667,180 +1829,320 @@ html.no-animations *::after {
   left: auto;
 }
 
-
-/* User Kits & Blocks Builder Styling */
-.kit-builder-row {
-  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.15s ease, box-shadow 0.15s ease;
-  user-select: none;
-}
-
-.kit-builder-row:hover {
-  background-color: var(--bs-tertiary-bg) !important;
-}
-
-.kit-builder-row.is-dragging {
-  z-index: 100 !important;
-  position: relative !important;
-  opacity: 0.95;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
-  background-color: var(--bs-body-bg) !important;
-  border-radius: var(--bs-border-radius);
-  transition: none !important;
-}
-
-.kit-builder-row.is-releasing {
-  z-index: 99 !important;
-  position: relative !important;
-}
-
-.kit-block-drag-handle {
-  cursor: grab !important;
-  touch-action: none;
-}
-
-.kit-block-drag-handle:active {
-  cursor: grabbing !important;
-}
-
-.kit-block-card {
-  transition: border-color 0.15s ease;
-}
-
-.kit-block-curtain {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+/* Settings Grouped Card & Row Layout */
+.settings-group-card {
+  background-color: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg, 0.5rem);
   overflow: hidden;
+  margin-bottom: 1.5rem;
 }
 
-.kit-block-curtain.is-open {
-  grid-template-rows: 1fr;
-}
-
-.kit-block-curtain-inner {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.kit-block-header-row {
-  cursor: pointer;
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--bs-border-color);
   transition: background-color 0.15s ease;
+  user-select: none;
+  margin-bottom: 0;
+  width: 100%;
 }
 
-.kit-block-header-row:hover {
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row.clickable {
+  cursor: pointer;
+}
+
+.settings-row.clickable:hover {
   background-color: var(--bs-tertiary-bg);
 }
 
-.kit-ide-header-bar {
-  margin: -1.5rem -1.5rem 1.5rem -1.5rem;
-  padding: 0.85rem 1.5rem;
+.settings-row-content {
+  padding: 0.85rem 1.15rem;
   border-bottom: 1px solid var(--bs-border-color);
-  width: calc(100% + 3rem);
 }
 
-.kit-segment-nav {
-  position: relative;
+.settings-row-content:last-child {
+  border-bottom: none;
+}
+
+/* ==========================================================================
+   Windows 10 Style Modal Dialog Open / Close Animations
+   Fast, crisp, responsive scale (0.96 -> 1.0) and opacity transition with
+   authentic Windows cubic-bezier timing.
+   ========================================================================== */
+
+/* Overwrite Bootstrap's slide-down translate(0, -50px) with Windows scale & fade */
+.modal.fade .modal-dialog {
+  opacity: 0;
+  transform: scale(0.92) !important;
+  transition: transform 0.18s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.16s ease-in !important;
+  will-change: transform, opacity;
+}
+
+.modal.fade.show .modal-dialog {
+  opacity: 1;
+  transform: scale(1) !important;
+  transition: transform 0.2s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.18s ease-out !important;
+}
+
+/* Backdrop smooth fade - runs in parallel with dialog entrance */
+.modal-backdrop.fade {
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.1, 0.9, 0.2, 1) !important;
+}
+
+.modal-backdrop.show {
+  opacity: 0.55 !important;
+}
+
+
+
+/* Modal Content Aesthetics: subtle Windows 10 elevation */
+.modal-content {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.16) !important;
+  border-radius: var(--bs-border-radius-lg, 0.5rem);
+}
+
+/* ==========================================================================
+   Pixel-Accurate Material 3 Switches (Specification: 52px x 32px)
+   - Track: 52px width, 32px height, 16px border-radius
+   - Unselected Thumb: 16px diameter, centered vertically (top: 6px, left: 6px)
+   - Selected Thumb: 24px diameter (top: 2px, left: 24px)
+   - Real-time drag support via --m3-drag-progress
+   ========================================================================== */
+
+.form-switch {
+  padding-left: 3.5rem;
+  min-height: 2rem;
   display: inline-flex;
   align-items: center;
-  background-color: var(--bs-secondary-bg);
-  border: 1px solid var(--bs-border-color);
-  border-radius: var(--bs-border-radius);
-  padding: 2px;
-  gap: 2px;
-  user-select: none;
 }
 
-.kit-segment-btn {
-  position: relative;
-  z-index: 2;
-  border: none !important;
-  background: transparent !important;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--bs-secondary-color) !important;
+.form-switch .form-check-input,
+input[type="checkbox"][role="switch"].form-check-input {
+  width: 52px !important;
+  height: 32px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  border-radius: 16px !important;
+  background-image: none !important; /* Discard Bootstrap SVG dot */
+  margin-left: -3.5rem !important;
+  margin-top: 0 !important;
   cursor: pointer;
-  border-radius: calc(var(--bs-border-radius) - 2px);
-  transform: none !important;
-  transition: color 0.15s ease;
-}
-
-.kit-segment-btn:focus-visible {
+  position: relative;
+  touch-action: pan-y;
+  vertical-align: middle;
+  background-color: var(--bs-tertiary-bg, #e7e0ec);
+  border: 2px solid var(--bs-outline, var(--bs-border-color, #79747e)) !important;
+  transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1),
+              border-color 0.2s cubic-bezier(0.2, 0, 0, 1),
+              box-shadow 0.2s ease;
+  overflow: visible;
   outline: none;
-  box-shadow: 0 0 0 2px var(--bs-focus-ring-color);
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
 }
 
-.kit-segment-btn:hover {
-  color: var(--bs-body-color) !important;
-}
-
-.kit-segment-btn.active {
-  color: var(--bs-body-color) !important;
-  font-weight: normal;
-  transform: none !important;
-}
-
-.kit-segment-indicator {
+/* Material 3 Switch Thumb (Handle) */
+.form-switch .form-check-input::after,
+input[type="checkbox"][role="switch"].form-check-input::after {
+  content: "";
   position: absolute;
-  top: 2px;
-  bottom: 2px;
-  left: 0;
-  z-index: 1;
-  background-color: var(--bs-body-bg);
-  border: 1px solid var(--bs-border-color);
-  border-radius: calc(var(--bs-border-radius) - 2px);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  transform: none;
-  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), width 0.22s cubic-bezier(0.2, 0, 0, 1);
+  border-radius: 50%;
   pointer-events: none;
+  /* Default Unselected State: 16px thumb, centered at top 6px, left 6px */
+  width: 16px;
+  height: 16px;
+  top: 6px;
+  left: 6px;
+  background-color: var(--bs-secondary-color, #79747e);
+  transform: translateX(calc(var(--m3-drag-progress, 0) * 18px));
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1),
+              width 0.15s cubic-bezier(0.2, 0, 0, 1),
+              height 0.15s cubic-bezier(0.2, 0, 0, 1),
+              top 0.15s cubic-bezier(0.2, 0, 0, 1),
+              left 0.15s cubic-bezier(0.2, 0, 0, 1),
+              background-color 0.2s cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform, width, height, top, left, background-color;
 }
 
-.kit-script-editor-wrapper {
-  margin: -1.5rem -1.5rem -1.5rem -1.5rem;
-  height: calc(100vh - 110px);
-  width: calc(100% + 3rem);
-  position: relative;
-  border: none !important;
-  outline: none !important;
+/* Active / Pressed state before or during toggle */
+.form-switch .form-check-input:active::after,
+.form-switch .form-check-input.m3-switch-active::after {
+  width: 28px;
+  height: 28px;
+  top: 0px;
+  left: 0px;
 }
 
-.kit-monaco-wrapper {
-  width: 100%;
-  height: 100%;
-  border: none !important;
-  outline: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden;
+/* Selected / Checked Track */
+.form-switch .form-check-input:checked,
+input[type="checkbox"][role="switch"].form-check-input:checked {
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+}
+
+/* Selected / Checked Thumb: Expands to 24px, rests at left: 22px, top: 2px */
+.form-switch .form-check-input:checked::after,
+input[type="checkbox"][role="switch"].form-check-input:checked::after {
+  width: 24px;
+  height: 24px;
+  top: 2px;
+  left: 22px;
+  background-color: #ffffff;
+  transform: translateX(calc((var(--m3-drag-progress, 1) - 1) * 18px));
+}
+
+.form-switch .form-check-input:checked:active::after,
+.form-switch .form-check-input:checked.m3-switch-active::after {
+  width: 28px;
+  height: 28px;
+  top: 0px;
+  left: 18px;
+}
+
+/* Dragging in Progress - disable transitions for instant responsive drag follow */
+.form-switch .form-check-input.m3-switch-dragging::after {
+  transition: none !important;
+}
+
+/* Focus indicator conforming to M3 state layer */
+.form-switch .form-check-input:focus {
+  border-color: var(--bs-primary) !important;
+  box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.25) !important;
+}
+
+/* Dark mode adjustments for M3 switch track & thumb */
+[data-bs-theme="dark"] .form-switch .form-check-input,
+[data-bs-theme="dark"] input[type="checkbox"][role="switch"].form-check-input {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.38) !important;
+}
+
+[data-bs-theme="dark"] .form-switch .form-check-input::after,
+[data-bs-theme="dark"] input[type="checkbox"][role="switch"].form-check-input::after {
+  background-color: rgba(255, 255, 255, 0.65);
+}
+
+[data-bs-theme="dark"] .form-switch .form-check-input:checked,
+[data-bs-theme="dark"] input[type="checkbox"][role="switch"].form-check-input:checked {
+  background-color: var(--bs-primary) !important;
+  border-color: var(--bs-primary) !important;
+}
+
+[data-bs-theme="dark"] .form-switch .form-check-input:checked::after,
+[data-bs-theme="dark"] input[type="checkbox"][role="switch"].form-check-input:checked::after {
+  background-color: #ffffff;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .modal.fade .modal-dialog,
+  .modal.fade.show .modal-dialog,
+  .form-switch .form-check-input::after {
+    transition: none !important;
+  }
+}
+
+/* System Title Bar Mode Styles */
+body.with-system-titlebar #top-header-bar {
+  height: 48px !important;
+}
+
+body.with-system-titlebar .header-brand-col {
+  border-right: 1px solid var(--bs-border-color) !important;
+}
+
+/* ==========================================================================
+   Merged Header Caption Controls (Windows 10 style)
+   The top header bar doubles as the custom title bar when "Use System
+   Title Bar" is OFF (body WITHOUT .with-system-titlebar). Caption buttons
+   sit at the top-right of the header; the header itself is the drag region.
+   Hidden when native system decorations are used (default).
+   ========================================================================== */
+
+#top-header-bar {
+  cursor: default;
+}
+
+.header-caption-controls {
+  display: none;
+  align-items: stretch;
+  flex-shrink: 0;
+  cursor: default;
+  -webkit-app-region: no-drag;
+}
+
+body:not(.with-system-titlebar) .header-caption-controls {
   display: flex;
-  flex-direction: column;
-  position: relative;
 }
 
-.kit-monaco-wrapper .monaco-editor,
-.kit-monaco-wrapper .monaco-editor .overflow-guard {
-  border: none !important;
-  border-radius: 0 !important;
+.header-caption-btn {
+  width: 46px;
+  min-width: 46px;
+  height: 100%;
+  min-height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--bs-body-color);
+  line-height: 1;
+  cursor: default;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  transition: background-color 0.08s linear;
+  -webkit-app-region: no-drag;
 }
 
-.kit-script-floating-menu {
-  position: absolute;
-  top: 10px;
-  right: 18px;
-  z-index: 20;
+/* Authentic Windows 10 caption glyphs, always normal (arrow) cursor */
+.header-caption-btn .tb-glyph {
+  font-family: "Segoe MDL2 Assets", "Segoe UI Symbol", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: default;
+  pointer-events: none;
+  -webkit-font-smoothing: antialiased;
 }
 
-#kit-script-editor {
-  tab-size: 2;
-  -moz-tab-size: 2;
-  font-family: var(--bs-font-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace) !important;
+.header-caption-btn:hover {
+  background-color: #e5e5e5;
+  cursor: default;
 }
 
-.kit-command-output {
-  font-family: var(--bs-font-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace) !important;
+[data-bs-theme="dark"] .header-caption-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
+.header-caption-btn:active {
+  background-color: #cacacd;
+  filter: none;
+}
 
+[data-bs-theme="dark"] .header-caption-btn:active {
+  background-color: rgba(255, 255, 255, 0.16);
+}
 
+.header-caption-btn.header-caption-close:hover {
+  background-color: #e81123 !important;
+  color: #ffffff !important;
+}
+
+.header-caption-btn.header-caption-close:active {
+  background-color: #f1707a !important;
+  color: #000000 !important;
+  filter: none;
+}
 
 

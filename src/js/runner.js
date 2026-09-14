@@ -54,9 +54,12 @@ export function appendLog(text, isError = false) {
   if (!logConsole || !text) return;
 
   const lineEl = document.createElement("div");
-  const isErr = isError || text.toLowerCase().includes("error") || text.toLowerCase().includes("failed");
-  const isWarn = !isErr && text.toLowerCase().includes("warning");
-  const isSuccess = !isErr && (text.toLowerCase().includes("success") || text.toLowerCase().includes("100%"));
+  const lower = text.toLowerCase();
+  // WARNING lines (e.g. yt-dlp PO-token notices mentioning "Error 403") are
+  // advisories, not failures -- check warning first so they stay yellow.
+  const isWarn = lower.startsWith("warning") || lower.includes("warning:");
+  const isErr = !isWarn && (isError || lower.includes("error") || lower.includes("failed"));
+  const isSuccess = !isErr && !isWarn && (lower.includes("success") || lower.includes("100%"));
 
   if (isErr) {
     lineEl.className = "text-danger";
@@ -230,6 +233,17 @@ export async function attachTauriListeners() {
   if (!currentLogUnlisten) {
     currentLogUnlisten = await listen("ffmpeg-log", (event) => {
       if (event.payload?.line) {
+        // yt-dlp reports the real output file as "filepath:<abs path>"
+        // (backend adds --print after_move:filepath:...). Point the finished
+        // toast at the file instead of the output folder so "Open file" works.
+        if (event.payload.line.startsWith("filepath:")) {
+          const fp = event.payload.line.slice(9).trim();
+          if (fp && fp !== "NA" && activeJobInfo) {
+            activeJobInfo.destination = fp;
+          }
+          appendLog(`[Saved: ${fp}]`);
+          return;
+        }
         appendLog(event.payload.line);
       }
     });
@@ -498,7 +512,17 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
               });
             });
             unlistenLog = await listen("ffmpeg-log", (ev) => {
-              if (ev.payload?.line) appendLog(ev.payload.line);
+              if (ev.payload?.line) {
+                if (ev.payload.line.startsWith("filepath:")) {
+                  const fp = ev.payload.line.slice(9).trim();
+                  if (fp && fp !== "NA" && activeJobInfo) {
+                    activeJobInfo.destination = fp;
+                  }
+                  appendLog(`[Saved: ${fp}]`);
+                  return;
+                }
+                appendLog(ev.payload.line);
+              }
             });
             unlistenFinished = await listen("ffmpeg-finished", (ev) => {
               if (unlistenProgress) unlistenProgress();

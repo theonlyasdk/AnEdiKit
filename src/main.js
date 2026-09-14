@@ -34,12 +34,13 @@ import {
   isJobRunning,
   initJobRunner,
 } from "./js/runner.js";
-import { initNavigation, getCurrentActiveTool, TOOL_METADATA } from "./js/navigation.js";
+import { initNavigation, getCurrentActiveTool, TOOL_METADATA, attachFluentRipple } from "./js/navigation.js";
 import { initToolsManager } from "./js/tools_manager.js";
 import { initThemeManager } from "./js/theme.js";
 import { initComparisonModal, openComparisonModal, setComparisonShimmer } from "./js/comparison.js";
 import { initYtDlpFormatEditor } from "./js/ytdlp_format.js";
-import { initKitsManager, executeActiveKit, resetActiveKit } from "./js/kits.js";
+import { initKitsManager, executeActiveKit, resetActiveKit, applyUserKitsVisibility } from "./kits/index.js";
+import { initM3Switches } from "./js/m3_switch.js";
 
 let appSettings = loadSettings();
 let mergeFiles = [];
@@ -2108,10 +2109,54 @@ function renderMergeList() {
   if (!mergeList) return;
 
   if (mergeFiles.length === 0) {
-    mergeList.innerHTML =
-      '<div class="list-group-item text-body-secondary text-center py-4" id="merge-empty-msg">No files added. Click Add Files to queue items for merging.</div>';
+    mergeList.className = "mb-2 small";
+    mergeList.style.maxHeight = "";
+    mergeList.style.overflowY = "visible";
+    mergeList.style.overscrollBehavior = "";
+    mergeList.innerHTML = `
+      <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="merge-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
+        <ion-icon name="library-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
+        <span class="fw-medium text-body" id="merge-drop-label">Drop media files here or click to select</span>
+        <span class="small text-body-secondary" id="merge-drop-sublabel">Supports MP4, MKV, WebM, MOV, AVI, MP3, WAV, FLAC</span>
+        <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-merge-add-empty" title="Add files to merge list">
+          <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Files
+        </button>
+      </div>
+    `;
+    const btnEmpty = document.getElementById("btn-merge-add-empty");
+    const emptyMsg = document.getElementById("merge-empty-msg");
+    const pickMergeHandler = async () => {
+      if (window.__TAURI__?.core?.invoke) {
+        try {
+          const picked = await window.__TAURI__.core.invoke("pick_files", { filter_mode: "all" });
+          if (picked && picked.length > 0) {
+            mergeFiles.push(...picked);
+            renderMergeList();
+            updateCommandPreview();
+          }
+        } catch (e) {
+          console.warn("pick_files error:", e);
+        }
+      } else {
+        const mockFile = `C:\\Users\\User\\Videos\\clip_${mergeFiles.length + 1}.mp4`;
+        mergeFiles.push(mockFile);
+        renderMergeList();
+        updateCommandPreview();
+      }
+    };
+    if (btnEmpty) btnEmpty.addEventListener("click", pickMergeHandler);
+    if (emptyMsg) {
+      attachFluentRipple(emptyMsg);
+      emptyMsg.addEventListener("click", (e) => {
+        if (!e.target.closest("button")) pickMergeHandler();
+      });
+    }
     return;
   }
+  mergeList.className = "list-group border rounded mb-2 small overflow-y-auto";
+  mergeList.style.maxHeight = "180px";
+  mergeList.style.overflowY = "auto";
+  mergeList.style.overscrollBehavior = "contain";
 
   mergeList.innerHTML = mergeFiles
     .map(
@@ -2194,6 +2239,8 @@ function populateSettingsUI() {
   const setPromptOver = document.getElementById("set-prompt-overwrite");
   const setEnableNotif = document.getElementById("set-enable-notifications");
   const setDisableAnim = document.getElementById("set-disable-animations");
+  const setEnableUserKits = document.getElementById("set-enable-user-kits");
+  const setUseSystemTitlebar = document.getElementById("set-use-system-titlebar");
   const setHw = document.getElementById("set-hwaccel");
   const setThr = document.getElementById("set-threads");
   const setDefVc = document.getElementById("set-def-vcodec");
@@ -2212,6 +2259,8 @@ function populateSettingsUI() {
   if (setPromptOver) setPromptOver.checked = !!appSettings.promptOverwrite;
   if (setEnableNotif) setEnableNotif.checked = appSettings.enableNotifications !== false;
   if (setDisableAnim) setDisableAnim.checked = !!appSettings.disableAnimations;
+  if (setEnableUserKits) setEnableUserKits.checked = appSettings.enableUserKits === true;
+  if (setUseSystemTitlebar) setUseSystemTitlebar.checked = appSettings.useSystemTitlebar !== false;
   if (setHw) setHw.value = appSettings.hwAccel || "auto";
   if (setThr) setThr.value = appSettings.threads || "0";
   if (setDefVc) setDefVc.value = appSettings.defVCodec || "libx264";
@@ -2229,11 +2278,135 @@ function populateSettingsUI() {
   populateHardwareInfo();
 }
 
+export function applyTitlebarMode(useSystem) {
+  const isSystem = useSystem !== false;
+  document.body.classList.toggle("with-system-titlebar", isSystem);
+  if (window.__TAURI__?.core?.invoke) {
+    window.__TAURI__.core.invoke("set_decorations", { decorations: isSystem }).catch((e) => {
+      console.warn("Failed to set window decorations:", e);
+    });
+  }
+  updateMaximizeIcon();
+}
+
+function getTauriWindow() {
+  try {
+    const tauriWindow = window.__TAURI__?.window;
+    if (!tauriWindow) return null;
+    if (typeof tauriWindow.getCurrentWindow === "function") {
+      return tauriWindow.getCurrentWindow();
+    }
+    if (tauriWindow.appWindow) {
+      return tauriWindow.appWindow;
+    }
+  } catch (err) {
+    console.warn("Failed to resolve Tauri window:", err);
+  }
+  return null;
+}
+
+async function updateMaximizeIcon() {
+  const icon = document.getElementById("win-maximize-icon");
+  const btn = document.getElementById("win-maximize");
+  if (!icon || !btn) return;
+  const win = getTauriWindow();
+  if (!win || typeof win.isMaximized !== "function") return;
+  try {
+    const maximized = await win.isMaximized();
+    // Segoe MDL2 Assets: E922 = ChromeMaximize, E923 = ChromeRestore
+    icon.textContent = maximized ? "\uE923" : "\uE922";
+    btn.title = maximized ? "Restore" : "Maximize";
+  } catch (_) {
+    /* ignore - e.g. running in browser preview */
+  }
+}
+
+function initCaptionControls() {
+  const bar = document.getElementById("top-header-bar");
+  const btnMin = document.getElementById("win-minimize");
+  const btnMax = document.getElementById("win-maximize");
+  const btnClose = document.getElementById("win-close");
+  if (!bar || !btnMin || !btnMax || !btnClose) return;
+
+  btnMin.addEventListener("click", async () => {
+    const win = getTauriWindow();
+    if (win && typeof win.minimize === "function") {
+      try {
+        await win.minimize();
+      } catch (err) {
+        console.warn("Minimize failed:", err);
+      }
+    }
+  });
+
+  const toggleMax = async () => {
+    const win = getTauriWindow();
+    if (win && typeof win.toggleMaximize === "function") {
+      try {
+        await win.toggleMaximize();
+      } catch (err) {
+        console.warn("Toggle maximize failed:", err);
+      }
+      updateMaximizeIcon();
+    } else if (win && typeof win.isMaximized === "function") {
+      try {
+        if (await win.isMaximized()) await win.unmaximize();
+        else await win.maximize();
+      } catch (err) {
+        console.warn("Maximize toggle failed:", err);
+      }
+      updateMaximizeIcon();
+    }
+  };
+
+  btnMax.addEventListener("click", toggleMax);
+
+  // Window dragging: left-press anywhere on the merged header (outside
+  // interactive elements) starts a native window drag. This is the reliable
+  // Tauri v2 mechanism - the data-tauri-drag-region attribute alone is not
+  // enough once decorations are toggled at runtime.
+  bar.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    if (e.target.closest(".header-caption-controls, button, a, input, select, textarea, [role=\"button\"]")) return;
+    const win = getTauriWindow();
+    if (win && typeof win.startDragging === "function") {
+      win.startDragging().catch((err) => {
+        console.warn("Window dragging failed:", err);
+      });
+    }
+  });
+
+  // Double-click on the drag region toggles maximize (Windows 10 behavior)
+  bar.addEventListener("dblclick", (e) => {
+    if (e.target.closest(".header-caption-controls, button, a, input, select, textarea, [role=\"button\"]")) return;
+    toggleMax();
+  });
+
+  btnClose.addEventListener("click", async () => {
+    const win = getTauriWindow();
+    if (win && typeof win.close === "function") {
+      try {
+        await win.close();
+      } catch (err) {
+        console.warn("Close failed:", err);
+      }
+    }
+  });
+
+  updateMaximizeIcon();
+  // Refresh restore/maximize glyph when window state changes externally
+  window.addEventListener("resize", () => {
+    updateMaximizeIcon();
+  });
+}
+
 function syncSettingsFromUI() {
   const setOutDir = document.getElementById("set-output-dir");
   const setPromptOver = document.getElementById("set-prompt-overwrite");
   const setEnableNotif = document.getElementById("set-enable-notifications");
   const setDisableAnim = document.getElementById("set-disable-animations");
+  const setEnableUserKits = document.getElementById("set-enable-user-kits");
+  const setUseSystemTitlebar = document.getElementById("set-use-system-titlebar");
   const setHw = document.getElementById("set-hwaccel");
   const setThr = document.getElementById("set-threads");
   const setDefVc = document.getElementById("set-def-vcodec");
@@ -2252,6 +2425,20 @@ function syncSettingsFromUI() {
   if (setPromptOver) appSettings.promptOverwrite = setPromptOver.checked;
   if (setEnableNotif) appSettings.enableNotifications = setEnableNotif.checked;
   if (setDisableAnim) appSettings.disableAnimations = setDisableAnim.checked;
+  if (setEnableUserKits) {
+    const isChecked = !!setEnableUserKits.checked;
+    if (appSettings.enableUserKits !== isChecked) {
+      appSettings.enableUserKits = isChecked;
+      applyUserKitsVisibility(isChecked);
+    }
+  }
+  if (setUseSystemTitlebar) {
+    const isSystem = !!setUseSystemTitlebar.checked;
+    if (appSettings.useSystemTitlebar !== isSystem) {
+      appSettings.useSystemTitlebar = isSystem;
+      applyTitlebarMode(isSystem);
+    }
+  }
   if (setHw) appSettings.hwAccel = setHw.value;
   if (setThr) appSettings.threads = setThr.value;
   if (setDefVc) appSettings.defVCodec = setDefVc.value;
@@ -2269,10 +2456,15 @@ function syncSettingsFromUI() {
   saveSettings(appSettings);
 }
 
+
 // App Initialization
 document.addEventListener("DOMContentLoaded", () => {
   initThemeManager();
   populateSettingsUI();
+  if (appSettings.useSystemTitlebar === undefined) appSettings.useSystemTitlebar = true;
+  initCaptionControls();
+  applyTitlebarMode(appSettings.useSystemTitlebar);
+  applyUserKitsVisibility(appSettings.enableUserKits === true);
   restoreAllModulesState();
 
   const ytdlpOutInput = document.getElementById("ytdlp-output-dir");
@@ -2362,7 +2554,28 @@ document.addEventListener("DOMContentLoaded", () => {
   initImageLightbox();
   initToolsManager();
   initKitsManager();
+  initM3Switches();
+  const initialImageEmpty = document.getElementById("image-ai-empty-msg");
+  if (initialImageEmpty) {
+    attachFluentRipple(initialImageEmpty);
+  }
+  const initialBatchEmpty = document.getElementById("batch-empty-msg");
+  if (initialBatchEmpty) {
+    attachFluentRipple(initialBatchEmpty);
+    initialBatchEmpty.addEventListener("click", (e) => {
+      if (!e.target.closest("button") && typeof selectMediaFiles === "function") {
+        selectMediaFiles("all");
+      }
+    });
+  }
+  const initialMergeEmpty = document.getElementById("merge-empty-msg");
+  if (initialMergeEmpty) {
+    attachFluentRipple(initialMergeEmpty);
+  }
+  renderMergeList();
   syncFormatSpecificUI();
   updateAutoOutputFilename(true);
   updateCommandPreview();
 });
+
+

@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS = {
   promptOverwrite: true,
   enableNotifications: true,
   disableAnimations: false,
+  enableUserKits: false,
+  useSystemTitlebar: true,
   customFont: "",
   hwAccel: "auto",
   threads: "0",
@@ -60,7 +62,14 @@ export function saveSettings(settings) {
 }
 
 export function getSavedActiveTool(defaultTool = "convert") {
-  return localStorage.getItem(STORAGE_KEYS.ACTIVE_TOOL) || defaultTool;
+  const tool = localStorage.getItem(STORAGE_KEYS.ACTIVE_TOOL) || defaultTool;
+  if (typeof tool === "string" && tool.startsWith("kit_")) {
+    const settings = loadSettings();
+    if (!settings.enableUserKits) {
+      return defaultTool;
+    }
+  }
+  return tool;
 }
 
 export function saveActiveTool(toolId) {

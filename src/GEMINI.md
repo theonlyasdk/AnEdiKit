@@ -100,7 +100,7 @@ Avoid:
 
 All localStorage keys must follow the hierarchical `anedikit:` namespace convention:
 - `anedikit:settings:active_tool`: Currently selected active sidebar tool ID (e.g. `convert`, `extract_audio`, `trim`, `compress`, `merge`, `mute_replace`, `gif_frames`, `custom`, `settings`).
-- `anedikit:settings`: Application settings JSON object (output directory, overwrite prompt, hardware acceleration engine, thread count, default video codec, default speed preset, default audio format, default audio bitrate).
+- `anedikit:settings`: Application settings JSON object (output directory, overwrite prompt, enable user kits, hardware acceleration engine, thread count, default video codec, default speed preset, default audio format, default audio bitrate).
 - `anedikit:settings:last_input_file`: Path of the most recently chosen media file.
 - `anedikit:settings:last_ytdlp_out_dir`: Default/last used download destination folder for yt-dlp tools.
 - `anedikit:settings:last_image_ai_out_dir`: Default/last used output folder for Image & AI tools.

@@ -14,6 +14,7 @@ All keys in the application follow the hierarchical `anedikit:` namespace conven
   - `promptOverwrite` (boolean): Whether to prompt confirmation before overwriting existing files.
   - `enableNotifications` (boolean): Toggle desktop system notifications upon task completion.
   - `disableAnimations` (boolean): Disables UI transitions and animations when true.
+  - `enableUserKits` (boolean): Whether User Kits and Scripting IDE are enabled in the sidebar. Default: `false`.
   - `customFont` (string): Custom system font family override.
   - `hwAccel` (string): Hardware acceleration profile (`auto`, `cuda`, `qsv`, `amf`, `cpu`).
   - `threads` (string): Number of encoding threads (`0` for auto-detection).

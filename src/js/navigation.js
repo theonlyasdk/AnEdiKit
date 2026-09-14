@@ -150,9 +150,9 @@ const TOOL_ORDER = [
   "restore_denoise",
   "icon_generator",
   "metadata_cleaner",
+  "ytdlp_audio",
   "ytdlp_video",
   "ytdlp_playlist",
-  "ytdlp_audio",
   "ytdlp_subtitles",
   "settings",
 ];
@@ -193,13 +193,18 @@ export function updateSidebarIndicator(activeBtn, isSettings = false) {
   }
 }
 
-export function switchTool(toolId, onToolChanged) {
+export function switchTool(toolId, onToolChanged, autoScroll = false) {
   const isKit = typeof toolId === "string" && toolId.startsWith("kit_");
   let toolTitle = "";
   let toolDesc = "";
   let targetViewId = "";
 
   if (isKit) {
+    const settings = loadSettings();
+    if (!settings.enableUserKits) {
+      switchTool("convert", onToolChanged);
+      return;
+    }
     const kitId = toolId.replace("kit_", "");
     const kit = getUserKitById(kitId);
     toolTitle = kit ? kit.name : "User Kit";
@@ -243,6 +248,13 @@ export function switchTool(toolId, onToolChanged) {
       if (b.dataset.tool === toolId) {
         b.classList.add("active");
         updateSidebarIndicator(b, false);
+        if (autoScroll) {
+          // Use native center scrolling — respects scroll-padding (sticky header + absolute footer)
+          // and works even when offsetTop is relative to a nested <nav>, unlike manual offsetTop math.
+          requestAnimationFrame(() => {
+            b.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+          });
+        }
       } else {
         b.classList.remove("active");
       }
@@ -253,6 +265,7 @@ export function switchTool(toolId, onToolChanged) {
   const headerContainer = document.getElementById("tool-header-text");
   const titleEl = document.getElementById("current-tool-title");
   const descEl = document.getElementById("current-tool-desc");
+
 
   if (headerContainer && titleEl && descEl) {
     headerContainer.classList.remove("slide-from-bottom", "slide-from-top");
@@ -413,21 +426,11 @@ export function toggleMobileSidebar() {
   if (backdrop) backdrop.classList.toggle("d-none", !isShown);
 }
 
-// Bind edge hover proximity and ripple effects to any sidebar button
-export function setupSidebarButtonEffects(btn, onToolChanged) {
-  if (!btn || btn.dataset.effectsBound === "true") return;
-  btn.dataset.effectsBound = "true";
-
-  btn.addEventListener("mousemove", (e) => {
-    const rect = btn.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    btn.style.setProperty("--mouse-x", `${x}px`);
-    btn.style.setProperty("--mouse-y", `${y}px`);
-  });
-
-  btn.addEventListener("mousedown", (e) => {
-    const rect = btn.getBoundingClientRect();
+export function attachFluentRipple(element) {
+  if (!element) return;
+  element.addEventListener("mousedown", (e) => {
+    // If click is on a child button or control, ignore to prevent duplicate ripples
+    const rect = element.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const size = Math.max(rect.width, rect.height) * 1.5;
@@ -439,11 +442,29 @@ export function setupSidebarButtonEffects(btn, onToolChanged) {
     ripple.style.left = `${x}px`;
     ripple.style.top = `${y}px`;
 
-    btn.appendChild(ripple);
+    element.appendChild(ripple);
     ripple.addEventListener("animationend", () => {
       ripple.remove();
     });
   });
+}
+
+// Bind edge hover proximity and ripple effects to any sidebar button
+export function setupSidebarButtonEffects(btn, onToolChanged) {
+
+  if (!btn || btn.dataset.effectsBound === "true") return;
+  btn.dataset.effectsBound = "true";
+
+  btn.addEventListener("mousemove", (e) => {
+    const rect = btn.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    btn.style.setProperty("--mouse-x", `${x}px`);
+    btn.style.setProperty("--mouse-y", `${y}px`);
+  });
+
+  attachFluentRipple(btn);
+
 
   if (onToolChanged && btn.dataset.tool) {
     btn.addEventListener("click", () => {
@@ -483,16 +504,17 @@ export function initNavigation(onToolChanged) {
         if (e.deltaY > 0 || e.deltaX > 0) {
           // Scroll down -> Next tool
           const nextIdx = (curIdx + 1) % TOOL_ORDER.length;
-          switchTool(TOOL_ORDER[nextIdx], onToolChanged);
+          switchTool(TOOL_ORDER[nextIdx], onToolChanged, true);
         } else if (e.deltaY < 0 || e.deltaX < 0) {
           // Scroll up -> Previous tool
           const prevIdx = (curIdx - 1 + TOOL_ORDER.length) % TOOL_ORDER.length;
-          switchTool(TOOL_ORDER[prevIdx], onToolChanged);
+          switchTool(TOOL_ORDER[prevIdx], onToolChanged, true);
         }
       },
       { passive: false },
     );
   }
+
 
   if (backdrop) {
     backdrop.addEventListener("click", () => {
