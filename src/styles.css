@@ -310,9 +310,16 @@ a:active,
   min-height: 0;
 }
 
+/* Sidebar acrylic approximation: a stop lighter than the body
+   (tertiary tone) with a deep frost + saturation lift. In the drawer this
+   blurs the dimmed workspace behind it; docked it reads as a lifted panel.
+   (True OS Acrylic/Mica would need window-level Tauri effects instead.) */
 #main-sidebar {
   margin-top: -56px;
   z-index: 10;
+  background-color: rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), 0.78);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
 }
 
 body.with-system-titlebar #main-sidebar {
@@ -653,9 +660,8 @@ body.with-system-titlebar #sidebar-scroll-container {
 }
 
 .header-brand-col {
-  background-color: rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.5);
-  -webkit-backdrop-filter: blur(4px) saturate(140%);
-  backdrop-filter: blur(4px) saturate(140%);
+  /* Solid like the rest of the top bar — no translucency, exact match. */
+  background-color: var(--bs-body-bg);
   z-index: 10;
   position: relative;
   /* Never let native window-dragging claim presses on the brand cell or
@@ -687,13 +693,13 @@ body.with-system-titlebar #sidebar-scroll-container {
     left: 0;
     z-index: 1040;
     width: 260px !important;
-    background-color: var(--bs-body-bg) !important;
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
     box-shadow: none;
   }
 
-  /* Drawer keeps its own solid bg and starts below the header.
+  /* Drawer starts below the header and keeps the frosted acrylic tone
+     (ID beats the bg-body class, no !important needed).
      The aside root itself must outrank the backdrop (z-1030): the drawer's
      own z-1040 can't save it (nested stacking via transform), and the
      desktop z-10 would bury the whole drawer under the dim layer. */
@@ -701,6 +707,9 @@ body.with-system-titlebar #sidebar-scroll-container {
   body.with-system-titlebar #main-sidebar {
     margin-top: 0;
     z-index: 1050;
+    background-color: rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), 0.86);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    backdrop-filter: blur(28px) saturate(160%);
   }
 
   /* Dual selector: the system-titlebar variant carries a class+ID (higher

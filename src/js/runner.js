@@ -1,6 +1,7 @@
 // Task Execution Runner Module
 import { updateBatchItemStatus, updateActiveImageAiProgress } from "./media.js";
 import { loadSettings } from "./storage.js";
+import { animateCopyConfirm } from "./copy_anim.js";
 
 let isRunning = false;
 let isBatchRunning = false;
@@ -868,12 +869,11 @@ export function initLogCopyButton() {
 
       const originalTitle = btnCopy.getAttribute("title") || "Copy execution log to clipboard";
       btnCopy.classList.add("copied");
-      btnCopy.innerHTML = `<ion-icon name="checkmark-outline"></ion-icon>`;
+      animateCopyConfirm(btnCopy.querySelector("ion-icon"), { holdMs: 1400 });
       btnCopy.setAttribute("title", "Copied to clipboard!");
 
       setTimeout(() => {
         btnCopy.classList.remove("copied");
-        btnCopy.innerHTML = `<ion-icon name="copy-outline"></ion-icon>`;
         btnCopy.setAttribute("title", originalTitle);
       }, 1800);
     } catch (err) {

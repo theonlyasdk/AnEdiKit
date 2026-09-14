@@ -35,6 +35,7 @@ import {
   initJobRunner,
 } from "./js/runner.js";
 import { initNavigation, getCurrentActiveTool, TOOL_METADATA, attachFluentRipple, animateQueueHeight } from "./js/navigation.js";
+import { animateCopyConfirm } from "./js/copy_anim.js";
 import { initToolsManager } from "./js/tools_manager.js";
 import { initThemeManager } from "./js/theme.js";
 import { initComparisonModal, openComparisonModal, setComparisonShimmer } from "./js/comparison.js";

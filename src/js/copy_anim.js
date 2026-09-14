@@ -22,7 +22,10 @@ function token(name, fallback) {
 
 export async function animateCopyConfirm(iconEl, opts = {}) {
   const confirmIcon = opts.confirmIcon || "checkmark-outline";
-  const holdMs = opts.holdMs ?? 850;
+  const holdMs = opts.holdMs ?? 650;
+  // Green check on plain buttons; white check on the green success flash so
+  // it never melts into the background.
+  const checkClass = iconEl?.closest?.(".btn-success") ? "text-white" : "text-success";
   if (!iconEl) return;
 
   const reduceMotion =
@@ -56,20 +59,23 @@ export async function animateCopyConfirm(iconEl, opts = {}) {
       { duration, easing, fill: "forwards" },
     ).finished;
 
+  // Deliberately punchier than the 2px swap token: the blur must read on a
+  // ~18px glyph, and the whole beat should land in about a second.
+  const BLUR_PX = 4;
   try {
     // 1. Old icon zooms + blurs out.
-    await phase({ o: 1, s: 1, b: 0 }, { o: 0, s: 0.4, b: 2 }, 160, inout);
+    await phase({ o: 1, s: 1, b: 0 }, { o: 0, s: 0.35, b: BLUR_PX }, 120, inout);
     // 2. Checkmark bounces in.
     iconEl.setAttribute("name", confirmIcon);
-    iconEl.classList.add("text-success");
-    await phase({ o: 0, s: 0.4, b: 2 }, { o: 1, s: 1, b: 0 }, 260, bounce);
+    iconEl.classList.add(checkClass);
+    await phase({ o: 0, s: 0.35, b: BLUR_PX }, { o: 1, s: 1, b: 0 }, 220, bounce);
     await new Promise((resolve) => setTimeout(resolve, holdMs));
     // 3. Checkmark zooms + blurs out.
-    await phase({ o: 1, s: 1, b: 0 }, { o: 0, s: 0.5, b: 2 }, 170, inout);
+    await phase({ o: 1, s: 1, b: 0 }, { o: 0, s: 0.45, b: BLUR_PX }, 130, inout);
     // 4. Original icon returns.
     iconEl.setAttribute("name", original);
-    iconEl.classList.remove("text-success");
-    await phase({ o: 0, s: 0.5, b: 2 }, { o: 1, s: 1, b: 0 }, 220, inout);
+    iconEl.classList.remove(checkClass);
+    await phase({ o: 0, s: 0.45, b: BLUR_PX }, { o: 1, s: 1, b: 0 }, 180, inout);
   } catch {
     // WAAPI aborted mid-flight — fall through to restore.
   } finally {
@@ -80,7 +86,7 @@ export async function animateCopyConfirm(iconEl, opts = {}) {
     }
     if (iconEl.isConnected) {
       iconEl.setAttribute("name", original);
-      iconEl.classList.remove("text-success");
+      iconEl.classList.remove("text-success", "text-white");
     }
     iconEl._copyBusy = false;
   }

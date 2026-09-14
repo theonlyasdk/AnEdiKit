@@ -8,6 +8,7 @@ import {
 import { renderBlockHTML } from "./blocks.js";
 import { saveKitParams, saveUserKit } from "./storage.js";
 import { selectMediaFile, selectOutputFolder, probeMedia } from "../js/media.js";
+import { animateCopyConfirm } from "../js/copy_anim.js";
 import { updateKitLivePreview } from "./executor.js";
 import { renderKitIdeWorkspace } from "./workspace.js";
 
@@ -222,11 +223,9 @@ export function bindKitRunnerInputs(container) {
       const pre = container.querySelector("#kit-cmd-preview");
       if (pre && pre.textContent) {
         await navigator.clipboard.writeText(pre.textContent);
-        const origHtml = btnCopyCmd.innerHTML;
-        btnCopyCmd.innerHTML = `<ion-icon name="checkmark-outline"></ion-icon> Copied!`;
+        animateCopyConfirm(btnCopyCmd.querySelector("ion-icon"), { holdMs: 1400 });
         btnCopyCmd.classList.replace("btn-outline-secondary", "btn-success");
         setTimeout(() => {
-          btnCopyCmd.innerHTML = origHtml;
           btnCopyCmd.classList.replace("btn-success", "btn-outline-secondary");
         }, 1800);
       }
@@ -239,9 +238,7 @@ export function bindKitRunnerInputs(container) {
   if (btnCopyLogs && logBox) {
     btnCopyLogs.addEventListener("click", async () => {
       await navigator.clipboard.writeText(logBox.innerText || "");
-      const origHtml = btnCopyLogs.innerHTML;
-      btnCopyLogs.innerHTML = `<ion-icon name="checkmark-outline" class="text-success"></ion-icon>`;
-      setTimeout(() => (btnCopyLogs.innerHTML = origHtml), 1500);
+      animateCopyConfirm(btnCopyLogs.querySelector("ion-icon"), { holdMs: 1200 });
     });
   }
 

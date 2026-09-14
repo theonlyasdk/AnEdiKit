@@ -156,11 +156,14 @@ function getFilesRecursively(dir) {
 // Run Tauri build CLI
 function runTauriBuild(extraArgs = []) {
   return new Promise((resolve, reject) => {
-    let tauriCliPath;
-    try {
-      tauriCliPath = fileURLToPath(import.meta.resolve('@tauri-apps/cli'));
-    } catch {
-      tauriCliPath = path.join(rootDir, 'node_modules', '@tauri-apps', 'cli', 'main.js');
+    let tauriCliPath = path.join(rootDir, 'node_modules', '@tauri-apps', 'cli', 'tauri.js');
+    if (!fs.existsSync(tauriCliPath)) {
+      try {
+        const pkgEntry = fileURLToPath(import.meta.resolve('@tauri-apps/cli'));
+        tauriCliPath = path.join(path.dirname(pkgEntry), 'tauri.js');
+      } catch {
+        tauriCliPath = path.join(rootDir, 'node_modules', '@tauri-apps', 'cli', 'main.js');
+      }
     }
 
     const args = [tauriCliPath, 'build', ...extraArgs];
@@ -299,12 +302,23 @@ async function main() {
         type = `${ext.toUpperCase().replace('.', '')} Bundle`;
       }
 
+      // If bundle filename contains a version string, ensure it matches the current version
+      const fileVersionMatch = fileName.match(/\d+\.\d+\.\d+/);
+      if (fileVersionMatch && fileVersionMatch[0] !== version) {
+        continue;
+      }
+
       if (targetName) {
-        releaseItems.push({
-          source: filePath,
-          targetName,
-          type,
-        });
+        const existingIdx = releaseItems.findIndex((item) => item.targetName === targetName);
+        if (existingIdx >= 0) {
+          releaseItems[existingIdx] = { source: filePath, targetName, type };
+        } else {
+          releaseItems.push({
+            source: filePath,
+            targetName,
+            type,
+          });
+        }
       }
     }
   }
