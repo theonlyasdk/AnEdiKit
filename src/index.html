@@ -38,7 +38,7 @@
       </header>
 
       <!-- Main Layout Body (overflow visible so the sidebar can slide up under the frosted brand cell) -->
-      <div class="d-flex flex-grow-1 position-relative" style="overflow: visible;">
+      <div class="d-flex flex-grow-1 position-relative" id="main-layout-row" style="overflow: visible; min-height: 0;">
         <!-- Sidebar Backdrop Overlay for Mobile/Small Screens -->
         <div class="sidebar-backdrop d-none" id="sidebar-backdrop"></div>
 
@@ -46,7 +46,7 @@
         <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" id="main-sidebar" style="width: 280px;">
           <div class="overflow-y-auto flex-grow-1 p-2 position-relative" id="sidebar-scroll-container">
             <div class="sidebar-indicator" id="sidebar-indicator"></div>
-            <div class="sidebar-section-header">FFmpeg</div>
+            <div class="sidebar-section-header sidebar-section-first">FFmpeg</div>
             <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
               <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
                 <ion-icon name="film-outline" class="text-body-secondary"></ion-icon>

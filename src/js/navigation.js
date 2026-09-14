@@ -479,10 +479,32 @@ export function initNavigation(onToolChanged) {
   const btnToggle = document.getElementById("btn-sidebar-toggle");
   const backdrop = document.getElementById("sidebar-backdrop");
 
+  // Mobile drawer toggle — triple-redundant by design. The hamburger icon
+  // itself can miss clicks (icon web-component retargeting, fall-through
+  // targets, native drag quirks in Tauri), so the whole brand cell also
+  // toggles, strictly gated to small widths so desktop is unaffected.
+  // Icon handler stops propagation so the two never double-fire (which
+  // would open+close = look dead).
+  const isSmallWidth = () => window.innerWidth <= 768;
   const brandLogoIcon = document.getElementById("brand-logo-icon");
   if (brandLogoIcon) {
     brandLogoIcon.addEventListener("click", (e) => {
       e.stopPropagation();
+      toggleMobileSidebar();
+    });
+    brandLogoIcon.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMobileSidebar();
+      }
+    });
+  }
+  if (btnToggle) {
+    btnToggle.addEventListener("click", (e) => {
+      if (!isSmallWidth()) return;
+      // Icon already handled it (and stopped propagation); this catches
+      // clicks that land on the title/padding around the icon instead.
       toggleMobileSidebar();
     });
   }

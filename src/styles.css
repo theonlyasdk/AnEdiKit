@@ -271,6 +271,14 @@ a:active,
   pointer-events: auto;
 }
 
+/* First section header tucks up under the brand cell: pulled a few pixels
+   into the dead zone so no visible gap remains. Its top edge dissolves
+   behind the brand frost for a connected look. */
+.sidebar-section-first {
+  margin-top: -4px;
+  padding-top: 0.5rem;
+}
+
 .sidebar-section-header::before,
 .sidebar-section-header::after {
   content: "";
@@ -292,6 +300,14 @@ a:active,
   position: relative;
 }
 
+/* Layout row must stay overflow:visible (sidebar overlap) AND min-height:0:
+   without min-height:0 the row's automatic minimum (content height) blocks
+   flex-shrink, the row balloons to full content height, and the sidebar
+   scroll container grows instead of scrolling. */
+#main-layout-row {
+  min-height: 0;
+}
+
 #main-sidebar {
   margin-top: -56px;
   z-index: 10;
@@ -305,16 +321,23 @@ body.with-system-titlebar #main-sidebar {
   scroll-behavior: smooth;
   scroll-padding-top: 44px;
   scroll-padding-bottom: 64px;
-  padding-top: calc(56px + 12px) !important;
+  padding-top: 56px !important;
   padding-bottom: 64px !important;
   /* Classic flex-scroll guard: allow the container to shrink inside the
      flex column so overflow-y actually scrolls instead of growing. */
   min-height: 0;
   overscroll-behavior: contain;
+  /* Top fade: content gracefully dissolves as it slides under the frosted
+     brand cell instead of hard-clipping behind it (which looked detached).
+     Fade ends just past the header so resting content stays fully opaque. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 72px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 72px);
 }
 
 body.with-system-titlebar #sidebar-scroll-container {
-  padding-top: calc(48px + 12px) !important;
+  padding-top: 48px !important;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 64px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 64px);
 }
 
 /* Unified footer bar — single row: Settings (280px, frosted) + status.
@@ -604,6 +627,10 @@ body.with-system-titlebar #sidebar-scroll-container {
 #brand-logo-icon {
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
+  /* Global ion-icon rule sets pointer-events:none (so icons inside buttons
+     don't swallow clicks). The hamburger IS the click target, so opt back
+     in — otherwise clicks fall through and the drawer never toggles. */
+  pointer-events: auto;
 }
 
 .header-brand-col {
@@ -644,16 +671,25 @@ body.with-system-titlebar #sidebar-scroll-container {
   }
 
   /* Drawer keeps its own solid bg and starts below the header.
-     z-index must be re-declared here: the base #main-sidebar rule (ID
-     specificity) would otherwise keep it at z-index 10, hidden behind
-     the backdrop/content so "nothing shows up". */
-  #main-sidebar {
+     The aside root itself must outrank the backdrop (z-1030): the drawer's
+     own z-1040 can't save it (nested stacking via transform), and the
+     desktop z-10 would bury the whole drawer under the dim layer. */
+  #main-sidebar,
+  body.with-system-titlebar #main-sidebar {
     margin-top: 0;
-    z-index: 1040;
+    z-index: 1050;
   }
 
-  #sidebar-scroll-container {
-    padding-top: 0.5rem !important;
+  /* Dual selector: the system-titlebar variant carries a class+ID (higher
+     specificity) and would otherwise keep its 60px padding in the drawer. */
+  #sidebar-scroll-container,
+  body.with-system-titlebar #sidebar-scroll-container {
+    /* Flush under the brand cell: no top gap before the first section header
+       (it carries its own internal padding). No fade mask either — the drawer
+       has its own solid bg, a fade would eat real content. */
+    padding-top: 0 !important;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .sidebar.show-sidebar {
@@ -1015,13 +1051,34 @@ html.no-animations *::after {
   transition: --btn-progress 0.38s linear;
 }
 
-/* Manage Tools modal: per-tool action buttons fill the row on narrow screens.
-   Attribute selector is used because JS rewrites btn className during updates. */
-@media (max-width: 576px) {
-  #manage-tools-list-container [id^="btn-update-"] {
-    flex: 1 1 100% !important;
-    width: 100%;
-  }
+/* Manage Tools modal: per-tool action buttons always take their own full-width
+   row under the title/description instead of squeezing beside (or wrapping
+   half-width below) the text. Attribute selector is used because JS rewrites
+   btn className during updates. */
+#manage-tools-list-container [id^="btn-update-"] {
+  flex: 1 1 100% !important;
+  width: 100%;
+}
+
+/* Manage Tools footer: the live speed/ETA badge appears mid-row during
+   updates — keep everything on one line (no wrap pushing Done down) and
+   let the status text truncate instead of squeezing the buttons. */
+#manage-tools-modal .modal-footer {
+  flex-wrap: nowrap !important;
+}
+#manage-tools-modal .modal-footer > .btn {
+  flex-shrink: 0;
+}
+#tool-download-speed-badge {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+#tool-download-speed-badge > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Nested Corner Radius: Inner Radius = Outer Radius - Padding */

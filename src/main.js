@@ -2385,6 +2385,24 @@ function initCaptionControls() {
     toggleMax();
   });
 
+  // Movable dialogs: any open Bootstrap modal can reposition the window by
+  // dragging its header (same native mechanism as the main header).
+  // Delegated so dynamically-created modals work too. Controls (close/X,
+  // links, inputs) are excluded so they keep their normal behavior.
+  // No-op outside Tauri (browser preview).
+  document.addEventListener("mousedown", (e) => {
+    if (e.button !== 0) return;
+    const header = e.target?.closest?.(".modal-header");
+    if (!header || !header.closest(".modal.show")) return;
+    if (e.target.closest("button, a, input, select, textarea, [role=\"button\"]")) return;
+    const win = getTauriWindow();
+    if (win && typeof win.startDragging === "function") {
+      win.startDragging().catch((err) => {
+        console.warn("Dialog dragging failed:", err);
+      });
+    }
+  });
+
   btnClose.addEventListener("click", async () => {
     const win = getTauriWindow();
     if (win && typeof win.close === "function") {
