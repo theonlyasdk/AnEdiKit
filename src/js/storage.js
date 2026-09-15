@@ -36,6 +36,7 @@ export const DEFAULT_SETTINGS = {
   ytdlpSponsorblock: false,
   ytdlpGeoBypass: true,
   ytdlpAutoPaste: true,
+  ytdlpAutoFixUrl: true,
   ytdlpCustomArgs: "",
   ytdlpFilenameFormat: "%(title)s [%(id)s].%(ext)s",
   ffmpegBin: "ffmpeg (System PATH)",

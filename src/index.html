@@ -14,7 +14,7 @@
     <script type="module" src="main.js" defer></script>
   </head>
 
-  <body class="bg-body-tertiary with-system-titlebar">
+  <body class="bg-body-tertiary">
     <div class="d-flex flex-column vh-100 overflow-hidden" id="app-root">
       <!-- Unified Top Header Bar (also acts as the custom title bar when system title bar is disabled) -->
       <header class="d-flex border-bottom flex-shrink-0" id="top-header-bar" style="height: 56px;">
@@ -26,7 +26,7 @@
             <h1 class="fs-4 mb-0 fw-light text-body user-select-none" id="brand-logo-title" role="button" tabindex="0" title="About AnEdiKit Credits">AnEdiKit</h1>
           </div>
         </div>
-        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden bg-body" style="min-width: 0;" data-tauri-drag-region>
+        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden" id="top-titlebar-col" style="min-width: 0;" data-tauri-drag-region>
           <div class="d-flex align-items-center gap-3 header-title-animated overflow-hidden w-100" id="tool-header-text" style="min-width: 0;" data-tauri-drag-region>
             <h2 class="fs-4 mb-0 fw-light text-body flex-shrink-0 text-truncate" id="current-tool-title">Convert Video Formats</h2>
             <span class="text-body-secondary small text-truncate" id="current-tool-desc">Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.</span>
@@ -361,6 +361,7 @@
               <div class="input-group mb-2">
                 <button class="btn btn-outline-secondary" type="button" id="btn-paste-url" title="Paste URL from clipboard"><ion-icon name="copy-outline"></ion-icon></button>
                 <input type="text" class="form-control small font-sans" id="ytdlp-url-input" placeholder="https://www.youtube.com/watch?v=... or Twitch, X, TikTok link" />
+                <button class="btn btn-outline-secondary" type="button" id="btn-fix-url" title="Fix link format to standard YouTube watch URL (converts youtu.be, music.youtube.com, etc.)"><ion-icon name="link-outline"></ion-icon></button>
                 <button class="btn btn-outline-secondary" type="button" id="btn-clear-url" title="Clear URL input"><ion-icon name="close-outline"></ion-icon></button>
               </div>
               <div class="mt-3">
@@ -1894,6 +1895,28 @@
                       <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-prompt-overwrite" checked />
                     </div>
                   </label>
+
+                  <!-- Row 3: Use System Title Bar -->
+                  <label class="settings-row clickable" for="set-use-system-titlebar" title="Toggle native system title bar &amp; window controls">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Use System Title Bar</div>
+                      <div class="text-body-secondary small">Enable native OS window title bar and window controls instead of merged custom header</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-use-system-titlebar" checked />
+                    </div>
+                  </label>
+
+                  <!-- Row 4: Enable User Kits -->
+                  <label class="settings-row clickable" for="set-enable-user-kits" title="Enable custom scriptable user kits in sidebar">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Enable User Kits</div>
+                      <div class="text-body-secondary small">Display scriptable custom User Kits section in the sidebar</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-enable-user-kits" />
+                    </div>
+                  </label>
                 </div>
               </div>
 
@@ -2082,6 +2105,17 @@
                     </div>
                   </label>
 
+                  <!-- Row 6: Switch - Automatically Fix YouTube URLs -->
+                  <label class="settings-row clickable" for="set-ytdlp-autofix-url" title="Automatically clean and normalize YouTube links (converts youtu.be, music.youtube.com, and strips tracking parameters)">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Automatically Fix YouTube URLs</div>
+                      <div class="text-body-secondary small">Automatically convert short/music links and strip unwanted tracking &amp; playback parameters</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-ytdlp-autofix-url" checked />
+                    </div>
+                  </label>
+
                   <!-- Row 6: Global Additional yt-dlp Flags -->
                   <div class="settings-row-content">
                     <label class="fw-medium text-body mb-1" for="set-ytdlp-custom-args">Global Additional yt-dlp Flags</label>
@@ -2222,7 +2256,7 @@
 
     <!-- Manage Tools Dialog (Center Modal with Smooth Two-Way Zoom) -->
     <div class="modal fade" id="manage-tools-modal" tabindex="-1" aria-labelledby="manageToolsModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">
             <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
@@ -2279,7 +2313,7 @@
 
     <!-- Credits & About Dialog (Center Modal with Smooth Material Zoom) -->
     <div class="modal fade" id="credits-modal" tabindex="-1" aria-labelledby="creditsModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">
             <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="creditsModalLabel">
@@ -2317,7 +2351,7 @@
 
     <!-- Confirm Exit Modal (Shows when closing window while background task is running) -->
     <div class="modal fade" id="confirm-exit-modal" tabindex="-1" aria-labelledby="confirmExitModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-      <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content bg-body border border-danger-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3 bg-danger-subtle text-danger-emphasis">
             <h5 class="modal-title fs-6 fw-semibold d-flex align-items-center gap-2" id="confirmExitModalLabel">
@@ -2342,7 +2376,7 @@
 
     <!-- Theme Customizer Modal -->
     <div class="modal fade" id="theme-customizer-modal" tabindex="-1" aria-labelledby="themeCustomizerModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">
             <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="themeCustomizerModalLabel">
@@ -2385,6 +2419,35 @@
                 <button class="btn btn-outline-secondary" type="button" id="btn-theme-reset-font" title="Reset font to system default">Default</button>
               </div>
               <div class="text-body-secondary small mt-1" style="font-size: 0.75rem;">Custom font name saved with your theme file and applied across the interface.</div>
+            </div>
+
+            <!-- Frosted Glass Blur Settings -->
+            <div class="mb-3">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <div>
+                  <label class="form-label small fw-medium mb-0" for="theme-blur-enable">Frosted Glass Blur</label>
+                  <div class="text-body-secondary small" style="font-size: 0.75rem;">Enable translucent backdrop blur across top header, brand cell, and bottom status bar</div>
+                </div>
+                <div class="form-check form-switch mb-0" title="Toggle frosted glass backdrop blur effect">
+                  <input class="form-check-input mt-0" type="checkbox" role="switch" id="theme-blur-enable" checked style="cursor: pointer;" />
+                </div>
+              </div>
+              <div id="theme-blur-controls-wrapper" class="row g-3 pt-1">
+                <div class="col-6">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label for="theme-blur-radius" class="form-label small text-body-secondary mb-0">Blur Radius</label>
+                    <span id="theme-blur-radius-val" class="small fw-semibold text-body">2px</span>
+                  </div>
+                  <input type="range" class="form-range" id="theme-blur-radius" min="0" max="24" step="1" value="2" />
+                </div>
+                <div class="col-6">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label for="theme-blur-saturate" class="form-label small text-body-secondary mb-0">Saturation</label>
+                    <span id="theme-blur-saturate-val" class="small fw-semibold text-body">140%</span>
+                  </div>
+                  <input type="range" class="form-range" id="theme-blur-saturate" min="100" max="250" step="5" value="140" />
+                </div>
+              </div>
             </div>
 
             <!-- Custom Color Table View -->
@@ -2592,7 +2655,7 @@
 
     <!-- yt-dlp Filename Format Editor Modal -->
     <div class="modal fade" id="modal-filename-format-editor" tabindex="-1" aria-labelledby="filenameFormatModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">
             <h5 class="modal-title fs-6 fw-semibold text-body" id="filenameFormatModalLabel">Filename Format Editor</h5>
@@ -2661,7 +2724,7 @@
 
     <!-- Kit Creation Wizard Modal -->
     <div class="modal fade" id="modal-create-kit" tabindex="-1" aria-labelledby="createKitModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <form id="form-create-kit">
             <div class="modal-header border-bottom py-2 px-3">
@@ -2910,7 +2973,7 @@
     </div>
     <!-- Special Debug Dialog (Shift + Click on AnEdiKit Title) -->
     <div class="modal fade" id="modal-debug-dialog" tabindex="-1" aria-labelledby="debugDialogModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-sm">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg p-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h6 class="modal-title fs-6 fw-semibold text-body mb-0" id="debugDialogModalLabel">Debug</h6>
@@ -2925,7 +2988,7 @@
 
     <!-- Script Editor Kit Alert Modal -->
     <div class="modal fade" id="modal-kit-alert" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-sm">
         <div class="modal-content bg-body border shadow-lg">
           <div class="modal-header py-2 px-3">
             <h6 class="modal-title fs-6 fw-medium text-body mb-0" id="kit-alert-title"><ion-icon name="information-circle-outline" class="text-primary me-2"></ion-icon>Alert</h6>
@@ -2943,7 +3006,7 @@
 
     <!-- Script Editor Kit Prompt Modal -->
     <div class="modal fade" id="modal-kit-prompt" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-      <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content bg-body border shadow-lg">
           <div class="modal-header py-2 px-3">
             <h6 class="modal-title fs-6 fw-medium text-body mb-0" id="kit-prompt-title"><ion-icon name="chatbubble-ellipses-outline" class="text-primary me-2"></ion-icon>Prompt</h6>

@@ -2166,6 +2166,56 @@ async fn update_tool(tool_name: String) -> Result<String, String> {
         .map_err(|e| format!("Update task failed: {}", e))?
 }
 
+fn delete_tool_internal(tool_name: String) -> Result<String, String> {
+    {
+        let mut cache = BINARY_PATH_CACHE.lock().unwrap();
+        *cache = None;
+    }
+
+    let clean_name = tool_name.trim().to_lowercase().replace('_', "-");
+    let mut deleted_files = Vec::new();
+
+    if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+        let bin_dir = std::path::PathBuf::from(local_app_data)
+            .join("ASDK")
+            .join("Shared")
+            .join("bin");
+
+        let files_to_check = match clean_name.as_str() {
+            "yt-dlp" | "ytdlp" => vec!["yt-dlp.exe", "yt-dlp"],
+            "ffmpeg" | "ffprobe" | "ffmpeg / ffprobe" | "ffmpeg & ffprobe" => vec!["ffmpeg.exe", "ffprobe.exe", "ffmpeg", "ffprobe"],
+            _ => vec![],
+        };
+
+        for fname in files_to_check {
+            let p = bin_dir.join(fname);
+            if p.is_file() {
+                if std::fs::remove_file(&p).is_ok() {
+                    deleted_files.push(fname.to_string());
+                }
+            }
+        }
+    }
+
+    {
+        let mut cache = BINARY_PATH_CACHE.lock().unwrap();
+        *cache = None;
+    }
+
+    if !deleted_files.is_empty() {
+        Ok(format!("Successfully removed {}", deleted_files.join(", ")))
+    } else {
+        Err(format!("No local binary files found to delete for {}. (System binaries in PATH cannot be deleted from app)", tool_name))
+    }
+}
+
+#[tauri::command]
+async fn delete_tool(tool_name: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || delete_tool_internal(tool_name))
+        .await
+        .map_err(|e| format!("Delete task failed: {}", e))?
+}
+
 #[tauri::command]
 fn open_binaries_folder() -> Result<(), String> {
     let bin_dir = if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
@@ -2774,10 +2824,59 @@ fn set_decorations(app: tauri::AppHandle, decorations: bool) -> Result<(), Strin
     Ok(())
 }
 
+#[tauri::command]
+fn set_window_blur(app: tauri::AppHandle, mode: String) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        #[cfg(target_os = "windows")]
+        {
+            use window_vibrancy::{apply_acrylic, apply_mica, clear_blur};
+            match mode.as_str() {
+                "acrylic" => {
+                    let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
+                }
+                "mica" => {
+                    let _ = apply_mica(&window, None);
+                }
+                "off" => {
+                    let _ = clear_blur(&window);
+                }
+                _ => {
+                    let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
+                }
+            }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            use window_vibrancy::{apply_vibrancy, clear_blur, NSVisualEffectMaterial};
+            if mode != "off" {
+                let _ = apply_vibrancy(&window, NSVisualEffectMaterial::Sidebar, None, None);
+            } else {
+                let _ = clear_blur(&window);
+            }
+        }
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                #[cfg(target_os = "windows")]
+                {
+                    use window_vibrancy::apply_acrylic;
+                    let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
+                }
+                #[cfg(target_os = "macos")]
+                {
+                    use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
+                    let _ = apply_vibrancy(&window, NSVisualEffectMaterial::Sidebar, None, None);
+                }
+            }
+            Ok(())
+        })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 let is_active = {
@@ -2817,7 +2916,9 @@ pub fn run() {
             read_image_data,
             get_hardware_info,
             update_tool,
-            set_decorations
+            delete_tool,
+            set_decorations,
+            set_window_blur
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

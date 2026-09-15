@@ -667,6 +667,7 @@ export function initNavigation(onToolChanged) {
       if (activeBtn) {
         updateSidebarIndicator(activeBtn, false);
       }
+      updateStickyHeaders();
     });
   }
 
@@ -678,6 +679,7 @@ export function initNavigation(onToolChanged) {
     if (activeBtn) {
       updateSidebarIndicator(activeBtn, currentActiveTool === "settings");
     }
+    updateStickyHeaders();
   });
 
   // Expose global switcher for custom modules like kits
@@ -687,4 +689,26 @@ export function initNavigation(onToolChanged) {
   const savedTool = getSavedActiveTool("convert");
   currentActiveTool = ""; // reset to trigger clean initial load
   switchTool(savedTool, onToolChanged);
+  updateStickyHeaders();
+}
+
+export function updateStickyHeaders() {
+  const scrollContainer = document.getElementById("sidebar-scroll-container");
+  if (!scrollContainer) return;
+  const containerTop = scrollContainer.getBoundingClientRect().top;
+  const sectionHeaders = scrollContainer.querySelectorAll(".sidebar-section-header");
+  const isAtTop = scrollContainer.scrollTop <= 4;
+  let anyStuck = false;
+
+  sectionHeaders.forEach((header) => {
+    const rect = header.getBoundingClientRect();
+    const isStuck = !isAtTop && rect.top <= containerTop + 2;
+    if (isStuck) anyStuck = true;
+    header.classList.toggle("is-stuck", isStuck);
+  });
+
+  const brandCol = document.querySelector(".header-brand-col");
+  if (brandCol) {
+    brandCol.classList.toggle("has-stuck-header", anyStuck);
+  }
 }

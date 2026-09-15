@@ -40,6 +40,7 @@ import { initToolsManager } from "./js/tools_manager.js";
 import { initThemeManager } from "./js/theme.js";
 import { initComparisonModal, openComparisonModal, setComparisonShimmer } from "./js/comparison.js";
 import { initYtDlpFormatEditor } from "./js/ytdlp_format.js";
+import { initYtDlpUrlFixer, fixYoutubeUrl } from "./js/ytdlp_url.js";
 import { initKitsManager, executeActiveKit, resetActiveKit, applyUserKitsVisibility } from "./kits/index.js";
 import { initM3Switches } from "./js/m3_switch.js";
 
@@ -1305,103 +1306,60 @@ function bindFormEvents() {
     refreshOutputFilePathDisplay();
   });
 
-  // Update command preview whenever any form element changes
+  // Update command preview and save settings whenever any form element changes
   const formElements = document.querySelectorAll("select, input, textarea");
+  const handleFormEvent = (e) => {
+    if (e.target.id === "output-file-name") {
+      userHasCustomOutputName = true;
+    }
+    // Preset dropdown pushes into the slider first so everything downstream
+    if (e.target.id === "speed-preset-select") {
+      const sl = document.getElementById("speed-preset");
+      const sv = parseFloat(e.target.value);
+      if (sl && Number.isFinite(sv)) sl.value = String(Math.min(16, Math.max(0.25, sv)));
+    }
+    if (e.target.closest("#view-settings") || (e.target.id && e.target.id.startsWith("set-"))) {
+      saveSettingsFromUI();
+    } else {
+      saveActiveModuleState(getCurrentActiveTool());
+    }
+    syncFormatSpecificUI();
+    if (
+      e.target.id === "cvt-container" ||
+      e.target.id === "aud-format" ||
+      e.target.id === "comp-aud-format" ||
+      e.target.id === "gif-mode" ||
+      e.target.id === "merge-format" ||
+      e.target.id === "speed-container" ||
+      e.target.id === "speed-preset" ||
+      e.target.id === "speed-custom-val" ||
+      e.target.id === "crop-container" ||
+      e.target.id === "crop-ratio" ||
+      e.target.id === "stab-container" ||
+      e.target.id === "loop-container" ||
+      e.target.id === "loop-mode" ||
+      e.target.id === "loop-engine" ||
+      e.target.id === "loop-vcodec" ||
+      e.target.id === "loop-audio-mode" ||
+      e.target.id === "loop-concat" ||
+      e.target.id === "norm-video-mode" ||
+      e.target.id === "norm-acodec"
+    ) {
+      updateAutoOutputFilename(true);
+    }
+    if (
+      e.target.id === "loop-target-hh" ||
+      e.target.id === "loop-target-mm" ||
+      e.target.id === "loop-target-ss"
+    ) {
+      syncLoopPresetActiveButtons();
+    }
+    updateCommandPreview();
+  };
+
   formElements.forEach((el) => {
-    el.addEventListener("input", (e) => {
-      if (e.target.id === "output-file-name") {
-        userHasCustomOutputName = true;
-      }
-      // Preset dropdown pushes into the slider first so everything downstream
-      // (save, sync, filename, preview) sees the fresh value.
-      if (e.target.id === "speed-preset-select") {
-        const sl = document.getElementById("speed-preset");
-        const sv = parseFloat(e.target.value);
-        if (sl && Number.isFinite(sv)) sl.value = String(Math.min(16, Math.max(0.25, sv)));
-      }
-      if (el.closest("#view-settings")) {
-        syncSettingsFromUI();
-      } else {
-        saveActiveModuleState(getCurrentActiveTool());
-      }
-      syncFormatSpecificUI();
-      if (
-        e.target.id === "cvt-container" ||
-        e.target.id === "aud-format" ||
-        e.target.id === "comp-aud-format" ||
-        e.target.id === "gif-mode" ||
-        e.target.id === "merge-format" ||
-        e.target.id === "speed-container" ||
-        e.target.id === "speed-preset" ||
-        e.target.id === "speed-custom-val" ||
-        e.target.id === "crop-container" ||
-        e.target.id === "crop-ratio" ||
-        e.target.id === "stab-container" ||
-        e.target.id === "loop-container" ||
-        e.target.id === "loop-mode" ||
-        e.target.id === "loop-engine" ||
-        e.target.id === "loop-vcodec" ||
-        e.target.id === "loop-audio-mode" ||
-        e.target.id === "norm-video-mode" ||
-        e.target.id === "norm-acodec"
-      ) {
-        updateAutoOutputFilename(true);
-      }
-      if (
-        e.target.id === "loop-target-hh" ||
-        e.target.id === "loop-target-mm" ||
-        e.target.id === "loop-target-ss"
-      ) {
-        syncLoopPresetActiveButtons();
-      }
-      updateCommandPreview();
-    });
-    el.addEventListener("change", (e) => {
-      if (e.target.id === "output-file-name") {
-        userHasCustomOutputName = true;
-      }
-      if (e.target.id === "speed-preset-select") {
-        const sl = document.getElementById("speed-preset");
-        const sv = parseFloat(e.target.value);
-        if (sl && Number.isFinite(sv)) sl.value = String(Math.min(16, Math.max(0.25, sv)));
-      }
-      if (el.closest("#view-settings")) {
-        syncSettingsFromUI();
-      } else {
-        saveActiveModuleState(getCurrentActiveTool());
-      }
-      syncFormatSpecificUI();
-      if (
-        e.target.id === "cvt-container" ||
-        e.target.id === "aud-format" ||
-        e.target.id === "comp-aud-format" ||
-        e.target.id === "gif-mode" ||
-        e.target.id === "merge-format" ||
-        e.target.id === "speed-container" ||
-        e.target.id === "speed-preset" ||
-        e.target.id === "speed-custom-val" ||
-        e.target.id === "crop-container" ||
-        e.target.id === "crop-ratio" ||
-        e.target.id === "stab-container" ||
-        e.target.id === "loop-container" ||
-        e.target.id === "loop-mode" ||
-        e.target.id === "loop-engine" ||
-        e.target.id === "loop-vcodec" ||
-        e.target.id === "loop-audio-mode" ||
-        e.target.id === "norm-video-mode" ||
-        e.target.id === "norm-acodec"
-      ) {
-        updateAutoOutputFilename(true);
-      }
-      if (
-        e.target.id === "loop-target-hh" ||
-        e.target.id === "loop-target-mm" ||
-        e.target.id === "loop-target-ss"
-      ) {
-        syncLoopPresetActiveButtons();
-      }
-      updateCommandPreview();
-    });
+    el.addEventListener("input", handleFormEvent);
+    el.addEventListener("change", handleFormEvent);
   });
 
   function syncLoopPresetActiveButtons() {
@@ -1574,9 +1532,13 @@ function bindFormEvents() {
   if (btnPasteUrl && ytdlpUrlInput) {
     btnPasteUrl.addEventListener("click", async () => {
       try {
-        const text = await navigator.clipboard.readText();
+        let text = await navigator.clipboard.readText();
         if (text) {
-          ytdlpUrlInput.value = text.trim();
+          text = text.trim();
+          if (appSettings.ytdlpAutoFixUrl !== false) {
+            text = fixYoutubeUrl(text);
+          }
+          ytdlpUrlInput.value = text;
           updateCommandPreview();
         }
       } catch (err) {
@@ -1955,9 +1917,9 @@ function bindFormEvents() {
     btnCopy.addEventListener("click", () => {
       const cmdText = document.getElementById("cmd-preview")?.textContent || "";
       navigator.clipboard.writeText(cmdText).then(() => {
-        animateCopyConfirm(btnCopy.querySelector("ion-icon"), { holdMs: 1200 });
         btnCopy.classList.remove("btn-outline-secondary");
         btnCopy.classList.add("btn-success");
+        animateCopyConfirm(btnCopy.querySelector("ion-icon"), { holdMs: 1200 });
         setTimeout(() => {
           btnCopy.classList.remove("btn-success");
           btnCopy.classList.add("btn-outline-secondary");
@@ -2487,7 +2449,7 @@ function initCaptionControls() {
   });
 }
 
-function syncSettingsFromUI() {
+function saveSettingsFromUI() {
   const setOutDir = document.getElementById("set-output-dir");
   const setPromptOver = document.getElementById("set-prompt-overwrite");
   const setEnableNotif = document.getElementById("set-enable-notifications");
@@ -2506,6 +2468,7 @@ function syncSettingsFromUI() {
   const setYtSponsor = document.getElementById("set-ytdlp-sponsorblock");
   const setYtGeo = document.getElementById("set-ytdlp-geo-bypass");
   const setYtAutoPaste = document.getElementById("set-ytdlp-autopaste");
+  const setYtAutoFixUrl = document.getElementById("set-ytdlp-autofix-url");
   const setYtCustom = document.getElementById("set-ytdlp-custom-args");
 
   if (setOutDir) appSettings.outputDir = setOutDir.value;
@@ -2538,6 +2501,7 @@ function syncSettingsFromUI() {
   if (setYtSponsor) appSettings.ytdlpSponsorblock = setYtSponsor.checked;
   if (setYtGeo) appSettings.ytdlpGeoBypass = setYtGeo.checked;
   if (setYtAutoPaste) appSettings.ytdlpAutoPaste = setYtAutoPaste.checked;
+  if (setYtAutoFixUrl) appSettings.ytdlpAutoFixUrl = setYtAutoFixUrl.checked;
   if (setYtCustom) appSettings.ytdlpCustomArgs = setYtCustom.value;
 
   saveSettings(appSettings);
@@ -2560,6 +2524,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   initYtDlpFormatEditor();
+  initYtDlpUrlFixer(updateCommandPreview, () => appSettings);
   initJobRunner();
   initTrimmerControls();
   initSavedBatchQueue();

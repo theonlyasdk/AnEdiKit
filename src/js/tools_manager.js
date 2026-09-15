@@ -68,7 +68,7 @@ export function renderToolsUI() {
         <div class="card p-3 border bg-body-tertiary flex-shrink-0 env-tool-card" id="card-env-${tool.id}">
           <div class="d-flex align-items-start justify-content-between">
             <ion-icon name="${tool.icon}" class="fs-2 ${tool.iconColorClass} lh-1"></ion-icon>
-            <ion-icon name="checkmark-outline" class="text-success fs-5 flex-shrink-0" id="status-${tool.id}-installed" title="Checking..."></ion-icon>
+            <ion-icon name="ellipsis-horizontal-outline" class="text-body-tertiary fs-5 flex-shrink-0" id="status-${tool.id}-installed" title="Checking version status..."></ion-icon>
           </div>
           <div class="mt-auto">
             <div class="fs-5 fw-light text-body lh-1 mb-1">${tool.name}</div>
@@ -90,16 +90,19 @@ export function renderToolsUI() {
           .map(
             (tool, idx) => `
           <div class="p-3 ${idx < manageTools.length - 1 ? "border-bottom" : ""}">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-              <div>
-                <div class="fw-semibold text-body">${tool.displayName}</div>
-                <div class="text-body-secondary small">${tool.description}</div>
-              </div>
-              <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-update-${tool.id}" data-tool-id="${tool.id}" data-tool-name="${tool.name}">
+            <div class="mb-2">
+              <div class="fw-semibold text-body">${tool.displayName}</div>
+              <div class="text-body-secondary small">${tool.description}</div>
+            </div>
+            <div class="tool-action-group mb-2">
+              <button class="btn btn-outline-primary btn-sm flex-grow-1" type="button" id="btn-update-${tool.id}" data-tool-id="${tool.id}" data-tool-name="${tool.name}">
                 <ion-icon name="repeat-outline"></ion-icon> Update ${tool.name}
               </button>
+              <button class="btn btn-outline-danger btn-sm flex-shrink-0 px-2" type="button" id="btn-delete-${tool.id}" data-tool-id="${tool.id}" data-tool-name="${tool.name}" title="Delete ${tool.displayName} binary">
+                <ion-icon name="trash-outline"></ion-icon>
+              </button>
             </div>
-            <div class="d-flex gap-4 mt-2 small">
+            <div class="d-flex gap-4 small text-body-secondary">
               <div>Installed: <span class="text-body fw-medium" id="${tool.id}-local-ver"><span class="meta-loading-pulse">...</span></span></div>
               <div>Latest: <span class="text-body fw-medium" id="${tool.id}-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
             </div>
@@ -110,18 +113,100 @@ export function renderToolsUI() {
       </div>
     `;
 
-    // Bind dynamic click listener to each update button
+    // Bind dynamic click listener to each update and delete button
     toolsManifest
       .filter((t) => t.hasManageRow)
       .forEach((tool) => {
-        const btn = document.getElementById(`btn-update-${tool.id}`);
-        if (btn) {
-          btn.addEventListener("click", () => {
-            simulateToolUpdate(tool.name, btn, refreshToolsUI);
+        const btnUpdate = document.getElementById(`btn-update-${tool.id}`);
+        if (btnUpdate) {
+          btnUpdate.addEventListener("click", () => {
+            simulateToolUpdate(tool.name, btnUpdate, refreshToolsUI);
+          });
+        }
+        const btnDelete = document.getElementById(`btn-delete-${tool.id}`);
+        if (btnDelete) {
+          btnDelete.addEventListener("click", () => {
+            deleteToolBinary(tool.name, btnDelete, refreshToolsUI);
           });
         }
       });
   }
+}
+
+export async function deleteToolBinary(toolName, btnDelete, callback) {
+  hideToolAlert();
+
+  // Track and disable all update, delete, and check buttons
+  const allUpdateBtns = Array.from(document.querySelectorAll('[id^="btn-update-"]'));
+  const allDeleteBtns = Array.from(document.querySelectorAll('[id^="btn-delete-"]'));
+  const btnCheckAll = document.getElementById("btn-check-all-updates");
+  const otherBtnsToRestore = [];
+
+  allUpdateBtns.forEach((upBtn) => {
+    otherBtnsToRestore.push({
+      el: upBtn,
+      wasDisabled: upBtn.disabled,
+    });
+    upBtn.disabled = true;
+    upBtn.classList.add("opacity-50", "pe-none");
+  });
+
+  allDeleteBtns.forEach((delBtn) => {
+    otherBtnsToRestore.push({
+      el: delBtn,
+      wasDisabled: delBtn.disabled,
+    });
+    delBtn.disabled = true;
+    delBtn.classList.add("opacity-50", "pe-none");
+  });
+
+  if (btnCheckAll) {
+    btnCheckAll.disabled = true;
+    btnCheckAll.classList.add("opacity-50", "pe-none");
+  }
+
+  const restoreAllButtons = () => {
+    otherBtnsToRestore.forEach(({ el, wasDisabled }) => {
+      el.disabled = wasDisabled;
+      if (!wasDisabled) {
+        el.classList.remove("opacity-50", "pe-none");
+      }
+    });
+    if (btnCheckAll) {
+      btnCheckAll.disabled = false;
+      btnCheckAll.classList.remove("opacity-50", "pe-none");
+    }
+  };
+
+  if (btnDelete) {
+    btnDelete.disabled = true;
+    btnDelete.classList.add("opacity-50", "pe-none");
+    btnDelete.innerHTML = `<div class="loader loader-sm"></div>`;
+  }
+
+  let deleteError = null;
+  let deleteResult = null;
+
+  if (window.__TAURI__?.core?.invoke) {
+    try {
+      deleteResult = await window.__TAURI__.core.invoke("delete_tool", { toolName });
+    } catch (err) {
+      deleteError = typeof err === "string" ? err : err?.message || JSON.stringify(err);
+    }
+  } else {
+    // Simulated web fallback
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    deleteResult = `${toolName} deleted (simulated).`;
+  }
+
+  if (deleteError) {
+    showToolAlert(`Failed to delete ${toolName}: ${deleteError}`, "danger");
+  } else {
+    showToolAlert(`${toolName} binary deleted successfully.`, "success");
+  }
+
+  restoreAllButtons();
+  if (callback) callback();
 }
 
 export async function refreshToolsUI() {
@@ -129,14 +214,19 @@ export async function refreshToolsUI() {
   toolsManifest.forEach((tool) => {
     const elLocal = document.getElementById(`${tool.id}-local-ver`);
     const elLatest = document.getElementById(`${tool.id}-latest-ver`);
-    if (elLocal) elLocal.innerHTML = '<span class="meta-loading-pulse">...</span>';
-    if (elLatest) elLatest.innerHTML = '<span class="meta-loading-pulse">...</span>';
+    if (elLocal) elLocal.innerHTML = '<div class="loader loader-sm"></div>';
+    if (elLatest) elLatest.innerHTML = '<div class="loader loader-sm"></div>';
 
-    const btn = document.getElementById(`btn-update-${tool.id}`);
-    if (btn) {
-      btn.disabled = true;
-      btn.className = "btn btn-secondary btn-sm flex-shrink-0 pe-none opacity-50";
-      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style="width: 0.82rem; height: 0.82rem;"></span> Loading...`;
+    const btnUpdate = document.getElementById(`btn-update-${tool.id}`);
+    if (btnUpdate) {
+      btnUpdate.disabled = true;
+      btnUpdate.className = "btn btn-secondary btn-sm flex-grow-1 pe-none opacity-50";
+      btnUpdate.innerHTML = `<div class="loader loader-sm me-1"></div> Loading...`;
+    }
+    const btnDelete = document.getElementById(`btn-delete-${tool.id}`);
+    if (btnDelete) {
+      btnDelete.disabled = true;
+      btnDelete.classList.add("opacity-50", "pe-none");
     }
   });
 
@@ -154,33 +244,48 @@ export async function refreshToolsUI() {
     if (elLocal) elLocal.textContent = localVer;
     if (elLatest) elLatest.textContent = latestVer;
 
-    // Checkmark update
-    const statusCheckmark = document.getElementById(`status-${tool.id}-installed`);
-    if (statusCheckmark) {
-      const isInstalled = localVer && localVer !== "Not Found" && !localVer.toLowerCase().includes("not");
-      if (isInstalled) {
-        statusCheckmark.setAttribute("name", "checkmark-outline");
-        statusCheckmark.className = "text-success fs-5 flex-shrink-0";
-        statusCheckmark.title = `Installed (${localVer})`;
+    const isInstalled = localVer && localVer !== "Not Found" && !localVer.toLowerCase().includes("not");
+    const hasUpdate =
+      isInstalled &&
+      tool.updatable &&
+      latestVer &&
+      latestVer !== "Unknown" &&
+      latestVer !== "Checking..." &&
+      !latestVer.toLowerCase().includes("check") &&
+      localVer.trim() !== latestVer.trim();
+
+    // Status icon & tooltip update for executable cards (Top-right)
+    const statusIcon = document.getElementById(`status-${tool.id}-installed`);
+    if (statusIcon) {
+      if (hasUpdate) {
+        statusIcon.setAttribute("name", "warning-outline");
+        statusIcon.className = "text-warning fs-5 flex-shrink-0";
+        statusIcon.title = `Update available for ${tool.name}: ${localVer} → ${latestVer}`;
+      } else if (isInstalled) {
+        statusIcon.setAttribute("name", "checkmark-outline");
+        statusIcon.className = "text-success fs-5 flex-shrink-0";
+        statusIcon.title = `${tool.name} is installed (${localVer})`;
       } else {
-        statusCheckmark.setAttribute("name", "remove-outline");
-        statusCheckmark.className = "text-body-tertiary fs-5 flex-shrink-0";
-        statusCheckmark.title = "Not Installed";
+        statusIcon.setAttribute("name", "close-outline");
+        statusIcon.className = "text-danger fs-5 flex-shrink-0";
+        statusIcon.title = `${tool.name} is not installed`;
       }
     }
 
     // Button state update
     if (tool.hasManageRow) {
-      updateActionButton(`btn-update-${tool.id}`, tool.name, localVer, latestVer);
+      updateActionButton(tool.id, tool.name, localVer, latestVer);
     }
   });
 }
 
-export function updateActionButton(btnId, toolName, localVer, latestVer) {
-  const btn = document.getElementById(btnId);
-  if (!btn) return;
-  btn.disabled = false;
-  btn.classList.remove("pe-none", "opacity-50");
+export function updateActionButton(toolId, toolName, localVer, latestVer) {
+  const btnUpdate = document.getElementById(`btn-update-${toolId}`);
+  const btnDelete = document.getElementById(`btn-delete-${toolId}`);
+  if (!btnUpdate) return;
+
+  btnUpdate.disabled = false;
+  btnUpdate.classList.remove("pe-none", "opacity-50");
 
   const isInstalled = localVer && localVer !== "Not Found" && !localVer.toLowerCase().includes("not");
   const hasUpdate =
@@ -192,17 +297,24 @@ export function updateActionButton(btnId, toolName, localVer, latestVer) {
     localVer.trim() !== latestVer.trim();
 
   if (!isInstalled) {
-    btn.innerHTML = `<ion-icon name="download-outline"></ion-icon> Install ${toolName}`;
-    btn.className = "btn btn-outline-primary btn-sm flex-shrink-0";
-    btn.title = `Install ${toolName} binary to system/app data`;
+    btnUpdate.innerHTML = `<ion-icon name="download-outline"></ion-icon> Install ${toolName}`;
+    btnUpdate.className = "btn btn-outline-primary btn-sm flex-grow-1";
+    btnUpdate.title = `Install ${toolName} binary to system/app data`;
   } else if (hasUpdate) {
-    btn.innerHTML = `<ion-icon name="repeat-outline"></ion-icon> Update ${toolName}`;
-    btn.className = "btn btn-warning btn-sm flex-shrink-0 text-dark";
-    btn.title = `Update ${toolName} from ${localVer} to ${latestVer}`;
+    btnUpdate.innerHTML = `<ion-icon name="repeat-outline"></ion-icon> Update ${toolName}`;
+    btnUpdate.className = "btn btn-warning btn-sm flex-grow-1 text-dark";
+    btnUpdate.title = `Update ${toolName} from ${localVer} to ${latestVer}`;
   } else {
-    btn.innerHTML = `<ion-icon name="refresh-outline"></ion-icon> Reinstall ${toolName}`;
-    btn.className = "btn btn-primary btn-sm flex-shrink-0";
-    btn.title = `Reinstall verified ${toolName} binary build (${localVer})`;
+    btnUpdate.innerHTML = `<ion-icon name="refresh-outline"></ion-icon> Reinstall ${toolName}`;
+    btnUpdate.className = "btn btn-primary btn-sm flex-grow-1";
+    btnUpdate.title = `Reinstall verified ${toolName} binary build (${localVer})`;
+  }
+
+  if (btnDelete) {
+    btnDelete.disabled = !isInstalled;
+    btnDelete.innerHTML = `<ion-icon name="trash-outline"></ion-icon>`;
+    btnDelete.className = `btn btn-outline-danger btn-sm flex-shrink-0 px-2 ${!isInstalled ? "opacity-50 pe-none" : ""}`;
+    btnDelete.title = isInstalled ? `Delete ${toolName} binary` : `${toolName} is not installed`;
   }
 }
 
@@ -229,8 +341,9 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
   const originalBtnDisabled = btn ? btn.disabled : false;
   const originalBtnClass = btn ? btn.className : null;
 
-  // Track and disable all other update and action buttons in Manage Tools modal
+  // Track and disable all other update, delete, and action buttons in Manage Tools modal
   const allUpdateBtns = Array.from(document.querySelectorAll('[id^="btn-update-"]'));
+  const allDeleteBtns = Array.from(document.querySelectorAll('[id^="btn-delete-"]'));
   const btnCheckAll = document.getElementById("btn-check-all-updates");
   const otherBtnsToRestore = [];
 
@@ -245,6 +358,15 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     }
   });
 
+  allDeleteBtns.forEach((delBtn) => {
+    otherBtnsToRestore.push({
+      el: delBtn,
+      wasDisabled: delBtn.disabled,
+    });
+    delBtn.disabled = true;
+    delBtn.classList.add("opacity-50", "pe-none");
+  });
+
   if (btnCheckAll) {
     btnCheckAll.disabled = true;
     btnCheckAll.classList.add("opacity-50", "pe-none");
@@ -253,7 +375,9 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
   const restoreOtherButtons = () => {
     otherBtnsToRestore.forEach(({ el, wasDisabled }) => {
       el.disabled = wasDisabled;
-      el.classList.remove("opacity-50", "pe-none");
+      if (!wasDisabled) {
+        el.classList.remove("opacity-50", "pe-none");
+      }
     });
     if (btnCheckAll) {
       btnCheckAll.disabled = false;
@@ -274,6 +398,17 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     if (etaContainer) etaContainer.classList.remove("d-none");
   }
 
+  // Pre-create persistent loading elements inside button to avoid re-creating loader DOM node on every tick
+  let loaderEl = null;
+  let textNode = null;
+  if (btn) {
+    btn.disabled = true;
+    btn.className = "btn btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
+    btn.innerHTML = `<div class="loader loader-sm me-1"></div><span class="btn-progress-label"></span>`;
+    loaderEl = btn.querySelector(".loader");
+    textNode = btn.querySelector(".btn-progress-label");
+  }
+
   const updateProgressStyles = (pct, stageText = "Updating", speedVal = null, etaVal = null) => {
     if (!btn) return;
     // Drive the class gradient via the registered custom property so the
@@ -282,7 +417,9 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     btn.style.setProperty("--btn-progress", `${pct}%`);
     btn.style.border = "none";
     btn.style.boxShadow = "none";
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true" style="width: 0.82rem; height: 0.82rem;"></span> ${stageText} ${pct}%`;
+    if (textNode) {
+      textNode.textContent = `${stageText} ${pct}%`;
+    }
 
     if (speedText && speedVal !== null) {
       speedText.textContent = speedVal;
@@ -292,11 +429,7 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     }
   };
 
-  if (btn) {
-    btn.disabled = true;
-    btn.className = "btn btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
-    updateProgressStyles(5, "Downloading", "Connecting...", "Estimating...");
-  }
+  updateProgressStyles(5, "Downloading", "Connecting...", "Estimating...");
 
   // Two-stage progress: Download phase (0-75%) followed by Async Extraction phase (75-95%)
   let pct = 8;
@@ -466,11 +599,32 @@ export function initScrollCardsOverflow() {
   setTimeout(updateOverflow, 50);
   setTimeout(updateOverflow, 300);
 
-  // Drag-to-scroll implementation
+  // Drag-to-scroll & Rubberband Overscroll implementation (Uncapped Power-Law Stiffness)
   let isDown = false;
   let startX = 0;
   let scrollStart = 0;
   let hasMoved = false;
+  let currentOverscroll = 0;
+
+  // As drag distance increases, stiffness increases continuously without stopping or hard capping
+  const getRubberbandOffset = (overDistance) => {
+    if (overDistance <= 0) return 0;
+    return 1.6 * Math.pow(overDistance, 0.55);
+  };
+
+  const resetOverscroll = () => {
+    if (currentOverscroll !== 0) {
+      currentOverscroll = 0;
+      container.style.transition = "transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+      container.style.transform = "translateX(0px)";
+      setTimeout(() => {
+        if (!isDown) {
+          container.style.transition = "";
+          updateOverflow();
+        }
+      }, 450);
+    }
+  };
 
   container.addEventListener("mousedown", (e) => {
     // Only left click
@@ -479,6 +633,7 @@ export function initScrollCardsOverflow() {
     hasMoved = false;
     startX = e.pageX - container.offsetLeft;
     scrollStart = container.scrollLeft;
+    container.style.transition = "none";
     container.classList.add("is-dragging");
   });
 
@@ -486,18 +641,49 @@ export function initScrollCardsOverflow() {
     if (!isDown) return;
     e.preventDefault();
     const x = e.pageX - container.offsetLeft;
-    const walk = (x - startX) * 1.5; // Scroll speed multiplier
+    const walk = (x - startX) * 1.4; // Scroll speed multiplier
     if (Math.abs(walk) > 3) {
       hasMoved = true;
     }
-    container.scrollLeft = scrollStart - walk;
+
+    const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+    const targetScroll = scrollStart - walk;
+
+    if (targetScroll < 0) {
+      // Rubberband overscroll on left boundary
+      container.scrollLeft = 0;
+      const over = -targetScroll;
+      currentOverscroll = getRubberbandOffset(over);
+      container.style.transform = `translateX(${currentOverscroll}px)`;
+      wrapper.classList.remove("has-overflow-left");
+      if (maxScroll > 0) wrapper.classList.add("has-overflow-right");
+    } else if (targetScroll > maxScroll) {
+      // Rubberband overscroll on right boundary
+      container.scrollLeft = maxScroll;
+      const over = targetScroll - maxScroll;
+      currentOverscroll = -getRubberbandOffset(over);
+      container.style.transform = `translateX(${currentOverscroll}px)`;
+      wrapper.classList.remove("has-overflow-right");
+      if (maxScroll > 0) wrapper.classList.add("has-overflow-left");
+    } else {
+      container.scrollLeft = targetScroll;
+      if (currentOverscroll !== 0) {
+        currentOverscroll = 0;
+        container.style.transform = "translateX(0px)";
+      }
+      updateOverflow();
+    }
   });
 
-  window.addEventListener("mouseup", () => {
+  const handleDragEnd = () => {
     if (!isDown) return;
     isDown = false;
     container.classList.remove("is-dragging");
-  });
+    resetOverscroll();
+  };
+
+  window.addEventListener("mouseup", handleDragEnd);
+  container.addEventListener("mouseleave", handleDragEnd);
 
   // Prevent accidental clicks on child links or interactive elements during drag
   container.addEventListener(

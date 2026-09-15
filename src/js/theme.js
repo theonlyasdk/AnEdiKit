@@ -222,6 +222,19 @@ export function applyTheme(themeObj) {
   if (themeObj.font_family !== undefined) {
     applyFontFamily(themeObj.font_family);
   }
+
+  // Frosted Glass Blur Parameters
+  const blurEnabled = themeObj.blur_enabled !== undefined ? (themeObj.blur_enabled ? 1 : 0) : 1;
+  const blurRadius = themeObj.blur_radius !== undefined ? `${themeObj.blur_radius}px` : "2px";
+  const blurSaturate = themeObj.blur_saturate !== undefined ? `${themeObj.blur_saturate}%` : "140%";
+
+  root.style.setProperty("--anedikit-blur-enabled", blurEnabled);
+  root.style.setProperty("--anedikit-blur-radius", blurRadius);
+  root.style.setProperty("--anedikit-blur-saturate", blurSaturate);
+
+  if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
+    window.__TAURI__.core.invoke("set_window_blur", { mode: blurEnabled ? "acrylic" : "off" }).catch(() => {});
+  }
 }
 
 export function applyFontFamily(fontName) {
@@ -278,6 +291,9 @@ export function serializeThemeToText(themeObj) {
     `pane_bg=${themeObj.pane_bg || "#212529"}`,
     `text_color=${themeObj.text_color || "#dee2e6"}`,
     `border_color=${themeObj.border_color || "#495057"}`,
+    `blur_enabled=${themeObj.blur_enabled !== undefined ? themeObj.blur_enabled : true}`,
+    `blur_radius=${themeObj.blur_radius !== undefined ? themeObj.blur_radius : 4}`,
+    `blur_saturate=${themeObj.blur_saturate !== undefined ? themeObj.blur_saturate : 140}`,
   ].join("\n");
 }
 
@@ -292,7 +308,13 @@ export function parseThemeFromText(text) {
       const key = trimmed.substring(0, idx).trim();
       const val = trimmed.substring(idx + 1).trim();
       if (key) {
-        theme[key] = val;
+        if (key === "blur_enabled") {
+          theme[key] = val === "true" || val === "1";
+        } else if (key === "blur_radius" || key === "blur_saturate") {
+          theme[key] = parseInt(val, 10) || (key === "blur_radius" ? 4 : 140);
+        } else {
+          theme[key] = val;
+        }
       }
     }
   }
@@ -334,9 +356,86 @@ export function initThemeManager() {
     if (fontInput) {
       fontInput.value = th.font_family || "";
     }
+
+    // Blur controls
+    const chkBlurEnable = document.getElementById("theme-blur-enable");
+    const rngBlurRadius = document.getElementById("theme-blur-radius");
+    const txtBlurRadiusVal = document.getElementById("theme-blur-radius-val");
+    const rngBlurSaturate = document.getElementById("theme-blur-saturate");
+    const txtBlurSaturateVal = document.getElementById("theme-blur-saturate-val");
+    const controlsWrapper = document.getElementById("theme-blur-controls-wrapper");
+
+    const isEnabled = th.blur_enabled !== undefined ? !!th.blur_enabled : true;
+    const radiusVal = th.blur_radius !== undefined ? th.blur_radius : 4;
+    const saturateVal = th.blur_saturate !== undefined ? th.blur_saturate : 140;
+
+    if (chkBlurEnable) chkBlurEnable.checked = isEnabled;
+    if (rngBlurRadius) rngBlurRadius.value = radiusVal;
+    if (txtBlurRadiusVal) txtBlurRadiusVal.textContent = `${radiusVal}px`;
+    if (rngBlurSaturate) rngBlurSaturate.value = saturateVal;
+    if (txtBlurSaturateVal) txtBlurSaturateVal.textContent = `${saturateVal}%`;
+    if (controlsWrapper) {
+      if (isEnabled) {
+        controlsWrapper.classList.remove("opacity-50", "pe-none");
+      } else {
+        controlsWrapper.classList.add("opacity-50", "pe-none");
+      }
+    }
   };
 
   syncInputsFromTheme(currentTheme);
+
+  // Frosted Glass Blur Event Listeners
+  const chkBlurEnable = document.getElementById("theme-blur-enable");
+  const rngBlurRadius = document.getElementById("theme-blur-radius");
+  const txtBlurRadiusVal = document.getElementById("theme-blur-radius-val");
+  const rngBlurSaturate = document.getElementById("theme-blur-saturate");
+  const txtBlurSaturateVal = document.getElementById("theme-blur-saturate-val");
+  const controlsWrapper = document.getElementById("theme-blur-controls-wrapper");
+
+  if (chkBlurEnable) {
+    chkBlurEnable.addEventListener("change", () => {
+      const th = loadSavedTheme();
+      th.blur_enabled = chkBlurEnable.checked;
+      th.name = "Custom";
+      if (controlsWrapper) {
+        if (chkBlurEnable.checked) {
+          controlsWrapper.classList.remove("opacity-50", "pe-none");
+        } else {
+          controlsWrapper.classList.add("opacity-50", "pe-none");
+        }
+      }
+      applyTheme(th);
+      saveCurrentTheme(th);
+      if (presetSelect) presetSelect.value = "custom";
+    });
+  }
+
+  if (rngBlurRadius) {
+    rngBlurRadius.addEventListener("input", () => {
+      const val = parseInt(rngBlurRadius.value, 10) || 0;
+      if (txtBlurRadiusVal) txtBlurRadiusVal.textContent = `${val}px`;
+      const th = loadSavedTheme();
+      th.blur_radius = val;
+      th.name = "Custom";
+      applyTheme(th);
+      saveCurrentTheme(th);
+      if (presetSelect) presetSelect.value = "custom";
+    });
+  }
+
+  if (rngBlurSaturate) {
+    rngBlurSaturate.addEventListener("input", () => {
+      const val = parseInt(rngBlurSaturate.value, 10) || 100;
+      if (txtBlurSaturateVal) txtBlurSaturateVal.textContent = `${val}%`;
+      const th = loadSavedTheme();
+      th.blur_saturate = val;
+      th.name = "Custom";
+      applyTheme(th);
+      saveCurrentTheme(th);
+      if (presetSelect) presetSelect.value = "custom";
+    });
+  }
 
   // Custom Font Input inside Custom Theme Dialog
   const fontInput = document.getElementById("theme-font-family");
