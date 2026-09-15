@@ -996,6 +996,9 @@ html.no-animations *::after {
 body.with-system-titlebar #tool-workspace {
   margin-top: -48px;
   padding-top: calc(48px + 1.5rem) !important;
+  border-top-left-radius: calc(12px * var(--anedikit-blur-enabled, 1)) !important;
+  border-top: calc(1px * var(--anedikit-blur-enabled, 1)) solid var(--bs-border-color);
+  border-left: calc(1px * var(--anedikit-blur-enabled, 1)) solid var(--bs-border-color);
 }
 
 /* Material Design 3 Toggle Switch */
