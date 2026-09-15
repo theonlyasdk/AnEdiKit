@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS = {
   disableAnimations: false,
   enableUserKits: false,
   useSystemTitlebar: true,
+  hideScrollbarsOnHover: false,
   customFont: "",
   hwAccel: "auto",
   threads: "0",

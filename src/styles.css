@@ -48,13 +48,9 @@ body.bg-body-tertiary,
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: transparent;
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22);
   border-radius: 4px;
   transition: background-color 0.2s ease;
-}
-
-*:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -63,10 +59,27 @@ body.bg-body-tertiary,
 
 * {
   scrollbar-width: thin;
+  scrollbar-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22) transparent;
+}
+
+/* Hide scrollbars when not hovering option (enabled via html.hide-scrollbars-on-hover) */
+html.hide-scrollbars-on-hover ::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+
+html.hide-scrollbars-on-hover *:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22);
+}
+
+html.hide-scrollbars-on-hover ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.45) !important;
+}
+
+html.hide-scrollbars-on-hover * {
   scrollbar-color: transparent transparent;
 }
 
-*:hover {
+html.hide-scrollbars-on-hover *:hover {
   scrollbar-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22) transparent;
 }
 
@@ -2418,15 +2431,26 @@ body.with-system-titlebar .header-brand-col {
 }
 
 .header-caption-controls {
-  display: none;
+  display: flex;
   align-items: stretch;
   flex-shrink: 0;
   cursor: default;
   -webkit-app-region: no-drag;
+  transform: translateY(0);
+  opacity: 1;
+  max-width: 140px;
+  visibility: visible;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s step-end;
 }
 
-body:not(.with-system-titlebar) .header-caption-controls {
-  display: flex;
+body.with-system-titlebar .header-caption-controls {
+  transform: translateY(-100%);
+  opacity: 0;
+  max-width: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s 0.25s;
 }
 
 .header-caption-btn {

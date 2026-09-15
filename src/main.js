@@ -2267,6 +2267,7 @@ function populateSettingsUI() {
   const setDisableAnim = document.getElementById("set-disable-animations");
   const setEnableUserKits = document.getElementById("set-enable-user-kits");
   const setUseSystemTitlebar = document.getElementById("set-use-system-titlebar");
+  const setHideScrollbars = document.getElementById("set-hide-scrollbars-on-hover");
   const setHw = document.getElementById("set-hwaccel");
   const setThr = document.getElementById("set-threads");
   const setDefVc = document.getElementById("set-def-vcodec");
@@ -2287,6 +2288,7 @@ function populateSettingsUI() {
   if (setDisableAnim) setDisableAnim.checked = !!appSettings.disableAnimations;
   if (setEnableUserKits) setEnableUserKits.checked = appSettings.enableUserKits === true;
   if (setUseSystemTitlebar) setUseSystemTitlebar.checked = appSettings.useSystemTitlebar !== false;
+  if (setHideScrollbars) setHideScrollbars.checked = appSettings.hideScrollbarsOnHover === true;
   if (setHw) setHw.value = appSettings.hwAccel || "auto";
   if (setThr) setThr.value = appSettings.threads || "0";
   if (setDefVc) setDefVc.value = appSettings.defVCodec || "libx264";
@@ -2456,6 +2458,7 @@ function saveSettingsFromUI() {
   const setDisableAnim = document.getElementById("set-disable-animations");
   const setEnableUserKits = document.getElementById("set-enable-user-kits");
   const setUseSystemTitlebar = document.getElementById("set-use-system-titlebar");
+  const setHideScrollbars = document.getElementById("set-hide-scrollbars-on-hover");
   const setHw = document.getElementById("set-hwaccel");
   const setThr = document.getElementById("set-threads");
   const setDefVc = document.getElementById("set-def-vcodec");
@@ -2489,6 +2492,13 @@ function saveSettingsFromUI() {
       applyTitlebarMode(isSystem);
     }
   }
+  if (setHideScrollbars) {
+    const isHide = setHideScrollbars.checked === true;
+    if (appSettings.hideScrollbarsOnHover !== isHide) {
+      appSettings.hideScrollbarsOnHover = isHide;
+      document.documentElement.classList.toggle("hide-scrollbars-on-hover", isHide);
+    }
+  }
   if (setHw) appSettings.hwAccel = setHw.value;
   if (setThr) appSettings.threads = setThr.value;
   if (setDefVc) appSettings.defVCodec = setDefVc.value;
@@ -2513,6 +2523,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initThemeManager();
   populateSettingsUI();
   if (appSettings.useSystemTitlebar === undefined) appSettings.useSystemTitlebar = true;
+  document.documentElement.classList.toggle("hide-scrollbars-on-hover", appSettings.hideScrollbarsOnHover === true);
   initCaptionControls();
   applyTitlebarMode(appSettings.useSystemTitlebar);
   applyUserKitsVisibility(appSettings.enableUserKits === true);
