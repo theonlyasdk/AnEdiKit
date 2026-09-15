@@ -33,14 +33,18 @@ body.bg-body-tertiary,
   background-color: var(--bs-body-bg, #181818) !important;
 }
 
-/* Custom Overlay Scrollbars: Hidden by default, visible on hover */
+/* Custom Overlay Scrollbars: Zero layout track space, hidden by default */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
+  background-color: transparent;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-track-piece,
+::-webkit-scrollbar-corner {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -121,7 +125,6 @@ a:active,
 
 #tool-workspace {
   overflow-x: hidden;
-  scrollbar-gutter: stable;
 }
 
 /* Sidebar Navigation & Settings Button Sliding Indicator */
@@ -2213,7 +2216,6 @@ body.with-system-titlebar #tool-workspace {
 
 /* Prevent body scrollbar layout shifts during modal open/close animation */
 body.modal-open {
-  scrollbar-gutter: stable;
   overflow: hidden !important;
 }
 
