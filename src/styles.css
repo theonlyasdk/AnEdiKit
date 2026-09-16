@@ -4,7 +4,7 @@
   --bs-body-font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif;
   font-size: 17px;
   --anedikit-blur-enabled: 1;
-  --anedikit-blur-radius: 2px;
+  --anedikit-blur-radius: 16px;
   --anedikit-blur-saturate: 140%;
 }
 
@@ -334,7 +334,7 @@ a:active,
 .sidebar-section-header {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 10;
   display: flex;
   align-items: center;
   text-align: center;
@@ -343,45 +343,32 @@ a:active,
   letter-spacing: normal;
   color: var(--bs-secondary-color);
   margin-left: -0.5rem;
-  margin-right: -0.5rem;
-  padding: 0.5rem 1rem 0.5rem 1rem;
+  margin-right: 0;
+  padding: 0.5rem 0.75rem 0.5rem 1rem;
   margin-top: 0.75rem;
   margin-bottom: 0.25rem;
+  background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  -webkit-mask-image: none !important;
-  mask-image: none !important;
   pointer-events: none;
-  transition: background-color 0.15s ease, backdrop-filter 0.15s ease;
+  transition: background-color 0.2s ease, backdrop-filter 0.2s ease;
 }
 
 .sidebar-section-header.is-stuck {
   background-color: rgba(
     var(--bs-tertiary-bg-rgb, 43, 48, 53),
-    calc(0.90 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+    calc(0.85 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
   ) !important;
   background-image: linear-gradient(
     to bottom,
     rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), calc(0.90 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 0%,
-    rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), calc(0.75 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 60%,
-    rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), calc(0 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 100%
+    rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), calc(0.70 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 65%,
+    rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), 0) 100%
   ) !important;
-  -webkit-backdrop-filter: blur(calc(12px * var(--anedikit-blur-enabled, 1))) !important;
-  backdrop-filter: blur(calc(12px * var(--anedikit-blur-enabled, 1))) !important;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    black 0%,
-    black 65%,
-    transparent 100%
-  ) !important;
-  mask-image: linear-gradient(
-    to bottom,
-    black 0%,
-    black 65%,
-    transparent 100%
-  ) !important;
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
 }
 
 .sidebar-section-header > * {
@@ -498,8 +485,8 @@ body.with-system-titlebar #sidebar-scroll-container {
     var(--bs-tertiary-bg-rgb, 43, 48, 53),
     calc(0.90 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
   ) !important;
-  -webkit-backdrop-filter: blur(calc(12px * var(--anedikit-blur-enabled, 1))) !important;
-  backdrop-filter: blur(calc(12px * var(--anedikit-blur-enabled, 1))) !important;
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) !important;
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) !important;
 }
 
 #footer-settings-col,
@@ -527,8 +514,8 @@ body.with-system-titlebar #sidebar-scroll-container {
     rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.20 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 0%,
     rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 100%
   ) !important;
-  -webkit-backdrop-filter: blur(calc(var(--anedikit-blur-radius, 4px) * var(--anedikit-blur-enabled, 1))) saturate(var(--anedikit-blur-saturate, 140%));
-  backdrop-filter: blur(calc(var(--anedikit-blur-radius, 4px) * var(--anedikit-blur-enabled, 1))) saturate(var(--anedikit-blur-saturate, 140%));
+  -webkit-backdrop-filter: blur(calc(var(--anedikit-blur-radius, 16px) * var(--anedikit-blur-enabled, 1))) saturate(var(--anedikit-blur-saturate, 140%));
+  backdrop-filter: blur(calc(var(--anedikit-blur-radius, 16px) * var(--anedikit-blur-enabled, 1))) saturate(var(--anedikit-blur-saturate, 140%));
   z-index: 10;
   position: relative;
 }

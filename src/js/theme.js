@@ -225,7 +225,7 @@ export function applyTheme(themeObj) {
 
   // Frosted Glass Blur Parameters
   const blurEnabled = themeObj.blur_enabled !== undefined ? (themeObj.blur_enabled ? 1 : 0) : 1;
-  const blurRadius = themeObj.blur_radius !== undefined ? `${themeObj.blur_radius}px` : "2px";
+  const blurRadius = themeObj.blur_radius ? `${Math.max(12, themeObj.blur_radius)}px` : "16px";
   const blurSaturate = themeObj.blur_saturate !== undefined ? `${themeObj.blur_saturate}%` : "140%";
 
   root.style.setProperty("--anedikit-blur-enabled", blurEnabled);
