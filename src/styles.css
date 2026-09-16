@@ -37,7 +37,8 @@ body.bg-body-tertiary,
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
-  background-color: transparent;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 ::-webkit-scrollbar-track,
@@ -45,6 +46,8 @@ body.bg-body-tertiary,
 ::-webkit-scrollbar-corner {
   background: transparent !important;
   background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -718,24 +721,7 @@ body.with-system-titlebar #top-titlebar-col {
 }
 
 
-/* Clean Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--bs-border-color-translucent);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--bs-secondary-color);
-}
 
 .brand-header-btn {
   background: transparent;
