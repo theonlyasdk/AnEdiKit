@@ -796,17 +796,29 @@ export function initNavigation(onToolChanged) {
     setupSidebarButtonEffects(btn, onToolChanged);
   });
 
-  // Desktop footer settings cell reveals only while the sidebar is
-  // hovered (slides up from below on a slow iOS curve, collapses away).
+  // Desktop footer settings cell reveals while the sidebar OR the cell
+  // itself is hovered (the cell lives outside the sidebar, so leaving the
+  // sidebar for the cell must not park it mid-click), plus whenever the
+  // sidebar is scrolled to the very end. Hover states are re-checked on
+  // the next frame so they settle before we decide.
   const mainSidebar = document.getElementById("main-sidebar");
   const footerSettingsCol = document.getElementById("footer-settings-col");
+  const sidebarScrollBox = document.getElementById("sidebar-scroll-container");
+  const updateSettingsCellParked = () => {
+    if (!footerSettingsCol) return;
+    const hovered =
+      (mainSidebar && mainSidebar.matches(":hover")) || footerSettingsCol.matches(":hover");
+    let atEnd = false;
+    if (sidebarScrollBox) {
+      atEnd = sidebarScrollBox.scrollHeight - sidebarScrollBox.scrollTop - sidebarScrollBox.clientHeight <= 4;
+    }
+    footerSettingsCol.classList.toggle("settings-cell-parked", !(hovered || atEnd));
+  };
   if (mainSidebar && footerSettingsCol) {
-    mainSidebar.addEventListener("mouseenter", () => {
-      footerSettingsCol.classList.remove("settings-cell-parked");
-    });
-    mainSidebar.addEventListener("mouseleave", () => {
-      footerSettingsCol.classList.add("settings-cell-parked");
-    });
+    mainSidebar.addEventListener("mouseenter", updateSettingsCellParked);
+    mainSidebar.addEventListener("mouseleave", () => requestAnimationFrame(updateSettingsCellParked));
+    footerSettingsCol.addEventListener("mouseenter", updateSettingsCellParked);
+    footerSettingsCol.addEventListener("mouseleave", () => requestAnimationFrame(updateSettingsCellParked));
   }
 
   // Material You soft ripples on the Settings page list rows (the
@@ -874,6 +886,7 @@ export function initNavigation(onToolChanged) {
         updateSidebarIndicator(activeBtn, false);
       }
       updateStickyHeaders();
+      updateSettingsCellParked();
     });
   }
 
@@ -896,6 +909,7 @@ export function initNavigation(onToolChanged) {
   currentActiveTool = ""; // reset to trigger clean initial load
   switchTool(savedTool, onToolChanged);
   updateStickyHeaders();
+  updateSettingsCellParked();
 }
 
 export function updateStickyHeaders() {

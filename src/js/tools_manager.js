@@ -103,8 +103,8 @@ export function renderToolsUI() {
               </button>
             </div>
             <div class="d-flex gap-4 small text-body-secondary">
-              <div>Installed: <span class="text-body fw-medium" id="${tool.id}-local-ver"><span class="meta-loading-pulse">...</span></span></div>
-              <div>Latest: <span class="text-body fw-medium" id="${tool.id}-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
+              <div><span class="tool-ver-label">Installed:</span> <span class="text-body fw-medium" id="${tool.id}-local-ver"><span class="meta-loading-pulse">...</span></span></div>
+              <div><span class="tool-ver-label">Latest:</span> <span class="text-body fw-medium" id="${tool.id}-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
             </div>
           </div>
         `
