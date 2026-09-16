@@ -306,6 +306,7 @@ export function getSmartOutputFileName(inputFile, toolId) {
       .split(/[/\\]/)
       .pop()
       ?.replace(/\.[^/.]+$/, "") || "output";
+  const sourceExt = (rawInput.split(".").pop() || "mp4").toLowerCase();
 
   switch (toolId) {
     case "convert": {
@@ -379,12 +380,12 @@ export function getSmartOutputFileName(inputFile, toolId) {
     case "vectorizer":
       return `${baseName}_vector.svg`;
     case "restore_denoise":
-      return `${baseName}_restored.${ext}`;
+      return `${baseName}_restored.${sourceExt}`;
     case "icon_generator":
       return `${baseName}_icons`;
     case "metadata_cleaner": {
       const fmt = document.getElementById("meta-out-format")?.value || "original";
-      const targetExt = fmt === "original" ? ext : fmt;
+      const targetExt = fmt === "original" ? sourceExt : fmt;
       return `${baseName}_clean.${targetExt}`;
     }
     default:
@@ -1580,6 +1581,21 @@ function bindFormEvents() {
             btnClear.textContent = "Clear Preview Cache";
             btnClear.className = "btn btn-outline-danger btn-sm w-100 py-2";
           }
+          // Rendering diagnostics: backdrop blur lives or dies by the
+          // WebView2/Chromium build, so surface the exact versions here.
+          const dbgInfo = document.getElementById("debug-render-info");
+          if (dbgInfo) {
+            const ua = navigator.userAgent || "";
+            const chromeM = ua.match(/Chrome\/([\d.]+)/);
+            const edgM = ua.match(/Edg\/([\d.]+)/);
+            const cssOK = !!(window.CSS && window.CSS.supports && window.CSS.supports("backdrop-filter", "blur(8px)"));
+            const cs = getComputedStyle(document.documentElement);
+            dbgInfo.textContent =
+              `Chromium: ${chromeM ? chromeM[1] : "n/a"}\n` +
+              `Edge/WebView2: ${edgM ? edgM[1] : "n/a"}\n` +
+              `backdrop-filter parsed: ${cssOK ? "yes" : "no"}\n` +
+              `blur flag: ${cs.getPropertyValue("--anedikit-blur-enabled").trim() || "unset"}`;
+          }
           window.bootstrap.Modal.getOrCreateInstance(debugModalEl).show();
         }
         return;
@@ -2633,6 +2649,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   initComparisonModal();
+  // Exposed like window.switchAppTool / window.renderActiveKitIde so e2e and
+  // screenshot tooling can open the comparison view without a finished job.
+  window.openComparisonModal = openComparisonModal;
   initImageLightbox();
   initToolsManager();
   initKitsManager();

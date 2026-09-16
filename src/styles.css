@@ -3,7 +3,7 @@
 :root {
   --bs-body-font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif;
   font-size: 17px;
-  --anedikit-blur-enabled: 1;
+  --anedikit-blur-enabled: 0;
   --anedikit-blur-radius: 16px;
   --anedikit-blur-saturate: 140%;
 }
@@ -318,19 +318,20 @@ a:active,
   }
 }
 
-/* Material You Soft Ripple (settings items): a low-alpha primary wash
-   with a feathered edge — no hard ring. Sized in JS to just cover the
-   item from the press point, then blooms out and dissolves. */
+/* Material You Soft Ripple (settings items): a low-alpha NEUTRAL-GRAY wash
+   with a feathered edge — no hard ring, no color tint. Sized in JS to just
+   cover the item from the press point, then blooms out and dissolves. */
 .m3-ripple {
   position: absolute;
   border-radius: 50%;
   transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
   background: radial-gradient(
     circle,
-    rgba(var(--bs-primary-rgb, 13, 110, 253), 0.18) 0%,
-    rgba(var(--bs-primary-rgb, 13, 110, 253), 0.14) 45%,
-    rgba(var(--bs-primary-rgb, 13, 110, 253), 0.06) 65%,
-    rgba(var(--bs-primary-rgb, 13, 110, 253), 0) 78%
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.16) 0%,
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.12) 45%,
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.05) 65%,
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0) 78%
   );
   pointer-events: none;
   z-index: 3;
@@ -404,9 +405,10 @@ a:active,
   ) !important;
   /* Hardcoded (not variable-driven): the var-based filter was resolving
      to ~zero blur in-app while the tint var worked, leaving sharp content
-     behind the fade. One static declaration blurs reliably. */
-  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
-  backdrop-filter: blur(16px) saturate(140%) !important;
+     behind the fade. One static declaration blurs reliably. Multiplied by
+     the blur flag so disabling blur fully neutralizes it. */
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
   /* Progressive fade: masks tint + blurred backdrop together so the top
      reads full blur/tint and the bottom dissolves to sharp content. */
   -webkit-mask-image: linear-gradient(
@@ -538,10 +540,8 @@ body.with-system-titlebar #sidebar-scroll-container {
     rgba(var(--bs-tertiary-bg-rgb, 30, 30, 35), calc(0.20 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 0%,
     rgba(var(--bs-tertiary-bg-rgb, 30, 30, 35), calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 100%
   ) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
-  backdrop-filter: blur(16px) saturate(140%) !important;
-  -webkit-backdrop-filter: blur(var(--anedikit-blur-radius, 16px)) saturate(var(--anedikit-blur-saturate, 140%)) !important;
-  backdrop-filter: blur(var(--anedikit-blur-radius, 16px)) saturate(var(--anedikit-blur-saturate, 140%)) !important;
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
   border-right: 1px solid var(--bs-border-color) !important;
   z-index: 10;
   position: relative;
@@ -553,8 +553,8 @@ body.with-system-titlebar #sidebar-scroll-container {
     var(--bs-tertiary-bg-rgb, 43, 48, 53),
     calc(0.90 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
   ) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
-  backdrop-filter: blur(16px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
 }
 
 #footer-settings-col,
@@ -569,8 +569,8 @@ body.with-system-titlebar #sidebar-scroll-container {
     calc(0.75 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
   ) !important;
   background-image: none !important;
-  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
-  backdrop-filter: blur(16px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
   z-index: 10;
   position: relative;
 }
@@ -587,10 +587,8 @@ body.with-system-titlebar #sidebar-scroll-container {
     rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.20 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 0%,
     rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 100%
   ) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--anedikit-blur-radius, 16px)) saturate(var(--anedikit-blur-saturate, 140%));
-  backdrop-filter: blur(var(--anedikit-blur-radius, 16px)) saturate(var(--anedikit-blur-saturate, 140%));
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%);
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%);
   z-index: 10;
   position: relative;
 }
@@ -980,10 +978,8 @@ body.with-system-titlebar #top-titlebar-col {
     border-radius: 26px 26px 18px 18px !important;
     background-color: rgba(
       var(--bs-tertiary-bg-rgb, 43, 48, 53),
-      0.72
+      calc(0.72 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
     ) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    backdrop-filter: blur(24px) saturate(160%);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 -12px 40px rgba(0, 0, 0, 0.45);
     /* Vertical sheet drag is handled in JS; keep the browser from
        hijacking the gesture for scroll/refresh on the short sheet. */
@@ -1254,8 +1250,8 @@ body.with-system-titlebar #tool-workspace {
   z-index: 4;
   opacity: 0;
   transition: opacity 0.22s ease;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(calc(10px * var(--anedikit-blur-enabled, 1)));
+  backdrop-filter: blur(calc(10px * var(--anedikit-blur-enabled, 1)));
 }
 
 .scroll-cards-wrapper::before {
@@ -2329,6 +2325,22 @@ body.with-system-titlebar #tool-workspace {
   transition: transform 0.26s ease-out, opacity 0.24s ease-out !important;
 }
 
+/* Settled state (added by JS on shown.bs.modal, removed on hide.bs.modal):
+   pixel-identical to the open state above, but drops the dialog out of the
+   perspective/will-change 3D scene — Chromium disables backdrop-filter
+   inside 3D rendering contexts, which is why dialog glass stayed blind
+   while top/footer bars (flat 2D, no 3D ancestors) blurred fine. The close
+   animation still runs in 3D because the class is removed on hide. */
+.modal.fade.show.modal-settled .modal-dialog {
+  transform: none !important;
+  will-change: auto !important;
+}
+
+#credits-modal.modal.fade.show.modal-settled .modal-dialog {
+  transform: none !important;
+  will-change: auto !important;
+}
+
 /* HTML: <div class="loader"></div> */
 .loader {
   width: 45px;
@@ -2359,23 +2371,36 @@ body.with-system-titlebar #tool-workspace {
    rule's transition governs entrance (with the dialog open animation),
    the base rule governs exit (with the 0.13s dialog close animation),
    so the dim lands exactly with the dialog in both directions.
-   (Dialog zoom animation above untouched.) */
+   CRITICAL: element opacity stays 1 and only the background alpha fades.
+   Matrix-proven: opacity < 1 on the same element as backdrop-filter blinds
+   sampling (page stays sharp), while opacity:1 + translucent background
+   blurs fine. (Dialog zoom animation above untouched.) */
 .modal-backdrop.fade {
-  opacity: 0;
-  transition: opacity 0.13s ease-in !important;
+  opacity: 1 !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+  transition: background-color 0.13s ease-in !important;
 }
 
 .modal-backdrop.fade.show {
-  transition: opacity var(--duration-fast) var(--ease-apple) !important;
+  background-color: rgba(0, 0, 0, 0.55) !important;
+  transition: background-color var(--duration-fast) var(--ease-apple) !important;
 }
 
 .modal-backdrop.show {
-  opacity: 0.55 !important;
+  opacity: 1 !important;
   /* Frost the page behind every dialog. Hardcoded: sibling-level blur
      composes with dialog glass instead of blinding it (only a blurred
-     ANCESTOR breaks descendant backdrop-filter). */
-  -webkit-backdrop-filter: blur(8px) saturate(130%);
-  backdrop-filter: blur(8px) saturate(130%);
+     ANCESTOR breaks descendant backdrop-filter). Gated by the blur flag. */
+  -webkit-backdrop-filter: blur(calc(8px * var(--anedikit-blur-enabled, 1))) saturate(130%);
+  backdrop-filter: blur(calc(8px * var(--anedikit-blur-enabled, 1))) saturate(130%);
+}
+
+/* Full-strength page frost while the About bottom sheet is open. Scoped by
+   a body class (toggled from initCreditsSheetDrag) so other dialogs keep
+   the light 8px treatment. Top-level element: nothing above it to nest. */
+body.sheet-glass .modal-backdrop.show {
+  -webkit-backdrop-filter: blur(calc(24px * var(--anedikit-blur-enabled, 1))) saturate(160%);
+  backdrop-filter: blur(calc(24px * var(--anedikit-blur-enabled, 1))) saturate(160%);
 }
 
 /* Prevent body scrollbar layout shifts during modal open/close animation */
@@ -2570,9 +2595,9 @@ body.with-system-titlebar .header-brand-col {
 #top-header-bar {
   cursor: default;
   position: relative;
-  /* Must outrank the mobile drawer (z-1050) so the drawer slides in
-     underneath it and never covers the brand, title, or caption buttons. */
-  z-index: 1060;
+  /* Above the mobile drawer (1050) so it slides underneath, but below
+     Bootstrap's modal layer (1055) so dialogs and their dim always cover it. */
+  z-index: 1052;
   background: transparent !important;
   background-color: transparent !important;
 }
@@ -2661,16 +2686,16 @@ body.with-system-titlebar .header-caption-controls {
   filter: none;
 }
 
-/* Minimalist Creative About Modal Styling: Liquid-Glass on all sizes.
-   Hardcoded blur (not variable-driven) per the backdrop hardening rule. */
+/* Minimalist Creative About Modal Styling: the glass lives here as a plain
+   translucent tint. The actual blur is done by the top-level modal backdrop
+   (see body.sheet-glass rule): backdrop-filter must never nest, a blurred
+   ancestor blinds descendant sampling, so dialog content stays filter-free. */
 .about-dialog-content {
   border-radius: 20px !important;
   background-color: rgba(
     var(--bs-tertiary-bg-rgb, 43, 48, 53),
-    0.72
+    calc(0.72 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
   ) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  backdrop-filter: blur(24px) saturate(160%);
 }
 
 .about-developer-card {

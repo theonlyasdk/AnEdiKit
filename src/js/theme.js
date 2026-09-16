@@ -223,8 +223,8 @@ export function applyTheme(themeObj) {
     applyFontFamily(themeObj.font_family);
   }
 
-  // Frosted Glass Blur Parameters
-  const blurEnabled = themeObj.blur_enabled !== undefined ? (themeObj.blur_enabled ? 1 : 0) : 1;
+  // Frosted Glass Blur Parameters (off by default; explicit opt-in only)
+  const blurEnabled = themeObj.blur_enabled !== undefined ? (themeObj.blur_enabled ? 1 : 0) : 0;
   const blurRadius = blurEnabled ? (themeObj.blur_radius ? `${Math.max(12, themeObj.blur_radius)}px` : "16px") : "0px";
   const blurSaturate = blurEnabled ? (themeObj.blur_saturate !== undefined ? `${themeObj.blur_saturate}%` : "140%") : "100%";
 
@@ -291,7 +291,7 @@ export function serializeThemeToText(themeObj) {
     `pane_bg=${themeObj.pane_bg || "#212529"}`,
     `text_color=${themeObj.text_color || "#dee2e6"}`,
     `border_color=${themeObj.border_color || "#495057"}`,
-    `blur_enabled=${themeObj.blur_enabled !== undefined ? themeObj.blur_enabled : true}`,
+    `blur_enabled=${themeObj.blur_enabled !== undefined ? themeObj.blur_enabled : false}`,
     `blur_radius=${themeObj.blur_radius !== undefined ? themeObj.blur_radius : 4}`,
     `blur_saturate=${themeObj.blur_saturate !== undefined ? themeObj.blur_saturate : 140}`,
   ].join("\n");
@@ -365,7 +365,7 @@ export function initThemeManager() {
     const txtBlurSaturateVal = document.getElementById("theme-blur-saturate-val");
     const controlsWrapper = document.getElementById("theme-blur-controls-wrapper");
 
-    const isEnabled = th.blur_enabled !== undefined ? !!th.blur_enabled : true;
+    const isEnabled = th.blur_enabled !== undefined ? !!th.blur_enabled : false;
     const radiusVal = th.blur_radius !== undefined ? th.blur_radius : 4;
     const saturateVal = th.blur_saturate !== undefined ? th.blur_saturate : 140;
 

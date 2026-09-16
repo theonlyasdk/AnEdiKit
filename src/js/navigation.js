@@ -468,9 +468,17 @@ export function attachMaterialRipple(element) {
     ripple.style.top = `${y}px`;
 
     element.appendChild(ripple);
-    ripple.addEventListener("animationend", () => {
+    // animationend removes it at opacity 0; the timeout is a backstop so
+    // a missed event (hidden tab, toggled animations) can never leave a
+    // visible wash stuck on the row.
+    let gone = false;
+    const remove = () => {
+      if (gone) return;
+      gone = true;
       ripple.remove();
-    });
+    };
+    ripple.addEventListener("animationend", remove);
+    setTimeout(remove, 700);
   });
 }
 
@@ -606,6 +614,101 @@ export function setupSidebarButtonEffects(btn, onToolChanged) {
   }
 }
 
+// Mobile bottom-sheet drag-to-dismiss for the About dialog. Small screens
+// only: pull the sheet down past ~100px (or flick it) to dismiss,
+// otherwise it springs back. Plain taps/clicks pass through untouched.
+export function initCreditsSheetDrag() {
+  const modalEl = document.getElementById("credits-modal");
+  if (!modalEl || modalEl.dataset.sheetDragBound === "true") return;
+  const dialog = modalEl.querySelector(".modal-dialog");
+  const sheet = modalEl.querySelector(".about-dialog-content");
+  if (!dialog || !sheet) return;
+  modalEl.dataset.sheetDragBound = "true";
+  const isMobileSheet = () => window.matchMedia("(max-width: 768px)").matches;
+
+  // Strong top-level page frost while the sheet is open. The sheet content
+  // itself stays filter-free (nested backdrop-filter goes blind), so the
+  // backdrop element — a direct body child — carries the blur instead.
+  modalEl.addEventListener("show.bs.modal", () => document.body.classList.add("sheet-glass"));
+  modalEl.addEventListener("hidden.bs.modal", () => document.body.classList.remove("sheet-glass"));
+
+  let dragging = false;
+  let moved = false;
+  let startY = 0;
+  let dy = 0;
+  let lastY = 0;
+  let lastT = 0;
+  let velocity = 0;
+
+  sheet.addEventListener("pointerdown", (e) => {
+    if (!isMobileSheet()) return;
+    if (!modalEl.classList.contains("show")) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    dragging = true;
+    moved = false;
+    dy = 0;
+    velocity = 0;
+    startY = e.clientY;
+    lastY = e.clientY;
+    lastT = e.timeStamp;
+    try {
+      sheet.setPointerCapture(e.pointerId);
+    } catch (_) {}
+  });
+
+  sheet.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const dt = Math.max(1, e.timeStamp - lastT);
+    velocity = 0.8 * ((e.clientY - lastY) / dt) + 0.2 * velocity;
+    lastY = e.clientY;
+    lastT = e.timeStamp;
+      dy = Math.max(0, e.clientY - startY);
+      if (Math.abs(e.clientY - startY) > 8) moved = true;
+      if (dy > 0) {
+        // Important-flagged: the sheet's own transitions/transforms are
+        // !important, so plain inline styles would lose and the sheet
+        // would only animate after release instead of tracking live.
+        dialog.style.setProperty("transition", "none", "important");
+        dialog.style.setProperty("transform", `translateY(${dy}px)`, "important");
+      }
+  });
+
+  const endDrag = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    try {
+      if (sheet.releasePointerCapture && e.pointerId !== undefined) sheet.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+    if (moved) {
+      // Swallow the tap that would otherwise hit sheet buttons after a drag.
+      sheet.addEventListener(
+        "click",
+        (ce) => {
+          ce.preventDefault();
+          ce.stopPropagation();
+        },
+        { capture: true, once: true },
+      );
+    }
+    if ((dy > 100 || velocity > 0.55) && isMobileSheet() && window.bootstrap?.Modal) {
+      // Dismiss first (Bootstrap swaps to the slide-down close state),
+      // then release the inline offset so it glides from the finger
+      // position instead of snapping.
+        window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+        requestAnimationFrame(() => {
+          dialog.style.removeProperty("transition");
+          dialog.style.removeProperty("transform");
+        });
+      } else {
+        // Spring back via the sheet's own show-state transition.
+        dialog.style.removeProperty("transition");
+        dialog.style.removeProperty("transform");
+      }
+  };
+  sheet.addEventListener("pointerup", endDrag);
+  sheet.addEventListener("pointercancel", endDrag);
+}
+
 export function initNavigation(onToolChanged) {
   const allToolButtons = document.querySelectorAll("button[data-tool]");
   const btnToggle = document.getElementById("btn-sidebar-toggle");
@@ -678,6 +781,23 @@ export function initNavigation(onToolChanged) {
     if (row.dataset.m3RippleBound === "true") return;
     row.dataset.m3RippleBound = "true";
     attachMaterialRipple(row);
+  });
+
+  // About bottom-sheet drag-to-dismiss (own guarded init inside).
+  try {
+    initCreditsSheetDrag();
+  } catch (err) {
+    console.warn("initCreditsSheetDrag failed:", err);
+  }
+
+  // Drop every dialog out of the 3D animation scene once open (see
+  // .modal-settled in styles.css): the entrance/exit keeps its perspective
+  // tilt, but at rest the dialog renders flat so backdrop-filter works.
+  document.addEventListener("shown.bs.modal", (e) => {
+    if (e.target && e.target.classList) e.target.classList.add("modal-settled");
+  });
+  document.addEventListener("hide.bs.modal", (e) => {
+    if (e.target && e.target.classList) e.target.classList.remove("modal-settled");
   });
 
   // Container-level proximity border tracking across adjacent sidebar items (dynamic)
