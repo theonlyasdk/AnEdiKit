@@ -2,6 +2,9 @@
 
 AnEdiKit is a lightweight, all-in-one desktop toolkit for creators that integrates FFmpeg and yt-dlp media utilities into a responsive desktop application built with Tauri v2 and Rust. It also serves as a macro engine for making your own GUI for command line tools of your choice with JavaScript and drag-and-drop tools.
 
+## Screenshots
+For screenshots and a visual overview of the application, please visit the [Screenshots](docs/screenshots/0.3.0/) page.
+
 ## Features
 
 ### Video & Audio Processing (FFmpeg)
@@ -66,4 +69,4 @@ The release files will be in the `build/` folder:
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

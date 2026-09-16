@@ -398,6 +398,14 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
     btnReset.classList.toggle("d-none", toolId === "settings");
   }
 
+  // Bottom-left slot would sit completely empty in Settings view (both
+  // action buttons hide there), so the status line shows here and only
+  // here — every other view keeps the clean label-free footer.
+  const statusSlot = document.getElementById("status-message");
+  if (statusSlot) {
+    statusSlot.classList.toggle("d-none", toolId !== "settings");
+  }
+
   // Contextual status message for settings
   const statusMsg = document.getElementById("status-message");
   if (statusMsg) {
@@ -625,12 +633,6 @@ export function initCreditsSheetDrag() {
   if (!dialog || !sheet) return;
   modalEl.dataset.sheetDragBound = "true";
   const isMobileSheet = () => window.matchMedia("(max-width: 768px)").matches;
-
-  // Strong top-level page frost while the sheet is open. The sheet content
-  // itself stays filter-free (nested backdrop-filter goes blind), so the
-  // backdrop element — a direct body child — carries the blur instead.
-  modalEl.addEventListener("show.bs.modal", () => document.body.classList.add("sheet-glass"));
-  modalEl.addEventListener("hidden.bs.modal", () => document.body.classList.remove("sheet-glass"));
 
   let dragging = false;
   let moved = false;

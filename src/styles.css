@@ -531,17 +531,16 @@ body.with-system-titlebar #sidebar-scroll-container {
 }
 
 .header-brand-col {
+  /* Transparent at scroll top if and only if blur is on (alpha 0 when the
+     flag is 1, solid when 0); scrolled state is handled by
+     .has-stuck-header below. */
   background-color: rgba(
     var(--bs-tertiary-bg-rgb, 30, 30, 35),
-    calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+    calc(0 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
   ) !important;
-  background-image: linear-gradient(
-    to bottom,
-    rgba(var(--bs-tertiary-bg-rgb, 30, 30, 35), calc(0.20 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 0%,
-    rgba(var(--bs-tertiary-bg-rgb, 30, 30, 35), calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 100%
-  ) !important;
-  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
-  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
   border-right: 1px solid var(--bs-border-color) !important;
   z-index: 10;
   position: relative;
@@ -1292,7 +1291,7 @@ body.with-system-titlebar #tool-workspace {
      scroll affordance. */
   scrollbar-width: none;
   -ms-overflow-style: none;
-  scroll-behavior: smooth;
+  scroll-behavior: auto !important;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
@@ -2388,19 +2387,6 @@ body.with-system-titlebar #tool-workspace {
 
 .modal-backdrop.show {
   opacity: 1 !important;
-  /* Frost the page behind every dialog. Hardcoded: sibling-level blur
-     composes with dialog glass instead of blinding it (only a blurred
-     ANCESTOR breaks descendant backdrop-filter). Gated by the blur flag. */
-  -webkit-backdrop-filter: blur(calc(8px * var(--anedikit-blur-enabled, 1))) saturate(130%);
-  backdrop-filter: blur(calc(8px * var(--anedikit-blur-enabled, 1))) saturate(130%);
-}
-
-/* Full-strength page frost while the About bottom sheet is open. Scoped by
-   a body class (toggled from initCreditsSheetDrag) so other dialogs keep
-   the light 8px treatment. Top-level element: nothing above it to nest. */
-body.sheet-glass .modal-backdrop.show {
-  -webkit-backdrop-filter: blur(calc(24px * var(--anedikit-blur-enabled, 1))) saturate(160%);
-  backdrop-filter: blur(calc(24px * var(--anedikit-blur-enabled, 1))) saturate(160%);
 }
 
 /* Prevent body scrollbar layout shifts during modal open/close animation */
@@ -2613,7 +2599,13 @@ body.with-system-titlebar .header-brand-col {
   max-width: 140px;
   visibility: visible;
   overflow: hidden;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s step-end;
+  /* Show in two phases, no fade anywhere: layout width opens first, then
+     the buttons drop straight down from the top side, snapping visible. */
+  transition:
+    transform var(--duration-fast) var(--ease-apple) 0.05s,
+    max-width 0.15s ease-out 0s,
+    opacity 0s 0s,
+    visibility 0s 0s;
 }
 
 body.with-system-titlebar .header-caption-controls {
@@ -2622,7 +2614,13 @@ body.with-system-titlebar .header-caption-controls {
   max-width: 0;
   visibility: hidden;
   pointer-events: none;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s 0.25s;
+  /* Hide in two phases, no fade: retreat straight up fully visible, snap
+     off exactly when parked, then collapse the leftover width. */
+  transition:
+    transform var(--duration-fast) var(--ease-apple) 0s,
+    max-width 0.15s ease-in 0.1s,
+    opacity 0s var(--duration-fast),
+    visibility 0s var(--duration-fast);
 }
 
 .header-caption-btn {
@@ -2686,10 +2684,8 @@ body.with-system-titlebar .header-caption-controls {
   filter: none;
 }
 
-/* Minimalist Creative About Modal Styling: the glass lives here as a plain
-   translucent tint. The actual blur is done by the top-level modal backdrop
-   (see body.sheet-glass rule): backdrop-filter must never nest, a blurred
-   ancestor blinds descendant sampling, so dialog content stays filter-free. */
+/* Minimalist Creative About Modal Styling: deliberately solid opaque.
+   No translucency, no backdrop dependence — reads clean on every renderer. */
 .about-dialog-content {
   border-radius: 20px !important;
   background-color: rgba(
