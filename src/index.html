@@ -48,7 +48,7 @@
         <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" id="main-sidebar" style="width: 280px;">
           <div class="overflow-y-auto flex-grow-1 p-2 position-relative" id="sidebar-scroll-container">
             <div class="sidebar-indicator" id="sidebar-indicator"></div>
-            <div class="sidebar-section-header sidebar-section-first">FFmpeg</div>
+            <div class="sidebar-section-header sidebar-section-first"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>FFmpeg</span></div>
             <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
               <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
                 <ion-icon name="film-outline" class="text-body-secondary"></ion-icon>
@@ -107,7 +107,7 @@
                 <span>Custom Command</span>
               </button>
             </nav>
-            <div class="sidebar-section-header mt-3">Image &amp; AI Tools</div>
+            <div class="sidebar-section-header mt-3"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>Image &amp; AI Tools</span></div>
             <nav class="nav nav-pills flex-column gap-1" id="image-ai-nav">
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="bg_remover" type="button" title="Remove background and extract subjects locally using on-device neural models">
                 <ion-icon name="person-circle-outline" class="text-body-secondary"></ion-icon>
@@ -134,7 +134,7 @@
                 <span>Metadata Cleaner</span>
               </button>
             </nav>
-            <div class="sidebar-section-header mt-3">yt-dlp</div>
+            <div class="sidebar-section-header mt-3"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>yt-dlp</span></div>
             <nav class="nav nav-pills flex-column gap-1" id="ytdlp-nav">
               <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_audio" type="button" title="Download audio and extract MP3, M4A, FLAC with metadata">
                 <ion-icon name="musical-note-outline" class="text-body-secondary"></ion-icon>
@@ -155,6 +155,7 @@
             </nav>
             <div id="sidebar-user-kits-section" class="d-none">
               <div class="sidebar-section-header mt-3 d-flex align-items-center justify-content-between">
+                <div class="sidebar-section-header-bg" aria-hidden="true"></div>
                 <span>User Kits</span>
               </div>
               <div class="px-1 mb-3">

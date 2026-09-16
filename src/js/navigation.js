@@ -701,6 +701,12 @@ export function updateStickyHeaders() {
   let anyStuck = false;
 
   sectionHeaders.forEach((header) => {
+    if (!header.querySelector(".sidebar-section-header-bg")) {
+      const bg = document.createElement("div");
+      bg.className = "sidebar-section-header-bg";
+      bg.setAttribute("aria-hidden", "true");
+      header.prepend(bg);
+    }
     const rect = header.getBoundingClientRect();
     const isStuck = !isAtTop && rect.top <= containerTop + 2;
     if (isStuck) anyStuck = true;
