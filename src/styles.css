@@ -347,17 +347,6 @@ a:active,
   padding: 0.5rem 1rem 0.5rem 1rem;
   margin-top: 0.75rem;
   margin-bottom: 0.25rem;
-  background-color: transparent !important;
-  background-image: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-mask-image: none !important;
-  mask-image: none !important;
-  pointer-events: none;
-  transition: background-color 0.15s ease, backdrop-filter 0.15s ease;
-}
-
-.sidebar-section-header.is-stuck {
   background-color: rgba(
     var(--bs-tertiary-bg-rgb, 43, 48, 53),
     calc(0.90 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
@@ -382,6 +371,12 @@ a:active,
     black 65%,
     transparent 100%
   ) !important;
+  pointer-events: none;
+  transition: background-color 0.15s ease, backdrop-filter 0.15s ease;
+}
+
+.sidebar-section-header.is-stuck {
+  /* Preserves bottom fade gradient when stuck */
 }
 
 .sidebar-section-header > * {
