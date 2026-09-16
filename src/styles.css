@@ -33,7 +33,14 @@ body.bg-body-tertiary,
   background-color: var(--bs-body-bg, #181818) !important;
 }
 
-/* Custom Overlay Scrollbars: Zero layout track space, hidden by default */
+/* WinUI 3 / UWP Windows 10 Overlay Scrollbars: Zero layout shift/space */
+#sidebar-scroll-container,
+#tool-workspace,
+.overflow-y-auto,
+.table-responsive {
+  overflow-y: overlay !important;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -51,31 +58,39 @@ body.bg-body-tertiary,
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22);
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+  background-color: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.25);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.45) !important;
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.5) !important;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22) transparent;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.25) transparent;
 }
 
 /* Hide scrollbars when not hovering option (enabled via html.hide-scrollbars-on-hover) */
 html.hide-scrollbars-on-hover ::-webkit-scrollbar-thumb {
-  background-color: transparent;
+  background-color: transparent !important;
 }
 
 html.hide-scrollbars-on-hover *:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22);
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.25);
 }
 
 html.hide-scrollbars-on-hover ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.45) !important;
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.5) !important;
 }
 
 html.hide-scrollbars-on-hover * {
@@ -83,7 +98,7 @@ html.hide-scrollbars-on-hover * {
 }
 
 html.hide-scrollbars-on-hover *:hover {
-  scrollbar-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22) transparent;
+  scrollbar-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.25) transparent;
 }
 
 /* Cursor pointer for dropdowns and interactive buttons */
