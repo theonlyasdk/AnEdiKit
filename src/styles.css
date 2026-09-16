@@ -516,7 +516,7 @@ body.with-system-titlebar #sidebar-scroll-container {
 #mobile-sidebar-settings-col {
   background-color: rgba(
     var(--bs-tertiary-bg-rgb, 30, 30, 35),
-    calc(0.95 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+    calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
   ) !important;
   background-image: none !important;
   -webkit-backdrop-filter: blur(calc(var(--anedikit-blur-radius, 16px) * var(--anedikit-blur-enabled, 1))) saturate(var(--anedikit-blur-saturate, 140%)) !important;
@@ -2555,19 +2555,6 @@ body.with-system-titlebar .header-caption-controls {
 .about-developer-card:hover {
   border-color: rgba(var(--bs-primary-rgb), 0.4);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.developer-avatar-emblem {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: rgba(var(--bs-primary-rgb), 0.12);
-  color: var(--bs-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(var(--bs-primary-rgb), 0.25);
-  flex-shrink: 0;
 }
 
 
