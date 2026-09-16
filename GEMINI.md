@@ -96,6 +96,13 @@ Avoid:
 - Always load Bootstrap scripts (`bootstrap.bundle.min.js`) before Monaco Editor's loader (`vs/loader.min.js`) in HTML; Monaco's AMD loader (`define.amd`) hijacks Bootstrap's UMD module definition and prevents Bootstrap modals/dialogs from initializing globally
 
 
+# WebView2 rendering notes
+
+- `mask-image` + `backdrop-filter` on the same element works fine in WebView2 and is the approved way to do progressive blur fades (tint + blur masked together). Do not remove the mask on sticky blur layers out of fear it zeroes the backdrop. That claim was tested and found wrong.
+- Keep `backdrop-filter` declarations simple: one `-webkit-` line + one standard line using `blur(var(--anedikit-blur-radius, 16px)) saturate(var(--anedikit-blur-saturate, 140%))`. Do not stack duplicate fallback declarations for the same property.
+- Pure frosted glass = one semi-transparent `background-color` layer + `backdrop-filter`. Never stack a translucent `background-image` gradient over a translucent `background-color`, and never use the `opacity` property for it. Both turn the blur milky.
+- Never nest `backdrop-filter`: a blurred ancestor forms a Backdrop Root that blinds descendant blurs (proven by screenshot repro: child glass goes flat). Modals live as direct `body` children, keep them there. Dialog background frost belongs on the sibling `.modal-backdrop`, never on `.modal` or `.modal-dialog`.
+
 # LocalStorage Key System
 
 All localStorage keys must follow the hierarchical `anedikit:` namespace convention:

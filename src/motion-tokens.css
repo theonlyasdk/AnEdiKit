@@ -16,6 +16,7 @@
   --duration-very-slow: 500ms;  /* emphasis moments, badge appear, text reveal, success check */
   /* Easings */
   --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);  /* modal/dropdown/panel open + close, page slide, resize, position change */
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);  /* Apple swift-out: sidebar drawer open + close */
   --ease-in-out: ease-in-out;  /* icon swap, text swap, text reveal, skeleton reveal */
   --ease-out: ease-out;  /* tooltip open / close */
   --ease-linear: linear;  /* shimmer, skeleton pulse, spinner */

@@ -165,18 +165,32 @@ export function getCurrentActiveTool() {
 
 export function updateSidebarIndicator(activeBtn, isSettings = false) {
   const settingsIndicator = document.getElementById("settings-indicator");
+  const mobileSettingsIndicator = document.getElementById("mobile-settings-indicator");
   const sidebarIndicator = document.getElementById("sidebar-indicator");
 
   if (isSettings) {
     if (sidebarIndicator) sidebarIndicator.style.opacity = "0";
-    if (!settingsIndicator || !activeBtn) return;
-    const top = activeBtn.offsetTop;
-    const height = activeBtn.offsetHeight;
-    settingsIndicator.style.transform = `translateY(${top}px)`;
-    settingsIndicator.style.height = `${height}px`;
-    settingsIndicator.style.opacity = "1";
+    // Desktop footer cell and mobile drawer each get their own pill,
+    // measured against the button inside their own nav (hidden navs
+    // report zero height, so their pill stays parked invisible).
+    const pairs = [
+      ["#settings-nav .nav-link", settingsIndicator],
+      ["#mobile-settings-nav .nav-link", mobileSettingsIndicator],
+    ];
+    pairs.forEach(([selector, indicator]) => {
+      if (!indicator) return;
+      const btn = document.querySelector(selector);
+      if (!btn || !btn.offsetHeight) {
+        indicator.style.opacity = "0";
+        return;
+      }
+      indicator.style.transform = `translateY(${btn.offsetTop}px)`;
+      indicator.style.height = `${btn.offsetHeight}px`;
+      indicator.style.opacity = "1";
+    });
   } else {
     if (settingsIndicator) settingsIndicator.style.opacity = "0";
+    if (mobileSettingsIndicator) mobileSettingsIndicator.style.opacity = "0";
     if (!sidebarIndicator || !activeBtn) return;
 
     const scrollContainer = document.getElementById("sidebar-scroll-container");
@@ -424,10 +438,40 @@ export function toggleMobileSidebar() {
   if (!sidebar) return;
   const isShown = sidebar.classList.toggle("show-sidebar");
   if (backdrop) backdrop.classList.toggle("d-none", !isShown);
-  // Audible tap feedback in the status bar: proves the press reached the
-  // handler (vs being swallowed before dispatch, e.g. by native dragging).
-  const statusMsg = document.getElementById("status-message");
-  if (statusMsg) statusMsg.textContent = isShown ? "Sidebar opened" : "Sidebar closed";
+}
+
+// Material You soft ripple for settings items: a gentle primary wash
+// sized to just cover the item from the press point. Skipped entirely
+// under reduced motion / no-animations (CSS kills animations globally,
+// so a spawned span would otherwise stick around forever).
+export function attachMaterialRipple(element) {
+  if (!element) return;
+  element.addEventListener("mousedown", (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
+      document.documentElement.classList.contains("no-animations");
+    if (reduceMotion) return;
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const dx = Math.max(x, rect.width - x);
+    const dy = Math.max(y, rect.height - y);
+    const size = Math.ceil(Math.hypot(dx, dy) * 2);
+
+    const ripple = document.createElement("span");
+    ripple.className = "m3-ripple";
+    ripple.style.width = `${size}px`;
+    ripple.style.height = `${size}px`;
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+
+    element.appendChild(ripple);
+    ripple.addEventListener("animationend", () => {
+      ripple.remove();
+    });
+  });
 }
 
 export function attachFluentRipple(element) {
@@ -554,7 +598,6 @@ export function setupSidebarButtonEffects(btn, onToolChanged) {
 
   attachFluentRipple(btn);
 
-
   if (onToolChanged && btn.dataset.tool) {
     btn.addEventListener("click", () => {
       const tool = btn.dataset.tool;
@@ -627,6 +670,14 @@ export function initNavigation(onToolChanged) {
 
   allToolButtons.forEach((btn) => {
     setupSidebarButtonEffects(btn, onToolChanged);
+  });
+
+  // Material You soft ripples on the Settings page list rows (the
+  // clickable toggle rows). Guarded so a second init never double-binds.
+  document.querySelectorAll("#view-settings .settings-row.clickable").forEach((row) => {
+    if (row.dataset.m3RippleBound === "true") return;
+    row.dataset.m3RippleBound = "true";
+    attachMaterialRipple(row);
   });
 
   // Container-level proximity border tracking across adjacent sidebar items (dynamic)
