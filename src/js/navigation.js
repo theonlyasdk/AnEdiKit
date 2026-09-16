@@ -622,16 +622,13 @@ export function setupSidebarButtonEffects(btn, onToolChanged) {
   }
 }
 
-// Mobile bottom-sheet drag-to-dismiss for the About dialog. Small screens
-// only: pull the sheet down past ~100px (or flick it) to dismiss,
-// otherwise it springs back. Plain taps/clicks pass through untouched.
-export function initCreditsSheetDrag() {
-  const modalEl = document.getElementById("credits-modal");
-  if (!modalEl || modalEl.dataset.sheetDragBound === "true") return;
+// Shared bottom-sheet drag-to-dismiss core (small screens only): pull down
+// past ~100px (or flick) to dismiss, otherwise spring back. Plain taps and
+// clicks pass through untouched. The dialog's own show-state transition
+// does the motion; inline styles only carry the live finger offset.
+function attachSheetDrag(modalEl, handle) {
   const dialog = modalEl.querySelector(".modal-dialog");
-  const sheet = modalEl.querySelector(".about-dialog-content");
-  if (!dialog || !sheet) return;
-  modalEl.dataset.sheetDragBound = "true";
+  if (!dialog || !handle) return;
   const isMobileSheet = () => window.matchMedia("(max-width: 768px)").matches;
 
   let dragging = false;
@@ -642,7 +639,7 @@ export function initCreditsSheetDrag() {
   let lastT = 0;
   let velocity = 0;
 
-  sheet.addEventListener("pointerdown", (e) => {
+  handle.addEventListener("pointerdown", (e) => {
     if (!isMobileSheet()) return;
     if (!modalEl.classList.contains("show")) return;
     if (e.button !== undefined && e.button !== 0) return;
@@ -654,36 +651,36 @@ export function initCreditsSheetDrag() {
     lastY = e.clientY;
     lastT = e.timeStamp;
     try {
-      sheet.setPointerCapture(e.pointerId);
+      handle.setPointerCapture(e.pointerId);
     } catch (_) {}
   });
 
-  sheet.addEventListener("pointermove", (e) => {
+  handle.addEventListener("pointermove", (e) => {
     if (!dragging) return;
     const dt = Math.max(1, e.timeStamp - lastT);
     velocity = 0.8 * ((e.clientY - lastY) / dt) + 0.2 * velocity;
     lastY = e.clientY;
     lastT = e.timeStamp;
-      dy = Math.max(0, e.clientY - startY);
-      if (Math.abs(e.clientY - startY) > 8) moved = true;
-      if (dy > 0) {
-        // Important-flagged: the sheet's own transitions/transforms are
-        // !important, so plain inline styles would lose and the sheet
-        // would only animate after release instead of tracking live.
-        dialog.style.setProperty("transition", "none", "important");
-        dialog.style.setProperty("transform", `translateY(${dy}px)`, "important");
-      }
+    dy = Math.max(0, e.clientY - startY);
+    if (Math.abs(e.clientY - startY) > 8) moved = true;
+    if (dy > 0) {
+      // Important-flagged: the sheet's own transitions/transforms are
+      // !important, so plain inline styles would lose and the sheet
+      // would only animate after release instead of tracking live.
+      dialog.style.setProperty("transition", "none", "important");
+      dialog.style.setProperty("transform", `translateY(${dy}px)`, "important");
+    }
   });
 
   const endDrag = (e) => {
     if (!dragging) return;
     dragging = false;
     try {
-      if (sheet.releasePointerCapture && e.pointerId !== undefined) sheet.releasePointerCapture(e.pointerId);
+      if (handle.releasePointerCapture && e.pointerId !== undefined) handle.releasePointerCapture(e.pointerId);
     } catch (_) {}
     if (moved) {
       // Swallow the tap that would otherwise hit sheet buttons after a drag.
-      sheet.addEventListener(
+      handle.addEventListener(
         "click",
         (ce) => {
           ce.preventDefault();
@@ -696,19 +693,41 @@ export function initCreditsSheetDrag() {
       // Dismiss first (Bootstrap swaps to the slide-down close state),
       // then release the inline offset so it glides from the finger
       // position instead of snapping.
-        window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-        requestAnimationFrame(() => {
-          dialog.style.removeProperty("transition");
-          dialog.style.removeProperty("transform");
-        });
-      } else {
-        // Spring back via the sheet's own show-state transition.
+      window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
+      requestAnimationFrame(() => {
         dialog.style.removeProperty("transition");
         dialog.style.removeProperty("transform");
-      }
+      });
+    } else {
+      // Spring back via the sheet's own show-state transition.
+      dialog.style.removeProperty("transition");
+      dialog.style.removeProperty("transform");
+    }
   };
-  sheet.addEventListener("pointerup", endDrag);
-  sheet.addEventListener("pointercancel", endDrag);
+  handle.addEventListener("pointerup", endDrag);
+  handle.addEventListener("pointercancel", endDrag);
+}
+
+// Mobile bottom-sheet drag for the About dialog (whole sheet is the
+// handle: it has no scrollable body to protect).
+export function initCreditsSheetDrag() {
+  const modalEl = document.getElementById("credits-modal");
+  if (!modalEl || modalEl.dataset.sheetDragBound === "true") return;
+  const sheet = modalEl.querySelector(".about-dialog-content");
+  if (!sheet) return;
+  modalEl.dataset.sheetDragBound = "true";
+  attachSheetDrag(modalEl, sheet);
+}
+
+// Mobile bottom-sheet drag for the Manage Tools dialog. Only the header is
+// the handle so the tall body keeps its native touch scroll.
+export function initManageSheetDrag() {
+  const modalEl = document.getElementById("manage-tools-modal");
+  if (!modalEl || modalEl.dataset.sheetDragBound === "true") return;
+  const header = modalEl.querySelector(".modal-header");
+  if (!header) return;
+  modalEl.dataset.sheetDragBound = "true";
+  attachSheetDrag(modalEl, header);
 }
 
 export function initNavigation(onToolChanged) {
@@ -777,6 +796,19 @@ export function initNavigation(onToolChanged) {
     setupSidebarButtonEffects(btn, onToolChanged);
   });
 
+  // Desktop footer settings cell reveals only while the sidebar is
+  // hovered (slides up from below on a slow iOS curve, collapses away).
+  const mainSidebar = document.getElementById("main-sidebar");
+  const footerSettingsCol = document.getElementById("footer-settings-col");
+  if (mainSidebar && footerSettingsCol) {
+    mainSidebar.addEventListener("mouseenter", () => {
+      footerSettingsCol.classList.remove("settings-cell-parked");
+    });
+    mainSidebar.addEventListener("mouseleave", () => {
+      footerSettingsCol.classList.add("settings-cell-parked");
+    });
+  }
+
   // Material You soft ripples on the Settings page list rows (the
   // clickable toggle rows). Guarded so a second init never double-binds.
   document.querySelectorAll("#view-settings .settings-row.clickable").forEach((row) => {
@@ -785,11 +817,12 @@ export function initNavigation(onToolChanged) {
     attachMaterialRipple(row);
   });
 
-  // About bottom-sheet drag-to-dismiss (own guarded init inside).
+  // About + Manage Tools bottom-sheet drag-to-dismiss (guarded inside).
   try {
     initCreditsSheetDrag();
+    initManageSheetDrag();
   } catch (err) {
-    console.warn("initCreditsSheetDrag failed:", err);
+    console.warn("sheet drag init failed:", err);
   }
 
   // Drop every dialog out of the 3D animation scene once open (see

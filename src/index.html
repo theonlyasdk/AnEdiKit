@@ -1820,8 +1820,9 @@
               <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <div class="section-divider-header flex-grow-1 mb-0 me-3">Appearance &amp; Interface</div>
-                  <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-customize-theme" data-bs-toggle="modal" data-bs-target="#theme-customizer-modal" title="Customize application colors and export/import theme files">
-                    <ion-icon name="color-palette-outline" class="me-1"></ion-icon> Customize Theme...
+                  <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-customize-theme" data-bs-toggle="modal" data-bs-target="#theme-customizer-modal" title="Customise application colors and export/import theme files">
+                    <ion-icon name="color-palette-outline" class="me-1"></ion-icon><span class="d-none d-md-inline"> Customise Theme...</span><span class="d-md-none"> Customise...</span>
+                  </button>
                   </button>
                 </div>
                 <div class="settings-group-card">
@@ -1885,7 +1886,7 @@
 
               <!-- Section: Storage & Directories -->
               <div class="mb-4">
-                <div class="section-divider-header mb-2">Storage &amp; Directories</div>
+                <div class="section-divider-header mb-2">Storage Defaults</div>
                 <div class="settings-group-card">
                   <!-- Row 1: Default Output Directory -->
                   <div class="settings-row-content">
@@ -1917,7 +1918,7 @@
 
               <!-- Section: Hardware Acceleration & Performance -->
               <div class="mb-4">
-                <div class="section-divider-header mb-2">Hardware Acceleration &amp; Performance</div>
+                <div class="section-divider-header mb-2">Performance</div>
                 <div class="settings-group-card">
                   <!-- Row 1: Hardware Acceleration Engine -->
                   <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
@@ -1956,7 +1957,7 @@
 
               <!-- Section: Encoding Defaults -->
               <div class="mb-4">
-                <div class="section-divider-header mb-2">Encoding Defaults</div>
+                <div class="section-divider-header mb-2">Encoding</div>
                 <div class="settings-group-card">
                   <!-- Row 1: Default Video Codec -->
                   <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
@@ -2028,7 +2029,7 @@
 
               <!-- Section: yt-dlp Downloader Configuration -->
               <div class="mb-4">
-                <div class="section-divider-header mb-2">yt-dlp Downloader Configuration</div>
+                <div class="section-divider-header mb-2">yt-dlp</div>
                 <div class="settings-group-card">
                   <!-- Row 1: Browser Cookies Source -->
                   <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
@@ -2123,9 +2124,9 @@
               <!-- Section: Executables & Environment (Horizontal Scrolling Cards) -->
               <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div class="section-divider-header flex-grow-1 mb-0 me-3">Executables &amp; Environment</div>
+                  <div class="section-divider-header flex-grow-1 mb-0 me-3">External Tools</div>
                   <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-manage-tools" data-bs-toggle="modal" data-bs-target="#manage-tools-modal" title="Manage, update, and check binaries">
-                    <ion-icon name="construct-outline" class="me-1"></ion-icon> Manage Tools...
+                    <ion-icon name="construct-outline" class="me-1"></ion-icon><span class="d-none d-md-inline"> Manage Tools...</span><span class="d-md-none"> Manage...</span>
                   </button>
                 </div>
                 
@@ -2225,7 +2226,7 @@
 
       <!-- Unified Bottom Status & Control Bar Row — single footer row: Settings (left 280px) + status bar (right). Left cell has frosted glass so scroll behind it blurs. -->
       <footer class="d-flex border-top flex-shrink-0" id="bottom-footer-bar" style="height: 56px;">
-        <div class="d-none d-md-flex align-items-center p-2 border-end flex-shrink-0" id="footer-settings-col" style="width: 280px;">
+        <div class="d-none d-md-flex align-items-center p-2 border-end flex-shrink-0 settings-cell-parked" id="footer-settings-col">
           <nav class="nav nav-pills w-100 position-relative" id="settings-nav">
             <div class="sidebar-indicator" id="settings-indicator"></div>
             <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
@@ -2255,12 +2256,12 @@
     <div class="modal fade" id="manage-tools-modal" tabindex="-1" aria-labelledby="manageToolsModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
-          <div class="modal-header border-bottom py-2 px-3">
-            <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
-              <ion-icon name="construct-outline" class="text-primary"></ion-icon> Manage Tools & Binaries
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
+          <div class="modal-header border-bottom py-2 px-3" data-tauri-drag-region="false">
+              <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
+                <ion-icon name="construct-outline" class="text-primary"></ion-icon> Manage Tools & Binaries
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
           <div class="modal-body p-3">
             
             <!-- Update Error / Status Alert Banner -->
@@ -2318,18 +2319,9 @@
             <h3 class="fw-light mb-1 text-body pt-2">AnEdiKit</h3>
             <div class="text-body-secondary small mb-4">All-in-One Desktop Media Toolkit</div>
 
-            <!-- Minimalist Creative Developer Card -->
-            <div class="about-developer-card text-start p-3">
-              <div class="d-flex align-items-center justify-content-between gap-2">
-                <div>
-                  <div class="fw-semibold text-body small">theonlyasdk</div>
-                  <div class="text-body-secondary" style="font-size: 0.75rem;">Creator &amp; Developer</div>
-                </div>
-                <button class="btn btn-sm btn-outline-primary rounded-pill px-3 d-flex align-items-center gap-1.5 flex-shrink-0" type="button" id="btn-open-github" title="Open GitHub Profile in Browser">
-                  <ion-icon name="logo-github"></ion-icon>
-                  <span class="small fw-medium">GitHub</span>
-                </button>
-              </div>
+            <!-- Developer profile link -->
+            <div class="mt-1 text-center">
+              <button type="button" class="btn btn-link btn-sm text-body-secondary text-decoration-none p-0" id="btn-open-github" title="Open GitHub Profile in Browser" style="font-size: 0.8rem;">theonlyasdk</button>
             </div>
 
             <div class="mt-4 text-center">
@@ -2718,11 +2710,11 @@
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <form id="form-create-kit">
-            <div class="modal-header border-bottom py-2 px-3">
+          <div class="modal-header border-bottom py-2 px-3">
               <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="createKitModalLabel">
                 <ion-icon name="cube-outline" class="text-primary"></ion-icon> Create New User Kit
               </h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
               <div class="row g-3">

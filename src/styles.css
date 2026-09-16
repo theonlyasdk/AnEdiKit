@@ -574,6 +574,34 @@ body.with-system-titlebar #sidebar-scroll-container {
   position: relative;
 }
 
+/* Desktop settings cell lives parked (slid below the footer, invisible)
+   until the sidebar is hovered, then rises bottom-to-top on a slow iOS
+   curve. Its 280px slot stays reserved so the status bar never stretches.
+   Mobile drawer cell is unaffected (separate selector above). */
+#footer-settings-col {
+  width: 280px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#footer-settings-col.settings-cell-parked {
+  border-right-width: 0 !important;
+  transform: translateY(101%);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    transform 1.1s var(--ease-apple),
+    opacity 0.5s ease,
+    visibility 0s 1.1s;
+}
+
+#footer-settings-col:not(.settings-cell-parked) {
+  transition:
+    transform 1.1s var(--ease-apple),
+    opacity 0.5s ease 0.2s,
+    visibility 0s 0s;
+}
+
 #top-titlebar-col,
 .header-caption-controls,
 #bottom-control-bar {
@@ -877,6 +905,29 @@ body.with-system-titlebar #top-titlebar-col {
     min-width: auto;
   }
 
+  /* Small widths: hamburger only, no brand text beside it. */
+  #brand-logo-title {
+    display: none !important;
+  }
+
+  /* Small widths: hamburger cell mirrors the tool title cell's exact
+     background treatment (same translucency + frost, solid when blur
+     is off), at all scroll positions. */
+  .header-brand-col,
+  .header-brand-col.has-stuck-header {
+    background-color: rgba(
+      var(--bs-body-bg-rgb, 24, 24, 28),
+      calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+    ) !important;
+    background-image: linear-gradient(
+      to bottom,
+      rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.20 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 0%,
+      rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 100%
+    ) !important;
+    -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+    backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  }
+
   .sidebar {
     position: absolute;
     top: 0;
@@ -945,6 +996,77 @@ body.with-system-titlebar #top-titlebar-col {
     padding-bottom: 1rem !important;
   }
 
+  /* Small widths: settings dropdowns stretch the full row width. */
+  #view-settings select.form-select {
+    width: 100% !important;
+  }
+
+  /* Small widths: settings control wrappers drop their desktop caps so
+     every dropdown/input is uniformly full width instead of shrinking
+     to content width. */
+  #view-settings .flex-shrink-0[style] {
+    min-width: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Small widths: Browse button stacks below its text box, conjoined
+     and full width (button after input, shared border, no gap). */
+  #view-settings .input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #view-settings .input-group > .form-control,
+  #view-settings .input-group > .btn {
+    flex: 0 0 auto;
+    width: 100% !important;
+  }
+
+  #view-settings .input-group > .form-control {
+    margin-left: 0 !important;
+    border-radius: var(--bs-border-radius-sm) var(--bs-border-radius-sm) 0 0 !important;
+  }
+
+  #view-settings .input-group > .btn {
+    order: 2;
+    margin-left: 0 !important;
+    margin-top: -1px !important;
+    border-radius: 0 0 var(--bs-border-radius-sm) var(--bs-border-radius-sm) !important;
+  }
+
+  /* Small widths: stacked Browse reads as a filled action, not an outline. */
+  #view-settings .input-group > .btn-outline-secondary,
+  #view-settings .input-group > .btn-outline-secondary:hover,
+  #view-settings .input-group > .btn-outline-secondary:focus,
+  #view-settings .input-group > .btn-outline-secondary:active {
+    background-color: var(--bs-secondary) !important;
+    border-color: var(--bs-secondary) !important;
+    color: #fff !important;
+  }
+
+  #view-settings .input-group > .btn-outline-secondary:hover {
+    filter: brightness(1.12);
+  }
+
+  /* Small widths: dropdown rows and their labels always left align. The
+     base row brings align-items:center for its desktop row layout, which
+     would shrink-wrap and center stacked children once the direction
+     collapses to column — stretch keeps every label block full width. */
+  #view-settings .settings-row,
+  #view-settings .settings-row-content {
+    text-align: left;
+  }
+
+  #view-settings .settings-row {
+    align-items: stretch;
+  }
+
+  #view-settings select.form-select {
+    text-align: left;
+    text-align-last: left;
+  }
+
   /* iOS 26 Liquid-Glass bottom sheet variant for the About dialog.
      Desktop keeps the protected centered zoom animation; only the sheet
      transform/position/glass below is mobile-scoped. */
@@ -999,6 +1121,110 @@ body.with-system-titlebar #top-titlebar-col {
     opacity: 0.7;
     z-index: 4;
     pointer-events: none;
+  }
+
+  /* Manage Tools bottom sheet variant (tall scrollable dialog: docks to
+     the bottom at most 92dvh, body keeps its native scroll). Desktop keeps
+     the protected centered zoom animation. */
+  #manage-tools-modal .modal-dialog {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none !important;
+    max-height: 92dvh;
+    margin: 0;
+    padding: 0 8px max(8px, env(safe-area-inset-bottom));
+    display: block;
+    min-height: 0;
+  }
+
+  #manage-tools-modal.modal.fade .modal-dialog {
+    opacity: 1;
+    transform: translateY(105%) !important;
+    transition: transform var(--duration-medium) var(--ease-apple) !important;
+  }
+
+  #manage-tools-modal.modal.fade.show .modal-dialog {
+    opacity: 1;
+    transform: translateY(0) !important;
+    transition: transform var(--duration-medium) var(--ease-apple) !important;
+  }
+
+  #manage-tools-modal .modal-content {
+    position: relative;
+    border-radius: 26px 26px 18px 18px !important;
+  }
+
+  /* Sheet grabber pill */
+  #manage-tools-modal .modal-content::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 38px;
+    height: 5px;
+    border-radius: 3px;
+    background-color: var(--bs-secondary-color);
+    opacity: 0.7;
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  /* Header is the drag handle: vertical pulls belong to JS dismiss,
+     the body underneath keeps native touch scroll. */
+  #manage-tools-modal .modal-header {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: grab;
+    /* Never window-drag from here on mobile: pulls must dismiss the
+       sheet instead of moving the window. */
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+    /* Clear the grabber pill floating above the title. */
+    padding-top: 22px;
+    border-bottom: none !important;
+  }
+
+  /* iOS-sheet header dressing: no icon, no close cross (Done takes it),
+     light title. */
+  #manage-tools-modal .modal-title ion-icon {
+    display: none !important;
+  }
+
+  #manage-tools-modal .modal-header .btn-close {
+    display: none !important;
+  }
+
+  #manage-tools-modal .modal-title {
+    font-weight: 300 !important;
+    font-size: 1.25rem !important;
+  }
+
+  /* Footer shares one row: Check for Updates and Done side by side.
+     The live speed badge takes its own full row above them while active. */
+  #manage-tools-modal .modal-footer {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  #manage-tools-modal .modal-footer > .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  #manage-tools-modal .modal-footer > #tool-download-speed-badge:not(.d-none) {
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: center;
   }
 }
 
@@ -1401,6 +1627,10 @@ body.with-system-titlebar #tool-workspace {
 .env-tool-card [id^="status-"] {
   pointer-events: auto !important;
   cursor: help;
+  /* Plain glyph, never a badge: install check / missing cross read as
+     bare marks with no background behind them. */
+  background: transparent !important;
+  border-radius: 0 !important;
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
@@ -2688,10 +2918,7 @@ body.with-system-titlebar .header-caption-controls {
    No translucency, no backdrop dependence — reads clean on every renderer. */
 .about-dialog-content {
   border-radius: 20px !important;
-  background-color: rgba(
-    var(--bs-tertiary-bg-rgb, 43, 48, 53),
-    calc(0.72 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
-  ) !important;
+  background-color: var(--bs-tertiary-bg) !important;
 }
 
 .about-developer-card {

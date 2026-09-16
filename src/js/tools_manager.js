@@ -230,14 +230,30 @@ export async function refreshToolsUI() {
     }
   });
 
-  const [localInfo, latestInfo] = await Promise.all([
-    checkLocalToolVersions(),
-    fetchLatestGitHubReleases(),
-  ]);
+  // Phase 1: local versions only (Tauri IPC, milliseconds). Card check/cross
+  // icons paint immediately instead of waiting on the network below.
+  let localInfo = {};
+  try {
+    localInfo = (await checkLocalToolVersions()) || {};
+  } catch {
+    localInfo = {};
+  }
+  paintToolStatuses(localInfo, null);
 
+  // Phase 2: GitHub latest releases resolve whenever (slow network) and
+  // upgrade versions/icons/buttons in place. Never blocks the UI thread.
+  fetchLatestGitHubReleases().then(
+    (latestInfo) => paintToolStatuses(localInfo, latestInfo || {}),
+    () => {},
+  );
+}
+
+function paintToolStatuses(localInfo, latestInfo) {
   toolsManifest.forEach((tool) => {
     const localVer = localInfo[tool.id] || localInfo[`${tool.id}_installed`] || localInfo[tool.binName] || "Not Found";
-    const latestVer = latestInfo[tool.id] || latestInfo[`${tool.id}_latest`] || "Unknown";
+    const latestVer = latestInfo
+      ? latestInfo[tool.id] || latestInfo[`${tool.id}_latest`] || "Unknown"
+      : "Checking...";
 
     const elLocal = document.getElementById(`${tool.id}-local-ver`);
     const elLatest = document.getElementById(`${tool.id}-latest-ver`);
