@@ -102,9 +102,9 @@ export function renderToolsUI() {
                 <ion-icon name="trash-outline"></ion-icon>
               </button>
             </div>
-            <div class="d-flex gap-4 small text-body-secondary">
-              <div><span class="tool-ver-label">Installed:</span> <span class="text-body fw-medium" id="${tool.id}-local-ver"><span class="meta-loading-pulse">...</span></span></div>
-              <div><span class="tool-ver-label">Latest:</span> <span class="text-body fw-medium" id="${tool.id}-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
+            <div class="d-flex gap-3 small text-body-secondary">
+              <div class="tool-ver-item"><span class="text-body-secondary">Installed:</span> <span class="text-body fw-medium" id="${tool.id}-local-ver"><span class="meta-loading-pulse">...</span></span></div>
+              <div><span class="text-body-secondary">Latest:</span> <span class="text-body fw-medium" id="${tool.id}-latest-ver"><span class="meta-loading-pulse">...</span></span></div>
             </div>
           </div>
         `
@@ -295,10 +295,86 @@ function paintToolStatuses(localInfo, latestInfo) {
   });
 }
 
+const activeToolUpdates = {};
+
+export function applyActiveUpdateStateToUI(toolId) {
+  const state = activeToolUpdates[toolId];
+  if (!state || !state.isUpdating) return;
+
+  const btn = document.getElementById(`btn-update-${toolId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.className = "btn btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
+    btn.style.removeProperty("background");
+    btn.style.setProperty("--btn-progress", `${state.pct}%`);
+    btn.style.border = "none";
+    btn.style.boxShadow = "none";
+
+    let textNode = btn.querySelector(".btn-progress-label");
+    if (!textNode) {
+      btn.innerHTML = `<div class="loader loader-sm me-1"></div><span class="btn-progress-label"></span>`;
+      textNode = btn.querySelector(".btn-progress-label");
+    }
+
+    if (textNode) {
+      if (state.extractionStep) {
+        textNode.textContent = `Extracting: ${state.extractionStep}`;
+        textNode.title = `Extracting: ${state.extractionStep}`;
+      } else if (state.stageText === "Extracting") {
+        textNode.textContent = `Extracting archive...`;
+        textNode.title = `Extracting archive...`;
+      } else {
+        textNode.textContent = `${state.stageText} ${state.pct}%`;
+        textNode.title = `${state.stageText} ${state.pct}%`;
+      }
+    }
+  }
+
+  // Disable all other update/delete buttons in Manage Tools modal
+  toolsManifest.filter((t) => t.hasManageRow && t.id !== toolId).forEach((t) => {
+    const otherUp = document.getElementById(`btn-update-${t.id}`);
+    const otherDel = document.getElementById(`btn-delete-${t.id}`);
+    if (otherUp) {
+      otherUp.disabled = true;
+      otherUp.classList.add("opacity-50", "pe-none");
+    }
+    if (otherDel) {
+      otherDel.disabled = true;
+      otherDel.classList.add("opacity-50", "pe-none");
+    }
+  });
+
+  const btnCheckAll = document.getElementById("btn-check-all-updates");
+  if (btnCheckAll) {
+    btnCheckAll.disabled = true;
+    btnCheckAll.classList.add("opacity-50", "pe-none");
+  }
+
+  // Display speed & ETA badge in footer if modal is open
+  const speedBadge = document.getElementById("tool-download-speed-badge");
+  const speedText = document.getElementById("tool-download-speed-text");
+  const etaText = document.getElementById("tool-download-eta-text");
+  const etaContainer = document.getElementById("tool-download-eta-container");
+
+  if (speedBadge) {
+    speedBadge.classList.remove("d-none");
+    speedBadge.classList.add("d-flex");
+    if (speedText && state.speedVal) speedText.textContent = state.speedVal;
+    if (etaText && state.etaVal) etaText.textContent = state.etaVal;
+    if (etaContainer) etaContainer.classList.remove("d-none");
+  }
+}
+
 export function updateActionButton(toolId, toolName, localVer, latestVer) {
   const btnUpdate = document.getElementById(`btn-update-${toolId}`);
   const btnDelete = document.getElementById(`btn-delete-${toolId}`);
   if (!btnUpdate) return;
+
+  // Preserve live update state if this tool is currently updating in background
+  if (activeToolUpdates[toolId] && activeToolUpdates[toolId].isUpdating) {
+    applyActiveUpdateStateToUI(toolId);
+    return;
+  }
 
   btnUpdate.disabled = false;
   btnUpdate.classList.remove("pe-none", "opacity-50");
@@ -353,9 +429,22 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
   const btn = typeof btnElementOrId === "string" ? document.getElementById(btnElementOrId) : btnElementOrId;
   hideToolAlert();
 
-  const originalBtnHtml = btn ? btn.innerHTML : null;
-  const originalBtnDisabled = btn ? btn.disabled : false;
-  const originalBtnClass = btn ? btn.className : null;
+  const cleanTName = toolName.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  const foundTool = toolsManifest.find(
+    (t) => t.id === cleanTName || t.name.toLowerCase().replace(/[^a-z0-9_-]/g, "") === cleanTName
+  );
+  const toolId = foundTool ? foundTool.id : cleanTName;
+
+  activeToolUpdates[toolId] = {
+    toolId,
+    toolName,
+    pct: 5,
+    stageText: "Downloading",
+    speedVal: "Connecting...",
+    etaVal: "Estimating...",
+    extractionStep: null,
+    isUpdating: true,
+  };
 
   // Track and disable all other update, delete, and action buttons in Manage Tools modal
   const allUpdateBtns = Array.from(document.querySelectorAll('[id^="btn-update-"]'));
@@ -364,7 +453,7 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
   const otherBtnsToRestore = [];
 
   allUpdateBtns.forEach((otherBtn) => {
-    if (otherBtn !== btn) {
+    if (otherBtn.id !== `btn-update-${toolId}`) {
       otherBtnsToRestore.push({
         el: otherBtn,
         wasDisabled: otherBtn.disabled,
@@ -401,48 +490,37 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     }
   };
 
-  const speedBadge = document.getElementById("tool-download-speed-badge");
-  const speedText = document.getElementById("tool-download-speed-text");
-  const etaText = document.getElementById("tool-download-eta-text");
-  const etaContainer = document.getElementById("tool-download-eta-container");
-
-  if (speedBadge) {
-    speedBadge.classList.remove("d-none");
-    speedBadge.classList.add("d-flex");
-    if (speedText) speedText.textContent = "Connecting...";
-    if (etaText) etaText.textContent = "Estimating...";
-    if (etaContainer) etaContainer.classList.remove("d-none");
-  }
-
-  // Pre-create persistent loading elements inside button to avoid re-creating loader DOM node on every tick
-  let loaderEl = null;
-  let textNode = null;
-  if (btn) {
-    btn.disabled = true;
-    btn.className = "btn btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
-    btn.innerHTML = `<div class="loader loader-sm me-1"></div><span class="btn-progress-label"></span>`;
-    loaderEl = btn.querySelector(".loader");
-    textNode = btn.querySelector(".btn-progress-label");
+  let unlistenProgress = null;
+  if (window.__TAURI__?.event?.listen) {
+    try {
+      unlistenProgress = await window.__TAURI__.event.listen("tool_extraction_progress", (evt) => {
+        const payload = evt.payload;
+        if (!payload || !payload.step) return;
+        let stepText = String(payload.step).trim();
+        stepText = stepText.replace(/^[xa]\s+/, "").replace(/^\.\//, "");
+        const parts = stepText.split(/[/\\]/);
+        if (parts.length > 2) {
+          stepText = parts.slice(-2).join("/");
+        }
+        if (activeToolUpdates[toolId]) {
+          activeToolUpdates[toolId].extractionStep = stepText;
+          activeToolUpdates[toolId].stageText = "Extracting";
+        }
+        applyActiveUpdateStateToUI(toolId);
+      });
+    } catch (e) {
+      console.warn("Progress listener attach error:", e);
+    }
   }
 
   const updateProgressStyles = (pct, stageText = "Updating", speedVal = null, etaVal = null) => {
-    if (!btn) return;
-    // Drive the class gradient via the registered custom property so the
-    // fill edge transitions (lerps) instead of snapping between ticks.
-    btn.style.removeProperty("background");
-    btn.style.setProperty("--btn-progress", `${pct}%`);
-    btn.style.border = "none";
-    btn.style.boxShadow = "none";
-    if (textNode) {
-      textNode.textContent = `${stageText} ${pct}%`;
+    if (activeToolUpdates[toolId]) {
+      activeToolUpdates[toolId].pct = pct;
+      activeToolUpdates[toolId].stageText = stageText;
+      if (speedVal !== null) activeToolUpdates[toolId].speedVal = speedVal;
+      if (etaVal !== null) activeToolUpdates[toolId].etaVal = etaVal;
     }
-
-    if (speedText && speedVal !== null) {
-      speedText.textContent = speedVal;
-    }
-    if (etaText && etaVal !== null) {
-      etaText.textContent = etaVal;
-    }
+    applyActiveUpdateStateToUI(toolId);
   };
 
   updateProgressStyles(5, "Downloading", "Connecting...", "Estimating...");
@@ -466,6 +544,19 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     } else if (pct < 95) {
       // Async archive extraction phase
       pct += 1;
+      if (!window.__TAURI__?.core?.invoke) {
+        const simSteps = [
+          `${cleanTName}.exe`,
+          `bin/${cleanTName}.exe`,
+          `doc/${cleanTName}-manual.html`,
+          `finishing up...`,
+        ];
+        const stepIdx = Math.floor(((pct - 75) / 20) * simSteps.length);
+        const simStep = simSteps[Math.min(stepIdx, simSteps.length - 1)];
+        if (activeToolUpdates[toolId]) {
+          activeToolUpdates[toolId].extractionStep = simStep;
+        }
+      }
       updateProgressStyles(pct, "Extracting", "Unpacking archive...", "Finishing up...");
     }
   }, 400);
@@ -481,61 +572,53 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     }
   } else {
     // Simulated web fallback
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     updateResult = `${toolName} updated to latest version (simulated).`;
   }
 
   clearInterval(interval);
+  if (unlistenProgress) {
+    try {
+      unlistenProgress();
+    } catch (_) {}
+  }
 
+  const speedBadge = document.getElementById("tool-download-speed-badge");
   if (speedBadge) {
     speedBadge.classList.add("d-none");
     speedBadge.classList.remove("d-flex");
   }
 
   if (updateError) {
-    // Show error state on button and banner
-    if (btn) {
-      btn.style.background = "var(--bs-danger)";
-      btn.innerHTML = `<ion-icon name="alert-circle-outline" class="me-1"></ion-icon> Failed`;
-      btn.className = "btn btn-danger btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
+    if (activeToolUpdates[toolId]) activeToolUpdates[toolId].isUpdating = false;
+    const curBtn = document.getElementById(`btn-update-${toolId}`);
+    if (curBtn) {
+      curBtn.style.background = "var(--bs-danger)";
+      curBtn.innerHTML = `<ion-icon name="alert-circle-outline" class="me-1"></ion-icon> Failed`;
+      curBtn.className = "btn btn-danger btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
     }
     showToolAlert(`Failed to update ${toolName}: ${updateError}`, "danger");
     restoreOtherButtons();
 
     setTimeout(() => {
-      if (btn) {
-        btn.disabled = originalBtnDisabled;
-        btn.classList.remove("pe-none", "btn-updating-progress", "btn-danger", "text-white", "border-0");
-        btn.style.background = "";
-        btn.style.removeProperty("--btn-progress");
-        btn.style.border = "";
-        btn.style.boxShadow = "";
-        if (originalBtnClass) btn.className = originalBtnClass;
-        if (originalBtnHtml) btn.innerHTML = originalBtnHtml;
-      }
+      delete activeToolUpdates[toolId];
+      refreshToolsUI();
     }, 2500);
   } else {
-    // Show success state
     updateProgressStyles(100, "Updated", "Complete", "0s");
-    if (btn) {
-      btn.style.background = "var(--bs-success)";
-      btn.style.border = "none";
-      btn.innerHTML = `<ion-icon name="checkmark-outline" class="me-1"></ion-icon> Updated`;
-      btn.className = "btn btn-success btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
+    if (activeToolUpdates[toolId]) activeToolUpdates[toolId].isUpdating = false;
+    const curBtn = document.getElementById(`btn-update-${toolId}`);
+    if (curBtn) {
+      curBtn.style.background = "var(--bs-success)";
+      curBtn.style.border = "none";
+      curBtn.innerHTML = `<ion-icon name="checkmark-outline" class="me-1"></ion-icon> Updated`;
+      curBtn.className = "btn btn-success btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
     }
 
     setTimeout(() => {
+      delete activeToolUpdates[toolId];
       restoreOtherButtons();
-      if (btn) {
-        btn.disabled = originalBtnDisabled;
-        btn.classList.remove("pe-none", "btn-updating-progress", "btn-success", "text-white", "border-0");
-        btn.style.background = "";
-        btn.style.removeProperty("--btn-progress");
-        btn.style.border = "";
-        btn.style.boxShadow = "";
-        if (originalBtnClass) btn.className = originalBtnClass;
-        if (originalBtnHtml) btn.innerHTML = originalBtnHtml;
-      }
+      refreshToolsUI();
       if (callback) callback();
     }, 1200);
   }
@@ -547,6 +630,38 @@ export function initToolsManager() {
 
   // Initialize initial version check
   refreshToolsUI();
+
+  if (window.__TAURI__?.event?.listen) {
+    try {
+      window.__TAURI__.event.listen("tool_extraction_progress", (evt) => {
+        const payload = evt.payload;
+        if (!payload || !payload.tool_name || !payload.step) return;
+
+        const cleanToolName = payload.tool_name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+        const tool = toolsManifest.find(
+          (t) => t.id === cleanToolName || t.name.toLowerCase() === cleanToolName
+        );
+        const toolId = tool ? tool.id : cleanToolName;
+
+        const btn = document.getElementById(`btn-update-${toolId}`);
+        if (btn) {
+          let stepText = payload.step;
+          const parts = stepText.split(/[/\\]/);
+          if (parts.length > 2) {
+            stepText = parts.slice(-2).join("/");
+          }
+          btn.dataset.extractionStep = stepText;
+          const textNode = btn.querySelector(".btn-progress-label");
+          if (textNode) {
+            textNode.textContent = `Extracting: ${stepText}`;
+            textNode.title = `Extracting: ${payload.step}`;
+          }
+        }
+      });
+    } catch (err) {
+      console.warn("tool_extraction_progress listener warning:", err);
+    }
+  }
 
   const modal = document.getElementById("manage-tools-modal");
   if (modal) {

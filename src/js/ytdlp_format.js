@@ -116,7 +116,7 @@ export function saveYtDlpFormat(formatStr) {
   }
 }
 
-export function renderFormatEditorList() {
+export function renderFormatEditorList(scrollToBottom = false) {
   const listContainer = document.getElementById("format-fields-list");
   if (!listContainer) return;
 
@@ -130,7 +130,7 @@ export function renderFormatEditorList() {
 
   currentFormatItems.forEach((item, index) => {
     const itemEl = document.createElement("div");
-    itemEl.className = "format-list-item bg-body-tertiary px-3 py-2 d-flex flex-row align-items-center justify-content-between gap-2";
+    itemEl.className = "border-bottom drag-reorder-row format-list-item bg-body px-3 py-2 d-flex flex-row align-items-center justify-content-between gap-2 user-select-none";
     itemEl.dataset.index = index.toString();
 
     // Left content: Drag handle + Field badge / input
@@ -138,7 +138,7 @@ export function renderFormatEditorList() {
     leftCol.className = "d-flex align-items-center gap-2 flex-grow-1 overflow-hidden";
 
     const dragHandle = document.createElement("span");
-    dragHandle.className = "format-drag-handle text-secondary cursor-grab p-1";
+    dragHandle.className = "drag-reorder-handle format-drag-handle text-secondary cursor-grab p-1 flex-shrink-0";
     dragHandle.title = "Drag vertically to reorder";
     dragHandle.innerHTML = `<ion-icon name="reorder-two-outline" class="fs-5"></ion-icon>`;
     leftCol.appendChild(dragHandle);
@@ -231,6 +231,18 @@ export function renderFormatEditorList() {
   });
 
   updateEditorPreview();
+
+  if (scrollToBottom) {
+    const parentScrollEl = listContainer.parentElement;
+    if (parentScrollEl) {
+      requestAnimationFrame(() => {
+        parentScrollEl.scrollTo({
+          top: parentScrollEl.scrollHeight,
+          behavior: "smooth",
+        });
+      });
+    }
+  }
 }
 
 function setupItemDrag(itemEl, dragHandle, index, listContainer) {
@@ -265,6 +277,75 @@ export function updateEditorPreview() {
   }
 }
 
+export function getSavedCustomPresets() {
+  try {
+    const raw = localStorage.getItem("anedikit:tools:ytdlp:custom_presets");
+    return raw ? JSON.parse(raw) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+export function saveCustomPresets(presets) {
+  try {
+    localStorage.setItem("anedikit:tools:ytdlp:custom_presets", JSON.stringify(presets));
+  } catch (e) {
+    console.warn("Failed to persist custom presets:", e);
+  }
+}
+
+export function renderSavedCustomPresets() {
+  const userPresetsDivider = document.getElementById("user-presets-divider");
+  const userPresetsContainer = document.getElementById("user-presets-container");
+  if (!userPresetsContainer) return;
+
+  userPresetsContainer.innerHTML = "";
+
+  const customPresets = getSavedCustomPresets();
+
+  if (!customPresets || customPresets.length === 0) {
+    if (userPresetsDivider) userPresetsDivider.classList.add("d-none");
+    return;
+  }
+
+  if (userPresetsDivider) userPresetsDivider.classList.remove("d-none");
+
+  customPresets.forEach((p, index) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "dropdown-item small btn-custom-preset-item d-flex align-items-center justify-content-between gap-2 py-1 px-3 cursor-pointer";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "text-truncate fw-medium flex-grow-1";
+    nameSpan.textContent = p.name;
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "btn btn-link btn-sm p-0 text-secondary border-0 btn-delete-custom-preset flex-shrink-0 d-flex align-items-center justify-content-center";
+    delBtn.title = "Delete Preset";
+    delBtn.innerHTML = `<ion-icon name="trash-outline" class="fs-6"></ion-icon>`;
+
+    delBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const current = getSavedCustomPresets();
+      current.splice(index, 1);
+      saveCustomPresets(current);
+      renderSavedCustomPresets();
+    });
+
+    wrapper.addEventListener("click", (e) => {
+      e.preventDefault();
+      currentFormatItems = parseFormatStringToItems(p.format);
+      renderFormatEditorList();
+    });
+
+    wrapper.appendChild(nameSpan);
+    wrapper.appendChild(delBtn);
+
+    userPresetsContainer.appendChild(wrapper);
+  });
+}
+
 export function initYtDlpFormatEditor() {
   const savedFmt = getSavedYtDlpFormat();
 
@@ -273,6 +354,9 @@ export function initYtDlpFormatEditor() {
   if (formatInput) {
     formatInput.value = savedFmt;
   }
+
+  // Render saved custom presets in dropdown
+  renderSavedCustomPresets();
 
   // Populate tokens dropdown menu in modal
   const dropdownTokens = document.getElementById("dropdown-format-tokens");
@@ -291,7 +375,7 @@ export function initYtDlpFormatEditor() {
           key: tok.key,
           raw: tok.raw,
         });
-        renderFormatEditorList();
+        renderFormatEditorList(true);
       });
       li.appendChild(a);
       dropdownTokens.appendChild(li);
@@ -319,7 +403,7 @@ export function initYtDlpFormatEditor() {
         type: "text",
         value: " - ",
       });
-      renderFormatEditorList();
+      renderFormatEditorList(true);
     });
   }
 
@@ -334,6 +418,82 @@ export function initYtDlpFormatEditor() {
       }
     });
   });
+
+  // Save Preset slider controls
+  const saveWrapper = document.getElementById("preset-save-wrapper");
+  const btnShowSave = document.getElementById("btn-show-save-preset");
+  const inputSaveName = document.getElementById("input-save-preset-name");
+  const btnConfirmSave = document.getElementById("btn-confirm-save-preset");
+
+  const resetSavePresetForm = () => {
+    if (saveWrapper) saveWrapper.classList.remove("is-editing");
+    if (inputSaveName) inputSaveName.value = "";
+  };
+
+  if (btnShowSave && saveWrapper && inputSaveName) {
+    btnShowSave.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const currentFmt = compileItemsToFormatString(currentFormatItems);
+      const defaultName = previewFormatString(currentFmt) || "Custom Preset";
+      inputSaveName.value = defaultName;
+      saveWrapper.classList.add("is-editing");
+      setTimeout(() => {
+        inputSaveName.focus();
+        inputSaveName.select();
+      }, 100);
+    });
+  }
+
+  const handleConfirmSavePreset = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const fmt = compileItemsToFormatString(currentFormatItems);
+    const rawName = inputSaveName?.value?.trim();
+    const presetName = rawName || previewFormatString(fmt) || "Custom Preset";
+
+    const customPresets = getSavedCustomPresets();
+    customPresets.push({ name: presetName, format: fmt });
+    saveCustomPresets(customPresets);
+
+    renderSavedCustomPresets();
+
+    if (btnConfirmSave) {
+      const origHtml = btnConfirmSave.innerHTML;
+      btnConfirmSave.className = "btn btn-success btn-sm px-2 d-flex align-items-center justify-content-center";
+      btnConfirmSave.innerHTML = `<ion-icon name="checkmark-done-outline" class="fs-6"></ion-icon>`;
+      setTimeout(() => {
+        btnConfirmSave.className = "btn btn-primary btn-sm px-2 d-flex align-items-center justify-content-center";
+        btnConfirmSave.innerHTML = origHtml;
+        resetSavePresetForm();
+      }, 400);
+    } else {
+      resetSavePresetForm();
+    }
+  };
+
+  if (btnConfirmSave) {
+    btnConfirmSave.addEventListener("click", handleConfirmSavePreset);
+  }
+
+  if (inputSaveName) {
+    inputSaveName.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") {
+        handleConfirmSavePreset(e);
+      } else if (e.key === "Escape") {
+        resetSavePresetForm();
+      }
+    });
+    inputSaveName.addEventListener("click", (e) => e.stopPropagation());
+  }
+
+  const presetsDropdownToggle = document.getElementById("btn-format-presets");
+  if (presetsDropdownToggle) {
+    presetsDropdownToggle.addEventListener("hidden.bs.dropdown", resetSavePresetForm);
+  }
 
   // Reset to default button
   const btnReset = document.getElementById("btn-reset-format-default");

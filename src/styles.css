@@ -1282,9 +1282,8 @@ body.with-system-titlebar #top-titlebar-col {
 .image-queue-item,
 .batch-queue-item {
   position: relative;
-  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease, background-color 0.15s ease;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease;
   user-select: none;
-  touch-action: none;
   border-radius: 0 !important;
   border-top: none !important;
   border-left: none !important;
@@ -1305,8 +1304,6 @@ body.with-system-titlebar #top-titlebar-col {
   z-index: 1050 !important;
   opacity: 0.98;
   background-color: var(--bs-body-bg) !important;
-  border: 1px solid var(--bs-primary) !important;
-  border-radius: 4px !important;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 3px 10px rgba(0, 0, 0, 0.25) !important;
   transition: none !important;
   cursor: grabbing !important;
@@ -1344,6 +1341,65 @@ body.with-system-titlebar #top-titlebar-col {
 
 .item-dropped-highlight {
   animation: itemDropFlash 0.5s ease-out forwards !important;
+}
+
+/* Save Preset Dropdown Horizontal Slide Animation */
+.preset-save-wrapper {
+  position: relative;
+  height: 34px;
+  overflow: hidden;
+}
+
+.preset-save-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.preset-save-wrapper:not(.is-editing) .preset-save-btn-slide {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preset-save-wrapper:not(.is-editing) .preset-save-form-slide {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preset-save-wrapper.is-editing .preset-save-btn-slide {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preset-save-wrapper.is-editing .preset-save-form-slide {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Custom Presets Hover Delete Button */
+.btn-custom-preset-item .btn-delete-custom-preset {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease, color 0.15s ease;
+  line-height: 1;
+}
+
+.btn-custom-preset-item:hover .btn-delete-custom-preset {
+  opacity: 1;
+  visibility: visible;
+}
+
+.btn-custom-preset-item .btn-delete-custom-preset:hover {
+  color: var(--bs-danger) !important;
 }
 
 /* Ensure drag lists allow dragging on top without horizontal scrollbar flash */
@@ -1594,6 +1650,23 @@ body.with-system-titlebar #tool-workspace {
   width: auto !important;
 }
 
+#manage-tools-list-container [id^="btn-update-"].btn-updating-progress {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+#manage-tools-list-container .btn-progress-label {
+  display: inline-block !important;
+  max-width: 200px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+
 #manage-tools-list-container [id^="btn-delete-"] {
   flex: 0 0 auto !important;
   width: auto !important;
@@ -1604,11 +1677,12 @@ body.with-system-titlebar #tool-workspace {
    let the status text truncate instead of squeezing the buttons. */
 #manage-tools-modal .modal-footer {
   flex-wrap: nowrap !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
 }
-/* Fixed-width version labels so Installed/Latest values align in columns. */
-#manage-tools-modal .tool-ver-label {
-  display: inline-block;
-  min-width: 5rem;
+/* Column alignment for Installed item so Latest aligns across rows without gaps inside labels */
+#manage-tools-modal .tool-ver-item {
+  min-width: 11rem;
 }
 #manage-tools-modal .modal-footer > .btn {
   flex-shrink: 0;

@@ -1,0 +1,36 @@
+/* Reusable 60fps Vertical Drag & Drop Reorder Styling */
+
+.drag-reorder-row {
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.drag-reorder-row:hover {
+  background-color: var(--bs-tertiary-bg) !important;
+}
+
+.drag-reorder-row.is-dragging {
+  z-index: 100 !important;
+  position: relative !important;
+  opacity: 0.95;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  background-color: var(--bs-body-bg) !important;
+  border-radius: var(--bs-border-radius);
+  transition: none !important;
+}
+
+.drag-reorder-row.is-releasing {
+  z-index: 99 !important;
+  position: relative !important;
+  box-shadow: none !important;
+  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease !important;
+}
+
+.drag-reorder-handle {
+  cursor: grab !important;
+  touch-action: none;
+}
+
+.drag-reorder-handle:active {
+  cursor: grabbing !important;
+}

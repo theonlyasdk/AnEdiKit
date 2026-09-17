@@ -46,6 +46,12 @@ pub struct LogPayload {
     pub line: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolExtractProgressPayload {
+    pub tool_name: String,
+    pub step: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct HardwareInfo {
     pub cpu_name: Option<String>,
@@ -1885,7 +1891,77 @@ fn show_in_folder(file_path: String) -> Result<(), String> {
     Ok(())
 }
 
-fn update_tool_internal(tool_name: String) -> Result<String, String> {
+fn extract_zip_archive_verbose(
+    app: &tauri::AppHandle,
+    tool_name: &str,
+    zip_path: &std::path::Path,
+    dest_dir: &std::path::Path,
+    files_filter: Option<&[&str]>,
+) -> Result<(), String> {
+    let file = std::fs::File::open(zip_path).map_err(|e| format!("Failed to open downloaded archive: {}", e))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Invalid zip archive format: {}", e))?;
+
+    let initial_step = match tool_name.to_lowercase().as_str() {
+        "ffmpeg" | "ffprobe" => "bin/ffmpeg.exe",
+        "deno" => "deno.exe",
+        "ytdlp" | "yt-dlp" => "yt-dlp.exe",
+        _ => "archive contents",
+    };
+    let _ = app.emit(
+        "tool_extraction_progress",
+        ToolExtractProgressPayload {
+            tool_name: tool_name.to_string(),
+            step: initial_step.into(),
+        },
+    );
+
+    for i in 0..archive.len() {
+        let mut file_entry = archive.by_index(i).map_err(|e| format!("Failed to read zip entry #{}: {}", i, e))?;
+        let outpath = match file_entry.enclosed_name() {
+            Some(path) => path.to_owned(),
+            None => continue,
+        };
+
+        let file_name_str = outpath.to_string_lossy().to_string();
+
+        if let Some(filters) = files_filter {
+            let matches_filter = filters.iter().any(|f| {
+                file_name_str.ends_with(f) || file_name_str.eq_ignore_ascii_case(f)
+            });
+            if !matches_filter && !file_entry.is_dir() {
+                continue;
+            }
+        }
+
+        if !file_entry.is_dir() {
+            let _ = app.emit(
+                "tool_extraction_progress",
+                ToolExtractProgressPayload {
+                    tool_name: tool_name.to_string(),
+                    step: file_name_str.clone(),
+                },
+            );
+        }
+
+        let target_path = dest_dir.join(&outpath);
+
+        if file_entry.is_dir() {
+            let _ = std::fs::create_dir_all(&target_path);
+        } else {
+            if let Some(p) = target_path.parent() {
+                if !p.exists() {
+                    let _ = std::fs::create_dir_all(p);
+                }
+            }
+            let mut outfile = std::fs::File::create(&target_path).map_err(|e| format!("Failed creating destination file: {}", e))?;
+            std::io::copy(&mut file_entry, &mut outfile).map_err(|e| format!("Failed unpacking archive content: {}", e))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<String, String> {
     // Clear binary path cache so version checks re-evaluate
     {
         let mut cache = BINARY_PATH_CACHE.lock().unwrap();
@@ -1902,13 +1978,37 @@ fn update_tool_internal(tool_name: String) -> Result<String, String> {
 
             let mut cmd = Command::new(&bin);
             cmd.arg("-U");
+            cmd.stdout(Stdio::piped());
+            cmd.stderr(Stdio::piped());
             #[cfg(windows)]
             cmd.creation_flags(0x08000000);
 
-            let out = cmd.output().map_err(|e| format!("Failed to execute yt-dlp update: {}", e))?;
-            let stdout_str = String::from_utf8_lossy(&out.stdout).to_string();
-            let stderr_str = String::from_utf8_lossy(&out.stderr).to_string();
-            let combined = format!("{}\n{}", stdout_str.trim(), stderr_str.trim()).trim().to_string();
+            let mut child = cmd.spawn().map_err(|e| format!("Failed to execute yt-dlp update: {}", e))?;
+            let stdout = child.stdout.take();
+
+            let app_out = app.clone();
+            let tool_out = tool_name.to_string();
+            let handle_stdout = std::thread::spawn(move || {
+                if let Some(out) = stdout {
+                    use std::io::BufRead;
+                    let reader = BufReader::new(out);
+                    for line in reader.lines().flatten() {
+                        let trimmed = line.trim().to_string();
+                        if !trimmed.is_empty() {
+                            let _ = app_out.emit(
+                                "tool_extraction_progress",
+                                ToolExtractProgressPayload {
+                                    tool_name: tool_out.clone(),
+                                    step: trimmed,
+                                },
+                            );
+                        }
+                    }
+                }
+            });
+
+            let status = child.wait().map_err(|e| format!("Failed to wait for yt-dlp: {}", e))?;
+            let _ = handle_stdout.join();
 
             // Clear cache again after update so version query sees the fresh binary
             {
@@ -1916,18 +2016,10 @@ fn update_tool_internal(tool_name: String) -> Result<String, String> {
                 *cache = None;
             }
 
-            if out.status.success() {
-                Ok(if combined.is_empty() {
-                    "yt-dlp update check completed successfully".into()
-                } else {
-                    combined
-                })
+            if status.success() {
+                Ok("yt-dlp update check completed successfully".into())
             } else {
-                Err(if combined.is_empty() {
-                    format!("yt-dlp update failed with exit code {:?}", out.status.code())
-                } else {
-                    combined
-                })
+                Err(format!("yt-dlp update failed with exit code {:?}", status.code()))
             }
         }
         "deno" => {
@@ -1966,25 +2058,15 @@ fn update_tool_internal(tool_name: String) -> Result<String, String> {
                 return Err(format!("Failed to download Deno from GitHub: {}", err_msg.trim()));
             }
 
-            // Extract deno.exe into destination bin folder using bsdtar
-            let mut tar_cmd = Command::new("tar.exe");
-            tar_cmd.args([
-                "-xf",
-                zip_path.to_string_lossy().as_ref(),
-                "-C",
-                target_dir.to_string_lossy().as_ref(),
-                "deno.exe",
-            ]);
-            #[cfg(windows)]
-            tar_cmd.creation_flags(0x08000000);
-
-            let tar_out = tar_cmd.output().map_err(|e| format!("Failed to run tar: {}", e))?;
+            // Extract deno.exe into destination bin folder using native zip crate
+            extract_zip_archive_verbose(
+                app,
+                "deno",
+                &zip_path,
+                &target_dir,
+                Some(&["deno.exe"]),
+            )?;
             let _ = std::fs::remove_file(&zip_path);
-
-            if !tar_out.status.success() {
-                let err_msg = String::from_utf8_lossy(&tar_out.stderr).to_string();
-                return Err(format!("Failed to extract Deno archive: {}", err_msg.trim()));
-            }
 
             // Clear binary path cache
             {
@@ -2064,16 +2146,13 @@ fn update_tool_internal(tool_name: String) -> Result<String, String> {
                 probe_cmd.creation_flags(0x08000000);
                 if let Ok(probe_out) = probe_cmd.output() {
                     if probe_out.status.success() && probe_zip.exists() {
-                        let mut tar_probe = Command::new("tar.exe");
-                        tar_probe.args([
-                            "-xf",
-                            probe_zip.to_string_lossy().as_ref(),
-                            "-C",
-                            target_dir.to_string_lossy().as_ref(),
-                        ]);
-                        #[cfg(windows)]
-                        tar_probe.creation_flags(0x08000000);
-                        let _ = tar_probe.output();
+                        let _ = extract_zip_archive_verbose(
+                            app,
+                            "ffprobe",
+                            &probe_zip,
+                            &target_dir,
+                            None,
+                        );
                     }
                 }
                 let _ = std::fs::remove_file(&probe_zip);
@@ -2086,30 +2165,25 @@ fn update_tool_internal(tool_name: String) -> Result<String, String> {
                 return Err(format!("Failed to download FFmpeg from primary and alternative GitHub sources: {}", err_msg.trim()));
             }
 
-            // Extract archive into temp folder or directly into target folder
+            // Extract archive into temp folder or directly into target folder using native zip crate
             let extract_dest = if used_fallback {
-                target_dir.to_string_lossy().to_string()
+                target_dir.clone()
             } else {
-                extract_tmp_dir.to_string_lossy().to_string()
+                extract_tmp_dir.clone()
             };
 
-            let mut tar_cmd = Command::new("tar.exe");
-            tar_cmd.args([
-                "-xf",
-                zip_path.to_string_lossy().as_ref(),
-                "-C",
+            let zip_res = extract_zip_archive_verbose(
+                app,
+                "ffmpeg",
+                &zip_path,
                 &extract_dest,
-            ]);
-            #[cfg(windows)]
-            tar_cmd.creation_flags(0x08000000);
-
-            let tar_out = tar_cmd.output().map_err(|e| format!("Failed to run tar: {}", e))?;
+                None,
+            );
             let _ = std::fs::remove_file(&zip_path);
 
-            if !tar_out.status.success() {
+            if let Err(e) = zip_res {
                 let _ = std::fs::remove_dir_all(&extract_tmp_dir);
-                let err_msg = String::from_utf8_lossy(&tar_out.stderr).to_string();
-                return Err(format!("Failed to extract FFmpeg archive: {}", err_msg.trim()));
+                return Err(format!("Failed to extract FFmpeg archive: {}", e));
             }
 
             if !used_fallback {
@@ -2160,8 +2234,8 @@ fn update_tool_internal(tool_name: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn update_tool(tool_name: String) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || update_tool_internal(tool_name))
+async fn update_tool(app_handle: tauri::AppHandle, tool_name: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || update_tool_internal(&app_handle, tool_name))
         .await
         .map_err(|e| format!("Update task failed: {}", e))?
 }

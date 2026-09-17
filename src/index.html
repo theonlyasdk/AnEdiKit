@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="drag_reorder.css" />
     <link rel="stylesheet" href="kits/kits.css" />
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
@@ -2257,8 +2258,8 @@
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3" data-tauri-drag-region="false">
-              <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
-                <ion-icon name="construct-outline" class="text-primary"></ion-icon> Manage Tools & Binaries
+              <h5 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
+                Manage Tools & Binaries
               </h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -2288,7 +2289,7 @@
             </div>
 
           </div>
-          <div class="modal-footer border-0 pt-2 pb-3 px-3 justify-content-between align-items-center">
+          <div class="modal-footer border-top py-2 px-3 justify-content-between align-items-center">
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-check-all-updates">
               <ion-icon name="refresh-outline"></ion-icon> Check for Updates
             </button>
@@ -2337,8 +2338,8 @@
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content bg-body border border-danger-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3 bg-danger-subtle text-danger-emphasis">
-            <h5 class="modal-title fs-6 fw-semibold d-flex align-items-center gap-2" id="confirmExitModalLabel">
-              <ion-icon name="warning-outline" class="text-danger"></ion-icon> Task in Progress
+            <h5 class="modal-title fs-4 fw-light d-flex align-items-center gap-2" id="confirmExitModalLabel">
+              Task in Progress
             </h5>
           </div>
           <div class="modal-body p-4">
@@ -2362,73 +2363,85 @@
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">
-            <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="themeCustomizerModalLabel">
-              <ion-icon name="color-palette-outline" class="text-primary"></ion-icon> Customize Theme & Colors
+            <h5 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="themeCustomizerModalLabel">
+              Customize Theme & Colors
             </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-4">
-            <!-- Preset Palettes -->
-            <div class="mb-4">
-              <label class="form-label small fw-medium" for="theme-preset-pick">Preset Color Palettes</label>
-              <div class="input-group input-group-sm">
-                <select class="form-select" id="theme-preset-pick">
-                  <option value="bootstrap_dark" selected>Bootstrap 5 Dark</option>
-                  <option value="catppuccin_mocha">Catppuccin Mocha</option>
-                  <option value="tokyo_night">Tokyo Night</option>
-                  <option value="dracula">Dracula</option>
-                  <option value="nord">Nord</option>
-                  <option value="one_dark">One Dark Pro</option>
-                  <option value="gruvbox_dark">Gruvbox Dark</option>
-                  <option value="rose_pine">Rosé Pine</option>
-                  <option value="solarized_dark">Solarized Dark</option>
-                  <option value="synthwave_84">Synthwave '84</option>
-                  <option value="custom">Custom Theme</option>
-                </select>
-                <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-prev" title="Previous Preset">
-                  <ion-icon name="chevron-back-outline"></ion-icon>
-                </button>
-                <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-next" title="Next Preset">
-                  <ion-icon name="chevron-forward-outline"></ion-icon>
-                </button>
-              </div>
-            </div>
-
-            <!-- UI Font Family -->
-            <div class="mb-3">
-              <label class="form-label small fw-medium" for="theme-font-family">UI Font Family</label>
-              <div class="input-group input-group-sm">
-                <input type="text" class="form-control" id="theme-font-family" placeholder='e.g. "Segoe UI", Inter, Roboto, "Fira Code", system-ui' />
-                <button class="btn btn-outline-secondary" type="button" id="btn-theme-reset-font" title="Reset font to system default">Default</button>
-              </div>
-              <div class="text-body-secondary small mt-1" style="font-size: 0.75rem;">Custom font name saved with your theme file and applied across the interface.</div>
-            </div>
-
-            <!-- Frosted Glass Blur Settings -->
-            <div class="mb-3">
-              <div class="d-flex align-items-center justify-content-between mb-2">
-                <div>
-                  <label class="form-label small fw-medium mb-0" for="theme-blur-enable">Frosted Glass Blur</label>
-                  <div class="text-body-secondary small" style="font-size: 0.75rem;">Enable translucent backdrop blur across top header, brand cell, and bottom status bar</div>
+            <!-- Grouped Settings Container (Palette, Font, & Blur) -->
+            <div class="settings-group-card mb-3">
+              <!-- Preset Palettes -->
+              <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                <div class="me-sm-3 flex-grow-1">
+                  <label class="fw-medium text-body mb-0" for="theme-preset-pick">Preset Color Palettes</label>
+                  <div class="text-body-secondary small">Choose from pre-configured color schemes</div>
                 </div>
-                <div class="form-check form-switch mb-0" title="Toggle frosted glass backdrop blur effect">
-                  <input class="form-check-input mt-0" type="checkbox" role="switch" id="theme-blur-enable" checked style="cursor: pointer;" />
-                </div>
-              </div>
-              <div id="theme-blur-controls-wrapper" class="row g-3 pt-1">
-                <div class="col-6">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <label for="theme-blur-radius" class="form-label small text-body-secondary mb-0">Blur Radius</label>
-                    <span id="theme-blur-radius-val" class="small fw-semibold text-body">2px</span>
+                <div class="flex-shrink-0" style="min-width: 200px; max-width: 280px;">
+                  <div class="input-group input-group-sm">
+                    <select class="form-select" id="theme-preset-pick">
+                      <option value="bootstrap_dark" selected>Bootstrap 5 Dark</option>
+                      <option value="catppuccin_mocha">Catppuccin Mocha</option>
+                      <option value="tokyo_night">Tokyo Night</option>
+                      <option value="dracula">Dracula</option>
+                      <option value="nord">Nord</option>
+                      <option value="one_dark">One Dark Pro</option>
+                      <option value="gruvbox_dark">Gruvbox Dark</option>
+                      <option value="rose_pine">Rosé Pine</option>
+                      <option value="solarized_dark">Solarized Dark</option>
+                      <option value="synthwave_84">Synthwave '84</option>
+                      <option value="custom">Custom Theme</option>
+                    </select>
+                    <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-prev" title="Previous Preset">
+                      <ion-icon name="chevron-back-outline"></ion-icon>
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-next" title="Next Preset">
+                      <ion-icon name="chevron-forward-outline"></ion-icon>
+                    </button>
                   </div>
-                  <input type="range" class="form-range" id="theme-blur-radius" min="0" max="24" step="1" value="2" />
                 </div>
-                <div class="col-6">
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <label for="theme-blur-saturate" class="form-label small text-body-secondary mb-0">Saturation</label>
-                    <span id="theme-blur-saturate-val" class="small fw-semibold text-body">140%</span>
+              </div>
+
+              <!-- UI Font Family -->
+              <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                <div class="me-sm-3 flex-grow-1">
+                  <label class="fw-medium text-body mb-0" for="theme-font-family">UI Font Family</label>
+                  <div class="text-body-secondary small">Custom font saved with your theme file</div>
+                </div>
+                <div class="flex-shrink-0" style="min-width: 220px; max-width: 320px;">
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" id="theme-font-family" placeholder='e.g. "Segoe UI", Inter, Roboto, "Fira Code", system-ui' />
+                    <button class="btn btn-outline-secondary" type="button" id="btn-theme-reset-font" title="Reset font to system default">Default</button>
                   </div>
-                  <input type="range" class="form-range" id="theme-blur-saturate" min="100" max="250" step="5" value="140" />
+                </div>
+              </div>
+
+              <!-- Frosted Glass Blur Settings -->
+              <div class="settings-row-content">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div>
+                    <label class="fw-medium text-body mb-0" for="theme-blur-enable">Frosted Glass Blur</label>
+                    <div class="text-body-secondary small">Enable translucent backdrop blur across top header, brand cell, and bottom status bar</div>
+                  </div>
+                  <div class="form-check form-switch mb-0 flex-shrink-0" title="Toggle frosted glass backdrop blur effect">
+                    <input class="form-check-input mt-0" type="checkbox" role="switch" id="theme-blur-enable" checked style="cursor: pointer;" />
+                  </div>
+                </div>
+                <div id="theme-blur-controls-wrapper" class="row g-3 pt-1">
+                  <div class="col-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label for="theme-blur-radius" class="form-label small text-body-secondary mb-0">Blur Radius</label>
+                      <span id="theme-blur-radius-val" class="small fw-semibold text-body">2px</span>
+                    </div>
+                    <input type="range" class="form-range" id="theme-blur-radius" min="0" max="24" step="1" value="2" />
+                  </div>
+                  <div class="col-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label for="theme-blur-saturate" class="form-label small text-body-secondary mb-0">Saturation</label>
+                      <span id="theme-blur-saturate-val" class="small fw-semibold text-body">140%</span>
+                    </div>
+                    <input type="range" class="form-range" id="theme-blur-saturate" min="100" max="250" step="5" value="140" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -2641,7 +2654,7 @@
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <div class="modal-header border-bottom py-2 px-3">
-            <h5 class="modal-title fs-6 fw-semibold text-body" id="filenameFormatModalLabel">Filename Format Editor</h5>
+            <h5 class="modal-title fs-4 fw-light text-body" id="filenameFormatModalLabel">Filename Format Editor</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <!-- Top Live Preview (Full-width, 0 gap from edges) -->
@@ -2670,19 +2683,42 @@
                 <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" id="btn-format-presets" data-bs-toggle="dropdown" aria-expanded="false">
                   <ion-icon name="bookmark-outline"></ion-icon> Presets
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="btn-format-presets">
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="btn-format-presets" style="min-width: 270px;">
                   <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(title)s [%(id)s].%(ext)s">Never Gonna Give You Up [dQw4w9WgXcQ].mp3</a></li>
                   <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(title)s.%(ext)s">Never Gonna Give You Up.mp3</a></li>
                   <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(uploader)s - %(title)s.%(ext)s">Rick Astley - Never Gonna Give You Up.mp3</a></li>
                   <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(playlist_index)s - %(title)s.%(ext)s">01 - Never Gonna Give You Up.mp3</a></li>
                   <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(artist)s - %(track)s [%(release_year)s].%(ext)s">Rick Astley - Never Gonna Give You Up [1987].mp3</a></li>
                   <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(upload_date)s - %(title)s.%(ext)s">20091025 - Never Gonna Give You Up.mp3</a></li>
+                  <!-- User Custom Presets Section -->
+                  <li id="user-presets-divider" class="d-none"><hr class="dropdown-divider my-1"></li>
+                  <li id="user-presets-container"></li>
+                  <li id="save-preset-divider"><hr class="dropdown-divider my-1"></li>
+                  <li class="px-2 pt-1 pb-0">
+                    <div class="preset-save-wrapper" id="preset-save-wrapper">
+                      <!-- View 1: Save Preset Button -->
+                      <div class="preset-save-slide preset-save-btn-slide d-flex align-items-center">
+                        <button class="dropdown-item small text-body d-flex align-items-center gap-2 py-1 px-2 rounded-1 border-0" type="button" id="btn-show-save-preset">
+                          <ion-icon name="bookmark-outline" class="text-secondary"></ion-icon> Save Current Preset
+                        </button>
+                      </div>
+                      <!-- View 2: Combined Inline Text Box + Confirm Button -->
+                      <div class="preset-save-slide preset-save-form-slide d-flex align-items-center">
+                        <div class="input-group input-group-sm w-100">
+                          <input type="text" class="form-control form-control-sm font-sans" id="input-save-preset-name" placeholder="Preset Name..." autocomplete="off" />
+                          <button class="btn btn-primary btn-sm px-2 d-flex align-items-center justify-content-center" type="button" id="btn-confirm-save-preset" title="Save Preset">
+                            <ion-icon name="checkmark-outline" class="fs-6"></ion-icon>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
                 </ul>
               </div>
             </div>
 
             <!-- List View of Format Fields (Flush without gaps) -->
-            <div class="border rounded bg-body p-0 overflow-hidden" style="min-height: 220px; max-height: 340px; overflow-y: auto;">
+            <div class="border rounded bg-body p-0 overflow-y-auto" style="min-height: 220px; max-height: 340px;">
               <div id="format-fields-list" class="d-flex flex-column">
                 <!-- Populated with draggable items -->
               </div>
@@ -2711,8 +2747,8 @@
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
           <form id="form-create-kit">
           <div class="modal-header border-bottom py-2 px-3">
-              <h5 class="modal-title fs-6 fw-semibold text-body d-flex align-items-center gap-2" id="createKitModalLabel">
-                <ion-icon name="cube-outline" class="text-primary"></ion-icon> Create New User Kit
+              <h5 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="createKitModalLabel">
+                Create New User Kit
               </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -2959,7 +2995,7 @@
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-sm">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg p-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="modal-title fs-6 fw-semibold text-body mb-0" id="debugDialogModalLabel">Debug</h6>
+            <h6 class="modal-title fs-4 fw-light text-body mb-0" id="debugDialogModalLabel">Debug</h6>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <button type="button" class="btn btn-outline-danger btn-sm w-100 py-2" id="btn-clear-preview-cache">
@@ -2975,7 +3011,7 @@
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-sm">
         <div class="modal-content bg-body border shadow-lg">
           <div class="modal-header py-2 px-3">
-            <h6 class="modal-title fs-6 fw-medium text-body mb-0" id="kit-alert-title"><ion-icon name="information-circle-outline" class="text-primary me-2"></ion-icon>Alert</h6>
+            <h6 class="modal-title fs-4 fw-light text-body mb-0" id="kit-alert-title">Alert</h6>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-3">
@@ -2993,7 +3029,7 @@
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content bg-body border shadow-lg">
           <div class="modal-header py-2 px-3">
-            <h6 class="modal-title fs-6 fw-medium text-body mb-0" id="kit-prompt-title"><ion-icon name="chatbubble-ellipses-outline" class="text-primary me-2"></ion-icon>Prompt</h6>
+            <h6 class="modal-title fs-4 fw-light text-body mb-0" id="kit-prompt-title">Prompt</h6>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body p-3">

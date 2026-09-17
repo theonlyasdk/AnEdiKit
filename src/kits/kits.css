@@ -1,14 +1,17 @@
 /* User Kits & Blocks Builder Styling */
-.kit-builder-row {
-  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.15s ease, box-shadow 0.15s ease;
+.kit-builder-row,
+.drag-reorder-row {
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease;
   user-select: none;
 }
 
-.kit-builder-row:hover {
+.kit-builder-row:hover,
+.drag-reorder-row:hover {
   background-color: var(--bs-tertiary-bg) !important;
 }
 
-.kit-builder-row.is-dragging {
+.kit-builder-row.is-dragging,
+.drag-reorder-row.is-dragging {
   z-index: 100 !important;
   position: relative !important;
   opacity: 0.95;
@@ -18,17 +21,22 @@
   transition: none !important;
 }
 
-.kit-builder-row.is-releasing {
+.kit-builder-row.is-releasing,
+.drag-reorder-row.is-releasing {
   z-index: 99 !important;
   position: relative !important;
+  box-shadow: none !important;
+  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease !important;
 }
 
-.kit-block-drag-handle {
+.kit-block-drag-handle,
+.drag-reorder-handle {
   cursor: grab !important;
   touch-action: none;
 }
 
-.kit-block-drag-handle:active {
+.kit-block-drag-handle:active,
+.drag-reorder-handle:active {
   cursor: grabbing !important;
 }
 

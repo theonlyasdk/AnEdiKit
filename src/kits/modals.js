@@ -13,8 +13,8 @@ export function ensureCustomKitModals() {
       <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content shadow border">
           <div class="modal-header py-2 px-3">
-            <h6 class="modal-title small fw-semibold text-body d-flex align-items-center gap-2" id="modal-kit-alert-title">
-              <ion-icon name="information-circle-outline" class="text-primary"></ion-icon> Alert
+            <h6 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="modal-kit-alert-title">
+              Alert
             </h6>
             <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
@@ -38,8 +38,8 @@ export function ensureCustomKitModals() {
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow border">
           <div class="modal-header py-2 px-3">
-            <h6 class="modal-title small fw-semibold text-body d-flex align-items-center gap-2" id="modal-kit-prompt-title">
-              <ion-icon name="chatbubble-ellipses-outline" class="text-primary"></ion-icon> Prompt
+            <h6 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="modal-kit-prompt-title">
+              Prompt
             </h6>
             <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>

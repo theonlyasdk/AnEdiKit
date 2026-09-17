@@ -48,17 +48,6 @@ export function setupListDragAndDrop({
       ? Math.max(0, rects[1].top - rects[0].bottom)
       : 0;
 
-    // Lock main workspace scroll during drag to prevent outer view from scrolling
-    const workspaceEl = document.getElementById("tool-workspace");
-    const originalWorkspaceOverflowY = workspaceEl ? workspaceEl.style.overflowY : "";
-    if (workspaceEl) workspaceEl.style.overflowY = "hidden";
-
-    // Prevent listbox overflow clipping and scrollbar flicker during active drag
-    const originalOverflowY = listContainer.style.overflowY;
-    const originalOverflowX = listContainer.style.overflowX;
-    listContainer.style.overflowY = "visible";
-    listContainer.style.overflowX = "visible";
-
     itemEl.classList.add("is-dragging");
     try {
       dragHandle.setPointerCapture(e.pointerId);
@@ -165,8 +154,6 @@ export function setupListDragAndDrop({
       dragHandle.removeEventListener("pointerup", onPointerUp);
       dragHandle.removeEventListener("pointercancel", onPointerUp);
 
-      if (workspaceEl) workspaceEl.style.overflowY = originalWorkspaceOverflowY;
-
       // Calculate final resting position offset for smooth release transition
       let finalTranslateY = 0;
       if (targetIndex !== startIndex) {
@@ -177,6 +164,7 @@ export function setupListDragAndDrop({
         }
       }
 
+      itemEl.classList.remove("is-dragging");
       itemEl.classList.add("is-releasing");
       itemEl.style.setProperty("transition", "transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease", "important");
       itemEl.style.transform = `translateY(${finalTranslateY}px)`;
@@ -187,8 +175,6 @@ export function setupListDragAndDrop({
         if (finished) return;
         finished = true;
         itemEl.removeEventListener("transitionend", onTransitionEnd);
-        listContainer.style.overflowY = originalOverflowY;
-        listContainer.style.overflowX = originalOverflowX;
 
         itemEl.classList.remove("is-dragging", "is-releasing");
         itemEl.style.transition = "";
