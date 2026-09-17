@@ -1660,7 +1660,7 @@ body.with-system-titlebar #tool-workspace {
 
 #manage-tools-list-container .btn-progress-label {
   display: inline-block !important;
-  max-width: 200px !important;
+  max-width: min(320px, calc(100% - 32px)) !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;

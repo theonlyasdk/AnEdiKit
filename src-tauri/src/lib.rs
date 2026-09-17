@@ -52,6 +52,12 @@ pub struct ToolExtractProgressPayload {
     pub step: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ToolDownloadProgressPayload {
+    pub tool_name: String,
+    pub pct: f32,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct HardwareInfo {
     pub cpu_name: Option<String>,
@@ -1891,6 +1897,88 @@ fn show_in_folder(file_path: String) -> Result<(), String> {
     Ok(())
 }
 
+fn run_curl_download_verbose(
+    app: &tauri::AppHandle,
+    tool_name: &str,
+    url: &str,
+    output_path: &std::path::Path,
+) -> Result<(), String> {
+    let mut cmd = Command::new("curl.exe");
+    cmd.args([
+        "-fL",
+        "--progress-bar",
+        "--retry", "2",
+        "--retry-delay", "1",
+        "-o",
+        output_path.to_string_lossy().as_ref(),
+        url,
+    ]);
+    cmd.stdout(Stdio::null());
+    cmd.stderr(Stdio::piped());
+    #[cfg(windows)]
+    cmd.creation_flags(0x08000000);
+
+    let mut child = cmd.spawn().map_err(|e| format!("Failed to run curl: {}", e))?;
+    let stderr = child.stderr.take();
+
+    let app_clone = app.clone();
+    let tool_name_owned = tool_name.to_string();
+
+    let reader_thread = std::thread::spawn(move || {
+        if let Some(mut err_pipe) = stderr {
+            let mut byte_buf = [0u8; 1];
+            let mut line_buf = Vec::with_capacity(256);
+            let mut last_reported_pct: i32 = -1;
+
+            while let Ok(n) = err_pipe.read(&mut byte_buf) {
+                if n == 0 {
+                    break;
+                }
+                let b = byte_buf[0];
+                if b == b'\r' || b == b'\n' {
+                    if !line_buf.is_empty() {
+                        let text = String::from_utf8_lossy(&line_buf);
+                        if let Some(pct_pos) = text.find('%') {
+                            let prefix = &text[..pct_pos];
+                            let num_str: String = prefix
+                                .chars()
+                                .rev()
+                                .take_while(|c| c.is_ascii_digit() || *c == '.')
+                                .collect();
+                            let num_str: String = num_str.chars().rev().collect();
+                            if let Ok(pct_val) = num_str.parse::<f32>() {
+                                let rounded = pct_val.round() as i32;
+                                if rounded != last_reported_pct {
+                                    last_reported_pct = rounded;
+                                    let _ = app_clone.emit(
+                                        "tool_download_progress",
+                                        ToolDownloadProgressPayload {
+                                            tool_name: tool_name_owned.clone(),
+                                            pct: pct_val,
+                                        },
+                                    );
+                                }
+                            }
+                        }
+                        line_buf.clear();
+                    }
+                } else {
+                    line_buf.push(b);
+                }
+            }
+        }
+    });
+
+    let status = child.wait().map_err(|e| format!("Failed to wait for curl: {}", e))?;
+    let _ = reader_thread.join();
+
+    if !status.success() || !output_path.exists() {
+        return Err(format!("Download failed with exit code {:?}", status.code()));
+    }
+
+    Ok(())
+}
+
 fn extract_zip_archive_verbose(
     app: &tauri::AppHandle,
     tool_name: &str,
@@ -1901,28 +1989,23 @@ fn extract_zip_archive_verbose(
     let file = std::fs::File::open(zip_path).map_err(|e| format!("Failed to open downloaded archive: {}", e))?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Invalid zip archive format: {}", e))?;
 
-    let initial_step = match tool_name.to_lowercase().as_str() {
-        "ffmpeg" | "ffprobe" => "bin/ffmpeg.exe",
-        "deno" => "deno.exe",
-        "ytdlp" | "yt-dlp" => "yt-dlp.exe",
-        _ => "archive contents",
-    };
     let _ = app.emit(
         "tool_extraction_progress",
         ToolExtractProgressPayload {
             tool_name: tool_name.to_string(),
-            step: initial_step.into(),
+            step: "archive contents".to_string(),
         },
     );
 
-    for i in 0..archive.len() {
+    let total = archive.len();
+    for i in 0..total {
         let mut file_entry = archive.by_index(i).map_err(|e| format!("Failed to read zip entry #{}: {}", i, e))?;
         let outpath = match file_entry.enclosed_name() {
             Some(path) => path.to_owned(),
             None => continue,
         };
 
-        let file_name_str = outpath.to_string_lossy().to_string();
+        let file_name_str = outpath.to_string_lossy().replace('\\', "/");
 
         if let Some(filters) = files_filter {
             let matches_filter = filters.iter().any(|f| {
@@ -1956,6 +2039,9 @@ fn extract_zip_archive_verbose(
             let mut outfile = std::fs::File::create(&target_path).map_err(|e| format!("Failed creating destination file: {}", e))?;
             std::io::copy(&mut file_entry, &mut outfile).map_err(|e| format!("Failed unpacking archive content: {}", e))?;
         }
+
+        // Small pause between file extraction events so output is visibly perceptible
+        std::thread::sleep(std::time::Duration::from_millis(60));
     }
 
     Ok(())
@@ -2037,25 +2123,12 @@ fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<Str
             let zip_path = temp_dir.join("deno_update.zip");
             let _ = std::fs::remove_file(&zip_path);
 
-            // Fetch Deno latest release zip from GitHub
+            // Fetch Deno latest release zip from GitHub with live progress streaming
             let download_url = "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip";
-            let mut curl_cmd = Command::new("curl.exe");
-            curl_cmd.args([
-                "-fL",
-                "--retry", "3",
-                "--retry-delay", "2",
-                "-o",
-                zip_path.to_string_lossy().as_ref(),
-                download_url,
-            ]);
-            #[cfg(windows)]
-            curl_cmd.creation_flags(0x08000000);
-
-            let curl_out = curl_cmd.output().map_err(|e| format!("Failed to run curl: {}", e))?;
-            if !curl_out.status.success() || !zip_path.exists() {
-                let err_msg = String::from_utf8_lossy(&curl_out.stderr).to_string();
+            let dl_res = run_curl_download_verbose(app, "deno", download_url, &zip_path);
+            if dl_res.is_err() || !zip_path.exists() {
                 let _ = std::fs::remove_file(&zip_path);
-                return Err(format!("Failed to download Deno from GitHub: {}", err_msg.trim()));
+                return Err(format!("Failed to download Deno from GitHub: {:?}", dl_res.err()));
             }
 
             // Extract deno.exe into destination bin folder using native zip crate
@@ -2096,73 +2169,33 @@ fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<Str
 
             // Primary source: BtbN/FFmpeg-Builds latest master GPL build
             let primary_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
-            let mut curl_cmd = Command::new("curl.exe");
-            curl_cmd.args([
-                "-fL",
-                "--retry", "2",
-                "--retry-delay", "1",
-                "-o",
-                zip_path.to_string_lossy().as_ref(),
-                primary_url,
-            ]);
-            #[cfg(windows)]
-            curl_cmd.creation_flags(0x08000000);
-
-            let mut curl_out = curl_cmd.output().map_err(|e| format!("Failed to run curl: {}", e))?;
             let mut used_fallback = false;
 
-            // Alternative fallback source: ffbinaries/ffbinaries-prebuilt
-            if !curl_out.status.success() || !zip_path.exists() {
+            let dl_res = run_curl_download_verbose(app, "ffmpeg", primary_url, &zip_path);
+            if dl_res.is_err() || !zip_path.exists() {
                 used_fallback = true;
                 let fallback_ffmpeg = "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffmpeg-6.1-win-64.zip";
                 let fallback_ffprobe = "https://github.com/ffbinaries/ffbinaries-prebuilt/releases/download/v6.1/ffprobe-6.1-win-64.zip";
 
-                let mut fb_cmd = Command::new("curl.exe");
-                fb_cmd.args([
-                    "-fL",
-                    "--retry", "2",
-                    "--retry-delay", "1",
-                    "-o",
-                    zip_path.to_string_lossy().as_ref(),
-                    fallback_ffmpeg,
-                ]);
-                #[cfg(windows)]
-                fb_cmd.creation_flags(0x08000000);
-
-                curl_out = fb_cmd.output().map_err(|e| format!("Failed to run curl for fallback: {}", e))?;
+                let fb_res = run_curl_download_verbose(app, "ffmpeg", fallback_ffmpeg, &zip_path);
+                if fb_res.is_err() || !zip_path.exists() {
+                    let _ = std::fs::remove_file(&zip_path);
+                    let _ = std::fs::remove_dir_all(&extract_tmp_dir);
+                    return Err("Failed to download FFmpeg from primary and alternative GitHub sources.".into());
+                }
 
                 // Also download ffprobe zip
                 let probe_zip = temp_dir.join("ffprobe_fallback.zip");
-                let mut probe_cmd = Command::new("curl.exe");
-                probe_cmd.args([
-                    "-fL",
-                    "--retry", "2",
-                    "--retry-delay", "1",
-                    "-o",
-                    probe_zip.to_string_lossy().as_ref(),
-                    fallback_ffprobe,
-                ]);
-                #[cfg(windows)]
-                probe_cmd.creation_flags(0x08000000);
-                if let Ok(probe_out) = probe_cmd.output() {
-                    if probe_out.status.success() && probe_zip.exists() {
-                        let _ = extract_zip_archive_verbose(
-                            app,
-                            "ffprobe",
-                            &probe_zip,
-                            &target_dir,
-                            None,
-                        );
-                    }
+                if run_curl_download_verbose(app, "ffprobe", fallback_ffprobe, &probe_zip).is_ok() && probe_zip.exists() {
+                    let _ = extract_zip_archive_verbose(
+                        app,
+                        "ffprobe",
+                        &probe_zip,
+                        &target_dir,
+                        None,
+                    );
                 }
                 let _ = std::fs::remove_file(&probe_zip);
-            }
-
-            if !curl_out.status.success() || !zip_path.exists() {
-                let err_msg = String::from_utf8_lossy(&curl_out.stderr).to_string();
-                let _ = std::fs::remove_file(&zip_path);
-                let _ = std::fs::remove_dir_all(&extract_tmp_dir);
-                return Err(format!("Failed to download FFmpeg from primary and alternative GitHub sources: {}", err_msg.trim()));
             }
 
             // Extract archive into temp folder or directly into target folder using native zip crate
@@ -2187,6 +2220,14 @@ fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<Str
             }
 
             if !used_fallback {
+                let _ = app.emit(
+                    "tool_extraction_progress",
+                    ToolExtractProgressPayload {
+                        tool_name: "ffmpeg".to_string(),
+                        step: "bin/ffmpeg.exe".to_string(),
+                    },
+                );
+
                 // Locate ffmpeg.exe and ffprobe.exe inside extracted directory structure and copy to destination
                 let mut found_ffmpeg = false;
                 let mut found_ffprobe = false;
@@ -2201,12 +2242,28 @@ fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<Str
                                 found_ffmpeg = true;
                             }
                             if src_ffprobe.is_file() {
+                                let _ = app.emit(
+                                    "tool_extraction_progress",
+                                    ToolExtractProgressPayload {
+                                        tool_name: "ffmpeg".to_string(),
+                                        step: "bin/ffprobe.exe".to_string(),
+                                    },
+                                );
                                 let _ = std::fs::copy(&src_ffprobe, target_dir.join("ffprobe.exe"));
                                 found_ffprobe = true;
                             }
                         }
                     }
                 }
+
+                let _ = app.emit(
+                    "tool_extraction_progress",
+                    ToolExtractProgressPayload {
+                        tool_name: "ffmpeg".to_string(),
+                        step: "finishing up...".to_string(),
+                    },
+                );
+                std::thread::sleep(std::time::Duration::from_millis(150));
 
                 let _ = std::fs::remove_dir_all(&extract_tmp_dir);
 

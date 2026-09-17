@@ -317,7 +317,7 @@ export function applyActiveUpdateStateToUI(toolId) {
     }
 
     if (textNode) {
-      if (state.extractionStep) {
+      if (state.stageText === "Extracting" && state.extractionStep) {
         textNode.textContent = `Extracting: ${state.extractionStep}`;
         textNode.title = `Extracting: ${state.extractionStep}`;
       } else if (state.stageText === "Extracting") {
@@ -490,33 +490,14 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     }
   };
 
-  let unlistenProgress = null;
-  if (window.__TAURI__?.event?.listen) {
-    try {
-      unlistenProgress = await window.__TAURI__.event.listen("tool_extraction_progress", (evt) => {
-        const payload = evt.payload;
-        if (!payload || !payload.step) return;
-        let stepText = String(payload.step).trim();
-        stepText = stepText.replace(/^[xa]\s+/, "").replace(/^\.\//, "");
-        const parts = stepText.split(/[/\\]/);
-        if (parts.length > 2) {
-          stepText = parts.slice(-2).join("/");
-        }
-        if (activeToolUpdates[toolId]) {
-          activeToolUpdates[toolId].extractionStep = stepText;
-          activeToolUpdates[toolId].stageText = "Extracting";
-        }
-        applyActiveUpdateStateToUI(toolId);
-      });
-    } catch (e) {
-      console.warn("Progress listener attach error:", e);
-    }
-  }
-
   const updateProgressStyles = (pct, stageText = "Updating", speedVal = null, etaVal = null) => {
     if (activeToolUpdates[toolId]) {
-      activeToolUpdates[toolId].pct = pct;
-      activeToolUpdates[toolId].stageText = stageText;
+      if (pct > activeToolUpdates[toolId].pct || activeToolUpdates[toolId].stageText !== "Downloading") {
+        activeToolUpdates[toolId].pct = pct;
+      }
+      if (activeToolUpdates[toolId].stageText !== "Extracting") {
+        activeToolUpdates[toolId].stageText = stageText;
+      }
       if (speedVal !== null) activeToolUpdates[toolId].speedVal = speedVal;
       if (etaVal !== null) activeToolUpdates[toolId].etaVal = etaVal;
     }
@@ -525,26 +506,40 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
 
   updateProgressStyles(5, "Downloading", "Connecting...", "Estimating...");
 
-  // Two-stage progress: Download phase (0-75%) followed by Async Extraction phase (75-95%)
   let pct = 8;
   const startTime = Date.now();
   const estTotalSeconds = toolName.toLowerCase().includes("ffmpeg") ? 25 : 6;
 
   const interval = setInterval(() => {
     const elapsedSec = (Date.now() - startTime) / 1000;
-    if (pct < 75) {
-      // Downloading phase
-      pct += Math.max(1, Math.round((75 - pct) * 0.12));
-      const remainingSec = Math.max(1, Math.round(estTotalSeconds - elapsedSec));
-      const currentSpeed = (3.4 + (pct % 7) * 0.38).toFixed(1);
-      const etaStr = remainingSec > 60
-        ? `${Math.ceil(remainingSec / 60)}m left`
-        : `${remainingSec}s left`;
-      updateProgressStyles(pct, "Downloading", `${currentSpeed} MB/s`, etaStr);
-    } else if (pct < 95) {
-      // Async archive extraction phase
-      pct += 1;
-      if (!window.__TAURI__?.core?.invoke) {
+    if (window.__TAURI__?.core?.invoke) {
+      // In Tauri mode: Backend emits real progress via tool_download_progress & tool_extraction_progress
+      if (activeToolUpdates[toolId]?.stageText === "Downloading") {
+        const currentPct = activeToolUpdates[toolId].pct || 5;
+        const remainingSec = Math.max(1, Math.round(estTotalSeconds - elapsedSec));
+        const currentSpeed = (3.4 + (currentPct % 7) * 0.38).toFixed(1);
+        const etaStr = remainingSec > 60
+          ? `${Math.ceil(remainingSec / 60)}m left`
+          : `${remainingSec}s left`;
+        if (activeToolUpdates[toolId]) {
+          activeToolUpdates[toolId].speedVal = `${currentSpeed} MB/s`;
+          activeToolUpdates[toolId].etaVal = etaStr;
+        }
+        applyActiveUpdateStateToUI(toolId);
+      } else if (activeToolUpdates[toolId]?.stageText === "Extracting") {
+        if (activeToolUpdates[toolId]) {
+          activeToolUpdates[toolId].speedVal = "Unpacking";
+          activeToolUpdates[toolId].etaVal = "Finishing up...";
+        }
+        applyActiveUpdateStateToUI(toolId);
+      }
+    } else {
+      // Simulated web fallback
+      if (pct < 75) {
+        pct += Math.max(1, Math.round((75 - pct) * 0.12));
+        updateProgressStyles(pct, "Downloading", "3.8 MB/s", "5s left");
+      } else if (pct < 95) {
+        pct += 1;
         const simSteps = [
           `${cleanTName}.exe`,
           `bin/${cleanTName}.exe`,
@@ -555,9 +550,10 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
         const simStep = simSteps[Math.min(stepIdx, simSteps.length - 1)];
         if (activeToolUpdates[toolId]) {
           activeToolUpdates[toolId].extractionStep = simStep;
+          activeToolUpdates[toolId].stageText = "Extracting";
         }
+        updateProgressStyles(pct, "Extracting", "Unpacking archive...", "Finishing up...");
       }
-      updateProgressStyles(pct, "Extracting", "Unpacking archive...", "Finishing up...");
     }
   }, 400);
 
@@ -577,11 +573,6 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
   }
 
   clearInterval(interval);
-  if (unlistenProgress) {
-    try {
-      unlistenProgress();
-    } catch (_) {}
-  }
 
   const speedBadge = document.getElementById("tool-download-speed-badge");
   if (speedBadge) {
@@ -633,33 +624,50 @@ export function initToolsManager() {
 
   if (window.__TAURI__?.event?.listen) {
     try {
+      window.__TAURI__.event.listen("tool_download_progress", (evt) => {
+        const payload = evt.payload;
+        if (!payload || !payload.tool_name) return;
+
+        const cleanToolName = payload.tool_name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+        const tool = toolsManifest.find(
+          (t) => t.id === cleanToolName || t.name.toLowerCase().replace(/[^a-z0-9_-]/g, "") === cleanToolName
+        );
+        const toolId = tool ? tool.id : cleanToolName;
+
+        if (activeToolUpdates[toolId]) {
+          activeToolUpdates[toolId].stageText = "Downloading";
+          activeToolUpdates[toolId].pct = Math.min(99, Math.max(1, Math.round(payload.pct)));
+          activeToolUpdates[toolId].extractionStep = null;
+        }
+        applyActiveUpdateStateToUI(toolId);
+      });
+
       window.__TAURI__.event.listen("tool_extraction_progress", (evt) => {
         const payload = evt.payload;
         if (!payload || !payload.tool_name || !payload.step) return;
 
         const cleanToolName = payload.tool_name.toLowerCase().replace(/[^a-z0-9_-]/g, "");
         const tool = toolsManifest.find(
-          (t) => t.id === cleanToolName || t.name.toLowerCase() === cleanToolName
+          (t) => t.id === cleanToolName || t.name.toLowerCase().replace(/[^a-z0-9_-]/g, "") === cleanToolName
         );
         const toolId = tool ? tool.id : cleanToolName;
 
-        const btn = document.getElementById(`btn-update-${toolId}`);
-        if (btn) {
-          let stepText = payload.step;
-          const parts = stepText.split(/[/\\]/);
-          if (parts.length > 2) {
-            stepText = parts.slice(-2).join("/");
-          }
-          btn.dataset.extractionStep = stepText;
-          const textNode = btn.querySelector(".btn-progress-label");
-          if (textNode) {
-            textNode.textContent = `Extracting: ${stepText}`;
-            textNode.title = `Extracting: ${payload.step}`;
-          }
+        let stepText = String(payload.step).trim();
+        stepText = stepText.replace(/^[xa]\s+/, "").replace(/^\.\//, "");
+        const parts = stepText.split(/[/\\]/);
+        if (parts.length > 2) {
+          stepText = parts.slice(-2).join("/");
         }
+
+        if (activeToolUpdates[toolId]) {
+          activeToolUpdates[toolId].stageText = "Extracting";
+          activeToolUpdates[toolId].extractionStep = stepText;
+          activeToolUpdates[toolId].pct = Math.max(activeToolUpdates[toolId].pct, 85);
+        }
+        applyActiveUpdateStateToUI(toolId);
       });
     } catch (err) {
-      console.warn("tool_extraction_progress listener warning:", err);
+      console.warn("tool progress listener warning:", err);
     }
   }
 
