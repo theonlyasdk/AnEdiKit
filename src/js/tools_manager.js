@@ -219,9 +219,13 @@ export async function refreshToolsUI() {
 
     const btnUpdate = document.getElementById(`btn-update-${tool.id}`);
     if (btnUpdate) {
-      btnUpdate.disabled = true;
-      btnUpdate.className = "btn btn-secondary btn-sm flex-grow-1 pe-none opacity-50";
-      btnUpdate.innerHTML = `<div class="loader loader-sm me-1"></div> Loading...`;
+      if (activeToolUpdates[tool.id] && activeToolUpdates[tool.id].isUpdating) {
+        applyActiveUpdateStateToUI(tool.id);
+      } else {
+        btnUpdate.disabled = true;
+        btnUpdate.className = "btn btn-secondary btn-sm flex-grow-1 pe-none opacity-50";
+        btnUpdate.innerHTML = `<div class="loader loader-sm me-1"></div> Loading...`;
+      }
     }
     const btnDelete = document.getElementById(`btn-delete-${tool.id}`);
     if (btnDelete) {
@@ -318,11 +322,15 @@ export function applyActiveUpdateStateToUI(toolId) {
 
     if (textNode) {
       if (state.stageText === "Extracting" && state.extractionStep) {
-        textNode.textContent = `Extracting: ${state.extractionStep}`;
-        textNode.title = `Extracting: ${state.extractionStep}`;
+        const prog = state.extractionProgress ? ` (${state.extractionProgress})` : "";
+        textNode.textContent = `Extracting: ${state.extractionStep}${prog}`;
+        textNode.title = `Extracting: ${state.extractionStep}${prog}`;
       } else if (state.stageText === "Extracting") {
         textNode.textContent = `Extracting archive...`;
         textNode.title = `Extracting archive...`;
+      } else if (state.stageText === "Downloading" && state.downloaded && state.total) {
+        textNode.textContent = `Downloading ${state.pct}% (${state.downloaded}/${state.total})`;
+        textNode.title = `Downloading ${state.pct}% (${state.downloaded}/${state.total})`;
       } else {
         textNode.textContent = `${state.stageText} ${state.pct}%`;
         textNode.title = `${state.stageText} ${state.pct}%`;
@@ -360,8 +368,12 @@ export function applyActiveUpdateStateToUI(toolId) {
     speedBadge.classList.remove("d-none");
     speedBadge.classList.add("d-flex");
     if (speedText && state.speedVal) speedText.textContent = state.speedVal;
-    if (etaText && state.etaVal) etaText.textContent = state.etaVal;
-    if (etaContainer) etaContainer.classList.remove("d-none");
+    if (etaText && state.etaVal) {
+      etaText.textContent = state.etaVal;
+      if (etaContainer) etaContainer.classList.remove("d-none");
+    } else if (etaContainer) {
+      etaContainer.classList.add("d-none");
+    }
   }
 }
 
@@ -440,9 +452,12 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     toolName,
     pct: 5,
     stageText: "Downloading",
+    downloaded: null,
+    total: null,
     speedVal: "Connecting...",
     etaVal: "Estimating...",
     extractionStep: null,
+    extractionProgress: null,
     isUpdating: true,
   };
 
@@ -537,6 +552,10 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
       // Simulated web fallback
       if (pct < 75) {
         pct += Math.max(1, Math.round((75 - pct) * 0.12));
+        if (activeToolUpdates[toolId]) {
+          activeToolUpdates[toolId].downloaded = `${((pct / 100) * 42.5).toFixed(1)}M`;
+          activeToolUpdates[toolId].total = "42.5M";
+        }
         updateProgressStyles(pct, "Downloading", "3.8 MB/s", "5s left");
       } else if (pct < 95) {
         pct += 1;
@@ -550,6 +569,7 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
         const simStep = simSteps[Math.min(stepIdx, simSteps.length - 1)];
         if (activeToolUpdates[toolId]) {
           activeToolUpdates[toolId].extractionStep = simStep;
+          activeToolUpdates[toolId].extractionProgress = `${(((pct - 75) / 20) * 85.0).toFixed(1)}M/85.0M`;
           activeToolUpdates[toolId].stageText = "Extracting";
         }
         updateProgressStyles(pct, "Extracting", "Unpacking archive...", "Finishing up...");
@@ -637,7 +657,16 @@ export function initToolsManager() {
         if (activeToolUpdates[toolId]) {
           activeToolUpdates[toolId].stageText = "Downloading";
           activeToolUpdates[toolId].pct = Math.min(99, Math.max(1, Math.round(payload.pct)));
+          if (payload.downloaded) activeToolUpdates[toolId].downloaded = payload.downloaded;
+          if (payload.total) activeToolUpdates[toolId].total = payload.total;
+          if (payload.speed) {
+            activeToolUpdates[toolId].speedVal = payload.speed.endsWith("/s") ? payload.speed : `${payload.speed}/s`;
+          }
+          if (payload.eta) {
+            activeToolUpdates[toolId].etaVal = payload.eta.includes("left") ? payload.eta : `${payload.eta} left`;
+          }
           activeToolUpdates[toolId].extractionStep = null;
+          activeToolUpdates[toolId].extractionProgress = null;
         }
         applyActiveUpdateStateToUI(toolId);
       });
@@ -662,7 +691,10 @@ export function initToolsManager() {
         if (activeToolUpdates[toolId]) {
           activeToolUpdates[toolId].stageText = "Extracting";
           activeToolUpdates[toolId].extractionStep = stepText;
+          activeToolUpdates[toolId].extractionProgress = payload.progress || null;
           activeToolUpdates[toolId].pct = Math.max(activeToolUpdates[toolId].pct, 85);
+          activeToolUpdates[toolId].speedVal = "Unpacking";
+          activeToolUpdates[toolId].etaVal = "Finishing up...";
         }
         applyActiveUpdateStateToUI(toolId);
       });

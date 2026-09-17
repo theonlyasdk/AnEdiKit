@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::{BufReader, Read};
+use std::io::{BufReader, Read, Write};
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
 use std::process::{Command, Stdio};
@@ -50,12 +50,17 @@ pub struct LogPayload {
 pub struct ToolExtractProgressPayload {
     pub tool_name: String,
     pub step: String,
+    pub progress: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ToolDownloadProgressPayload {
     pub tool_name: String,
     pub pct: f32,
+    pub downloaded: Option<String>,
+    pub total: Option<String>,
+    pub speed: Option<String>,
+    pub eta: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
@@ -1897,6 +1902,18 @@ fn show_in_folder(file_path: String) -> Result<(), String> {
     Ok(())
 }
 
+fn format_size(bytes: u64) -> String {
+    if bytes >= 1024 * 1024 * 1024 {
+        format!("{:.2}G", bytes as f64 / (1024.0 * 1024.0 * 1024.0))
+    } else if bytes >= 1024 * 1024 {
+        format!("{:.1}M", bytes as f64 / (1024.0 * 1024.0))
+    } else if bytes >= 1024 {
+        format!("{}k", bytes / 1024)
+    } else {
+        format!("{}B", bytes)
+    }
+}
+
 fn run_curl_download_verbose(
     app: &tauri::AppHandle,
     tool_name: &str,
@@ -1906,7 +1923,6 @@ fn run_curl_download_verbose(
     let mut cmd = Command::new("curl.exe");
     cmd.args([
         "-fL",
-        "--progress-bar",
         "--retry", "2",
         "--retry-delay", "1",
         "-o",
@@ -1938,25 +1954,38 @@ fn run_curl_download_verbose(
                 if b == b'\r' || b == b'\n' {
                     if !line_buf.is_empty() {
                         let text = String::from_utf8_lossy(&line_buf);
-                        if let Some(pct_pos) = text.find('%') {
-                            let prefix = &text[..pct_pos];
-                            let num_str: String = prefix
-                                .chars()
-                                .rev()
-                                .take_while(|c| c.is_ascii_digit() || *c == '.')
-                                .collect();
-                            let num_str: String = num_str.chars().rev().collect();
-                            if let Ok(pct_val) = num_str.parse::<f32>() {
-                                let rounded = pct_val.round() as i32;
-                                if rounded != last_reported_pct {
-                                    last_reported_pct = rounded;
-                                    let _ = app_clone.emit(
-                                        "tool_download_progress",
-                                        ToolDownloadProgressPayload {
-                                            tool_name: tool_name_owned.clone(),
-                                            pct: pct_val,
-                                        },
-                                    );
+                        let trimmed = text.trim();
+                        let parts: Vec<&str> = trimmed.split_whitespace().collect();
+                        if parts.len() >= 4 {
+                            if let Ok(pct_val) = parts[0].parse::<f32>() {
+                                let total_str = parts[1];
+                                let dl_str = parts[3];
+                                let (speed_str, eta_str) = if parts.len() >= 12 {
+                                    (Some(parts[11].to_string()), Some(parts[10].to_string()))
+                                } else if parts.len() == 11 {
+                                    (Some(parts[10].to_string()), None)
+                                } else if parts.len() >= 7 {
+                                    (Some(parts[6].to_string()), None)
+                                } else {
+                                    (None, None)
+                                };
+
+                                if total_str != "0" && dl_str != "0" {
+                                    let rounded = pct_val.round() as i32;
+                                    if rounded != last_reported_pct {
+                                        last_reported_pct = rounded;
+                                        let _ = app_clone.emit(
+                                            "tool_download_progress",
+                                            ToolDownloadProgressPayload {
+                                                tool_name: tool_name_owned.clone(),
+                                                pct: pct_val,
+                                                downloaded: Some(dl_str.to_string()),
+                                                total: Some(total_str.to_string()),
+                                                speed: speed_str,
+                                                eta: eta_str,
+                                            },
+                                        );
+                                    }
                                 }
                             }
                         }
@@ -1976,6 +2005,18 @@ fn run_curl_download_verbose(
         return Err(format!("Download failed with exit code {:?}", status.code()));
     }
 
+    let _ = app.emit(
+        "tool_download_progress",
+        ToolDownloadProgressPayload {
+            tool_name: tool_name.to_string(),
+            pct: 100.0,
+            downloaded: None,
+            total: None,
+            speed: None,
+            eta: None,
+        },
+    );
+
     Ok(())
 }
 
@@ -1988,14 +2029,6 @@ fn extract_zip_archive_verbose(
 ) -> Result<(), String> {
     let file = std::fs::File::open(zip_path).map_err(|e| format!("Failed to open downloaded archive: {}", e))?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Invalid zip archive format: {}", e))?;
-
-    let _ = app.emit(
-        "tool_extraction_progress",
-        ToolExtractProgressPayload {
-            tool_name: tool_name.to_string(),
-            step: "archive contents".to_string(),
-        },
-    );
 
     let total = archive.len();
     for i in 0..total {
@@ -2016,16 +2049,6 @@ fn extract_zip_archive_verbose(
             }
         }
 
-        if !file_entry.is_dir() {
-            let _ = app.emit(
-                "tool_extraction_progress",
-                ToolExtractProgressPayload {
-                    tool_name: tool_name.to_string(),
-                    step: file_name_str.clone(),
-                },
-            );
-        }
-
         let target_path = dest_dir.join(&outpath);
 
         if file_entry.is_dir() {
@@ -2036,12 +2059,52 @@ fn extract_zip_archive_verbose(
                     let _ = std::fs::create_dir_all(p);
                 }
             }
-            let mut outfile = std::fs::File::create(&target_path).map_err(|e| format!("Failed creating destination file: {}", e))?;
-            std::io::copy(&mut file_entry, &mut outfile).map_err(|e| format!("Failed unpacking archive content: {}", e))?;
-        }
 
-        // Small pause between file extraction events so output is visibly perceptible
-        std::thread::sleep(std::time::Duration::from_millis(60));
+            let file_size = file_entry.size();
+            let total_str = format_size(file_size);
+
+            let mut outfile = std::fs::File::create(&target_path).map_err(|e| format!("Failed creating destination file: {}", e))?;
+
+            // Emit initial extraction progress for this single file
+            let _ = app.emit(
+                "tool_extraction_progress",
+                ToolExtractProgressPayload {
+                    tool_name: tool_name.to_string(),
+                    step: file_name_str.clone(),
+                    progress: Some(format!("0B/{}", total_str)),
+                },
+            );
+
+            let mut buf = [0u8; 131072]; // 128 KB buffer
+            let mut extracted_bytes: u64 = 0;
+            let mut last_pct: u32 = 0;
+
+            while let Ok(n) = file_entry.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+                outfile.write_all(&buf[..n]).map_err(|e| format!("Failed writing archive content: {}", e))?;
+                extracted_bytes += n as u64;
+
+                let pct = if file_size > 0 {
+                    ((extracted_bytes as f64 / file_size as f64) * 100.0) as u32
+                } else {
+                    100
+                };
+
+                if pct > last_pct && (pct - last_pct >= 2 || pct == 100) {
+                    last_pct = pct;
+                    let _ = app.emit(
+                        "tool_extraction_progress",
+                        ToolExtractProgressPayload {
+                            tool_name: tool_name.to_string(),
+                            step: file_name_str.clone(),
+                            progress: Some(format!("{}/{}", format_size(extracted_bytes), total_str)),
+                        },
+                    );
+                }
+            }
+        }
     }
 
     Ok(())
@@ -2086,6 +2149,7 @@ fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<Str
                                 ToolExtractProgressPayload {
                                     tool_name: tool_out.clone(),
                                     step: trimmed,
+                                    progress: None,
                                 },
                             );
                         }
@@ -2220,14 +2284,6 @@ fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<Str
             }
 
             if !used_fallback {
-                let _ = app.emit(
-                    "tool_extraction_progress",
-                    ToolExtractProgressPayload {
-                        tool_name: "ffmpeg".to_string(),
-                        step: "bin/ffmpeg.exe".to_string(),
-                    },
-                );
-
                 // Locate ffmpeg.exe and ffprobe.exe inside extracted directory structure and copy to destination
                 let mut found_ffmpeg = false;
                 let mut found_ffprobe = false;
@@ -2238,6 +2294,14 @@ fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<Str
                             let src_ffmpeg = sub_bin.join("ffmpeg.exe");
                             let src_ffprobe = sub_bin.join("ffprobe.exe");
                             if src_ffmpeg.is_file() {
+                                let _ = app.emit(
+                                    "tool_extraction_progress",
+                                    ToolExtractProgressPayload {
+                                        tool_name: "ffmpeg".to_string(),
+                                        step: "bin/ffmpeg.exe".to_string(),
+                                        progress: Some("verified".to_string()),
+                                    },
+                                );
                                 let _ = std::fs::copy(&src_ffmpeg, target_dir.join("ffmpeg.exe"));
                                 found_ffmpeg = true;
                             }
@@ -2247,6 +2311,7 @@ fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<Str
                                     ToolExtractProgressPayload {
                                         tool_name: "ffmpeg".to_string(),
                                         step: "bin/ffprobe.exe".to_string(),
+                                        progress: Some("verified".to_string()),
                                     },
                                 );
                                 let _ = std::fs::copy(&src_ffprobe, target_dir.join("ffprobe.exe"));
@@ -2261,10 +2326,9 @@ fn update_tool_internal(app: &tauri::AppHandle, tool_name: String) -> Result<Str
                     ToolExtractProgressPayload {
                         tool_name: "ffmpeg".to_string(),
                         step: "finishing up...".to_string(),
+                        progress: None,
                     },
                 );
-                std::thread::sleep(std::time::Duration::from_millis(150));
-
                 let _ = std::fs::remove_dir_all(&extract_tmp_dir);
 
                 if !found_ffmpeg && !found_ffprobe {
