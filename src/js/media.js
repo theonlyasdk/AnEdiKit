@@ -7,6 +7,7 @@ import {
   saveImageAiQueue,
 } from "./storage.js";
 import { generateWaveformFromSource, renderWaveformToCanvas, clearWaveformCache } from "./waveform.js";
+import { setCachedMediaProbe } from "./commands.js";
 import { mediaPreviewManager } from "./preview_providers.js";
 import { sharedPlaybackController, MediaPlaybackController } from "./playback.js";
 import {
@@ -135,16 +136,19 @@ export async function probeMedia(filePath, fileObject = null) {
     return null;
   }
 
-  // Normalize path (decode URL encoding e.g. C%3A%5CUsers -> C:\Users if present)
+  // Normalize file:// URLs only. Plain filesystem paths (which may contain
+  // literal '%' e.g. `Promo_100%_Final.mp4`) must never be URL-decoded.
   let normalizedPath = filePath;
   try {
-    if (typeof normalizedPath === "string" && (normalizedPath.includes("%") || normalizedPath.startsWith("file://"))) {
-      if (normalizedPath.startsWith("file:///")) {
-        normalizedPath = normalizedPath.slice(8);
-      } else if (normalizedPath.startsWith("file://")) {
-        normalizedPath = normalizedPath.slice(7);
+    if (typeof normalizedPath === "string" && normalizedPath.trim().startsWith("file://")) {
+      let p = normalizedPath.trim().slice("file://".length);
+      if (p.startsWith("localhost/")) p = p.slice("localhost/".length);
+      else if (p.startsWith("localhost")) p = p.slice("localhost".length);
+      // Normalize Windows drive: "/C:/..." -> "C:/...", "/C|/..." -> "C:/..."
+      if (/^\/[A-Za-z][:|]/.test(p)) {
+        p = p.slice(1).replace(/^([A-Za-z])\|/, "$1:");
       }
-      normalizedPath = decodeURIComponent(normalizedPath);
+      normalizedPath = decodeURIComponent(p);
     }
   } catch (_) {}
 
@@ -183,6 +187,14 @@ export async function probeMedia(filePath, fileObject = null) {
         updateMetadataDisplay(info);
         syncMediaDurationToTools(info);
         notifyMediaChanged(info, filePath);
+        // Feed command builders (silent-input / audio-only adaptation) and
+        // refresh the preview, which may have been built before probing done.
+        try {
+          setCachedMediaProbe(filePath, info);
+        } catch (_) {}
+        try {
+          window.dispatchEvent(new CustomEvent("anedikit:media_probed", { detail: { filePath } }));
+        } catch (_) {}
         return info;
       }
     } catch (err) {
@@ -221,6 +233,12 @@ export async function probeMedia(filePath, fileObject = null) {
       updateMetadataDisplay(mediaInfo);
       syncMediaDurationToTools(mediaInfo);
       notifyMediaChanged(mediaInfo, filePath);
+      try {
+        setCachedMediaProbe(filePath, mediaInfo);
+      } catch (_) {}
+      try {
+        window.dispatchEvent(new CustomEvent("anedikit:media_probed", { detail: { filePath } }));
+      } catch (_) {}
       return mediaInfo;
     } catch (e) {
       console.warn("Browser media probe error:", e);
@@ -518,10 +536,14 @@ export function updateMetadataDisplay(info) {
 
     let cleanPath = info.file_path;
     try {
-      if (cleanPath.includes("%") || cleanPath.startsWith("file://")) {
-        if (cleanPath.startsWith("file:///")) cleanPath = cleanPath.slice(8);
-        else if (cleanPath.startsWith("file://")) cleanPath = cleanPath.slice(7);
-        cleanPath = decodeURIComponent(cleanPath);
+      if (typeof cleanPath === "string" && cleanPath.trim().startsWith("file://")) {
+        let p = cleanPath.trim().slice("file://".length);
+        if (p.startsWith("localhost/")) p = p.slice("localhost/".length);
+        else if (p.startsWith("localhost")) p = p.slice("localhost".length);
+        if (/^\/[A-Za-z][:|]/.test(p)) {
+          p = p.slice(1).replace(/^([A-Za-z])\|/, "$1:");
+        }
+        cleanPath = decodeURIComponent(p);
       }
     } catch (_) {}
 

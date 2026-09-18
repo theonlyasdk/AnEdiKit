@@ -168,6 +168,38 @@ fn pick_files(filter_mode: Option<String>) -> Vec<String> {
 }
 
 #[tauri::command]
+fn save_image_as(source_path: String, suggested_name: Option<String>) -> Result<Option<String>, String> {
+    // Opens a native save dialog and copies the processed image to the
+    // chosen destination. Returns None when the user cancels the dialog.
+    let decoded = percent_decode_path(&source_path);
+    let src = std::path::Path::new(&decoded);
+    if !src.exists() || !src.is_file() {
+        return Err("Source image does not exist".into());
+    }
+    let default_name = suggested_name.filter(|n| !n.trim().is_empty()).unwrap_or_else(|| {
+        src.file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "image.png".to_string())
+    });
+    let mut dialog = rfd::FileDialog::new().set_file_name(&default_name);
+    dialog = dialog.add_filter(
+        "Image Files",
+        &["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif"],
+    );
+    if let Some(parent) = src.parent() {
+        if parent.exists() {
+            dialog = dialog.set_directory(parent);
+        }
+    }
+    let dest = match dialog.save_file() {
+        Some(p) => p,
+        None => return Ok(None),
+    };
+    std::fs::copy(src, &dest).map_err(|e| format!("Failed to save image: {}", e))?;
+    Ok(Some(dest.to_string_lossy().to_string()))
+}
+
+#[tauri::command]
 fn write_temp_text_file(filename: String, content: String) -> Result<String, String> {
     let temp_dir = std::env::temp_dir();
     let file_path = temp_dir.join(&filename);
@@ -445,13 +477,45 @@ fn resolve_binary_path(bin: &str) -> String {
 }
 
 fn percent_decode_path(input: &str) -> String {
-    let mut clean = input;
-    if clean.starts_with("file:///") {
-        clean = &clean[8..];
-    } else if clean.starts_with("file://") {
-        clean = &clean[7..];
-    }
+    // Only percent-decode file:// URLs. Plain filesystem paths (which may
+    // legitimately contain '%' e.g. `Promo_100%_Final.mp4` or `%20` folders)
+    // must be returned verbatim to avoid path corruption.
+    let trimmed = input.trim();
+    let url_path: Option<&str> = if trimmed.starts_with("file:///") {
+        // Keep one leading slash: "file:///home/x" -> "/home/x",
+        // "file:///C:/x" -> "/C:/x" (drive slash stripped below).
+        Some(&trimmed[7..])
+    } else if trimmed.starts_with("file://") {
+        Some(&trimmed[7..])
+    } else {
+        None
+    };
 
+    match url_path {
+        Some(p) => {
+            // Strip optional "localhost" authority: file://localhost/C:/...
+            let p = p.strip_prefix("localhost/").unwrap_or(p);
+            let p = p.strip_prefix("localhost").unwrap_or(p);
+            // Normalize Windows drive prefix: "/C:/..." -> "C:/...",
+            // "/C|/..." (legacy) -> "C:/...".
+            if p.len() >= 3
+                && p.as_bytes()[0] == b'/'
+                && p.as_bytes()[1].is_ascii_alphabetic()
+                && (p.as_bytes()[2] == b':' || p.as_bytes()[2] == b'|')
+            {
+                let mut owned = String::with_capacity(p.len());
+                owned.push(p.as_bytes()[1] as char);
+                owned.push(':');
+                owned.push_str(&p[3..]);
+                return percent_decode_str(&owned);
+            }
+            percent_decode_str(p)
+        }
+        None => input.to_string(),
+    }
+}
+
+fn percent_decode_str(clean: &str) -> String {
     let bytes = clean.as_bytes();
     let mut decoded = Vec::with_capacity(bytes.len());
     let mut i = 0;
@@ -1843,19 +1907,19 @@ fn force_exit_app(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn open_file(file_path: String) -> Result<(), String> {
+fn open_file(app: tauri::AppHandle, file_path: String) -> Result<(), String> {
     let decoded = percent_decode_path(&file_path);
     let path = std::path::Path::new(&decoded);
     if !path.exists() {
         return Err("File does not exist".into());
     }
-    #[cfg(windows)]
-    {
-        let _ = Command::new("cmd")
-            .args(["/C", "start", "", &decoded])
-            .creation_flags(0x08000000)
-            .spawn();
-    }
+    // Use the opener plugin (ShellExecuteW under the hood on Windows) instead
+    // of `cmd.exe /C start`, which interprets `& ^ | ( ) %` as shell operators
+    // and allows command injection via crafted filenames.
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_path(decoded, None::<&str>)
+        .map_err(|e| format!("Failed to open file: {}", e))?;
     Ok(())
 }
 
@@ -2436,20 +2500,21 @@ fn open_binaries_folder() -> Result<(), String> {
 fn send_system_notification(title: String, body: String) -> Result<(), String> {
     #[cfg(windows)]
     {
-        let escaped_title = title.replace('"', "`\"");
-        let escaped_body = body.replace('"', "`\"");
-        let script = format!(
-            "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; \
+        // Pass title/body via environment variables instead of interpolating
+        // them into the PowerShell script. Interpolating into double-quoted
+        // strings allows `$` variable expansion and `$(...)` sub-expression
+        // execution (e.g. a media title like `$100 Challenge` or `$(calc)`).
+        let script = "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] > $null; \
             $template = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); \
             $textNodes = $template.GetElementsByTagName('text'); \
-            $textNodes.Item(0).AppendChild($template.CreateTextNode(\"{}\")) > $null; \
-            $textNodes.Item(1).AppendChild($template.CreateTextNode(\"{}\")) > $null; \
+            $textNodes.Item(0).AppendChild($template.CreateTextNode($env:ANEDIKIT_TOAST_TITLE)) > $null; \
+            $textNodes.Item(1).AppendChild($template.CreateTextNode($env:ANEDIKIT_TOAST_BODY)) > $null; \
             $toast = [Windows.UI.Notifications.ToastNotification]::new($template); \
-            [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('AnEdiKit').Show($toast);",
-            escaped_title, escaped_body
-        );
+            [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('AnEdiKit').Show($toast);";
         let mut cmd = Command::new("powershell");
-        cmd.args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", &script]);
+        cmd.args(["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script]);
+        cmd.env("ANEDIKIT_TOAST_TITLE", &title);
+        cmd.env("ANEDIKIT_TOAST_BODY", &body);
         cmd.creation_flags(0x08000000);
         let _ = cmd.spawn();
     }
@@ -3088,6 +3153,7 @@ pub fn run() {
             pick_file,
             pick_files,
             pick_folder,
+            save_image_as,
             write_temp_text_file,
             get_media_info,
             extract_action_frame,

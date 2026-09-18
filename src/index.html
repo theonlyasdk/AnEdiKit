@@ -168,16 +168,15 @@
                 <!-- Dynamically populated from saved user kits -->
               </nav>
             </div>
-          </div>
-          <!-- Mobile Sidebar Settings (Visible inside sidebar drawer in small width mode) -->
-          <div class="p-2 border-top d-md-none" id="mobile-sidebar-settings-col">
-            <nav class="nav nav-pills w-100 position-relative" id="mobile-settings-nav">
-              <div class="sidebar-indicator" id="mobile-settings-indicator"></div>
-              <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
-                <ion-icon name="settings-outline" class="text-body-secondary"></ion-icon>
-                <span>Settings</span>
-              </button>
-            </nav>
+            <!-- Settings navigation at the very end of sidebar scrollview -->
+            <div class="pt-2 mt-3" id="sidebar-settings-container">
+              <nav class="nav nav-pills flex-column gap-1" id="settings-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
+                  <ion-icon name="settings-outline" class="text-body-secondary"></ion-icon>
+                  <span>Settings</span>
+                </button>
+              </nav>
+            </div>
           </div>
         </aside>
 
@@ -2225,17 +2224,8 @@
         </main>
       </div>
 
-      <!-- Unified Bottom Status & Control Bar Row — single footer row: Settings (left 280px) + status bar (right). Left cell has frosted glass so scroll behind it blurs. -->
+      <!-- Unified Bottom Status & Control Bar Row -->
       <footer class="d-flex flex-shrink-0" id="bottom-footer-bar" style="height: 56px;">
-        <div class="d-none d-md-flex align-items-center p-2 border-end flex-shrink-0 settings-cell-parked" id="footer-settings-col">
-          <nav class="nav nav-pills w-100 position-relative" id="settings-nav">
-            <div class="sidebar-indicator" id="settings-indicator"></div>
-            <button class="nav-link w-100 text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
-              <ion-icon name="settings-outline" class="text-body-secondary"></ion-icon>
-              <span>Settings</span>
-            </button>
-          </nav>
-        </div>
         <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 border-top" id="bottom-control-bar">
           <div class="d-flex align-items-center">
             <div class="text-body-secondary small d-none" id="status-message">Ready</div>
@@ -2253,16 +2243,50 @@
       </footer>
     </div>
 
+    <!-- Required Tools Missing Dialog -->
+    <div class="modal fade" id="missing-tools-modal" tabindex="-1" aria-labelledby="missingToolsModalLabel" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-5 fw-light text-body d-flex align-items-center gap-2" id="missingToolsModalLabel">
+              <ion-icon name="warning-outline" class="text-warning fs-4 lh-1"></ion-icon>
+              <span>Required Tools Missing</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            <p class="text-body small mb-3">
+              AnEdiKit requires core external tools to process media. One or more required tools are not installed or could not be found on your system:
+            </p>
+            <div id="missing-tools-list" class="d-flex flex-column gap-2 mb-3">
+              <!-- Dynamically populated missing tools -->
+            </div>
+            <div class="text-body-secondary small">
+              Please install the missing tools to enable media conversion, downloads, and processing.
+            </div>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Later</button>
+            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-open-manage-tools-from-missing">
+              <ion-icon name="construct-outline"></ion-icon>
+              <span>Manage Tools</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Manage Tools Dialog (Center Modal with Smooth Two-Way Zoom) -->
     <div class="modal fade" id="manage-tools-modal" tabindex="-1" aria-labelledby="manageToolsModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
-          <div class="modal-header border-bottom py-2 px-3" data-tauri-drag-region="false">
-              <h5 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
-                Manage Tools & Binaries
-              </h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+          <div class="sheet-header border-bottom py-2 px-3 position-relative" id="manage-tools-sheet-header">
+            <div class="manage-sheet-header-bg" aria-hidden="true"></div>
+            <h5 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
+              Manage Tools & Binaries
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
           <div class="modal-body p-3">
             
             <!-- Update Error / Status Alert Banner -->

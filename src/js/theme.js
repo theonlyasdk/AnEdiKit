@@ -231,6 +231,10 @@ export function applyTheme(themeObj) {
   root.style.setProperty("--anedikit-blur-enabled", blurEnabled);
   root.style.setProperty("--anedikit-blur-radius", blurRadius);
   root.style.setProperty("--anedikit-blur-saturate", blurSaturate);
+  root.classList.toggle("blur-enabled", blurEnabled === 1);
+  if (document.body) {
+    document.body.classList.toggle("blur-enabled", blurEnabled === 1);
+  }
 
   if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
     window.__TAURI__.core.invoke("set_window_blur", { mode: blurEnabled ? "acrylic" : "off" }).catch(() => {});

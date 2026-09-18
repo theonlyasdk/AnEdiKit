@@ -1,6 +1,75 @@
 import { getLastYtDlpOutDir } from "./storage.js";
 import { getSavedYtDlpFormat } from "./ytdlp_format.js";
 
+// Probed media metadata cache (populated by media.js after each probe and by
+// main.js for merge list files). Lets synchronous command builders adapt to
+// silent inputs / audio-only inputs without awaiting Tauri IPC.
+// Entry: { audioCodec: string|null, videoCodec: string|null, duration: number|NaN }
+const mediaProbeCache = new Map();
+
+export function setCachedMediaProbe(filePath, info = {}) {
+  if (!filePath) return;
+  mediaProbeCache.set(filePath, {
+    audioCodec: info.audio_codec ?? info.audioCodec ?? null,
+    videoCodec: info.video_codec ?? info.videoCodec ?? null,
+    duration: Number(info.duration_seconds ?? info.duration ?? NaN),
+  });
+}
+
+export function getCachedMediaProbe(filePath) {
+  if (!filePath) return null;
+  return mediaProbeCache.get(filePath) || null;
+}
+
+// Tri-state audio presence from probed metadata: true / false / null (unknown).
+// Missing-audio markers from the backend are "--" (no stream found) and
+// "None" (image files); unknown means "assume present" (legacy behavior).
+export function probeHasAudio(filePath) {
+  const probe = getCachedMediaProbe(filePath);
+  if (!probe || probe.audioCodec == null) return null;
+  const c = String(probe.audioCodec).trim().toLowerCase();
+  if (!c || c === "--" || c === "none" || c === "n/a") return false;
+  return true;
+}
+
+// Tri-state pure-audio detection: true when the probe confirms no video
+// stream, false when a video codec is present, null when unknown.
+export function probeIsAudioOnly(filePath) {
+  const probe = getCachedMediaProbe(filePath);
+  if (!probe || probe.videoCodec == null) return null;
+  const c = String(probe.videoCodec).trim().toLowerCase();
+  if (c === "none" || c === "n/a") return true;
+  if (!c || c === "--") return null;
+  return false;
+}
+
+const AUDIO_EXTS = new Set(["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "aiff", "alac"]);
+
+export function isAudioPath(filePath) {
+  if (!filePath) return false;
+  const ext = String(filePath).split(/[?#]/)[0].split(".").pop().toLowerCase();
+  return AUDIO_EXTS.has(ext);
+}
+
+// Map a source audio codec to a container that can mux it with `-c:a copy`.
+// Returns null when no confident mapping exists (caller keeps its default).
+export function audioCodecToContainer(codec) {
+  const c = String(codec || "").trim().toLowerCase();
+  if (!c) return null;
+  if (c === "aac" || c === "alac") return "m4a";
+  if (c === "mp3") return "mp3";
+  if (c === "opus") return "opus";
+  if (c === "vorbis") return "ogg";
+  if (c === "flac") return "flac";
+  if (c === "ac3") return "ac3";
+  if (c === "eac3") return "eac3";
+  if (c === "dts" || c === "dca") return "dts";
+  if (c === "amr" || c === "libopencore_amrnb") return "amr";
+  if (c === "wmav1" || c === "wmav2" || c === "wma") return "wma";
+  if (c === "pcm" || c.startsWith("pcm_")) return "wav";
+  return null;
+}
+
 export function resolveDestinationPath(defaultFileName, settings = {}, inputFile = "") {
   const currentInput = inputFile || document.getElementById("input-file-path")?.value?.trim() || "";
   let outDir = "";
@@ -263,7 +332,16 @@ export function buildAudioExtractCommand(inputFile, outputDir, settings = {}) {
   const samplerate = document.getElementById("aud-samplerate")?.value || "original";
   const volume = document.getElementById("aud-volume")?.value || "none";
 
-  const dst = resolveDestinationPath(`${baseName}_extracted.${fmt}`, settings, src);
+  // Stream Copy (-c:a copy) cannot remux into an incompatible container
+  // (e.g. AAC/Opus/FLAC bitstreams into .mp3). Align the destination
+  // extension with the source audio codec when it is known via probe.
+  let outFmt = fmt;
+  if (bitrate === "copy") {
+    const srcCodec = getCachedMediaProbe(src)?.audioCodec;
+    outFmt = (srcCodec && audioCodecToContainer(srcCodec)) || fmt;
+  }
+
+  const dst = resolveDestinationPath(`${baseName}_extracted.${outFmt}`, settings, src);
 
   args.push("-i", src);
   args.push("-vn");
@@ -729,23 +807,74 @@ export function buildMergeCommand(mergeFiles = [], outputDir, settings = {}, con
   } else if (engine === "concat_demuxer") {
     args.push("-f", "concat", "-safe", "0", "-i", "concat_list.txt", "-c", "copy", "-map_metadata", "0");
   } else {
-    // filter_complex re-encode concat
+    // filter_complex re-encode concat. Every concat segment must expose the
+    // same streams: referencing [i:a:0] for a silent input aborts FFmpeg with
+    // "Stream specifier ':a:0' ... matches no streams". Consult the probe
+    // cache (unknown inputs conservatively assume audio, i.e. legacy graph).
     const files = mergeFiles.length > 0 ? mergeFiles : ["clip1.mp4", "clip2.mp4"];
     files.forEach((f) => {
       args.push("-i", f);
     });
 
+    const audioKnown = files.map((f) => probeHasAudio(f)); // true | false | null
+    const isSilent = (i) => audioKnown[i] === false;
+    const silentCount = audioKnown.filter((v) => v === false).length;
+
+    const pushLavfiSilence = (durSec) => {
+      // Returns the input index of an appended finite silence stream.
+      args.push("-f", "lavfi", "-t", String(durSec), "-i", "anullsrc=channel_layout=stereo:sample_rate=48000");
+      return args.filter((a) => a === "-i").length - 1;
+    };
+
     const count = files.length;
     if (isAudioOnly) {
-      const inputs = files.map((_, i) => `[${i}:a:0]`).join("");
-      args.push("-filter_complex", `${inputs}concat=n=${count}:v=0:a=1[outa]`, "-map", "[outa]");
+      // Concat audio segments; known-silent inputs contribute generated
+      // silence of matching duration, or are skipped when duration is unknown.
+      const segments = [];
+      files.forEach((f, i) => {
+        if (!isSilent(i)) {
+          segments.push(`[${i}:a:0]`);
+        } else {
+          const dur = getCachedMediaProbe(f)?.duration;
+          if (Number.isFinite(dur) && dur > 0) {
+            segments.push(`[${pushLavfiSilence(dur)}:a:0]`);
+          }
+        }
+      });
+      const segCount = segments.length > 0 ? segments.length : count;
+      const graph = segments.length > 0 ? segments.join("") : files.map((_, i) => `[${i}:a:0]`).join("");
+      args.push("-filter_complex", `${graph}concat=n=${segCount}:v=0:a=1[outa]`, "-map", "[outa]");
       args.push("-c:a", fmt === "flac" ? "flac" : fmt === "wav" ? "pcm_s16le" : "aac");
       if (fmt !== "flac" && fmt !== "wav") args.push("-b:a", "192k");
-    } else {
+    } else if (silentCount === 0) {
       const inputs = files.map((_, i) => `[${i}:v:0][${i}:a:0]`).join("");
       args.push("-filter_complex", `${inputs}concat=n=${count}:v=1:a=1[outv][outa]`, "-map", "[outv]", "-map", "[outa]");
       applyVideoEncoderOptions(args, "libx264", settings, { crf: "22", preset: "medium" });
       args.push("-c:a", "aac", "-b:a", "192k");
+    } else if (silentCount === count) {
+      // All inputs silent: video-only concat, no audio mapping at all.
+      const inputs = files.map((_, i) => `[${i}:v:0]`).join("");
+      args.push("-filter_complex", `${inputs}concat=n=${count}:v=1:a=0[outv]`, "-map", "[outv]");
+      applyVideoEncoderOptions(args, "libx264", settings, { crf: "22", preset: "medium" });
+    } else {
+      // Mixed silent/sounding inputs: synthesize silence for silent segments
+      // when durations are known; otherwise fall back to video-only concat
+      // (drops audio but never crashes on stream specifiers).
+      const durations = files.map((f) => getCachedMediaProbe(f)?.duration);
+      const synthesizable = files.every((_, i) => !isSilent(i) || (Number.isFinite(durations[i]) && durations[i] > 0));
+      if (synthesizable) {
+        const segments = files.map((_, i) => {
+          if (!isSilent(i)) return `[${i}:v:0][${i}:a:0]`;
+          return `[${i}:v:0][${pushLavfiSilence(durations[i])}:a:0]`;
+        }).join("");
+        args.push("-filter_complex", `${segments}concat=n=${count}:v=1:a=1[outv][outa]`, "-map", "[outv]", "-map", "[outa]");
+        applyVideoEncoderOptions(args, "libx264", settings, { crf: "22", preset: "medium" });
+        args.push("-c:a", "aac", "-b:a", "192k");
+      } else {
+        const inputs = files.map((_, i) => `[${i}:v:0]`).join("");
+        args.push("-filter_complex", `${inputs}concat=n=${count}:v=1:a=0[outv]`, "-map", "[outv]");
+        applyVideoEncoderOptions(args, "libx264", settings, { crf: "22", preset: "medium" });
+      }
     }
   }
 
@@ -797,14 +926,28 @@ export function buildMuteReplaceCommand(inputFile, outputDir, settings = {}) {
     args.push("-shortest");
   } else if (action === "mix") {
     args.push("-i", secondAudio);
-    const filter =
-      vol !== "1.0"
-        ? `[1:a]volume=${vol}[bg];[0:a][bg]amix=inputs=2:duration=first[a]`
-        : `[0:a][1:a]amix=inputs=2:duration=first[a]`;
-    args.push("-filter_complex", filter);
-    args.push("-map", "0:v:0", "-map", "[a]");
-    args.push("-c:v", "copy");
-    args.push("-c:a", "aac", "-b:a", "192k");
+    // Mixing references [0:a]; a silent primary input has no audio stream and
+    // FFmpeg would abort on the stream specifier. Fall back to the secondary
+    // track alone (equivalent to replace for silent primaries).
+    if (probeHasAudio(src) === false) {
+      if (vol !== "1.0") {
+        args.push("-filter_complex", `[1:a]volume=${vol}[a]`);
+        args.push("-map", "0:v:0", "-map", "[a]");
+      } else {
+        args.push("-map", "0:v:0", "-map", "1:a:0");
+      }
+      args.push("-c:v", "copy");
+      args.push("-c:a", "aac", "-b:a", "192k");
+    } else {
+      const filter =
+        vol !== "1.0"
+          ? `[1:a]volume=${vol}[bg];[0:a][bg]amix=inputs=2:duration=first[a]`
+          : `[0:a][1:a]amix=inputs=2:duration=first[a]`;
+      args.push("-filter_complex", filter);
+      args.push("-map", "0:v:0", "-map", "[a]");
+      args.push("-c:v", "copy");
+      args.push("-c:a", "aac", "-b:a", "192k");
+    }
   }
 
   args.push("-map_metadata", "0");
@@ -1438,9 +1581,17 @@ export function buildNormalizeCommand(inputFile, outputDir, settings = {}, durat
   const videoMode = document.getElementById("norm-video-mode")?.value || "copy";
   const acodec = document.getElementById("norm-acodec")?.value || "aac";
 
+  // Pure-audio inputs have no video stream: `-c:v copy` fails and .mp4 is the
+  // wrong container. Detect via probe (authoritative) with an extension
+  // heuristic fallback, then emit audio-only output in a matching container.
+  const probedAudioOnly = probeIsAudioOnly(src);
+  const inputIsAudio = probedAudioOnly === true || (probedAudioOnly == null && isAudioPath(src));
+
+  const acodecExt = acodec === "libmp3lame" ? "mp3" : acodec === "libopus" ? "opus" : acodec === "flac" ? "flac" : acodec === "pcm_s16le" ? "wav" : "m4a";
+
   let ext = "mp4";
-  if (videoMode === "strip") {
-    ext = acodec === "libmp3lame" ? "mp3" : acodec === "libopus" ? "opus" : acodec === "flac" ? "flac" : acodec === "pcm_s16le" ? "wav" : "m4a";
+  if (videoMode === "strip" || inputIsAudio) {
+    ext = acodecExt;
   }
 
   const dst = resolveDestinationPath(`${baseName}_normalized.${ext}`, settings, src);
@@ -1460,7 +1611,7 @@ export function buildNormalizeCommand(inputFile, outputDir, settings = {}, durat
     afFilter = "volume=0dB";
   }
 
-  if (videoMode === "strip") {
+  if (videoMode === "strip" || inputIsAudio) {
     args.push("-vn", "-af", afFilter, "-c:a", acodec);
   } else {
     args.push("-c:v", "copy", "-af", afFilter, "-c:a", acodec);

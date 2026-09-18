@@ -5,7 +5,32 @@ import {
 } from "./storage.js";
 import { selectMediaFiles } from "./media.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
-import { attachFluentRipple, animateQueueHeight } from "./navigation.js";
+import { attachFluentRipple, animateQueueHeight, getCurrentActiveTool } from "./navigation.js";
+
+const IMAGE_AI_TOOL_IDS = new Set([
+  "bg_remover",
+  "ai_upscaler",
+  "vectorizer",
+  "restore_denoise",
+  "icon_generator",
+  "metadata_cleaner",
+]);
+
+function syncExecuteButtonForImageQueue() {
+  // updateExecuteButtonState() (main.js) owns the canonical enable logic and
+  // runs on tool switches / previews, but queue add/remove/clear otherwise
+  // leaves a stale disabled state behind. Mirror the Image AI branch here.
+  try {
+    const btnExecute = document.getElementById("btn-execute");
+    if (!btnExecute || btnExecute.textContent === "Cancel") return;
+    if (!IMAGE_AI_TOOL_IDS.has(getCurrentActiveTool())) return;
+    btnExecute.disabled = imageAiQueue.length === 0;
+    btnExecute.title =
+      imageAiQueue.length === 0
+        ? "Add images to the queue to execute operation"
+        : `Run image processing queue (${imageAiQueue.length})`;
+  } catch (_) {}
+}
 
 let imageAiQueue = loadSavedImageAiQueue();
 
@@ -126,6 +151,7 @@ function renderImageAiQueueUIInner() {
     if (btnExecute && btnExecute.textContent !== "Cancel") {
       btnExecute.textContent = "Execute";
     }
+    syncExecuteButtonForImageQueue();
     return;
   }
 
@@ -137,6 +163,7 @@ function renderImageAiQueueUIInner() {
   if (btnExecute && btnExecute.textContent !== "Cancel") {
     btnExecute.textContent = imageAiQueue.length > 1 ? `Execute (${imageAiQueue.length})` : "Execute";
   }
+  syncExecuteButtonForImageQueue();
 
   const placeholderHtml = `
     <div id="image-queue-drop-placeholder" class="list-group-item image-queue-drop-placeholder text-primary py-3 text-center d-flex align-items-center justify-content-center gap-2 d-none" style="cursor: pointer;">

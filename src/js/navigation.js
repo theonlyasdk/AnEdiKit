@@ -163,48 +163,21 @@ export function getCurrentActiveTool() {
   return currentActiveTool;
 }
 
-export function updateSidebarIndicator(activeBtn, isSettings = false) {
-  const settingsIndicator = document.getElementById("settings-indicator");
-  const mobileSettingsIndicator = document.getElementById("mobile-settings-indicator");
+export function updateSidebarIndicator(activeBtn) {
   const sidebarIndicator = document.getElementById("sidebar-indicator");
+  if (!sidebarIndicator || !activeBtn) return;
 
-  if (isSettings) {
-    if (sidebarIndicator) sidebarIndicator.style.opacity = "0";
-    // Desktop footer cell and mobile drawer each get their own pill,
-    // measured against the button inside their own nav (hidden navs
-    // report zero height, so their pill stays parked invisible).
-    const pairs = [
-      ["#settings-nav .nav-link", settingsIndicator],
-      ["#mobile-settings-nav .nav-link", mobileSettingsIndicator],
-    ];
-    pairs.forEach(([selector, indicator]) => {
-      if (!indicator) return;
-      const btn = document.querySelector(selector);
-      if (!btn || !btn.offsetHeight) {
-        indicator.style.opacity = "0";
-        return;
-      }
-      indicator.style.transform = `translateY(${btn.offsetTop}px)`;
-      indicator.style.height = `${btn.offsetHeight}px`;
-      indicator.style.opacity = "1";
-    });
-  } else {
-    if (settingsIndicator) settingsIndicator.style.opacity = "0";
-    if (mobileSettingsIndicator) mobileSettingsIndicator.style.opacity = "0";
-    if (!sidebarIndicator || !activeBtn) return;
+  const scrollContainer = document.getElementById("sidebar-scroll-container");
+  if (!scrollContainer) return;
 
-    const scrollContainer = document.getElementById("sidebar-scroll-container");
-    if (!scrollContainer) return;
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const btnRect = activeBtn.getBoundingClientRect();
+  const top = btnRect.top - containerRect.top + scrollContainer.scrollTop;
+  const height = btnRect.height;
 
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const btnRect = activeBtn.getBoundingClientRect();
-    const top = btnRect.top - containerRect.top + scrollContainer.scrollTop;
-    const height = btnRect.height;
-
-    sidebarIndicator.style.transform = `translateY(${top}px)`;
-    sidebarIndicator.style.height = `${height}px`;
-    sidebarIndicator.style.opacity = "1";
-  }
+  sidebarIndicator.style.transform = `translateY(${top}px)`;
+  sidebarIndicator.style.height = `${height}px`;
+  sidebarIndicator.style.opacity = "1";
 }
 
 export function switchTool(toolId, onToolChanged, autoScroll = false) {
@@ -243,37 +216,28 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
   const movingDown = nextIndex > prevIndex;
 
   currentActiveTool = toolId;
+  document.body.dataset.activeTool = toolId;
   saveActiveTool(toolId);
 
   // Update nav buttons active states across tool-nav, image-ai-nav, ytdlp-nav, user-kits-nav, and settings-nav
-  const allToolButtons = document.querySelectorAll("#tool-nav .nav-link, #image-ai-nav .nav-link, #ytdlp-nav .nav-link, #user-kits-nav .nav-link");
-  const allSettingsButtons = document.querySelectorAll('button[data-tool="settings"]');
-  const desktopSettingsBtn = document.querySelector("#settings-nav .nav-link");
+  const allToolButtons = document.querySelectorAll(
+    "#tool-nav .nav-link, #image-ai-nav .nav-link, #ytdlp-nav .nav-link, #user-kits-nav .nav-link, #settings-nav .nav-link"
+  );
 
-  if (toolId === "settings") {
-    allToolButtons.forEach((b) => b.classList.remove("active"));
-    allSettingsButtons.forEach((b) => b.classList.add("active"));
-    if (desktopSettingsBtn) {
-      updateSidebarIndicator(desktopSettingsBtn, true);
-    }
-  } else {
-    allSettingsButtons.forEach((b) => b.classList.remove("active"));
-    allToolButtons.forEach((b) => {
-      if (b.dataset.tool === toolId) {
-        b.classList.add("active");
-        updateSidebarIndicator(b, false);
-        if (autoScroll) {
-          // Use native center scrolling — respects scroll-padding (sticky header + absolute footer)
-          // and works even when offsetTop is relative to a nested <nav>, unlike manual offsetTop math.
-          requestAnimationFrame(() => {
-            b.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-          });
-        }
-      } else {
-        b.classList.remove("active");
+  allToolButtons.forEach((b) => {
+    if (b.dataset.tool === toolId) {
+      b.classList.add("active");
+      updateSidebarIndicator(b);
+      if (autoScroll) {
+        // Use native center scrolling — respects scroll-padding and works even when offsetTop is relative to a nested <nav>
+        requestAnimationFrame(() => {
+          b.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+        });
       }
-    });
-  }
+    } else {
+      b.classList.remove("active");
+    }
+  });
 
   // Header directional slide
   const headerContainer = document.getElementById("tool-header-text");
@@ -398,12 +362,15 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
     btnReset.classList.toggle("d-none", toolId === "settings");
   }
 
-  // Bottom-left slot would sit completely empty in Settings view (both
-  // action buttons hide there), so the status line shows here and only
-  // here — every other view keeps the clean label-free footer.
+  // Do not show footer in settings page
+  const bottomFooterBar = document.getElementById("bottom-footer-bar");
+  if (bottomFooterBar) {
+    bottomFooterBar.classList.toggle("d-none", toolId === "settings");
+  }
+
   const statusSlot = document.getElementById("status-message");
   if (statusSlot) {
-    statusSlot.classList.toggle("d-none", toolId !== "settings");
+    statusSlot.classList.toggle("d-none", toolId === "settings");
   }
 
   // Contextual status message for settings
@@ -724,7 +691,7 @@ export function initCreditsSheetDrag() {
 export function initManageSheetDrag() {
   const modalEl = document.getElementById("manage-tools-modal");
   if (!modalEl || modalEl.dataset.sheetDragBound === "true") return;
-  const header = modalEl.querySelector(".modal-header");
+  const header = modalEl.querySelector(".sheet-header, .modal-header");
   if (!header) return;
   modalEl.dataset.sheetDragBound = "true";
   attachSheetDrag(modalEl, header);
@@ -796,30 +763,7 @@ export function initNavigation(onToolChanged) {
     setupSidebarButtonEffects(btn, onToolChanged);
   });
 
-  // Desktop footer settings cell reveals while the sidebar OR the cell
-  // itself is hovered (the cell lives outside the sidebar, so leaving the
-  // sidebar for the cell must not park it mid-click), plus whenever the
-  // sidebar is scrolled to the very end. Hover states are re-checked on
-  // the next frame so they settle before we decide.
-  const mainSidebar = document.getElementById("main-sidebar");
-  const footerSettingsCol = document.getElementById("footer-settings-col");
-  const sidebarScrollBox = document.getElementById("sidebar-scroll-container");
-  const updateSettingsCellParked = () => {
-    if (!footerSettingsCol) return;
-    const hovered =
-      (mainSidebar && mainSidebar.matches(":hover")) || footerSettingsCol.matches(":hover");
-    let atEnd = false;
-    if (sidebarScrollBox) {
-      atEnd = sidebarScrollBox.scrollHeight - sidebarScrollBox.scrollTop - sidebarScrollBox.clientHeight <= 4;
-    }
-    footerSettingsCol.classList.toggle("settings-cell-parked", !(hovered || atEnd));
-  };
-  if (mainSidebar && footerSettingsCol) {
-    mainSidebar.addEventListener("mouseenter", updateSettingsCellParked);
-    mainSidebar.addEventListener("mouseleave", () => requestAnimationFrame(updateSettingsCellParked));
-    footerSettingsCol.addEventListener("mouseenter", updateSettingsCellParked);
-    footerSettingsCol.addEventListener("mouseleave", () => requestAnimationFrame(updateSettingsCellParked));
-  }
+
 
   // Material You soft ripples on the Settings page list rows (the
   // clickable toggle rows). Guarded so a second init never double-binds.
@@ -883,20 +827,16 @@ export function initNavigation(onToolChanged) {
     scrollContainer.addEventListener("scroll", () => {
       const activeBtn = document.querySelector("#sidebar-scroll-container .nav-link.active");
       if (activeBtn) {
-        updateSidebarIndicator(activeBtn, false);
+        updateSidebarIndicator(activeBtn);
       }
       updateStickyHeaders();
-      updateSettingsCellParked();
     });
   }
 
   window.addEventListener("resize", () => {
-    const activeBtn =
-      currentActiveTool === "settings"
-        ? document.querySelector("#settings-nav .nav-link")
-        : document.querySelector("#sidebar-scroll-container .nav-link.active");
+    const activeBtn = document.querySelector("#sidebar-scroll-container .nav-link.active");
     if (activeBtn) {
-      updateSidebarIndicator(activeBtn, currentActiveTool === "settings");
+      updateSidebarIndicator(activeBtn);
     }
     updateStickyHeaders();
   });
@@ -909,7 +849,6 @@ export function initNavigation(onToolChanged) {
   currentActiveTool = ""; // reset to trigger clean initial load
   switchTool(savedTool, onToolChanged);
   updateStickyHeaders();
-  updateSettingsCellParked();
 }
 
 export function updateStickyHeaders() {

@@ -16,6 +16,35 @@ let splitPositionPct = 50; // 0 to 100
 let isDraggingSlider = false;
 let activeMode = "split"; // "split", "side", "fade"
 
+function showComparisonToast(message, isError = false) {
+  // Local notification helper (no global showToast exists in the app).
+  // Renders a Bootstrap toast in the shared notification container,
+  // falling back to the status line and console.
+  try {
+    const container = document.getElementById("notification-toast-container");
+    if (container && window.bootstrap?.Toast) {
+      const el = document.createElement("div");
+      el.className = `toast align-items-center border ${isError ? "text-bg-danger" : "text-bg-success"}`;
+      el.setAttribute("role", "alert");
+      el.setAttribute("aria-live", "assertive");
+      el.setAttribute("aria-atomic", "true");
+      el.innerHTML = `<div class="d-flex"><div class="toast-body"></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
+      el.querySelector(".toast-body").textContent = message;
+      container.appendChild(el);
+      const toast = window.bootstrap.Toast.getOrCreateInstance(el, { delay: 3500 });
+      el.addEventListener("hidden.bs.toast", () => el.remove());
+      toast.show();
+      return;
+    }
+  } catch (_) {}
+  try {
+    const statusMsg = document.getElementById("status-message");
+    if (statusMsg) statusMsg.textContent = message;
+  } catch (_) {}
+  if (isError) console.warn(message);
+  else console.log(message);
+}
+
 export function initComparisonModal() {
   const modalEl = document.getElementById("image-comparison-modal");
   if (!modalEl) return;
@@ -348,15 +377,29 @@ export function initComparisonModal() {
     btnExport.addEventListener("click", async () => {
       if (!currentResultPath) return;
       try {
-        const dest = await window.__TAURI__?.core?.invoke("pick_file", {
-          saveMode: true,
-          defaultPath: currentResultPath.split(/[/\\]/).pop(),
-        });
-        if (dest) {
-          showToast("Saved image successfully");
+        if (window.__TAURI__?.core?.invoke) {
+          const suggested = currentResultPath.split(/[/\\]/).pop() || "image.png";
+          const dest = await window.__TAURI__.core.invoke("save_image_as", {
+            sourcePath: currentResultPath,
+            suggestedName: suggested,
+          });
+          // dest is null when the user cancels the save dialog.
+          if (dest) {
+            showComparisonToast("Saved image successfully");
+          }
+        } else {
+          // Browser fallback: trigger a download via anchor element.
+          const a = document.createElement("a");
+          a.href = currentResultSrc;
+          a.download = currentResultPath.split(/[/\\]/).pop() || "image.png";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          showComparisonToast("Saved image successfully");
         }
       } catch (err) {
         console.warn("Save image error:", err);
+        showComparisonToast(`Save failed: ${err?.message || err}`, true);
       }
     });
   }
@@ -364,12 +407,44 @@ export function initComparisonModal() {
   // Copy Result Image
   if (btnCopy) {
     btnCopy.addEventListener("click", async () => {
-      if (!currentResultPath) return;
+      if (!currentResultPath && !currentResultSrc) return;
       try {
-        // Fallback or Tauri clipboard invocation
-        showToast("Copied to clipboard");
+        // Resolve the image bytes (fresh convertFileSrc first so the
+        // cache-buster query never breaks the asset protocol fetch).
+        let blob = null;
+        const candidates = [];
+        if (window.__TAURI__?.core?.convertFileSrc && currentResultPath) {
+          try {
+            candidates.push(window.__TAURI__.core.convertFileSrc(currentResultPath));
+          } catch (_) {}
+        }
+        if (currentResultSrc) candidates.push(currentResultSrc);
+        for (const url of candidates) {
+          for (const attempt of [url, url.split("?")[0]]) {
+            try {
+              const res = await fetch(attempt);
+              if (!res.ok) continue;
+              const b = await res.blob();
+              if (b && b.size > 0) {
+                blob = b;
+                break;
+              }
+            } catch (_) {}
+          }
+          if (blob) break;
+        }
+        if (blob && window.ClipboardItem && navigator.clipboard?.write) {
+          await navigator.clipboard.write([new ClipboardItem({ [blob.type || "image/png"]: blob })]);
+          showComparisonToast("Copied to clipboard");
+        } else if (navigator.clipboard?.writeText && currentResultPath) {
+          await navigator.clipboard.writeText(currentResultPath);
+          showComparisonToast("Copied file path to clipboard");
+        } else {
+          throw new Error("Clipboard unavailable");
+        }
       } catch (err) {
         console.warn("Copy error:", err);
+        showComparisonToast(`Copy failed: ${err?.message || err}`, true);
       }
     });
   }

@@ -286,6 +286,47 @@ def get_execution_providers(device="auto"):
 
     return selected_providers
 
+def cv2_imread_unicode(path, flags=None):
+    """
+    Unicode-safe replacement for cv2.imread on Windows.
+    OpenCV's C++ file I/O does not support non-ASCII paths on Windows,
+    returning None for files with accented/foreign/emoji characters.
+    Reads raw bytes via wide-char-safe I/O then decodes from memory.
+    Returns None (like cv2.imread) when the image cannot be decoded.
+    """
+    import cv2
+    import numpy as np
+    try:
+        if flags is None:
+            flags = cv2.IMREAD_COLOR
+        raw = np.fromfile(path, dtype=np.uint8)
+        if raw is None or raw.size == 0:
+            return None
+        return cv2.imdecode(raw, flags)
+    except Exception:
+        return None
+
+
+def cv2_imwrite_unicode(path, img, params=None):
+    """
+    Unicode-safe replacement for cv2.imwrite on Windows.
+    Encodes to memory then writes via wide-char-safe I/O.
+    Returns True on success, False otherwise.
+    """
+    import cv2
+    ext = os.path.splitext(path)[1]
+    if not ext:
+        ext = ".png"
+    try:
+        ok, buf = cv2.imencode(ext, img, params if params is not None else [])
+        if not ok:
+            return False
+        buf.tofile(path)
+        return True
+    except Exception:
+        return False
+
+
 def safe_save_file(data, output_path, input_path=None, is_cv2=False):
     """
     Safely writes output to disk, supporting in-place atomic replacement when output_path == input_path.
@@ -306,9 +347,24 @@ def safe_save_file(data, output_path, input_path=None, is_cv2=False):
         target_path = output_path + ".tmp_anedikit"
 
     if is_cv2:
-        import cv2
-        cv2.imwrite(target_path, data)
+        if not cv2_imwrite_unicode(target_path, data):
+            raise IOError(f"Failed to write image file: {target_path}")
     elif hasattr(data, "save"):
+        # Defensive: JPEG cannot store alpha; composite instead of crashing
+        # with OSError: cannot write mode RGBA as JPEG.
+        try:
+            mode = getattr(data, "mode", None)
+            ext = os.path.splitext(target_path)[1].lower()
+            if mode in ("RGBA", "LA", "PA") and ext in (".jpg", ".jpeg"):
+                from PIL import Image as _Image
+                matte = _Image.new("RGB", data.size, (255, 255, 255))
+                try:
+                    matte.paste(data.convert("RGB"), mask=data.split()[-1])
+                except Exception:
+                    matte = data.convert("RGB")
+                data = matte
+        except Exception:
+            pass
         data.save(target_path)
     elif isinstance(data, str):
         with open(target_path, "w", encoding="utf-8") as f:
@@ -432,7 +488,7 @@ def cmd_bg_remover(args_json):
     if not rembg_success:
         import cv2
         import numpy as np
-        cv_img = cv2.imread(input_path, cv2.IMREAD_COLOR)
+        cv_img = cv2_imread_unicode(input_path, cv2.IMREAD_COLOR)
         if cv_img is not None:
             mask = np.zeros(cv_img.shape[:2], np.uint8)
             bgdModel = np.zeros((1, 65), np.float64)
@@ -564,6 +620,30 @@ def cmd_bg_remover(args_json):
         final_img = fg_image
 
     log_progress(90, f"Saving result to: {os.path.basename(output_path)}")
+    # JPEG has no alpha channel: PIL raises OSError saving RGBA as JPEG.
+    # This happens with transparent mode + "Replace Source" on a .jpg input.
+    ext = os.path.splitext(output_path)[1].lower()
+    if ext in (".jpg", ".jpeg") and final_img.mode in ("RGBA", "LA", "PA"):
+        try:
+            is_replace = os.path.abspath(output_path).lower() == os.path.abspath(input_path).lower()
+        except Exception:
+            is_replace = False
+        if output_mode == "transparent" and not is_replace:
+            # Preserve transparency by forcing a PNG destination.
+            base, _ = os.path.splitext(output_path)
+            output_path = base + ".png"
+            log_progress(90, "Transparent output forced to PNG to preserve alpha channel.")
+        else:
+            # In-place replace must keep the JPEG container: composite onto
+            # a white matte and save as RGB.
+            matte = Image.new("RGB", final_img.size, (255, 255, 255))
+            try:
+                alpha = final_img.split()[-1]
+                matte.paste(final_img.convert("RGB"), mask=alpha)
+            except Exception:
+                matte = final_img.convert("RGB")
+            final_img = matte
+            log_progress(90, "Composited transparent result onto white matte for JPEG output.")
     safe_save_file(final_img, output_path, input_path=input_path)
     log_progress(100, "Background removal completed successfully")
     return {"success": True, "output_path": output_path}
@@ -665,7 +745,7 @@ def cmd_vectorizer(args_json):
     import cv2
     import numpy as np
 
-    img = cv2.imread(input_path, cv2.IMREAD_UNCHANGED)
+    img = cv2_imread_unicode(input_path, cv2.IMREAD_UNCHANGED)
     if img is None:
         raise ValueError("Could not load image file.")
 
@@ -836,7 +916,7 @@ def cmd_restore_denoise(args_json):
     if cv2.ocl.haveOpenCL():
         cv2.ocl.setUseOpenCL(device.lower() != "cpu")
 
-    img = cv2.imread(input_path, cv2.IMREAD_UNCHANGED)
+    img = cv2_imread_unicode(input_path, cv2.IMREAD_UNCHANGED)
     if img is None:
         raise ValueError("Failed to load image file.")
 
@@ -978,9 +1058,22 @@ def cmd_metadata_cleaner(args_json):
     tag_count = len(exif_data) if exif_data else 0
 
     log_progress(60, f"Stripping {tag_count} metadata tags and privacy markers...")
-    data = list(img.getdata())
-    clean_img = Image.new(img.mode, img.size)
-    clean_img.putdata(data)
+    # Copy pixels at C level instead of list(img.getdata()) + putdata().
+    # The list form materializes one Python tuple per pixel (12-48M objects
+    # for high-res photos -> 2-4 GB RAM and MemoryError). copy() stays in
+    # native buffers and preserves mode/palette exactly.
+    clean_img = img.copy()
+    # Drop metadata containers so save() writes pixels only (no EXIF/GPS/ICC).
+    try:
+        clean_img.info.clear()
+    except Exception:
+        pass
+    try:
+        exif = clean_img.getexif()
+        if exif:
+            exif.clear()
+    except Exception:
+        pass
 
     log_progress(90, f"Saving clean metadata image to: {os.path.basename(output_path)}")
     safe_save_file(clean_img, output_path, input_path=input_path)

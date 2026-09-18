@@ -26,17 +26,19 @@ import {
   initImageLightbox,
   clearAllMediaPreviewCaches,
 } from "./js/media.js";
-import { buildCommandForTool, setDetectedHardware } from "./js/commands.js";
+import { buildCommandForTool, setDetectedHardware, getCachedMediaProbe, setCachedMediaProbe } from "./js/commands.js";
 import {
   executeFfmpegJob,
   executeBatchQueue,
   cancelFfmpegJob,
   isJobRunning,
+  isCancelRequested,
+  resetCancelFlag,
   initJobRunner,
 } from "./js/runner.js";
 import { initNavigation, getCurrentActiveTool, TOOL_METADATA, attachFluentRipple, animateQueueHeight } from "./js/navigation.js";
 import { animateCopyConfirm } from "./js/copy_anim.js";
-import { initToolsManager } from "./js/tools_manager.js";
+import { initToolsManager, checkToolsBeforeExecution, refreshToolsUI } from "./js/tools_manager.js";
 import { initThemeManager } from "./js/theme.js";
 import { initComparisonModal, openComparisonModal, setComparisonShimmer } from "./js/comparison.js";
 import { initYtDlpFormatEditor } from "./js/ytdlp_format.js";
@@ -596,6 +598,15 @@ export function updateExecuteButtonState() {
   const queue = getBatchQueue();
   let canExecute = false;
 
+  const isImageAiTool = [
+    "bg_remover",
+    "ai_upscaler",
+    "vectorizer",
+    "restore_denoise",
+    "icon_generator",
+    "metadata_cleaner",
+  ].includes(activeTool);
+
   if (activeTool === "ytdlp_playlist") {
     const isUrlChanged = currentUrl !== fetchedPlaylistUrl;
     if (playlistVideos.length === 0 || isUrlChanged) {
@@ -612,6 +623,13 @@ export function updateExecuteButtonState() {
   } else if (activeTool.startsWith("ytdlp_")) {
     btnExecute.textContent = "Download";
     canExecute = currentUrl.length > 0;
+  } else if (isImageAiTool) {
+    // Image AI tools take input exclusively from imageAiQueue while the
+    // primary input card is hidden -- currentInput stays empty by design.
+    const imgQueue = typeof getImageAiQueue === "function" ? getImageAiQueue() : [];
+    const imgCount = imgQueue ? imgQueue.length : 0;
+    btnExecute.textContent = imgCount > 1 ? `Execute (${imgCount})` : "Execute";
+    canExecute = imgCount > 0;
   } else if (queue && queue.length > 1 && activeTool !== "merge" && activeTool !== "settings") {
     btnExecute.textContent = `Execute (${queue.length})`;
     canExecute = !!(currentInput && currentInput.trim().length > 0);
@@ -641,7 +659,9 @@ export function updateExecuteButtonState() {
             ? "Add at least 2 files to merge"
             : activeTool === "custom"
               ? "Enter custom arguments to execute"
-              : "Select a file to execute operation",
+              : isImageAiTool
+                ? "Add images to the queue to execute operation"
+                : "Select a file to execute operation",
     );
   } else {
     btnExecute.setAttribute(
@@ -650,7 +670,7 @@ export function updateExecuteButtonState() {
         ? "Execute current User Kit"
         : activeTool === "ytdlp_playlist"
           ? (playlistVideos.length > 0 ? "Download selected playlist videos" : "Fetch videos from playlist URL")
-          : activeTool.startsWith("ytdlp_") ? "Start download task" : "Run processing operation",
+          : activeTool.startsWith("ytdlp_") ? "Start download task" : isImageAiTool ? `Run image processing queue (${(typeof getImageAiQueue === "function" ? getImageAiQueue().length : 0)})` : "Run processing operation",
     );
   }
 }
@@ -1787,6 +1807,12 @@ function bindFormEvents() {
       if (isJobRunning()) {
         cancelFfmpegJob();
       } else {
+        // Verify required tools are installed before running any task
+        const toolsReady = await checkToolsBeforeExecution();
+        if (!toolsReady) {
+          return;
+        }
+
         const activeTool = getCurrentActiveTool();
 
         if (activeTool.startsWith("kit_")) {
@@ -1827,8 +1853,17 @@ function bindFormEvents() {
             }
           }
 
+          // Clear any stale cancellation from a previous run so the
+          // isCancelRequested() checks below only fire for this batch.
+          resetCancelFlag();
+
           for (let i = 0; i < imgQueue.length; i++) {
             const item = imgQueue[i];
+
+            // Stop the whole batch when the user cancels -- otherwise Cancel
+            // only aborts the active item and the loop advances to the next one,
+            // forcing one click per queued image.
+            if (isCancelRequested()) break;
 
             // Automatically check and skip non-existent files
             if (window.__TAURI__?.core?.invoke && item.path) {
@@ -1845,11 +1880,23 @@ function bindFormEvents() {
 
             updateImageAiItemStatus(i, "processing");
             const cmdObj = buildCommandForTool(activeTool, item.path, appSettings.outputDir, appSettings);
-            if (!cmdObj) continue;
+            if (!cmdObj) {
+              if (isCancelRequested()) break;
+              continue;
+            }
             const success = await executeFfmpegJob(cmdObj, 1.0);
+            if (isCancelRequested()) {
+              // Leave the interrupted item re-runnable instead of failed.
+              updateImageAiItemStatus(i, "pending");
+              break;
+            }
             if (success) {
               updateImageAiItemStatus(i, "done", cmdObj.destination);
-              openComparisonModal(item.path, cmdObj.destination, TOOL_METADATA[activeTool]?.title || "Enhanced Image");
+              // Only pop the comparison modal for single-item runs. In
+              // multi-item batches the modals would stack and freeze the UI.
+              if (imgQueue.length === 1) {
+                openComparisonModal(item.path, cmdObj.destination, TOOL_METADATA[activeTool]?.title || "Enhanced Image");
+              }
             } else {
               updateImageAiItemStatus(i, "error");
             }
@@ -1867,7 +1914,9 @@ function bindFormEvents() {
           let concatPath = null;
           if (window.__TAURI__?.core?.invoke && mergeFiles && mergeFiles.length > 0) {
             try {
-              const lines = mergeFiles.map((f) => `file '${f.replace(/'/g, "'\\''")}'`);
+              // FFmpeg concat demuxer treats backslash as an escape character,
+              // so Windows paths must use forward slashes.
+              const lines = mergeFiles.map((f) => `file '${f.replace(/\\/g, "/").replace(/'/g, "'\\''")}'`);
               const content = lines.join("\n");
               concatPath = await window.__TAURI__.core.invoke("write_temp_text_file", {
                 filename: `anedikit_concat_${Date.now()}.txt`,
@@ -2160,6 +2209,32 @@ function bindFormEvents() {
 
 function renderMergeList() {
   animateQueueHeight(document.getElementById("merge-file-list"), renderMergeListInner);
+  probeMergeFilesAudio();
+}
+
+// Fire-and-forget audio/duration probing for merge inputs so the merge
+// command builder can adapt its filtergraph to silent clips. Results land in
+// the shared probe cache (commands.js); the preview rebuilds once known.
+let mergeProbeRun = 0;
+async function probeMergeFilesAudio() {
+  if (!window.__TAURI__?.core?.invoke || mergeFiles.length === 0) return;
+  const run = ++mergeProbeRun;
+  let changed = false;
+  for (const f of mergeFiles) {
+    if (run !== mergeProbeRun) return;
+    try {
+      if (getCachedMediaProbe(f)) continue;
+      const info = await window.__TAURI__.core.invoke("get_media_info", { filePath: f });
+      if (run !== mergeProbeRun) return;
+      if (info && (info.file_path || info.file_name)) {
+        setCachedMediaProbe(f, info);
+        changed = true;
+      }
+    } catch (_) {}
+  }
+  if (changed && run === mergeProbeRun && getCurrentActiveTool() === "merge") {
+    updateCommandPreview();
+  }
 }
 
 function renderMergeListInner() {
@@ -2459,7 +2534,7 @@ function initCaptionControls() {
     if (e.button !== 0) return;
     const header = e.target?.closest?.(".modal-header");
     if (!header || !header.closest(".modal.show")) return;
-    if (e.target.closest("button, a, input, select, textarea, [role=\"button\"]")) return;
+    if (e.target.closest("button, a, input, select, textarea, [role=\"button\"], #manage-tools-modal, .sheet-header, [data-tauri-drag-region=\"false\"]")) return;
     const win = getTauriWindow();
     if (win && typeof win.startDragging === "function") {
       win.startDragging().catch((err) => {
@@ -2588,6 +2663,17 @@ document.addEventListener("DOMContentLoaded", () => {
     updateAutoOutputFilename(true);
     updateCommandPreview();
   });
+  // A probe finishing after the preview was built can change stream-copy
+  // containers and audio/video handling: rebuild the preview for the file
+  // that was just probed when it is still the current input.
+  window.addEventListener("anedikit:media_probed", (e) => {
+    try {
+      const probed = e?.detail?.filePath;
+      if (probed && probed === getCurrentInputFile()) {
+        updateCommandPreview();
+      }
+    } catch (_) {}
+  });
   async function tryAutoPasteYtDlpUrl() {
     if (appSettings.ytdlpAutoPaste === false) return;
     const currentTool = getCurrentActiveTool();
@@ -2642,6 +2728,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (toolId && toolId.startsWith("ytdlp_")) {
       tryAutoPasteYtDlpUrl();
+    }
+    if (toolId === "settings") {
+      refreshToolsUI();
     }
     syncFormatSpecificUI();
     updateAutoOutputFilename();

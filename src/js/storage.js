@@ -15,6 +15,7 @@ export const STORAGE_KEYS = {
   YTDLP_FILENAME_FORMAT: "anedikit:tools:ytdlp:filename_format",
   SCRIPT_THEME: "anedikit:settings:script_theme",
   ACTIVE_KIT_TAB_PREFIX: "anedikit:settings:active_kit_tab:",
+  FIRST_START_CHECKED: "anedikit:system:first_start_checked",
 };
 
 export const DEFAULT_SETTINGS = {
@@ -82,17 +83,26 @@ export function saveActiveTool(toolId) {
   }
 }
 
+function decodeFileUrlOnly(value) {
+  // Only percent-decode file:// URLs. Plain paths with literal '%' are
+  // returned verbatim to avoid corrupting names like `Promo_100%_Final.mp4`.
+  if (typeof value !== "string" || !value.trim().startsWith("file://")) {
+    return value;
+  }
+  let p = value.trim().slice("file://".length);
+  if (p.startsWith("localhost/")) p = p.slice("localhost/".length);
+  else if (p.startsWith("localhost")) p = p.slice("localhost".length);
+  if (/^\/[A-Za-z][:|]/.test(p)) {
+    p = p.slice(1).replace(/^([A-Za-z])\|/, "$1:");
+  }
+  return decodeURIComponent(p);
+}
+
 export function getSavedInputFile() {
   const raw = localStorage.getItem(STORAGE_KEYS.LAST_INPUT_FILE) || "";
   if (!raw) return "";
   try {
-    let clean = raw;
-    if (clean.includes("%") || clean.startsWith("file://")) {
-      if (clean.startsWith("file:///")) clean = clean.slice(8);
-      else if (clean.startsWith("file://")) clean = clean.slice(7);
-      clean = decodeURIComponent(clean);
-    }
-    return clean;
+    return decodeFileUrlOnly(raw);
   } catch (_) {
     return raw;
   }
@@ -100,12 +110,7 @@ export function getSavedInputFile() {
 
 export function saveInputFile(path) {
   try {
-    let clean = path || "";
-    if (clean.includes("%") || clean.startsWith("file://")) {
-      if (clean.startsWith("file:///")) clean = clean.slice(8);
-      else if (clean.startsWith("file://")) clean = clean.slice(7);
-      clean = decodeURIComponent(clean);
-    }
+    const clean = decodeFileUrlOnly(path || "");
     localStorage.setItem(STORAGE_KEYS.LAST_INPUT_FILE, clean);
   } catch (err) {
     console.warn("Failed to save input file:", err);
@@ -148,11 +153,7 @@ export function loadSavedBatchQueue() {
       .map((item) => {
         let p = item.path;
         try {
-          if (p.includes("%") || p.startsWith("file://")) {
-            if (p.startsWith("file:///")) p = p.slice(8);
-            else if (p.startsWith("file://")) p = p.slice(7);
-            p = decodeURIComponent(p);
-          }
+          p = decodeFileUrlOnly(p);
         } catch (_) {}
         return {
           ...item,
@@ -360,6 +361,24 @@ export function saveKitActiveTab(kitId, tabName) {
     console.warn(`Failed to save active tab for kit ${kitId}:`, err);
   }
 }
+
+export function isFirstStart() {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.FIRST_START_CHECKED) === null;
+  } catch (err) {
+    console.warn("Failed to check first start status:", err);
+    return false;
+  }
+}
+
+export function markFirstStartChecked() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.FIRST_START_CHECKED, "true");
+  } catch (err) {
+    console.warn("Failed to save first start checked status:", err);
+  }
+}
+
 
 
 

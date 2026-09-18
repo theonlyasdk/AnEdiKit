@@ -18,6 +18,14 @@ export function isBatchJobActive() {
   return isBatchRunning;
 }
 
+export function isCancelRequested() {
+  return batchCancelRequested;
+}
+
+export function resetCancelFlag() {
+  batchCancelRequested = false;
+}
+
 export function setControlsDisabledState(disabled) {
   const elements = document.querySelectorAll(
     "#tool-workspace input, #tool-workspace select, #btn-reset",

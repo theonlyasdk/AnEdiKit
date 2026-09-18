@@ -45,7 +45,18 @@ export function buildBgRemoverCommand(inputFile, outputDir, settings = {}) {
   const device = settings.hwAccel || "auto";
 
   const defaultOut = `${baseName}_nobg.png`;
-  const dst = shouldReplace ? src : resolveImageAiDestinationPath(defaultOut, settings, src);
+  // Transparent output carries an alpha channel which JPEG cannot store.
+  // Forcing a .png destination avoids OSError: cannot write mode RGBA as JPEG.
+  let dst;
+  if (shouldReplace) {
+    if (outputMode === "transparent" && /\.jpe?g$/i.test(src)) {
+      dst = src.replace(/\.[^/.]+$/, ".png");
+    } else {
+      dst = src;
+    }
+  } else {
+    dst = resolveImageAiDestinationPath(defaultOut, settings, src);
+  }
 
   const fakeTileSize = parseInt(document.getElementById("fake-grid-tile-size")?.value || "0", 10) || 0;
   const fakeGridTolerance = parseFloat(document.getElementById("fake-grid-tolerance")?.value || "14") || 14;
