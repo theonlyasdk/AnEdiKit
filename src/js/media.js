@@ -5,10 +5,11 @@ import {
   saveBatchQueue,
   loadSavedImageAiQueue,
   saveImageAiQueue,
+  loadSettings,
 } from "./storage.js";
 import { generateWaveformFromSource, renderWaveformToCanvas, clearWaveformCache } from "./waveform.js";
 import { setCachedMediaProbe } from "./commands.js";
-import { mediaPreviewManager } from "./preview_providers.js";
+import { mediaPreviewManager, setMediaSrc } from "./preview_providers.js";
 import { sharedPlaybackController, MediaPlaybackController } from "./playback.js";
 import {
   refreshWaveformDisplay,
@@ -39,6 +40,43 @@ export function getCurrentMediaInfo() {
   return currentMediaInfo;
 }
 
+/**
+ * Central preview-visibility invariant: when the "show media preview"
+ * setting is off, the preview column/card are hidden immediately (and media
+ * paused), no matter which path refreshes the UI (toggle, probe, tool
+ * switch). Re-enabling re-renders the current media.
+ */
+export function applyMediaPreviewVisibility() {
+  const show = loadSettings().showMediaPreview !== false;
+  if (show) {
+    updateMetadataDisplay(getCurrentMediaInfo());
+    return;
+  }
+  const previewCol = document.getElementById("media-preview-col");
+  const previewCard = document.getElementById("media-preview-card");
+  const inputsCol = document.getElementById("media-inputs-col");
+  const videoEl = document.getElementById("media-video-preview");
+  const audioEl = document.getElementById("media-audio-preview");
+  if (videoEl) {
+    try {
+      videoEl.pause();
+    } catch (_) {}
+    setMediaSrc(videoEl, null);
+  }
+  if (audioEl) {
+    try {
+      audioEl.pause();
+    } catch (_) {}
+    setMediaSrc(audioEl, null);
+  }
+  if (inputsCol) inputsCol.className = "col-12";
+  if (previewCol) {
+    previewCol.classList.remove("d-flex", "preview-slide-in");
+    previewCol.classList.add("d-none");
+  }
+  if (previewCard) previewCard.classList.add("d-none");
+}
+
 export function showMetadataLoading(filePath) {
   const metaInfo = document.getElementById("input-meta-info");
   const pathInput = document.getElementById("input-file-path");
@@ -55,7 +93,9 @@ export function showMetadataLoading(filePath) {
     pathInput.value = filePath || "";
   }
 
-  if (filePath) {
+  const showPreview = loadSettings().showMediaPreview !== false;
+
+  if (filePath && showPreview) {
     const ext = filePath.split(".").pop().toLowerCase();
     const isImage = ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif", "svg", "ico", "avif", "heic"].includes(ext);
     const isAudio = !isImage && ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "alac", "aiff"].includes(ext);
@@ -86,6 +126,13 @@ export function showMetadataLoading(filePath) {
         previewCard.classList.add("video-mode");
       }
     }
+  } else {
+    if (inputsCol) inputsCol.className = "col-12";
+    if (previewCol) {
+      previewCol.classList.remove("d-flex", "preview-slide-in");
+      previewCol.classList.add("d-none");
+    }
+    if (previewCard) previewCard.classList.add("d-none");
   }
 
   if (metaInfo) {
@@ -525,7 +572,9 @@ export function updateMetadataDisplay(info) {
     pathInput.value = info ? info.file_path || currentInputFile : "";
   }
 
-  if (info && info.file_path) {
+  const showPreview = loadSettings().showMediaPreview !== false;
+
+  if (info && info.file_path && showPreview) {
     const ext = (info.file_name || info.file_path).split(".").pop().toLowerCase();
     const isImage = ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg", "ico"].includes(ext);
     const isAudio =
@@ -630,11 +679,11 @@ export function updateMetadataDisplay(info) {
     }
     if (videoEl) {
       videoEl.pause();
-      videoEl.removeAttribute("src");
+      setMediaSrc(videoEl, null);
     }
     if (audioEl) {
       audioEl.pause();
-      audioEl.removeAttribute("src");
+      setMediaSrc(audioEl, null);
     }
   }
 
@@ -669,6 +718,12 @@ export function updateMetadataDisplay(info) {
 
 export function syncVideoPreviewForActiveTool(toolId) {
   if (!currentMediaInfo) return;
+  // Disabled previews stay hidden across tool switches: layer toggles below
+  // would otherwise resurface the card without its column.
+  if (loadSettings().showMediaPreview === false) {
+    applyMediaPreviewVisibility();
+    return;
+  }
   const previewCard = document.getElementById("media-preview-card");
   const videoEl = document.getElementById("media-video-preview");
   const actionFrameImg = document.getElementById("video-action-frame-img");
@@ -891,8 +946,10 @@ export async function removeBatchItem(index) {
       if (selectedBatchIdx >= batchQueue.length) {
         selectedBatchIdx = batchQueue.length - 1;
       }
+      // Debounced like selection clicks: rapid deletes collapse into one
+      // probe, and the list re-renders immediately instead of waiting.
       if (wasActive || !currentInputFile) {
-        await probeMedia(batchQueue[selectedBatchIdx >= 0 ? selectedBatchIdx : 0].path);
+        requestBatchItemProbePath(batchQueue[selectedBatchIdx >= 0 ? selectedBatchIdx : 0].path);
       }
     }
     renderBatchQueueUI();
@@ -965,6 +1022,31 @@ export function updateBatchItemStatus(index, status) {
     saveBatchQueue(batchQueue);
     renderBatchQueueUI();
   }
+}
+
+// Selection highlight is applied synchronously by the click handler, but the
+// probe cascade (ffprobe + thumbnails + waveform + preview rebuild) is
+// debounced: rapid clicks across items collapse into a single cascade for
+// the settled item instead of piling up overlapping work.
+let batchProbeTimer = null;
+
+function scheduleBatchProbe(getPath) {
+  clearTimeout(batchProbeTimer);
+  batchProbeTimer = setTimeout(() => {
+    batchProbeTimer = null;
+    try {
+      const filePath = typeof getPath === "function" ? getPath() : getPath;
+      if (filePath) probeMedia(filePath);
+    } catch (_) {}
+  }, 120);
+}
+
+export function requestBatchItemProbe(idx) {
+  scheduleBatchProbe(() => (idx >= 0 && idx < batchQueue.length ? batchQueue[idx].path : null));
+}
+
+export function requestBatchItemProbePath(filePath) {
+  scheduleBatchProbe(filePath);
 }
 
 export function renderBatchQueueUI() {
@@ -1123,9 +1205,12 @@ function renderBatchQueueUIInner() {
         }
       });
 
-      // Asynchronously probe media in background without blocking UI
+      // Asynchronously probe media in background without blocking UI.
+      // Debounced: fast successive clicks only probe the settled item.
+      // The path is captured now so queue edits during the delay can't
+      // redirect the probe to a different file.
       if (idx >= 0 && idx < batchQueue.length) {
-        probeMedia(batchQueue[idx].path);
+        requestBatchItemProbePath(batchQueue[idx].path);
       }
     });
   });
@@ -1162,7 +1247,7 @@ function setupBatchQueueItemDrag(itemEl, dragHandle, index, listContainer) {
         if (selectedBatchIdx >= 0 && selectedBatchIdx < batchQueue.length) {
           const activePath = batchQueue[selectedBatchIdx].path;
           if (activePath && activePath !== currentInputFile) {
-            probeMedia(activePath);
+            requestBatchItemProbePath(activePath);
           }
         }
       }
@@ -1194,6 +1279,18 @@ export function initDragAndDrop(onFileSelected) {
     const mergeDropLabel = document.getElementById("merge-drop-label");
     if (mergeEmptyMsg) mergeEmptyMsg.classList.add("image-drop-active");
     if (mergeDropLabel) mergeDropLabel.textContent = "Drop here to import";
+
+    const audioEmptyMsg = document.getElementById("audio-tag-empty-msg");
+    const audioDropLabel = document.getElementById("audio-tag-drop-label");
+    if (audioEmptyMsg) audioEmptyMsg.classList.add("image-drop-active");
+    if (audioDropLabel) audioDropLabel.textContent = "Drop here to import";
+
+    const audioQueueList = document.querySelector("#audio-tag-queue-list .audio-queue-conjoined-list");
+    if (audioQueueList) {
+      import("./audio_tags.js").then(({ showQueueDragOverlay }) => {
+        showQueueDragOverlay(audioQueueList);
+      }).catch(() => {});
+    }
 
     const placeholder = document.getElementById("image-queue-drop-placeholder");
     if (placeholder) {
@@ -1227,6 +1324,18 @@ export function initDragAndDrop(onFileSelected) {
     const mergeDropLabel = document.getElementById("merge-drop-label");
     if (mergeEmptyMsg) mergeEmptyMsg.classList.remove("image-drop-active");
     if (mergeDropLabel) mergeDropLabel.textContent = "Drop media files here or click to select";
+
+    const audioEmptyMsg = document.getElementById("audio-tag-empty-msg");
+    const audioDropLabel = document.getElementById("audio-tag-drop-label");
+    if (audioEmptyMsg) audioEmptyMsg.classList.remove("image-drop-active");
+    if (audioDropLabel) audioDropLabel.textContent = "Drop audio files here or click to select";
+
+    const audioQueueList = document.querySelector("#audio-tag-queue-list .audio-queue-conjoined-list");
+    if (audioQueueList) {
+      import("./audio_tags.js").then(({ hideQueueDragOverlay }) => {
+        hideQueueDragOverlay(audioQueueList);
+      }).catch(() => {});
+    }
 
     const placeholder = document.getElementById("image-queue-drop-placeholder");
     if (placeholder) {
@@ -1290,7 +1399,7 @@ export function initDragAndDrop(onFileSelected) {
         (f) => f.path || f.name || "",
       ).filter(Boolean);
 
-      const activeTool = document.querySelector("#tool-nav .nav-link.active, #image-ai-nav .nav-link.active")?.dataset?.tool;
+      const activeTool = document.querySelector("#ytdlp-nav .nav-link.active, #tool-nav .nav-link.active, #image-ai-nav .nav-link.active")?.dataset?.tool;
       const isImageTool = [
         "bg_remover",
         "ai_upscaler",
@@ -1302,6 +1411,9 @@ export function initDragAndDrop(onFileSelected) {
 
       if (isImageTool) {
         await addImageFilesToQueue(filePaths);
+      } else if (activeTool === "audio_tags") {
+        const { addAudioFilesToQueue } = await import("./audio_tags.js");
+        await addAudioFilesToQueue(filePaths);
       } else {
         await addFilesToBatch(filePaths);
         if (onFileSelected) onFileSelected(currentMediaInfo);
@@ -1325,7 +1437,7 @@ export function initDragAndDrop(onFileSelected) {
           } else if (event.payload.type === "drop") {
             deactivatePulse();
             if (event.payload.paths && event.payload.paths.length > 0) {
-              const activeTool = document.querySelector("#tool-nav .nav-link.active, #image-ai-nav .nav-link.active")?.dataset?.tool;
+              const activeTool = document.querySelector("#ytdlp-nav .nav-link.active, #tool-nav .nav-link.active, #image-ai-nav .nav-link.active")?.dataset?.tool;
               const isImageTool = [
                 "bg_remover",
                 "ai_upscaler",
@@ -1337,6 +1449,9 @@ export function initDragAndDrop(onFileSelected) {
 
               if (isImageTool) {
                 await addImageFilesToQueue(event.payload.paths);
+              } else if (activeTool === "audio_tags") {
+                const { addAudioFilesToQueue } = await import("./audio_tags.js");
+                await addAudioFilesToQueue(event.payload.paths);
               } else {
                 await addFilesToBatch(event.payload.paths);
                 if (onFileSelected) onFileSelected(currentMediaInfo);

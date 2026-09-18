@@ -1,6 +1,7 @@
 // Navigation & View Transitions Module
 import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings, getUserKitById } from "./storage.js";
 import { isJobRunning } from "./runner.js";
+import { cancelAudioMetadataLoading } from "./audio_tags.js";
 
 export const TOOL_METADATA = {
   convert: {
@@ -52,6 +53,11 @@ export const TOOL_METADATA = {
     title: "Compress Audio",
     desc: "Reduce audio file sizes for voice notes, podcasts, Discord, WhatsApp, or email attachments with Opus, MP3, and AAC codecs.",
     viewId: "view-compress_audio",
+  },
+  audio_tags: {
+    title: "Audio Tag & Metadata Editor",
+    desc: "Edit ID3 tags (title, artist, album, genre, year, track number) and embed custom cover artwork into MP3, M4A, FLAC, and OGG files.",
+    viewId: "view-audio_tags",
   },
   merge: {
     title: "Merge and Concatenate",
@@ -131,17 +137,23 @@ export const TOOL_METADATA = {
 };
 
 const TOOL_ORDER = [
+  "ytdlp_audio",
+  "ytdlp_video",
+  "ytdlp_playlist",
+  "ytdlp_subtitles",
   "convert",
   "compress",
   "trim",
   "speed_motion",
   "aspect_crop",
   "stabilize",
+  "loop_duration",
   "normalize",
   "mute_replace",
   "gif_frames",
   "extract_audio",
   "compress_audio",
+  "audio_tags",
   "merge",
   "custom",
   "bg_remover",
@@ -150,14 +162,11 @@ const TOOL_ORDER = [
   "restore_denoise",
   "icon_generator",
   "metadata_cleaner",
-  "ytdlp_audio",
-  "ytdlp_video",
-  "ytdlp_playlist",
-  "ytdlp_subtitles",
   "settings",
 ];
 
 let currentActiveTool = "convert";
+let currentActiveViewEl = null;
 
 export function getCurrentActiveTool() {
   return currentActiveTool;
@@ -180,7 +189,7 @@ export function updateSidebarIndicator(activeBtn) {
   sidebarIndicator.style.opacity = "1";
 }
 
-export function switchTool(toolId, onToolChanged, autoScroll = false) {
+export function switchTool(toolId, onToolChanged, autoScroll = false, instantScroll = false) {
   const isKit = typeof toolId === "string" && toolId.startsWith("kit_");
   let toolTitle = "";
   let toolDesc = "";
@@ -211,6 +220,10 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
   if (toolId === currentActiveTool) return;
   if (isJobRunning() && toolId !== "settings") return;
 
+  if (currentActiveTool === "audio_tags" && toolId !== "audio_tags") {
+    cancelAudioMetadataLoading();
+  }
+
   const prevIndex = TOOL_ORDER.indexOf(currentActiveTool);
   const nextIndex = TOOL_ORDER.indexOf(toolId);
   const movingDown = nextIndex > prevIndex;
@@ -224,30 +237,36 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
     "#tool-nav .nav-link, #image-ai-nav .nav-link, #ytdlp-nav .nav-link, #user-kits-nav .nav-link, #settings-nav .nav-link"
   );
 
+  let activeNavBtn = null;
   allToolButtons.forEach((b) => {
     if (b.dataset.tool === toolId) {
       b.classList.add("active");
-      updateSidebarIndicator(b);
-      if (autoScroll) {
-        // Use native center scrolling — respects scroll-padding and works even when offsetTop is relative to a nested <nav>
-        requestAnimationFrame(() => {
-          b.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-        });
-      }
+      activeNavBtn = b;
     } else {
       b.classList.remove("active");
     }
   });
+
+  if (activeNavBtn) {
+    updateSidebarIndicator(activeNavBtn);
+    if (autoScroll) {
+      // Wheel navigation passes instantScroll: queued "smooth" scrolls pile
+      // up and fight each other under high-rate wheels, freezing the UI.
+      // Instant scrolling just jumps, so rapid steps never queue animations.
+      const behavior = instantScroll ? "auto" : "smooth";
+      requestAnimationFrame(() => {
+        activeNavBtn.scrollIntoView({ behavior, block: "center", inline: "nearest" });
+      });
+    }
+  }
 
   // Header directional slide
   const headerContainer = document.getElementById("tool-header-text");
   const titleEl = document.getElementById("current-tool-title");
   const descEl = document.getElementById("current-tool-desc");
 
-
   if (headerContainer && titleEl && descEl) {
     headerContainer.classList.remove("slide-from-bottom", "slide-from-top");
-    void headerContainer.offsetWidth; // force reflow
 
     titleEl.textContent = toolTitle;
     titleEl.title = toolTitle;
@@ -256,40 +275,32 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
     headerContainer.title = `${toolTitle} - ${toolDesc}`;
 
     const animClass = movingDown ? "slide-from-bottom" : "slide-from-top";
+    void headerContainer.offsetWidth;
     headerContainer.classList.add(animClass);
-
-    headerContainer.addEventListener(
-      "animationend",
-      () => {
-        headerContainer.classList.remove(animClass);
-      },
-      { once: true },
-    );
   }
 
-  // Main workspace views
-  const toolViews = document.querySelectorAll(".tool-view");
-  toolViews.forEach((view) => view.classList.add("d-none"));
+  // Main workspace views: hide previous view directly, show target view
+  if (currentActiveViewEl && currentActiveViewEl.id !== targetViewId) {
+    currentActiveViewEl.classList.add("d-none");
+  } else {
+    const toolViews = document.querySelectorAll(".tool-view");
+    toolViews.forEach((view) => {
+      if (view.id !== targetViewId) view.classList.add("d-none");
+    });
+  }
 
   const targetView = document.getElementById(targetViewId);
   if (targetView) {
     targetView.classList.remove("d-none");
+    currentActiveViewEl = targetView;
   }
 
   // Workspace material zoom animation
   const workspaceContainer = document.getElementById("tool-view-container");
   if (workspaceContainer) {
     workspaceContainer.classList.remove("view-material-zoom");
-    void workspaceContainer.offsetWidth; // force reflow
+    void workspaceContainer.offsetWidth;
     workspaceContainer.classList.add("view-material-zoom");
-
-    workspaceContainer.addEventListener(
-      "animationend",
-      () => {
-        workspaceContainer.classList.remove("view-material-zoom");
-      },
-      { once: true },
-    );
   }
 
   // Toggle shared input cards (FFmpeg input file vs Image & AI queue vs yt-dlp URL input vs User Kit)
@@ -303,6 +314,7 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
     "icon_generator",
     "metadata_cleaner",
   ].includes(toolId);
+  const isAudioTags = toolId === "audio_tags";
 
   const sharedInputCard = document.getElementById("shared-input-card");
   const sharedUrlCard = document.getElementById("shared-url-card");
@@ -310,13 +322,13 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
   const cmdPreviewCard = document.getElementById("command-preview-card");
 
   if (sharedInputCard) {
-    sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings || isImageTool || isKit);
+    sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings || isImageTool || isKit || isAudioTags);
   }
   if (imageAiWorkspaceCard) {
     imageAiWorkspaceCard.classList.toggle("d-none", !isImageTool || isSettings || isKit);
   }
   if (cmdPreviewCard) {
-    cmdPreviewCard.classList.toggle("d-none", isSettings || isImageTool || isKit);
+    cmdPreviewCard.classList.toggle("d-none", isSettings || isImageTool || isKit || isAudioTags);
   }
 
   const aiReplaceSourceWrapper = document.getElementById("ai-replace-source-wrapper");
@@ -370,7 +382,7 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
 
   const statusSlot = document.getElementById("status-message");
   if (statusSlot) {
-    statusSlot.classList.toggle("d-none", toolId === "settings");
+    statusSlot.classList.toggle("d-none", toolId === "settings" || isImageTool || isAudioTags);
   }
 
   // Contextual status message for settings
@@ -384,8 +396,10 @@ export function switchTool(toolId, onToolChanged, autoScroll = false) {
           const scrollBox = document.getElementById("executables-scroll-container");
           if (scrollBox) scrollBox.dispatchEvent(new Event("scroll"));
         }, 50);
-      } else if (statusMsg.textContent === "Settings are saved automatically") {
-        statusMsg.textContent = "Ready";
+      } else if (isImageTool) {
+        statusMsg.textContent = "";
+      } else if (statusMsg.textContent === "Settings are saved automatically" || statusMsg.textContent === "Ready") {
+        statusMsg.textContent = "";
       }
     }
   }
@@ -461,7 +475,12 @@ export function attachFluentRipple(element) {
   if (!element) return;
   element.addEventListener("mousedown", (e) => {
     // If click is on a child button or control, ignore to prevent duplicate ripples
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
+      document.documentElement.classList.contains("no-animations");
+    if (reduceMotion) return;
     const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const size = Math.max(rect.width, rect.height) * 1.5;
@@ -474,9 +493,17 @@ export function attachFluentRipple(element) {
     ripple.style.top = `${y}px`;
 
     element.appendChild(ripple);
-    ripple.addEventListener("animationend", () => {
+    // animationend removes it at opacity 0; the timeout is a backstop so a
+    // missed event (hidden tab, toggled animations) can never accumulate
+    // compositor layers and wedge the UI.
+    let gone = false;
+    const remove = () => {
+      if (gone) return;
+      gone = true;
       ripple.remove();
-    });
+    };
+    ripple.addEventListener("animationend", remove);
+    setTimeout(remove, 2100);
   });
 }
 
@@ -485,8 +512,9 @@ export function attachFluentRipple(element) {
 // (opacity, clip-path, transform) — never height/width, so no per-frame
 // page reflow and no stutter under the frosted overlays.
 // The old content fades out, swaps mid-flight, then the new content blooms
-// in with a top-down clip reveal + rise. Same-state updates (row add/remove,
-// status flips) render instantly so batch progress never flickers.
+// Real box morph: crossfades between start box and end box while interpolating
+// their size (width, height), position (x, y), and corner radius.
+// Same-state updates (row add/remove, status flips) render instantly.
 // Usage: animateQueueHeight(listEl, () => { ...existing render body... }).
 export function animateQueueHeight(container, renderFn) {
   if (typeof renderFn !== "function") return;
@@ -512,71 +540,236 @@ export function animateQueueHeight(container, renderFn) {
   const isEmptyCard = () => !!container.querySelector('[id$="-empty-msg"]');
   const wasEmpty = isEmptyCard();
 
-  let finished = false;
-  let phaseTimer = 0;
-  const restore = () => {
-    container.style.opacity = "";
-    container.style.clipPath = "";
-    container.style.transform = "";
-    container.style.pointerEvents = "";
-    container.style.transition = "";
-  };
-  const finish = () => {
-    if (finished) return;
-    finished = true;
-    clearTimeout(phaseTimer);
-    container.removeEventListener("transitionend", onRevealEnd);
-    restore();
-    if (container._qhCleanup === finish) container._qhCleanup = null;
-  };
-  container._qhCleanup = finish;
+  // Snapshot the starting visual box before renderFn runs
+  const startChild = container.firstElementChild;
+  const startTarget = startChild || container;
+  const startRect = startTarget.getBoundingClientRect();
+  const startStyle = window.getComputedStyle(startTarget);
+  const startRadius = startStyle.borderRadius || "6px";
+  const startW = startRect.width;
+  const startH = startRect.height;
+  const startLeft = startRect.left;
+  const startTop = startRect.top;
 
-  // Same-state refresh: render plainly, no motion at all.
+  let cloneA = null;
+  if (startChild) {
+    cloneA = startChild.cloneNode(true);
+    cloneA.removeAttribute("id");
+    cloneA.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+    cloneA.querySelectorAll(".audio-queue-drag-overlay").forEach((el) => el.remove());
+    if (startChild.scrollTop) {
+      cloneA.scrollTop = startChild.scrollTop;
+    }
+  }
+
+  // Execute the synchronous DOM render
   renderFn();
+
   const stillEmpty = isEmptyCard();
-  if (wasEmpty === stillEmpty) {
-    finish();
+  if (wasEmpty === stillEmpty || !cloneA) {
+    // Same-state refresh: render plainly, no box morph
     return;
   }
 
-  // Emptiness flipped: everything above ran synchronously, so no paint
-  // happened yet — arm the hidden pre-state, then bloom the fresh content
-  // in with a clip reveal + rise. One clean entrance, no double flash.
-  const endH = container.offsetHeight;
-  container.style.pointerEvents = "none";
-  container.style.opacity = "0";
-  container.style.transform = "translateY(var(--distance-base))";
-  if (endH > 0) container.style.clipPath = `inset(0 0 ${endH}px 0)`;
-  // Commit the hidden pre-state before arming the transition.
-  void container.offsetHeight;
-  // Entrance: reveal (--duration-slow, resize/panel-open lane) with a
-  // quicker fade + rise (--duration-fast) layered over it.
-  container.style.transition =
-    "clip-path var(--duration-slow) var(--ease-smooth-out), opacity var(--duration-fast) var(--ease-smooth-out), transform var(--duration-fast) var(--ease-smooth-out)";
-  container.style.clipPath = "inset(0 0 0px 0)";
-  container.style.opacity = "1";
-  container.style.transform = "translateY(0)";
-  container.addEventListener("transitionend", onRevealEnd);
-  phaseTimer = setTimeout(finish, 600);
+  const endChild = container.firstElementChild;
+  if (!endChild) return;
 
-  function onRevealEnd(e) {
-    if (!e || e.target !== container) return;
-    if (e.propertyName === "clip-path") finish();
+  const endRect = endChild.getBoundingClientRect();
+  const endStyle = window.getComputedStyle(endChild);
+  const endRadius = endStyle.borderRadius || "6px";
+  const endW = endRect.width;
+  const endH = endRect.height;
+  const endLeft = endRect.left;
+  const endTop = endRect.top;
+
+  if (startW <= 0 || startH <= 0 || endW <= 0 || endH <= 0) {
+    return;
   }
+
+  const deltaX = startLeft - endLeft;
+  const deltaY = startTop - endTop;
+
+  // Retrieve motion tokens with safe fallbacks
+  const computedRoot = window.getComputedStyle(document.documentElement);
+  const durationStr = computedRoot.getPropertyValue("--duration-medium").trim();
+  const duration = durationStr.endsWith("ms")
+    ? parseFloat(durationStr)
+    : (durationStr.endsWith("s") ? parseFloat(durationStr) * 1000 : 350);
+  const easing =
+    computedRoot.getPropertyValue("--ease-smooth-out").trim() ||
+    "cubic-bezier(0.22, 1, 0.36, 1)";
+
+  // Morph shell wrapper handles bounding box size, position, radius and clipping
+  const morphShell = document.createElement("div");
+  morphShell.className = "queue-box-morph-shell";
+  morphShell.style.position = "relative";
+  morphShell.style.boxSizing = "border-box";
+  morphShell.style.overflow = "hidden";
+  morphShell.style.pointerEvents = "none";
+  morphShell.style.width = `${startW}px`;
+  morphShell.style.height = `${startH}px`;
+  morphShell.style.borderRadius = startRadius;
+  morphShell.style.transformOrigin = "top left";
+  morphShell.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+  morphShell.style.willChange = "width, height, transform, border-radius";
+  morphShell.style.backgroundColor =
+    endStyle.backgroundColor || startStyle.backgroundColor || "var(--bs-tertiary-bg)";
+
+  // Lock container height to interpolate smoothly so adjacent elements glide
+  container.style.position = "relative";
+  container.style.overflow = "hidden";
+  container.style.height = `${startH}px`;
+  container.style.willChange = "height";
+
+  // Configure start box clone (Layer A)
+  cloneA.style.position = "absolute";
+  cloneA.style.top = "0";
+  cloneA.style.left = "0";
+  cloneA.style.width = "100%";
+  cloneA.style.height = "100%";
+  cloneA.style.margin = "0";
+  cloneA.style.maxHeight = "none";
+  cloneA.style.overflow = "hidden";
+  cloneA.style.boxSizing = "border-box";
+  cloneA.style.pointerEvents = "none";
+  cloneA.style.willChange = "opacity";
+  cloneA.style.zIndex = "1";
+  cloneA.style.borderRadius = startRadius;
+
+  // Configure end box element (Layer B)
+  endChild.style.position = "absolute";
+  endChild.style.top = "0";
+  endChild.style.left = "0";
+  endChild.style.width = "100%";
+  endChild.style.height = "100%";
+  endChild.style.margin = "0";
+  endChild.style.maxHeight = "none";
+  endChild.style.overflow = "hidden";
+  endChild.style.boxSizing = "border-box";
+  endChild.style.pointerEvents = "none";
+  endChild.style.willChange = "opacity";
+  endChild.style.zIndex = "2";
+  endChild.style.opacity = "0";
+  endChild.style.borderRadius = endRadius;
+
+  // Assemble inside container
+  container.insertBefore(morphShell, endChild);
+  morphShell.appendChild(cloneA);
+  morphShell.appendChild(endChild);
+
+  let finished = false;
+  let safetyTimer = 0;
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(safetyTimer);
+
+    try {
+      containerAnim?.cancel?.();
+      shellAnim?.cancel?.();
+      cloneAnim?.cancel?.();
+      endAnim?.cancel?.();
+    } catch (_) {}
+
+    if (morphShell.parentNode === container) {
+      container.insertBefore(endChild, morphShell);
+      morphShell.remove();
+    }
+    cloneA.remove();
+
+    endChild.style.position = "";
+    endChild.style.top = "";
+    endChild.style.left = "";
+    endChild.style.width = "";
+    endChild.style.height = "";
+    endChild.style.margin = "";
+    endChild.style.maxHeight = "";
+    endChild.style.overflow = "";
+    endChild.style.boxSizing = "";
+    endChild.style.pointerEvents = "";
+    endChild.style.willChange = "";
+    endChild.style.zIndex = "";
+    endChild.style.opacity = "";
+    endChild.style.borderRadius = "";
+
+    container.style.position = "";
+    container.style.overflow = "";
+    container.style.height = "";
+    container.style.willChange = "";
+
+    if (container._qhCleanup === finish) {
+      container._qhCleanup = null;
+    }
+  };
+
+  container._qhCleanup = finish;
+
+  // Animate bounding boxes, positions, corner radiuses, and crossfading opacities
+  const containerAnim = container.animate(
+    [
+      { height: `${startH}px` },
+      { height: `${endH}px` }
+    ],
+    { duration, easing, fill: "forwards" }
+  );
+
+  const shellAnim = morphShell.animate(
+    [
+      {
+        width: `${startW}px`,
+        height: `${startH}px`,
+        transform: `translate(${deltaX}px, ${deltaY}px)`,
+        borderRadius: startRadius
+      },
+      {
+        width: `${endW}px`,
+        height: `${endH}px`,
+        transform: "translate(0px, 0px)",
+        borderRadius: endRadius
+      }
+    ],
+    { duration, easing, fill: "forwards" }
+  );
+
+  const cloneAnim = cloneA.animate(
+    [
+      { opacity: 1 },
+      { opacity: 0 }
+    ],
+    { duration, easing, fill: "forwards" }
+  );
+
+  const endAnim = endChild.animate(
+    [
+      { opacity: 0 },
+      { opacity: 1 }
+    ],
+    { duration, easing, fill: "forwards" }
+  );
+
+  shellAnim.onfinish = finish;
+  safetyTimer = setTimeout(finish, duration + 100);
 }
 
 // Bind edge hover proximity and ripple effects to any sidebar button
 export function setupSidebarButtonEffects(btn, onToolChanged) {
-
   if (!btn || btn.dataset.effectsBound === "true") return;
   btn.dataset.effectsBound = "true";
 
+  let btnRect = null;
+  btn.addEventListener("mouseenter", () => {
+    btnRect = btn.getBoundingClientRect();
+  });
   btn.addEventListener("mousemove", (e) => {
-    const rect = btn.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    if (!btnRect) btnRect = btn.getBoundingClientRect();
+    const x = e.clientX - btnRect.left;
+    const y = e.clientY - btnRect.top;
     btn.style.setProperty("--mouse-x", `${x}px`);
     btn.style.setProperty("--mouse-y", `${y}px`);
+  });
+  btn.addEventListener("mouseleave", () => {
+    btnRect = null;
   });
 
   attachFluentRipple(btn);
@@ -726,27 +919,41 @@ export function initNavigation(onToolChanged) {
 
   const brandCol = document.querySelector(".header-brand-col") || btnToggle;
   if (brandCol) {
-    let lastScrollTime = 0;
+    // Notch-coalesced wheel stepping (no time throttle, so the first input
+    // acts immediately). Raw wheel ticks are accumulated and one tool step
+    // fires per ~notch of travel: high-resolution / inertia wheels collapse
+    // to the intended steps instead of dozens of switches, and leftover
+    // fractions decay so slow drifts never trigger phantom steps.
+    const WHEEL_STEP_PX = 120;
+    const WHEEL_IDLE_RESET_MS = 150;
+    let wheelAccum = 0;
+    let wheelIdleTimer = null;
+    const stepTool = (dir) => {
+      const curIdx = TOOL_ORDER.indexOf(currentActiveTool);
+      if (curIdx === -1) return;
+      const nextIdx = (curIdx + dir + TOOL_ORDER.length) % TOOL_ORDER.length;
+      switchTool(TOOL_ORDER[nextIdx], onToolChanged, true, true);
+    };
     brandCol.addEventListener(
       "wheel",
       (e) => {
         e.preventDefault();
-        const now = performance.now();
-        if (now - lastScrollTime < 25) return;
-        lastScrollTime = now;
+        // Dominant axis only; line-mode deltas (Firefox) scaled to ~px.
+        const unit = e.deltaMode === 1 ? 40 : 1;
+        const d =
+          Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+        wheelAccum += d * unit;
 
-        const curIdx = TOOL_ORDER.indexOf(currentActiveTool);
-        if (curIdx === -1) return;
-
-        if (e.deltaY > 0 || e.deltaX > 0) {
-          // Scroll down -> Next tool
-          const nextIdx = (curIdx + 1) % TOOL_ORDER.length;
-          switchTool(TOOL_ORDER[nextIdx], onToolChanged, true);
-        } else if (e.deltaY < 0 || e.deltaX < 0) {
-          // Scroll up -> Previous tool
-          const prevIdx = (curIdx - 1 + TOOL_ORDER.length) % TOOL_ORDER.length;
-          switchTool(TOOL_ORDER[prevIdx], onToolChanged, true);
+        while (Math.abs(wheelAccum) >= WHEEL_STEP_PX) {
+          const dir = wheelAccum > 0 ? 1 : -1;
+          wheelAccum -= dir * WHEEL_STEP_PX;
+          stepTool(dir);
         }
+
+        clearTimeout(wheelIdleTimer);
+        wheelIdleTimer = setTimeout(() => {
+          wheelAccum = 0;
+        }, WHEEL_IDLE_RESET_MS);
       },
       { passive: false },
     );
@@ -791,31 +998,61 @@ export function initNavigation(onToolChanged) {
     if (e.target && e.target.classList) e.target.classList.remove("modal-settled");
   });
 
-  // Container-level proximity border tracking across adjacent sidebar items (dynamic)
+  // Container-level proximity border tracking across adjacent sidebar items (rAF throttled with cached rects)
   const sidebarPanel = document.getElementById("sidebar-scroll-container");
   if (sidebarPanel) {
-    sidebarPanel.addEventListener("mousemove", (e) => {
-      const proximityThreshold = 80;
-      const currentNavButtons = sidebarPanel.querySelectorAll(".nav-link");
-      currentNavButtons.forEach((btn) => {
-        const rect = btn.getBoundingClientRect();
-        const withinX = e.clientX >= rect.left - proximityThreshold && e.clientX <= rect.right + proximityThreshold;
-        const withinY = e.clientY >= rect.top - proximityThreshold && e.clientY <= rect.bottom + proximityThreshold;
+    let proximityRaf = null;
+    let cachedButtons = null;
 
-        if (withinX && withinY) {
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
-          btn.style.setProperty("--mouse-x", `${x}px`);
-          btn.style.setProperty("--mouse-y", `${y}px`);
-          btn.classList.add("has-proximity");
-        } else {
-          btn.classList.remove("has-proximity");
+    const refreshCachedRects = () => {
+      if (!sidebarPanel) return;
+      const btns = sidebarPanel.querySelectorAll(".nav-link");
+      cachedButtons = Array.from(btns).map((btn) => ({
+        btn,
+        rect: btn.getBoundingClientRect(),
+      }));
+    };
+
+    sidebarPanel.addEventListener("mouseenter", refreshCachedRects);
+    sidebarPanel.addEventListener("scroll", refreshCachedRects, { passive: true });
+
+    sidebarPanel.addEventListener("mousemove", (e) => {
+      if (proximityRaf) return;
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+      proximityRaf = requestAnimationFrame(() => {
+        proximityRaf = null;
+        if (!cachedButtons) refreshCachedRects();
+        const proximityThreshold = 60;
+
+        for (let i = 0; i < cachedButtons.length; i++) {
+          const item = cachedButtons[i];
+          const rect = item.rect;
+          const withinX = clientX >= rect.left - proximityThreshold && clientX <= rect.right + proximityThreshold;
+          const withinY = clientY >= rect.top - proximityThreshold && clientY <= rect.bottom + proximityThreshold;
+
+          if (withinX && withinY) {
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+            item.btn.style.setProperty("--mouse-x", `${x}px`);
+            item.btn.style.setProperty("--mouse-y", `${y}px`);
+            item.btn.classList.add("has-proximity");
+          } else {
+            if (item.btn.classList.contains("has-proximity")) {
+              item.btn.classList.remove("has-proximity");
+            }
+          }
         }
       });
     });
 
     sidebarPanel.addEventListener("mouseleave", () => {
-      const currentNavButtons = sidebarPanel.querySelectorAll(".nav-link");
+      if (proximityRaf) {
+        cancelAnimationFrame(proximityRaf);
+        proximityRaf = null;
+      }
+      cachedButtons = null;
+      const currentNavButtons = sidebarPanel.querySelectorAll(".nav-link.has-proximity");
       currentNavButtons.forEach((btn) => {
         btn.classList.remove("has-proximity");
       });
@@ -867,7 +1104,7 @@ export function updateStickyHeaders() {
       header.prepend(bg);
     }
     const rect = header.getBoundingClientRect();
-    const isStuck = !isAtTop && rect.top <= containerTop + 2;
+    const isStuck = !isAtTop && rect.top <= containerTop + 2 && rect.bottom > containerTop;
     if (isStuck) anyStuck = true;
     header.classList.toggle("is-stuck", isStuck);
   });

@@ -1,6 +1,25 @@
 // Media Preview Provider System
 // Extensible architecture for rendering and managing preview layers (Video, Audio, Image, etc.)
 
+/**
+ * Assign a media element src only when it actually changes. Reassigning
+ * src makes the browser reload and reparse the whole file, so repeat
+ * renders of the same batch item (or a clear followed by re-probe) must
+ * not touch it. Tracks via dataset (URL readback may normalize).
+ */
+export function setMediaSrc(el, src) {
+  if (!el) return;
+  if (src) {
+    if (el.dataset.anedikitSrc !== src) {
+      el.src = src;
+      el.dataset.anedikitSrc = src;
+    }
+  } else {
+    el.removeAttribute("src");
+    delete el.dataset.anedikitSrc;
+  }
+}
+
 export class MediaPreviewProvider {
   constructor(name) {
     this.name = name;
@@ -212,11 +231,11 @@ export class ImagePreviewProvider extends MediaPreviewProvider {
 
     if (videoEl) {
       videoEl.pause();
-      videoEl.removeAttribute("src");
+      setMediaSrc(videoEl, null);
     }
     if (audioEl) {
       audioEl.pause();
-      audioEl.removeAttribute("src");
+      setMediaSrc(audioEl, null);
     }
     if (waveformCanvas) {
       waveformCanvas.classList.add("d-none");
@@ -298,7 +317,7 @@ export class AudioPreviewProvider extends MediaPreviewProvider {
 
     if (videoEl) {
       videoEl.pause();
-      videoEl.removeAttribute("src");
+      setMediaSrc(videoEl, null);
       videoEl.removeAttribute("poster");
     }
     if (actionFrameImg) {
@@ -341,7 +360,7 @@ export class AudioPreviewProvider extends MediaPreviewProvider {
       audioFormat.textContent = `${(info?.audio_codec || ext || "audio").toUpperCase()} Audio`;
     }
     if (audioEl && assetSrc) {
-      audioEl.src = assetSrc;
+      setMediaSrc(audioEl, assetSrc);
     }
 
     if (waveformCanvas && typeof generateWaveformFromSource === "function") {
@@ -360,7 +379,7 @@ export class AudioPreviewProvider extends MediaPreviewProvider {
     const { audioEl, audioLayer } = context;
     if (audioEl) {
       audioEl.pause();
-      audioEl.removeAttribute("src");
+      setMediaSrc(audioEl, null);
     }
     if (audioLayer) audioLayer.classList.add("d-none");
   }
@@ -415,7 +434,7 @@ export class VideoPreviewProvider extends MediaPreviewProvider {
     }
     if (audioEl) {
       audioEl.pause();
-      audioEl.removeAttribute("src");
+      setMediaSrc(audioEl, null);
     }
 
     if (previewCard) {
@@ -424,11 +443,7 @@ export class VideoPreviewProvider extends MediaPreviewProvider {
     }
 
     if (videoEl) {
-      if (assetSrc) {
-        videoEl.src = assetSrc;
-      } else {
-        videoEl.removeAttribute("src");
-      }
+      setMediaSrc(videoEl, assetSrc || null);
     }
 
     const activeTool =
@@ -514,7 +529,7 @@ export class VideoPreviewProvider extends MediaPreviewProvider {
     const { videoEl, videoLayer } = context;
     if (videoEl) {
       videoEl.pause();
-      videoEl.removeAttribute("src");
+      setMediaSrc(videoEl, null);
     }
     if (videoLayer) videoLayer.classList.add("d-none");
   }

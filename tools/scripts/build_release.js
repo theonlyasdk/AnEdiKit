@@ -2,8 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import https from 'node:https';
+import { createPrompter } from './prompt.js';
+import { createSigningCert, defaultDevCertPath } from './new_signing_cert.js';
+import os from 'node:os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,10 +52,12 @@ function downloadFile(url, destPath) {
   });
 }
 
-// Read configuration metadata (product name, version, title)
+// Read configuration metadata (product name, version, title, identifier, description)
 function getAppMetadata() {
   let productName = 'AnEdiKit';
   let version = '0.2.0';
+  let identifier = 'com.user.anedikit';
+  let description = 'All-in-one media toolkit';
 
   const tauriConfPath = path.join(tauriDir, 'tauri.conf.json');
   if (fs.existsSync(tauriConfPath)) {
@@ -66,6 +71,9 @@ function getAppMetadata() {
       if (conf.version) {
         version = conf.version;
       }
+      if (conf.identifier) {
+        identifier = conf.identifier;
+      }
     } catch {
       // Use defaults if config cannot be parsed
     }
@@ -78,12 +86,15 @@ function getAppMetadata() {
       if (pkg.version) {
         version = pkg.version;
       }
+      if (pkg.description) {
+        description = pkg.description;
+      }
     } catch {
       // Use existing version
     }
   }
 
-  return { productName, version };
+  return { productName, version, identifier, description };
 }
 
 // Ensure Windows bundling toolchains (NSIS and WiX) are cached
@@ -135,6 +146,468 @@ async function ensureWindowsToolchains() {
       console.warn(`[Toolchain] Warning: Auto-caching WiX encountered: ${err.message}. Continuing with build.`);
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// MSIX packaging (Windows only, opt-in via --msix).
+// Tauri v2 has no native MSIX target, so the raw binary from target/release
+// is staged with an AppxManifest + tile assets and packed with the Windows
+// SDK makeappx.exe, then optionally signed with signtool.exe.
+// ---------------------------------------------------------------------------
+
+const MSIX_TIMESTAMP_URL = 'http://timestamp.digicert.com';
+
+// Split our own flags out of the args forwarded to `tauri build`.
+function parseMsixOptions(rawArgs) {
+  const opts = {
+    interactive: false,
+    clean: false,
+    msix: false,
+    cert: null,
+    certPassword: null,
+    publisher: null,
+    timestamp: false,
+  };
+  const tauriArgs = [];
+  for (let i = 0; i < rawArgs.length; i++) {
+    const arg = rawArgs[i];
+    if (arg === '--interactive' || arg === '-i') {
+      opts.interactive = true;
+    } else if (arg === '--clean') {
+      opts.clean = true;
+    } else if (arg === '--msix') {
+      opts.msix = true;
+    } else if (arg === '--msix-timestamp') {
+      opts.timestamp = true;
+    } else if (arg === '--msix-cert' && rawArgs[i + 1]) {
+      opts.cert = rawArgs[++i];
+    } else if (arg.startsWith('--msix-cert=')) {
+      opts.cert = arg.slice('--msix-cert='.length);
+    } else if (arg === '--msix-cert-password' && rawArgs[i + 1]) {
+      opts.certPassword = rawArgs[++i];
+    } else if (arg.startsWith('--msix-cert-password=')) {
+      opts.certPassword = arg.slice('--msix-cert-password='.length);
+    } else if (arg === '--msix-publisher' && rawArgs[i + 1]) {
+      opts.publisher = rawArgs[++i];
+    } else if (arg.startsWith('--msix-publisher=')) {
+      opts.publisher = arg.slice('--msix-publisher='.length);
+    } else {
+      tauriArgs.push(arg);
+    }
+  }
+  return { opts, tauriArgs };
+}
+
+// ---------------------------------------------------------------------------
+// Interactive artifact picker (opt-in via --interactive; used by default when
+// build_release.bat is double-clicked without arguments).
+// ---------------------------------------------------------------------------
+
+const INTERACTIVE_BUNDLES = [
+  { id: 'nsis', label: 'NSIS setup installer (.exe)' },
+  { id: 'msi', label: 'MSI installer (.msi)' },
+  { id: 'msix', label: 'MSIX package (.msix)' },
+];
+
+// input/output injectable for testing; defaults to process stdio.
+async function runInteractiveSetup(input = process.stdin, output = process.stdout) {
+  const { ask, close } = createPrompter(input, output);
+  try {
+    output.write('\nSelect artifacts to build (Windows):\n');
+    output.write('  Portable .exe is always produced.\n\n');
+    INTERACTIVE_BUNDLES.forEach((c, i) => output.write(`  [${i + 1}] ${c.label}\n`));
+
+    const raw = (await ask('\nEnter numbers separated by commas (default: all, e.g. 1,3): '))
+      .trim()
+      .toLowerCase();
+    let picked;
+    if (raw === '' || raw === 'all') {
+      picked = INTERACTIVE_BUNDLES.map((c) => c.id);
+    } else {
+      picked = [
+        ...new Set(
+          raw
+            .split(/[,\s]+/)
+            .map((s) => parseInt(s, 10))
+            .filter((n) => Number.isFinite(n) && n >= 1 && n <= INTERACTIVE_BUNDLES.length)
+            .map((n) => INTERACTIVE_BUNDLES[n - 1].id),
+        ),
+      ];
+      if (picked.length === 0) {
+        output.write('No valid selection, building all.\n');
+        picked = INTERACTIVE_BUNDLES.map((c) => c.id);
+      }
+    }
+
+    const tauriArgs = [];
+    const nativeBundles = picked.filter((x) => x === 'nsis' || x === 'msi');
+    if (nativeBundles.length > 0) {
+      tauriArgs.push('-b', ...nativeBundles);
+    } else {
+      // MSIX (or portable-only) needs just the raw binary.
+      tauriArgs.push('--no-bundle');
+    }
+
+    const msixOpts = {
+      msix: picked.includes('msix'),
+      cert: null,
+      certPassword: null,
+      publisher: null,
+      timestamp: false,
+      cleanFirst: false,
+    };
+
+    if (msixOpts.msix) {
+      output.write('\nMSIX signing:\n');
+      output.write('  [1] Generate a new dev certificate (recommended for local testing)\n');
+      output.write('  [2] Use my own .pfx certificate file\n');
+      output.write('  [3] Leave unsigned (cannot be installed as-is)\n');
+      const choice = (await ask('Select signing option [1]: ')).trim();
+
+      if (choice === '2') {
+        const cert = (await ask('Existing .pfx path: ')).trim().replace(/^"|"$/g, '');
+        if (cert) {
+          msixOpts.cert = cert;
+          msixOpts.certPassword = await ask('PFX password [Enter = none, input is visible]: ');
+          const ts = (await ask('Add RFC3161 timestamp? (requires network) (y/N): ')).trim().toLowerCase();
+          msixOpts.timestamp = ts === 'y' || ts === 'yes';
+        } else {
+          output.write('No file given; leaving MSIX unsigned.\n');
+        }
+      } else if (choice === '3' || choice.toLowerCase() === 'unsigned') {
+        output.write('Leaving MSIX unsigned.\n');
+      } else {
+        // Default: generate (choices '', '1', 'generate', or anything unrecognized).
+        if (choice !== '' && choice !== '1' && choice.toLowerCase() !== 'generate') {
+          output.write(`Unrecognized option "${choice}", generating a dev certificate.\n`);
+        }
+        try {
+          const devCert = defaultDevCertPath();
+          if (fs.existsSync(devCert)) {
+            const reuse = (await ask(`Found existing ${path.relative(rootDir, devCert)}. Reuse it? (Y/n): `)).trim().toLowerCase();
+            if (reuse === '' || reuse === 'y' || reuse === 'yes') {
+              msixOpts.cert = devCert;
+              msixOpts.certPassword = await ask('PFX password for the existing cert [Enter = none]: ');
+              output.write(`Reusing ${devCert}\n`);
+            } else {
+              const pwd = await ask('Password for the new cert [Enter = none, input is visible]: ');
+              const created = await createSigningCert({ password: pwd || null, force: true });
+              msixOpts.cert = created.outPath;
+              msixOpts.certPassword = pwd || null;
+            }
+          } else {
+            const pwd = await ask('Password for the new cert [Enter = none, input is visible]: ');
+            const created = await createSigningCert({ password: pwd || null });
+            msixOpts.cert = created.outPath;
+            msixOpts.certPassword = pwd || null;
+          }
+        } catch (err) {
+          output.write(`[MSIX] Warning: certificate generation failed (${err.message}); leaving MSIX unsigned.\n`);
+        }
+      }
+    }
+
+    output.write(`\nBuilding: portable.exe${nativeBundles.map((b) => `, ${b}`).join('')}${msixOpts.msix ? ', msix' : ''}\n`);
+
+    const cleanAns = (await ask('Clean previous build outputs first? (build/, src-tauri/target/; keeps *.pfx) (y/N): '))
+      .trim()
+      .toLowerCase();
+    msixOpts.cleanFirst = cleanAns === 'y' || cleanAns === 'yes';
+    output.write('\n');
+    return { tauriArgs, msixOpts };
+  } finally {
+    close();
+  }
+}
+
+// Locate a Windows SDK tool (makeappx.exe / signtool.exe), newest SDK first.
+function findWindowsSdkTool(fileName) {
+  const kitsRoot = path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Windows Kits', '10', 'bin');
+  try {
+    if (fs.existsSync(kitsRoot)) {
+      const versions = fs.readdirSync(kitsRoot)
+        .filter((v) => /^\d+\.\d+\.\d+\.\d+$/.test(v))
+        .sort()
+        .reverse();
+      for (const ver of versions) {
+        const candidate = path.join(kitsRoot, ver, 'x64', fileName);
+        if (fs.existsSync(candidate)) return candidate;
+      }
+    }
+  } catch {
+    // Fall through to PATH lookup
+  }
+  try {
+    const where = execFileSync('where', [fileName], { encoding: 'utf8' });
+    const first = where.split(/\r?\n/).map((l) => l.trim()).find(Boolean);
+    if (first && fs.existsSync(first)) return first;
+  } catch {
+    // Not found
+  }
+  return null;
+}
+
+// MSIX Identity Version must be four dot-separated 0-65535 parts.
+function toMsixVersion(version) {
+  const parts = String(version).split('.').map((p) => parseInt(p, 10));
+  while (parts.length < 4) parts.push(0);
+  return parts.slice(0, 4).map((n) => (Number.isFinite(n) ? Math.min(65535, Math.max(0, n)) : 0)).join('.');
+}
+
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Best-effort subject of a PFX so the manifest Publisher matches the
+// signing certificate (required for installation). Uses .NET directly
+// because Windows PowerShell 5.1 Get-PfxCertificate has no -Password flag.
+function getPfxSubject(pfxPath, password) {
+  try {
+    const escPath = pfxPath.replace(/'/g, "''");
+    const script = password
+      ? `Add-Type -AssemblyName System.Security; (New-Object System.Security.Cryptography.X509Certificates.X509Certificate2('${escPath}', '${String(password).replace(/'/g, "''")}')).Subject`
+      : `(Get-PfxCertificate -FilePath '${escPath}').Subject`;
+    const out = execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8' });
+    const subject = out.split(/\r?\n/).map((l) => l.trim()).find(Boolean);
+    return subject || null;
+  } catch {
+    return null;
+  }
+}
+
+function buildMsixManifest({ productName, identifier, msixVersion, publisher, exeName, arch, description }) {
+  const normalizedArch = arch === 'arm64' ? 'arm64' : (arch === 'x86' ? 'x86' : 'x64');
+  return `<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
+  <Identity Name="${escapeXml(identifier)}" Publisher="${escapeXml(publisher)}" Version="${escapeXml(msixVersion)}" ProcessorArchitecture="${normalizedArch}" />
+  <Properties>
+    <DisplayName>${escapeXml(productName)}</DisplayName>
+    <PublisherDisplayName>${escapeXml(productName)}</PublisherDisplayName>
+    <Logo>Assets\\StoreLogo.png</Logo>
+  </Properties>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+  <Applications>
+    <Application Id="App" Executable="${escapeXml(exeName)}" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="${escapeXml(productName)}" Description="${escapeXml(description || productName)}" BackgroundColor="transparent" Square150x150Logo="Assets\\Square150x150Logo.png" Square44x44Logo="Assets\\Square44x44Logo.png" />
+    </Application>
+  </Applications>
+</Package>
+`;
+}
+
+// Stage exe + manifest + tile assets, pack with makeappx, sign if requested.
+// Returns a release item ({ source, targetName, type }) or null on skip.
+async function buildMsixPackage({ productName, version, identifier, arch, standaloneExePath, msixOpts, description }) {
+  if (process.platform !== 'win32') {
+    console.warn('[MSIX] Skipping: MSIX packaging requires Windows (makeappx.exe).');
+    return null;
+  }
+  if (!standaloneExePath || !fs.existsSync(standaloneExePath)) {
+    console.warn('[MSIX] Skipping: release executable not found in target/release.');
+    return null;
+  }
+
+  const makeappx = findWindowsSdkTool('makeappx.exe');
+  if (!makeappx) {
+    console.warn('[MSIX] Skipping: makeappx.exe not found. Install the Windows 10/11 SDK.');
+    return null;
+  }
+
+  const exeName = path.basename(standaloneExePath);
+  const msixVersion = toMsixVersion(version);
+
+  // Resolve Publisher: explicit flag wins, then signing cert subject, then default.
+  let publisher = msixOpts.publisher || null;
+  if (!publisher && msixOpts.cert) {
+    publisher = getPfxSubject(msixOpts.cert, msixOpts.certPassword);
+    if (publisher) {
+      console.log(`[MSIX] Using Publisher from signing certificate: ${publisher}`);
+    } else {
+      console.warn('[MSIX] Warning: could not read certificate subject; falling back to default Publisher.');
+    }
+  }
+  if (!publisher) publisher = 'CN=AnEdiKit';
+
+  const stageDir = path.join(releaseOutputDir, 'msix-stage');
+  const assetsDir = path.join(stageDir, 'Assets');
+  fs.rmSync(stageDir, { recursive: true, force: true });
+  fs.mkdirSync(assetsDir, { recursive: true });
+
+  console.log('[MSIX] Staging package contents...');
+  fs.copyFileSync(standaloneExePath, path.join(stageDir, exeName));
+
+  const iconsDir = path.join(tauriDir, 'icons');
+  const requiredAssets = ['Square44x44Logo.png', 'Square150x150Logo.png', 'StoreLogo.png'];
+  for (const asset of requiredAssets) {
+    const src = path.join(iconsDir, asset);
+    if (!fs.existsSync(src)) {
+      throw new Error(`[MSIX] Required tile asset missing: src-tauri/icons/${asset}`);
+    }
+    fs.copyFileSync(src, path.join(assetsDir, asset));
+  }
+
+  fs.writeFileSync(
+    path.join(stageDir, 'AppxManifest.xml'),
+    buildMsixManifest({ productName, identifier, msixVersion, publisher, exeName, arch, description }),
+    'utf8',
+  );
+
+  const targetName = `${productName}-v${version}-windows-${arch}.msix`;
+  const msixTmpPath = path.join(releaseOutputDir, `.${targetName}.tmp`);
+  if (fs.existsSync(msixTmpPath)) fs.unlinkSync(msixTmpPath);
+
+  console.log(`[MSIX] Packing with makeappx (${path.basename(path.dirname(path.dirname(makeappx)))})...`);
+  execFileSync(makeappx, ['pack', '/d', stageDir, '/p', msixTmpPath, '/nv'], { stdio: 'inherit' });
+
+  let type = 'MSIX Package (unsigned)';
+  if (msixOpts.cert) {
+    const signtool = findWindowsSdkTool('signtool.exe');
+    if (!signtool) {
+      console.warn('[MSIX] Warning: signtool.exe not found; leaving package unsigned.');
+    } else {
+      if (!fs.existsSync(msixOpts.cert)) {
+        throw new Error(`[MSIX] Signing certificate not found: ${msixOpts.cert}`);
+      }
+      const signArgs = ['sign', '/fd', 'SHA256', '/f', msixOpts.cert];
+      if (msixOpts.certPassword) signArgs.push('/p', msixOpts.certPassword);
+      if (msixOpts.timestamp) signArgs.push('/tr', MSIX_TIMESTAMP_URL, '/td', 'SHA256');
+      signArgs.push(msixTmpPath);
+      console.log('[MSIX] Signing package...');
+      execFileSync(signtool, signArgs, { stdio: 'inherit' });
+      type = 'MSIX Package (signed)';
+    }
+  } else {
+    console.warn('[MSIX] Package is UNSIGNED and cannot be installed as-is.');
+    console.warn('[MSIX] Create a dev certificate with tools\\new_signing_cert.bat, then rebuild with:');
+    console.warn('[MSIX]   build_release.bat --msix --msix-cert <file.pfx> [--msix-cert-password <pwd>]');
+    console.warn('[MSIX] To sideload: install the cert under Trusted People, then Add-AppxPackage.');
+  }
+
+  return { tmpPath: msixTmpPath, targetName, type };
+}
+
+// ---------------------------------------------------------------------------
+// Build cleanup: removes regenerable outputs (release dir, cargo target
+// cache, temp concat lists). Signing certificates (*.pfx) are preserved.
+// ---------------------------------------------------------------------------
+
+function dirSizeBytes(dir) {
+  let total = 0;
+  try {
+    if (!fs.existsSync(dir)) return 0;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      try {
+        if (entry.isDirectory()) {
+          total += dirSizeBytes(full);
+        } else if (entry.isFile()) {
+          total += fs.statSync(full).size;
+        }
+      } catch {
+        // Unreadable entry; skip
+      }
+    }
+  } catch {
+    // Inaccessible dir; treat as empty
+  }
+  return total;
+}
+
+// overDir/tempDir injectable for testing; default to the real locations.
+function performCleanup({ buildDir = releaseOutputDir, targetDir = path.join(tauriDir, 'target'), tempDir = null } = {}) {
+  const results = [];
+  let freed = 0;
+
+  // 1. Release output dir (preserve signing certificates).
+  try {
+    if (fs.existsSync(buildDir)) {
+      let kept = [];
+      let size = 0;
+      for (const entry of fs.readdirSync(buildDir)) {
+        const full = path.join(buildDir, entry);
+        if (/\.pfx$/i.test(entry)) {
+          kept.push(entry);
+          continue;
+        }
+        try {
+          const st = fs.statSync(full);
+          size += st.isDirectory() ? dirSizeBytes(full) : st.size;
+          fs.rmSync(full, { recursive: true, force: true });
+        } catch {
+          // Locked entry; skip
+        }
+      }
+      freed += size;
+      results.push({ label: 'release output (build/)', freed: size, note: kept.length > 0 ? `preserved ${kept.join(', ')}` : null });
+    } else {
+      results.push({ label: 'release output (build/)', freed: 0, note: 'already absent' });
+    }
+  } catch (err) {
+    results.push({ label: 'release output (build/)', freed: 0, note: `skipped: ${err.message}` });
+  }
+
+  // 2. Cargo target cache (the big one; fully regenerable via cargo build).
+  try {
+    if (fs.existsSync(targetDir)) {
+      const size = dirSizeBytes(targetDir);
+      fs.rmSync(targetDir, { recursive: true, force: true });
+      freed += size;
+      results.push({ label: 'cargo target cache (src-tauri/target/)', freed: size, note: null });
+    } else {
+      results.push({ label: 'cargo target cache (src-tauri/target/)', freed: 0, note: 'already absent' });
+    }
+  } catch (err) {
+    results.push({ label: 'cargo target cache (src-tauri/target/)', freed: 0, note: `skipped: ${err.message}` });
+  }
+
+  // 3. Stale FFmpeg concat lists in the OS temp dir.
+  try {
+    const osTmp = tempDir || os.tmpdir();
+    let count = 0;
+    let size = 0;
+    if (fs.existsSync(osTmp)) {
+      for (const entry of fs.readdirSync(osTmp)) {
+        if (/^anedikit_concat_.*\.txt$/i.test(entry)) {
+          const full = path.join(osTmp, entry);
+          try {
+            size += fs.statSync(full).size;
+            fs.rmSync(full, { force: true });
+            count++;
+          } catch {
+            // Locked or vanished; skip
+          }
+        }
+      }
+    }
+    freed += size;
+    results.push({ label: 'temp concat lists', freed: size, note: count > 0 ? `${count} file(s)` : 'none found' });
+  } catch (err) {
+    results.push({ label: 'temp concat lists', freed: 0, note: `skipped: ${err.message}` });
+  }
+
+  return { results, freed };
+}
+
+function printCleanupSummary({ results, freed }) {
+  console.log('\n[Clean] Build outputs cleanup:');
+  for (const r of results) {
+    const sizeStr = formatBytes(r.freed);
+    const note = r.note ? ` (${r.note})` : '';
+    console.log(` - ${r.label.padEnd(40)} [${sizeStr.padStart(9)}]${note}`);
+  }
+  console.log(`[Clean] Total reclaimed: ${formatBytes(freed)}\n`);
 }
 
 // Find all files in a directory recursively
@@ -193,18 +666,52 @@ async function main() {
 
   if (rawArgs.includes('--help') || rawArgs.includes('-h')) {
     console.log('AnEdiKit Release Builder');
-    console.log('Usage: node tools/scripts/build_release.js [tauri build options]');
+    console.log('Usage: node tools/scripts/build_release.js [tauri build options] [--msix ...]');
     console.log('');
     console.log('Options:');
     console.log('  -b, --bundles <BUNDLES>  Bundles to package (e.g. nsis, msi)');
     console.log('  -t, --target <TARGET>    Target triple to build against');
     console.log('  --no-bundle              Build binary only without installer bundles');
     console.log('  -v, --verbose            Enable verbose build output');
+    console.log('  --msix                   Also generate an MSIX package (Windows only,');
+    console.log('                           uses the raw binary; works with --no-bundle)');
+    console.log('  --msix-cert <file.pfx>   Sign the MSIX with a PFX certificate');
+    console.log('  --msix-cert-password <pwd>  Password for the PFX certificate');
+    console.log('  --msix-publisher <name>  Override manifest Publisher (default: cert');
+    console.log('                           subject, else CN=AnEdiKit; must match the');
+    console.log('                           signing certificate when installing)');
+    console.log('  --msix-timestamp         Timestamp the signature (requires network)');
+    console.log('  -i, --interactive        Ask which artifacts to build (bundles, MSIX');
+    console.log('                           signing) instead of passing flags manually');
+    console.log('  --clean                  Remove regenerable build outputs (build/,');
+    console.log('                           src-tauri/target/, temp concat lists; keeps');
+    console.log('                           *.pfx) and exit without building');
     console.log('  -h, --help               Show this help message');
     return;
   }
 
-  const { productName, version } = getAppMetadata();
+  const { opts: cliOpts, tauriArgs: cliTauriArgs } = parseMsixOptions(rawArgs);
+
+  // Clean-only mode: report and exit before any build work.
+  if (cliOpts.clean && !cliOpts.interactive) {
+    printCleanupSummary(performCleanup());
+    return;
+  }
+
+  let tauriArgs = cliTauriArgs;
+  let msixOpts = cliOpts;
+  if (cliOpts.interactive) {
+    if (process.stdin.isTTY) {
+      ({ tauriArgs, msixOpts } = await runInteractiveSetup());
+      if (msixOpts.cleanFirst) {
+        printCleanupSummary(performCleanup());
+      }
+    } else {
+      console.warn('[Build] Warning: --interactive needs a terminal; continuing with defaults.');
+    }
+  }
+
+  const { productName, version, identifier, description } = getAppMetadata();
   const arch = process.arch === 'x64' ? 'x64' : (process.arch === 'arm64' ? 'arm64' : process.arch);
   const platform = process.platform === 'win32' ? 'windows' : (process.platform === 'darwin' ? 'macos' : 'linux');
 
@@ -214,7 +721,7 @@ async function main() {
 
   await ensureWindowsToolchains();
 
-  await runTauriBuild(rawArgs);
+  await runTauriBuild(tauriArgs);
 
   console.log('\n[Build] Preparing build directory...');
   fs.mkdirSync(releaseOutputDir, { recursive: true });
@@ -320,6 +827,27 @@ async function main() {
           });
         }
       }
+    }
+  }
+
+  // 3. MSIX package (opt-in via --msix, staged from the raw binary)
+  if (msixOpts.msix) {
+    console.log('\n[Build] Generating MSIX package...');
+    const msixItem = await buildMsixPackage({
+      productName,
+      version,
+      identifier,
+      arch,
+      standaloneExePath,
+      msixOpts,
+      description,
+    });
+    if (msixItem) {
+      releaseItems.push({
+        source: msixItem.tmpPath,
+        targetName: msixItem.targetName,
+        type: msixItem.type,
+      });
     }
   }
 

@@ -80,7 +80,74 @@ export function generateSyntheticWaveform(numSamples = 240, seed = "anedikit") {
 
 /**
  * Fetch and decode audio to generate normalized waveform data.
+ *
+ * Memory safety: the whole file must never be buffered + decoded
+ * unconditionally -- a multi-gigabyte video would OOM the renderer
+ * (container bytes plus ~4 bytes/sample/channel of float PCM). Files over
+ * INLINE_DECODE_LIMIT_BYTES use the FFmpeg peak-profile backend command
+ * (streaming, O(numSamples) memory) and fall back to a synthetic envelope.
  */
+const INLINE_DECODE_LIMIT_BYTES = 30 * 1024 * 1024;
+
+function looksLikeFsPath(urlOrPath) {
+  return (
+    typeof urlOrPath === "string" &&
+    !urlOrPath.startsWith("http") &&
+    !urlOrPath.startsWith("blob:") &&
+    !urlOrPath.startsWith("asset:") &&
+    !urlOrPath.startsWith("data:")
+  );
+}
+
+// Total remote size without downloading the body: a bytes=0-0 range probe
+// answers via Content-Range, otherwise fall back to Content-Length. The body
+// (if any) is cancelled immediately so nothing is buffered.
+async function getRemoteFileSize(fetchUrl) {
+  try {
+    const res = await fetch(fetchUrl, { headers: { Range: "bytes=0-0" } });
+    try {
+      const cr = res.headers.get("content-range");
+      if (cr) {
+        const m = /\/(\d+)\s*$/.exec(cr);
+        if (m) {
+          const v = parseInt(m[1], 10);
+          if (Number.isFinite(v)) return v;
+        }
+      }
+      if (res.status === 200) {
+        const cl = res.headers.get("content-length");
+        if (cl) {
+          const v = parseInt(cl, 10);
+          if (Number.isFinite(v)) return v;
+        }
+      }
+    } finally {
+      try {
+        await res.body?.cancel();
+      } catch (_) {}
+    }
+  } catch (_) {}
+  return null;
+}
+
+async function getLargeFilePeaks(urlOrPath, numSamples) {
+  if (window.__TAURI__?.core?.invoke && looksLikeFsPath(urlOrPath)) {
+    try {
+      const peaks = await window.__TAURI__.core.invoke("extract_audio_peaks", {
+        filePath: urlOrPath,
+        numSamples,
+      });
+      if (Array.isArray(peaks) && peaks.length > 0) {
+        return peaks.map((v) => Math.max(0, Math.min(1, Number(v) || 0)));
+      }
+      throw new Error("Empty peak profile");
+    } catch (err) {
+      console.warn("Backend peak extraction failed, using synthetic envelope:", err);
+    }
+  }
+  return generateSyntheticWaveform(numSamples, urlOrPath);
+}
+
 export async function generateWaveformFromSource(urlOrPath, numSamples = 240) {
   if (!urlOrPath) return generateSyntheticWaveform(numSamples);
 
@@ -94,9 +161,39 @@ export async function generateWaveformFromSource(urlOrPath, numSamples = 240) {
       fetchUrl = window.__TAURI__.core.convertFileSrc(urlOrPath);
     }
 
+    // Gate 1: ranged size probe before touching the body.
+    try {
+      const knownSize = await getRemoteFileSize(fetchUrl);
+      if (knownSize != null && knownSize > INLINE_DECODE_LIMIT_BYTES) {
+        const peaks = await getLargeFilePeaks(urlOrPath, numSamples);
+        waveformCache.set(urlOrPath, peaks);
+        return peaks;
+      }
+    } catch (_) {}
+
     const response = await fetch(fetchUrl);
     if (!response.ok) throw new Error(`HTTP fetch error ${response.status}`);
+
+    // Gate 2: Content-Length on the full response before buffering.
+    const contentLength = response.headers.get("content-length");
+    const total = contentLength ? parseInt(contentLength, 10) : NaN;
+    if (Number.isFinite(total) && total > INLINE_DECODE_LIMIT_BYTES) {
+      try {
+        await response.body?.cancel();
+      } catch (_) {}
+      const peaks = await getLargeFilePeaks(urlOrPath, numSamples);
+      waveformCache.set(urlOrPath, peaks);
+      return peaks;
+    }
+
     const arrayBuffer = await response.arrayBuffer();
+
+    // Gate 3: already-buffered payload still too big to decode safely.
+    if (arrayBuffer.byteLength > INLINE_DECODE_LIMIT_BYTES) {
+      const peaks = await getLargeFilePeaks(urlOrPath, numSamples);
+      waveformCache.set(urlOrPath, peaks);
+      return peaks;
+    }
 
     const audioCtx = getAudioContext();
     if (!audioCtx) throw new Error("AudioContext not available");

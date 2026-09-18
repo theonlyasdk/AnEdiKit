@@ -1,6 +1,6 @@
 MEDIUM PRIORITY SUGGESTIONS
 
-1. Hardware Acceleration Auto-Probing Enhancements
+1. Hardware Acceleration Auto-Probing Enhancements [COMPLETED]
 Expand src-tauri hardware acceleration detection to verify availability of NVIDIA NVENC, Intel QuickSync (QSV), AMD AMF, DirectML (D3D11VA), and Apple VideoToolbox before job execution. Automatically fall back to CPU encoding if the selected hardware encoder initialization fails.
 
 2. Trimmer Waveform & Timeline Multi-Cut Range Editor
@@ -9,5 +9,5 @@ Add support for multiple split segments and exclusion cuts (e.g. cutting out 00:
 3. Image Comparison Enhancements
 Add a pixel loupe magnifier inspection mode and difference blend shader mode to the full-screen image comparison modal for examining subtle artifacts during super-resolution and background cutout reviews.
 
-4. Audio Tag & Metadata ID3 Editor
+4. Audio Tag & Metadata ID3 Editor [COMPLETED]
 Add a dedicated audio metadata viewer and editor for setting track title, artist, album, genre, year, track number, and embedding custom album cover artwork directly into MP3, M4A, FLAC, and OGG files.

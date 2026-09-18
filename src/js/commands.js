@@ -115,9 +115,26 @@ export function setDetectedHardware(info) {
 export function getResolvedHwaccel(settings = {}) {
   const mode = settings.hwAccel || "auto";
   if (mode === "auto") {
-    if (detectedHardwareInfo?.nvidia_gpu) return "cuda";
-    if (detectedHardwareInfo?.intel_gpu) return "qsv";
-    if (detectedHardwareInfo?.amd_gpu) return "amf";
+    if (detectedHardwareInfo?.nvenc_available ?? (detectedHardwareInfo?.nvidia_gpu != null)) return "cuda";
+    if (detectedHardwareInfo?.qsv_available ?? (detectedHardwareInfo?.intel_gpu != null)) return "qsv";
+    if (detectedHardwareInfo?.amf_available ?? (detectedHardwareInfo?.amd_gpu != null)) return "amf";
+    if (detectedHardwareInfo?.videotoolbox_available) return "videotoolbox";
+    if (detectedHardwareInfo?.d3d11va_available) return "d3d11va";
+    return "cpu";
+  }
+  if (mode === "cuda" && detectedHardwareInfo && detectedHardwareInfo.nvenc_available === false) {
+    return "cpu";
+  }
+  if (mode === "qsv" && detectedHardwareInfo && detectedHardwareInfo.qsv_available === false) {
+    return "cpu";
+  }
+  if (mode === "amf" && detectedHardwareInfo && detectedHardwareInfo.amf_available === false) {
+    return "cpu";
+  }
+  if (mode === "videotoolbox" && detectedHardwareInfo && detectedHardwareInfo.videotoolbox_available === false) {
+    return "cpu";
+  }
+  if (mode === "d3d11va" && detectedHardwareInfo && detectedHardwareInfo.d3d11va_available === false) {
     return "cpu";
   }
   return mode;
@@ -137,8 +154,19 @@ export function mapHardwareEncoder(targetCodec, hwChoice) {
     if (targetCodec === "libx264" || targetCodec === "h264") return "h264_amf";
     if (targetCodec === "libx265" || targetCodec === "hevc" || targetCodec === "h265") return "hevc_amf";
     if (targetCodec === "libsvtav1" || targetCodec === "av1") return "av1_amf";
+  } else if (hwChoice === "videotoolbox") {
+    if (targetCodec === "libx264" || targetCodec === "h264") return "h264_videotoolbox";
+    if (targetCodec === "libx265" || targetCodec === "hevc" || targetCodec === "h265") return "hevc_videotoolbox";
   }
   return targetCodec;
+}
+
+export function getHwaccelInputArgs(hwChoice) {
+  if (hwChoice === "cuda") return ["-hwaccel", "cuda"];
+  if (hwChoice === "qsv") return ["-hwaccel", "qsv"];
+  if (hwChoice === "amf" || hwChoice === "d3d11va") return ["-hwaccel", "d3d11va"];
+  if (hwChoice === "videotoolbox") return ["-hwaccel", "videotoolbox"];
+  return [];
 }
 
 export function applyVideoEncoderOptions(args, targetCodec, settings = {}, options = {}) {
@@ -179,6 +207,11 @@ export function applyVideoEncoderOptions(args, targetCodec, settings = {}, optio
       args.push("-rc", "cqp", "-qp_i", crf, "-qp_p", crf);
     }
     args.push("-pix_fmt", "yuv420p");
+  } else if (mappedEncoder.endsWith("_videotoolbox")) {
+    if (!bitrate) {
+      args.push("-q:v", crf);
+    }
+    args.push("-pix_fmt", "yuv420p");
   } else {
     // Software CPU Encoder
     if (!bitrate) {
@@ -216,13 +249,7 @@ export function buildConvertCommand(inputFile, outputDir, settings = {}) {
   // Hardware acceleration (only for standard video formats, not GIF)
   const hwChoice = getResolvedHwaccel(settings);
   if (container !== "gif" && container !== "webp") {
-    if (hwChoice === "cuda") {
-      args.push("-hwaccel", "cuda");
-    } else if (hwChoice === "qsv") {
-      args.push("-hwaccel", "qsv");
-    } else if (hwChoice === "amf") {
-      args.push("-hwaccel", "d3d11va");
-    }
+    args.push(...getHwaccelInputArgs(hwChoice));
   }
 
   // Encoding threads
@@ -530,13 +557,7 @@ export function buildCompressCommand(inputFile, outputDir, settings = {}) {
   const dst = resolveDestinationPath(`${baseName}_compressed.mp4`, settings, src);
 
   const hwChoice = getResolvedHwaccel(settings);
-  if (hwChoice === "cuda") {
-    args.push("-hwaccel", "cuda");
-  } else if (hwChoice === "qsv") {
-    args.push("-hwaccel", "qsv");
-  } else if (hwChoice === "amf") {
-    args.push("-hwaccel", "d3d11va");
-  }
+  args.push(...getHwaccelInputArgs(hwChoice));
 
   args.push("-i", src);
 
@@ -710,6 +731,130 @@ export function buildCompressAudioCommand(inputFile, outputDir, settings = {}) {
     args,
     destination: dst,
     duration: durationSec,
+    fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
+  };
+}
+
+export function buildAudioTagsCommand(inputFile, outputDir, settings = {}, extraParams = {}) {
+  const src = inputFile || "C:\\Users\\User\\Music\\audio_sample.mp3";
+  const ext = (src.split(".").pop() || "mp3").toLowerCase();
+  const baseName =
+    src
+      .split(/[/\\]/)
+      .pop()
+      ?.replace(/\.[^/.]+$/, "") || "output_tagged";
+
+  const defaultOutName = `${baseName}_tagged.${ext}`;
+  const dst = extraParams.customOutPath || resolveDestinationPath(defaultOutName, settings, src);
+
+  const title = extraParams.title !== undefined ? extraParams.title : (document.getElementById("tag-title")?.value?.trim() ?? "");
+  const artist = extraParams.artist !== undefined ? extraParams.artist : (document.getElementById("tag-artist")?.value?.trim() ?? "");
+  const album = extraParams.album !== undefined ? extraParams.album : (document.getElementById("tag-album")?.value?.trim() ?? "");
+  const albumArtist = extraParams.albumArtist !== undefined ? extraParams.albumArtist : (document.getElementById("tag-album-artist")?.value?.trim() ?? "");
+  const track = extraParams.track !== undefined ? extraParams.track : (document.getElementById("tag-track")?.value?.trim() ?? "");
+  const totalTracks = extraParams.totalTracks !== undefined ? extraParams.totalTracks : (document.getElementById("tag-total-tracks")?.value?.trim() ?? "");
+  const disc = extraParams.disc !== undefined ? extraParams.disc : (document.getElementById("tag-disc")?.value?.trim() ?? "");
+  const year = extraParams.year !== undefined ? extraParams.year : (document.getElementById("tag-year")?.value?.trim() ?? "");
+  const genre = extraParams.genre !== undefined ? extraParams.genre : (document.getElementById("tag-genre")?.value?.trim() ?? "");
+  const composer = extraParams.composer !== undefined ? extraParams.composer : (document.getElementById("tag-composer")?.value?.trim() ?? "");
+  const comment = extraParams.comment !== undefined ? extraParams.comment : (document.getElementById("tag-comment")?.value?.trim() ?? "");
+
+  const coverAction = extraParams.coverAction || "keep";
+  const coverPath = extraParams.coverPath || "";
+  const tempOggMetaPath = extraParams.tempOggMetaPath || "";
+
+  const args = ["-y", "-i", src];
+
+  if (coverAction === "replace" && coverPath) {
+    if (ext === "ogg" && tempOggMetaPath) {
+      args.push("-i", tempOggMetaPath, "-map", "0:a", "-map_metadata", "1", "-c:a", "copy");
+    } else if (ext === "mp3") {
+      args.push(
+        "-i", coverPath,
+        "-map", "0:a",
+        "-map", "1",
+        "-c:a", "copy",
+        "-c:v", "mjpeg",
+        "-id3v2_version", "3",
+        "-metadata:s:v", "title=Album cover",
+        "-metadata:s:v", "comment=Cover (front)",
+        "-disposition:v:0", "attached_pic"
+      );
+    } else if (ext === "m4a" || ext === "mp4" || ext === "m4b") {
+      args.push(
+        "-i", coverPath,
+        "-map", "0:a",
+        "-map", "1",
+        "-c:a", "copy",
+        "-c:v", "copy",
+        "-disposition:v:0", "attached_pic"
+      );
+    } else if (ext === "flac") {
+      args.push(
+        "-i", coverPath,
+        "-map", "0:a",
+        "-map", "1",
+        "-c:a", "copy",
+        "-c:v", "mjpeg",
+        "-disposition:v:0", "attached_pic"
+      );
+    } else {
+      args.push(
+        "-i", coverPath,
+        "-map", "0:a",
+        "-map", "1",
+        "-c:a", "copy",
+        "-c:v", "copy",
+        "-disposition:v:0", "attached_pic"
+      );
+    }
+  } else if (coverAction === "remove") {
+    args.push("-map", "0:a", "-c:a", "copy");
+    if (ext === "mp3") {
+      args.push("-id3v2_version", "3");
+    }
+  } else {
+    args.push("-map", "0", "-c", "copy");
+    if (ext === "mp3") {
+      args.push("-id3v2_version", "3");
+    }
+  }
+
+  // Set or clear tags
+  args.push("-metadata", `title=${title}`);
+  args.push("-metadata", `artist=${artist}`);
+  args.push("-metadata", `album=${album}`);
+  args.push("-metadata", `album_artist=${albumArtist}`);
+  args.push("-metadata", `genre=${genre}`);
+
+  if (year) {
+    args.push("-metadata", `date=${year}`);
+    if (ext === "mp3") {
+      args.push("-metadata", `year=${year}`);
+    }
+  } else {
+    args.push("-metadata", "date=");
+    if (ext === "mp3") args.push("-metadata", "year=");
+  }
+
+  if (track || totalTracks) {
+    const trackVal = totalTracks ? `${track || "1"}/${totalTracks}` : track;
+    args.push("-metadata", `track=${trackVal}`);
+  } else {
+    args.push("-metadata", "track=");
+  }
+
+  args.push("-metadata", `disc=${disc}`);
+  args.push("-metadata", `composer=${composer}`);
+  args.push("-metadata", `comment=${comment}`);
+
+  args.push("-progress", "pipe:1");
+  args.push(dst);
+
+  return {
+    executable: "ffmpeg",
+    args,
+    destination: dst,
     fullString: `ffmpeg ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
   };
 }
@@ -1374,7 +1519,12 @@ export function buildYtDlpSubtitlesCommand(url, outputDir, settings = {}) {
 }
 
 function buildAtempoFilter(speed) {
-  let remaining = speed;
+  // Sanitize first: non-finite or non-positive speeds would spin the
+  // halving/doubling loops below forever and freeze the tab. Clamp to the
+  // UI slider range (0.25x–16x).
+  let remaining = Number(speed);
+  if (!Number.isFinite(remaining) || remaining <= 0) remaining = 2.0;
+  remaining = Math.min(16, Math.max(0.25, remaining));
   const filters = [];
   while (remaining > 2.0) {
     filters.push("atempo=2.0");
@@ -1409,13 +1559,7 @@ export function buildSpeedMotionCommand(inputFile, outputDir, settings = {}, dur
   const dst = resolveDestinationPath(`${baseName}_${speed}x.${container}`, settings, src);
 
   const hwChoice = getResolvedHwaccel(settings);
-  if (hwChoice === "cuda") {
-    args.push("-hwaccel", "cuda");
-  } else if (hwChoice === "qsv") {
-    args.push("-hwaccel", "qsv");
-  } else if (hwChoice === "amf") {
-    args.push("-hwaccel", "d3d11va");
-  }
+  args.push(...getHwaccelInputArgs(hwChoice));
 
   args.push("-i", src);
 
@@ -1469,13 +1613,7 @@ export function buildAspectCropCommand(inputFile, outputDir, settings = {}, dura
   const dst = resolveDestinationPath(`${baseName}_${ratio.replace(":", "x")}.${container}`, settings, src);
 
   const hwChoice = getResolvedHwaccel(settings);
-  if (hwChoice === "cuda") {
-    args.push("-hwaccel", "cuda");
-  } else if (hwChoice === "qsv") {
-    args.push("-hwaccel", "qsv");
-  } else if (hwChoice === "amf") {
-    args.push("-hwaccel", "d3d11va");
-  }
+  args.push(...getHwaccelInputArgs(hwChoice));
 
   args.push("-i", src);
 
@@ -1535,13 +1673,7 @@ export function buildStabilizeCommand(inputFile, outputDir, settings = {}, durat
   const dst = resolveDestinationPath(`${baseName}_stabilized.${container}`, settings, src);
 
   const hwChoice = getResolvedHwaccel(settings);
-  if (hwChoice === "cuda") {
-    args.push("-hwaccel", "cuda");
-  } else if (hwChoice === "qsv") {
-    args.push("-hwaccel", "qsv");
-  } else if (hwChoice === "amf") {
-    args.push("-hwaccel", "d3d11va");
-  }
+  args.push(...getHwaccelInputArgs(hwChoice));
 
   args.push("-i", src);
 
@@ -1680,6 +1812,8 @@ export function buildCommandForTool(
       return buildCompressCommand(inputFile, outputDir, settings);
     case "compress_audio":
       return buildCompressAudioCommand(inputFile, outputDir, settings);
+    case "audio_tags":
+      return buildAudioTagsCommand(inputFile, outputDir, settings, extraParams);
     case "merge":
       return buildMergeCommand(extraParams.mergeFiles || [], outputDir, settings, extraParams.concatListPath);
     case "mute_replace":

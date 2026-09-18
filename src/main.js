@@ -25,8 +25,9 @@ import {
   renderImageAiQueueUI,
   initImageLightbox,
   clearAllMediaPreviewCaches,
+  applyMediaPreviewVisibility,
 } from "./js/media.js";
-import { buildCommandForTool, setDetectedHardware, getCachedMediaProbe, setCachedMediaProbe } from "./js/commands.js";
+import { buildCommandForTool, setDetectedHardware, getCachedMediaProbe, setCachedMediaProbe, isAudioPath } from "./js/commands.js";
 import {
   executeFfmpegJob,
   executeBatchQueue,
@@ -45,6 +46,14 @@ import { initYtDlpFormatEditor } from "./js/ytdlp_format.js";
 import { initYtDlpUrlFixer, fixYoutubeUrl } from "./js/ytdlp_url.js";
 import { initKitsManager, executeActiveKit, resetActiveKit, applyUserKitsVisibility } from "./kits/index.js";
 import { initM3Switches } from "./js/m3_switch.js";
+import {
+  initAudioTagsModule,
+  getAudioTagQueue,
+  executeAudioTagsQueue,
+  addAudioFilesToQueue,
+  revertActiveTrack,
+  isAudioTagsLoading,
+} from "./js/audio_tags.js";
 
 let appSettings = loadSettings();
 let mergeFiles = [];
@@ -53,6 +62,35 @@ let userHasCustomOutputName = false;
 let playlistVideos = [];
 let isFetchingPlaylist = false;
 let fetchedPlaylistUrl = "";
+// Chunked playlist rendering: rows per frame slice + invalidation token.
+const PLAYLIST_RENDER_CHUNK = 100;
+let playlistRenderToken = 0;
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function playlistRowHtml(item) {
+  const title = escapeHtml(item.title);
+  const url = escapeHtml(item.url);
+  const duration = escapeHtml(item.duration_string || "");
+  return `
+    <label class="list-group-item d-flex align-items-center gap-3 py-2 text-start" style="cursor: pointer;">
+      <input class="form-check-input flex-shrink-0 mt-0 playlist-item-check" type="checkbox" data-index="${item.index}" ${item.checked ? "checked" : ""} />
+      <div class="flex-grow-1 text-truncate">
+        <div class="d-flex align-items-center justify-content-between gap-2">
+          <div class="fw-medium text-body text-truncate mb-0" title="${title}">${item.index}. ${title}</div>
+          ${item.duration_string ? `<span class="badge text-bg-secondary flex-shrink-0 font-monospace">${duration}</span>` : ""}
+        </div>
+        <div class="text-body-secondary small text-truncate" style="font-size: 0.75rem;">${url}</div>
+      </div>
+    </label>
+  `;
+}
 
 export function saveActiveModuleState(toolId) {
   if (!toolId || toolId === "settings" || toolId.startsWith("kit_")) return;
@@ -167,6 +205,7 @@ export function restoreAllModulesState() {
     "gif_frames",
     "extract_audio",
     "compress_audio",
+    "audio_tags",
     "merge",
     "custom",
     "bg_remover",
@@ -188,14 +227,12 @@ export function restoreAllModulesState() {
 export function renderPlaylistEntries() {
   const container = document.getElementById("playlist-entries-panel");
   const list = document.getElementById("playlist-entries-list");
-  const selectedCountEl = document.getElementById("playlist-selected-count");
-  const totalCountEl = document.getElementById("playlist-total-count");
-  const toggleAllBtn = document.getElementById("btn-playlist-toggle-all");
-  const sortSelect = document.getElementById("playlist-sort-select");
 
   if (!container || !list) return;
 
   if (playlistVideos.length === 0) {
+    // Invalidate any in-flight chunked render before clearing.
+    playlistRenderToken++;
     container.classList.add("d-none");
     list.innerHTML = "";
     return;
@@ -203,6 +240,7 @@ export function renderPlaylistEntries() {
 
   container.classList.remove("d-none");
 
+  const sortSelect = document.getElementById("playlist-sort-select");
   const sortMode = sortSelect ? sortSelect.value : "original";
   const sorted = [...playlistVideos].sort((a, b) => {
     if (sortMode === "title_asc") return a.title.localeCompare(b.title);
@@ -212,45 +250,59 @@ export function renderPlaylistEntries() {
     return a.index - b.index;
   });
 
+  refreshPlaylistCounts();
+
+  // Chunked render: a big playlist built via one giant innerHTML blocks the
+  // event loop for seconds (input stalls while content keeps painting).
+  // First chunk paints synchronously, the rest yield per frame; a token
+  // drops stale chunks when a newer render supersedes them.
+  const token = ++playlistRenderToken;
+  const renderChunk = (start) => {
+    if (token !== playlistRenderToken) return;
+    const end = Math.min(start + PLAYLIST_RENDER_CHUNK, sorted.length);
+    let html = "";
+    for (let i = start; i < end; i++) html += playlistRowHtml(sorted[i]);
+    if (start === 0) {
+      list.innerHTML = html;
+    } else {
+      list.insertAdjacentHTML("beforeend", html);
+    }
+    if (end < sorted.length) {
+      requestAnimationFrame(() => renderChunk(end));
+    }
+  };
+  renderChunk(0);
+  bindPlaylistListOnce(list);
+}
+
+function refreshPlaylistCounts() {
+  const selectedCountEl = document.getElementById("playlist-selected-count");
+  const totalCountEl = document.getElementById("playlist-total-count");
+  const toggleAllBtn = document.getElementById("btn-playlist-toggle-all");
   const selectedCount = playlistVideos.filter((v) => v.checked).length;
   if (selectedCountEl) selectedCountEl.textContent = selectedCount;
   if (totalCountEl) totalCountEl.textContent = playlistVideos.length;
   if (toggleAllBtn) {
     toggleAllBtn.textContent = selectedCount === playlistVideos.length ? "Deselect All" : "Select All";
   }
+}
 
-  list.innerHTML = sorted
-    .map(
-      (item) => `
-    <label class="list-group-item d-flex align-items-center gap-3 py-2 text-start" style="cursor: pointer;">
-      <input class="form-check-input flex-shrink-0 mt-0 playlist-item-check" type="checkbox" data-index="${item.index}" ${item.checked ? "checked" : ""} />
-      <div class="flex-grow-1 text-truncate">
-        <div class="d-flex align-items-center justify-content-between gap-2">
-          <div class="fw-medium text-body text-truncate mb-0" title="${item.title}">${item.index}. ${item.title}</div>
-          ${item.duration_string ? `<span class="badge text-bg-secondary flex-shrink-0 font-monospace">${item.duration_string}</span>` : ""}
-        </div>
-        <div class="text-body-secondary small text-truncate" style="font-size: 0.75rem;">${item.url}</div>
-      </div>
-    </label>
-  `,
-    )
-    .join("");
-
-  list.querySelectorAll(".playlist-item-check").forEach((chk) => {
-    chk.addEventListener("change", (e) => {
-      const idx = parseInt(e.target.dataset.index, 10);
-      const target = playlistVideos.find((v) => v.index === idx);
-      if (target) {
-        target.checked = e.target.checked;
-      }
-      const selCount = playlistVideos.filter((v) => v.checked).length;
-      if (selectedCountEl) selectedCountEl.textContent = selCount;
-      if (toggleAllBtn) {
-        toggleAllBtn.textContent = selCount === playlistVideos.length ? "Deselect All" : "Select All";
-      }
-      updateExecuteButtonState();
-      updateCommandPreview();
-    });
+// Single delegated change listener (bound once): replaces N per-checkbox
+// listeners that were re-attached on every render.
+function bindPlaylistListOnce(list) {
+  if (!list || list.dataset.playlistBound === "1") return;
+  list.dataset.playlistBound = "1";
+  list.addEventListener("change", (e) => {
+    const chk = e.target && e.target.closest ? e.target.closest(".playlist-item-check") : null;
+    if (!chk || !list.contains(chk)) return;
+    const idx = parseInt(chk.dataset.index, 10);
+    const target = playlistVideos.find((v) => v.index === idx);
+    if (target) {
+      target.checked = chk.checked;
+    }
+    refreshPlaylistCounts();
+    updateExecuteButtonState();
+    updateCommandPreview();
   });
 }
 
@@ -355,6 +407,10 @@ export function getSmartOutputFileName(inputFile, toolId) {
     case "compress_audio": {
       const fmt = document.getElementById("comp-aud-format")?.value || "opus";
       return `${baseName}_compressed.${fmt}`;
+    }
+    case "audio_tags": {
+      const ext = (rawInput.split(".").pop() || "mp3").toLowerCase();
+      return `${baseName}_tagged.${ext}`;
     }
     case "merge": {
       const fmt = document.getElementById("merge-format")?.value || "mp4";
@@ -463,11 +519,26 @@ export function truncateMiddlePath(fullPath, maxChars = 50) {
   return `${leftClean}…${sep}${rightPath}`;
 }
 
+let cachedPathCharsWidth = 0;
+let cachedPathCharsResult = 50;
+
 export function getAvailablePathChars(inputEl) {
   if (!inputEl) return 50;
-  const width = inputEl.clientWidth || 300;
+  const width = inputEl.clientWidth;
+  if (width <= 0) return cachedPathCharsResult || 50;
+  if (Math.abs(width - cachedPathCharsWidth) < 10) return cachedPathCharsResult;
+  cachedPathCharsWidth = width;
   const avail = Math.floor((width - 30) / 7.5);
-  return Math.max(25, avail);
+  cachedPathCharsResult = Math.max(25, avail);
+  return cachedPathCharsResult;
+}
+
+let checkFileExistsTimer = null;
+export function debouncedCheckOutputTargetFileExists(delay = 80) {
+  if (checkFileExistsTimer) clearTimeout(checkFileExistsTimer);
+  checkFileExistsTimer = setTimeout(() => {
+    checkOutputTargetFileExists();
+  }, delay);
 }
 
 export async function checkOutputTargetFileExists() {
@@ -526,7 +597,7 @@ export function setOutputFilePath(fullPath) {
     outputInput.value = truncateMiddlePath(fullPath, maxChars);
   }
 
-  checkOutputTargetFileExists();
+  debouncedCheckOutputTargetFileExists();
 }
 
 export function getOutputFilePath() {
@@ -552,6 +623,25 @@ export function updateAutoOutputFilename(force = false) {
   const currentInput = getCurrentInputFile();
   const activeTool = getCurrentActiveTool();
 
+  // If active tool doesn't use the shared input/output filename card, skip entirely
+  const isImageTool = [
+    "bg_remover",
+    "ai_upscaler",
+    "vectorizer",
+    "restore_denoise",
+    "icon_generator",
+    "metadata_cleaner",
+  ].includes(activeTool);
+  if (
+    activeTool === "settings" ||
+    activeTool === "audio_tags" ||
+    activeTool?.startsWith("ytdlp_") ||
+    activeTool?.startsWith("kit_") ||
+    isImageTool
+  ) {
+    return;
+  }
+
   if (force || !userHasCustomOutputName || !getOutputFilePath().trim()) {
     const smartName = getSmartOutputFileName(currentInput, activeTool);
     const settings = appSettings || loadSettings();
@@ -568,8 +658,9 @@ export function updateAutoOutputFilename(force = false) {
 
     setOutputFilePath(fullPath);
     if (force) userHasCustomOutputName = false;
+  } else {
+    debouncedCheckOutputTargetFileExists();
   }
-  checkOutputTargetFileExists();
 }
 
 export function updateExecuteButtonState() {
@@ -630,6 +721,19 @@ export function updateExecuteButtonState() {
     const imgCount = imgQueue ? imgQueue.length : 0;
     btnExecute.textContent = imgCount > 1 ? `Execute (${imgCount})` : "Execute";
     canExecute = imgCount > 0;
+  } else if (activeTool === "audio_tags") {
+    const audioQueue = typeof getAudioTagQueue === "function" ? getAudioTagQueue() : [];
+    const audioCount = audioQueue ? audioQueue.length : 0;
+    const isLoading = typeof isAudioTagsLoading === "function" && isAudioTagsLoading();
+    if (isLoading) {
+      btnExecute.textContent = "Loading...";
+      btnExecute.disabled = true;
+      btnExecute.className = "btn btn-primary btn-sm px-4";
+      btnExecute.setAttribute("title", "Reading audio metadata and artwork...");
+      return;
+    }
+    btnExecute.textContent = audioCount > 1 ? `Apply (${audioCount})` : "Apply";
+    canExecute = audioCount > 0;
   } else if (queue && queue.length > 1 && activeTool !== "merge" && activeTool !== "settings") {
     btnExecute.textContent = `Execute (${queue.length})`;
     canExecute = !!(currentInput && currentInput.trim().length > 0);
@@ -661,7 +765,9 @@ export function updateExecuteButtonState() {
               ? "Enter custom arguments to execute"
               : isImageAiTool
                 ? "Add images to the queue to execute operation"
-                : "Select a file to execute operation",
+                : activeTool === "audio_tags"
+                  ? "Add audio tracks to the queue to apply tags"
+                  : "Select a file to execute operation",
     );
   } else {
     btnExecute.setAttribute(
@@ -670,7 +776,13 @@ export function updateExecuteButtonState() {
         ? "Execute current User Kit"
         : activeTool === "ytdlp_playlist"
           ? (playlistVideos.length > 0 ? "Download selected playlist videos" : "Fetch videos from playlist URL")
-          : activeTool.startsWith("ytdlp_") ? "Start download task" : isImageAiTool ? `Run image processing queue (${(typeof getImageAiQueue === "function" ? getImageAiQueue().length : 0)})` : "Run processing operation",
+          : activeTool.startsWith("ytdlp_")
+            ? "Start download task"
+            : isImageAiTool
+              ? `Run image processing queue (${(typeof getImageAiQueue === "function" ? getImageAiQueue().length : 0)})`
+              : activeTool === "audio_tags"
+                ? `Apply metadata changes to ${getAudioTagQueue().length} track(s)`
+                : "Run processing operation",
     );
   }
 }
@@ -696,19 +808,22 @@ function updateCommandPreview() {
     ? playlistVideos.filter((v) => v.checked).map((v) => v.index)
     : null;
 
+  const extraParams = { mergeFiles, url: currentUrl, selectedIndices };
+
   const cmdObj = buildCommandForTool(
     activeTool,
     currentInput,
     appSettings.outputDir,
     appSettings,
-    { mergeFiles, url: currentUrl, selectedIndices },
+    extraParams,
   );
   cmdPreviewEl.textContent = cmdObj.fullString;
-  updateEstimatesUI();
+  updateEstimatesUI(activeTool);
   return cmdObj;
 }
 
-export function updateEstimatesUI() {
+export function updateEstimatesUI(targetTool = null) {
+  const activeTool = targetTool || getCurrentActiveTool();
   const mediaInfo = getCurrentMediaInfo();
   const durSec = mediaInfo?.duration_seconds > 0 ? mediaInfo.duration_seconds : 120.0;
   const srcSizeMb = mediaInfo?.file_size_mb > 0 ? mediaInfo.file_size_mb : 42.5;
@@ -737,366 +852,390 @@ export function updateEstimatesUI() {
   };
 
   // 1. Convert Video Estimate
-  const cvtTarget = document.getElementById("cvt-est-target");
-  const cvtVbitrate = document.getElementById("cvt-est-vbitrate");
-  const cvtSize = document.getElementById("cvt-est-size");
-  if (cvtTarget && cvtVbitrate && cvtSize) {
-    const container = document.getElementById("cvt-container")?.value || "mp4";
-    const vcodec = document.getElementById("cvt-vcodec")?.value || "libx264";
-    const acodec = document.getElementById("cvt-acodec")?.value || "aac";
-    const crf = parseInt(document.getElementById("cvt-crf")?.value || "23", 10);
-    const scale = document.getElementById("cvt-scale")?.value || "original";
+  if (!targetTool || activeTool === "convert") {
+    const cvtTarget = document.getElementById("cvt-est-target");
+    const cvtVbitrate = document.getElementById("cvt-est-vbitrate");
+    const cvtSize = document.getElementById("cvt-est-size");
+    if (cvtTarget && cvtVbitrate && cvtSize) {
+      const container = document.getElementById("cvt-container")?.value || "mp4";
+      const vcodec = document.getElementById("cvt-vcodec")?.value || "libx264";
+      const acodec = document.getElementById("cvt-acodec")?.value || "aac";
+      const crf = parseInt(document.getElementById("cvt-crf")?.value || "23", 10);
+      const scale = document.getElementById("cvt-scale")?.value || "original";
 
-    let targetW = srcW;
-    let targetH = srcH;
-    if (scale !== "original" && scale.includes(":")) {
-      const [sw, sh] = scale.split(":").map((v) => parseInt(v, 10));
-      if (sw > 0 && sh > 0) {
-        targetW = sw;
-        targetH = sh;
+      let targetW = srcW;
+      let targetH = srcH;
+      if (scale !== "original" && scale.includes(":")) {
+        const [sw, sh] = scale.split(":").map((v) => parseInt(v, 10));
+        if (sw > 0 && sh > 0) {
+          targetW = sw;
+          targetH = sh;
+        }
       }
-    }
-    const targetPixels = targetW * targetH;
-    const pixelRatio = targetPixels / srcPixels;
+      const targetPixels = targetW * targetH;
+      const pixelRatio = targetPixels / srcPixels;
 
-    if (container === "gif") {
-      const gifFps = parseInt(document.getElementById("cvt-gif-fps")?.value || "15", 10);
-      const quality = document.getElementById("cvt-gif-quality")?.value || "palette_diff";
-      cvtTarget.textContent = `Animated GIF (${gifFps} FPS)`;
-      cvtVbitrate.textContent = `PaletteGen (${quality === "palette_bayer" ? "Bayer" : "Floyd-Steinberg"})`;
-      // PaletteGen GIF: ~0.20-0.28 bytes per pixel per frame depending on dithering
-      const bytesPerPx = quality === "palette_bayer" ? 0.19 : 0.25;
-      const totalBytes = durSec * gifFps * targetW * targetH * bytesPerPx;
-      const estMb = totalBytes / (1024 * 1024);
-      cvtSize.textContent = formatSize(estMb);
-    } else if (container === "webp") {
-      const webpFps = parseInt(document.getElementById("cvt-webp-fps")?.value || "24", 10);
-      const webpQuality = parseInt(document.getElementById("cvt-webp-quality")?.value || "75", 10);
-      cvtTarget.textContent = `Animated WebP (${webpFps} FPS, Q${webpQuality})`;
-      // WebP compression efficiency
-      const bpp = (webpQuality / 100) * 0.042;
-      const estVBitrateKbps = Math.round((targetPixels * webpFps * bpp) / 1000);
-      cvtVbitrate.textContent = `~${estVBitrateKbps.toLocaleString()} kbps`;
-      const estMb = ((estVBitrateKbps * 1000 / 8) * durSec) / (1024 * 1024);
-      cvtSize.textContent = formatSize(estMb);
-    } else {
-      let targetVBitrateKbps = 2500;
-      let targetABitrateKbps = 192;
-      let containerOverhead = 1.015; // 1.5% for MP4/MOV, 1% MKV, 2.5% AVI
-
-      if (container === "mkv" || container === "webm") containerOverhead = 1.01;
-      else if (container === "avi") containerOverhead = 1.025;
-      else if (container === "mov") containerOverhead = 1.018;
-
-      // Audio stream bitrate
-      if (acodec === "copy") {
-        targetABitrateKbps = Math.min(320, Math.max(96, Math.round(srcBitrateKbps * 0.08)));
-      } else if (acodec === "libmp3lame") {
-        targetABitrateKbps = 256;
-      } else if (acodec === "libopus") {
-        targetABitrateKbps = 128;
-      } else if (acodec === "flac") {
-        targetABitrateKbps = 850;
+      if (container === "gif") {
+        const gifFps = parseInt(document.getElementById("cvt-gif-fps")?.value || "15", 10);
+        const quality = document.getElementById("cvt-gif-quality")?.value || "palette_diff";
+        cvtTarget.textContent = `Animated GIF (${gifFps} FPS)`;
+        cvtVbitrate.textContent = `PaletteGen (${quality === "palette_bayer" ? "Bayer" : "Floyd-Steinberg"})`;
+        // PaletteGen GIF: ~0.20-0.28 bytes per pixel per frame depending on dithering
+        const bytesPerPx = quality === "palette_bayer" ? 0.19 : 0.25;
+        const totalBytes = durSec * gifFps * targetW * targetH * bytesPerPx;
+        const estMb = totalBytes / (1024 * 1024);
+        cvtSize.textContent = formatSize(estMb);
+      } else if (container === "webp") {
+        const webpFps = parseInt(document.getElementById("cvt-webp-fps")?.value || "24", 10);
+        const webpQuality = parseInt(document.getElementById("cvt-webp-quality")?.value || "75", 10);
+        cvtTarget.textContent = `Animated WebP (${webpFps} FPS, Q${webpQuality})`;
+        // WebP compression efficiency
+        const bpp = (webpQuality / 100) * 0.042;
+        const estVBitrateKbps = Math.round((targetPixels * webpFps * bpp) / 1000);
+        cvtVbitrate.textContent = `~${estVBitrateKbps.toLocaleString()} kbps`;
+        const estMb = ((estVBitrateKbps * 1000 / 8) * durSec) / (1024 * 1024);
+        cvtSize.textContent = formatSize(estMb);
       } else {
-        targetABitrateKbps = 192;
-      }
+        let targetVBitrateKbps = 2500;
+        let targetABitrateKbps = 192;
+        let containerOverhead = 1.015; // 1.5% for MP4/MOV, 1% MKV, 2.5% AVI
 
-      // Video stream bitrate calculation from source bitrate, CRF, resolution, and codec
-      if (vcodec === "copy") {
-        // Direct stream copy preserves exact input video stream bitrate
-        const srcAudioBitrate = Math.round(srcBitrateKbps * 0.08);
-        targetVBitrateKbps = Math.max(100, srcBitrateKbps - srcAudioBitrate);
-        cvtVbitrate.textContent = `Stream Copy (~${targetVBitrateKbps.toLocaleString()} kbps)`;
-      } else {
-        // Base bitrate for H.264 at 1080p CRF 23
-        const crfFactor = Math.pow(2, (23 - crf) / 6);
-        // Base bitrate per 1080p pixel ~0.0012 kbps
-        let base1080pKbps = 2600 * crfFactor;
-        // Bound by source bitrate if downscaling / recompressing
-        if (srcBitrateKbps > 500 && crf >= 23) {
-          base1080pKbps = Math.min(base1080pKbps, (srcBitrateKbps * 0.9));
+        if (container === "mkv" || container === "webm") containerOverhead = 1.01;
+        else if (container === "avi") containerOverhead = 1.025;
+        else if (container === "mov") containerOverhead = 1.018;
+
+        // Audio stream bitrate
+        if (acodec === "copy") {
+          targetABitrateKbps = Math.min(320, Math.max(96, Math.round(srcBitrateKbps * 0.08)));
+        } else if (acodec === "libmp3lame") {
+          targetABitrateKbps = 256;
+        } else if (acodec === "libopus") {
+          targetABitrateKbps = 128;
+        } else if (acodec === "flac") {
+          targetABitrateKbps = 850;
+        } else {
+          targetABitrateKbps = 192;
         }
 
-        let codecEfficiency = 1.0; // H.264 baseline
-        if (vcodec === "libx265") codecEfficiency = 0.55; // HEVC: 45% lower bitrate
-        else if (vcodec === "libsvtav1") codecEfficiency = 0.45; // AV1: 55% lower bitrate
-        else if (vcodec === "libvpx-vp9") codecEfficiency = 0.65; // VP9: 35% lower bitrate
-        else if (vcodec.startsWith("prores")) {
-          // Apple ProRes 422 standard in MOV (~147 Mbps at 1080p)
-          codecEfficiency = 147000 / 2600;
+        // Video stream bitrate calculation from source bitrate, CRF, resolution, and codec
+        if (vcodec === "copy") {
+          // Direct stream copy preserves exact input video stream bitrate
+          const srcAudioBitrate = Math.round(srcBitrateKbps * 0.08);
+          targetVBitrateKbps = Math.max(100, srcBitrateKbps - srcAudioBitrate);
+          cvtVbitrate.textContent = `Stream Copy (~${targetVBitrateKbps.toLocaleString()} kbps)`;
+        } else {
+          // Base bitrate for H.264 at 1080p CRF 23
+          const crfFactor = Math.pow(2, (23 - crf) / 6);
+          // Base bitrate per 1080p pixel ~0.0012 kbps
+          let base1080pKbps = 2600 * crfFactor;
+          // Bound by source bitrate if downscaling / recompressing
+          if (srcBitrateKbps > 500 && crf >= 23) {
+            base1080pKbps = Math.min(base1080pKbps, (srcBitrateKbps * 0.9));
+          }
+
+          let codecEfficiency = 1.0; // H.264 baseline
+          if (vcodec === "libx265") codecEfficiency = 0.55; // HEVC: 45% lower bitrate
+          else if (vcodec === "libsvtav1") codecEfficiency = 0.45; // AV1: 55% lower bitrate
+          else if (vcodec === "libvpx-vp9") codecEfficiency = 0.65; // VP9: 35% lower bitrate
+          else if (vcodec.startsWith("prores")) {
+            // Apple ProRes 422 standard in MOV (~147 Mbps at 1080p)
+            codecEfficiency = 147000 / 2600;
+          }
+
+          targetVBitrateKbps = Math.round(base1080pKbps * pixelRatio * codecEfficiency);
+          targetVBitrateKbps = Math.max(120, targetVBitrateKbps);
+          cvtVbitrate.textContent = `~${targetVBitrateKbps.toLocaleString()} kbps`;
         }
 
-        targetVBitrateKbps = Math.round(base1080pKbps * pixelRatio * codecEfficiency);
-        targetVBitrateKbps = Math.max(120, targetVBitrateKbps);
-        cvtVbitrate.textContent = `~${targetVBitrateKbps.toLocaleString()} kbps`;
+        const vName = vcodec === "copy" ? "Stream Copy" : vcodec === "libx265" ? "HEVC" : vcodec === "libvpx-vp9" ? "VP9" : vcodec === "libsvtav1" ? "AV1" : vcodec.startsWith("prores") ? "ProRes" : "H.264";
+        const aName = acodec === "copy" ? "Keep Original" : acodec.toUpperCase();
+        cvtTarget.textContent = `${container.toUpperCase()} (${vName} / ${aName})`;
+
+        const totalKbps = targetVBitrateKbps + targetABitrateKbps;
+        const estMb = ((totalKbps * 1000 / 8) * durSec * containerOverhead) / (1024 * 1024);
+        cvtSize.textContent = formatSize(estMb);
       }
-
-      const vName = vcodec === "copy" ? "Stream Copy" : vcodec === "libx265" ? "HEVC" : vcodec === "libvpx-vp9" ? "VP9" : vcodec === "libsvtav1" ? "AV1" : vcodec.startsWith("prores") ? "ProRes" : "H.264";
-      const aName = acodec === "copy" ? "Keep Original" : acodec.toUpperCase();
-      cvtTarget.textContent = `${container.toUpperCase()} (${vName} / ${aName})`;
-
-      const totalKbps = targetVBitrateKbps + targetABitrateKbps;
-      const estMb = ((totalKbps * 1000 / 8) * durSec * containerOverhead) / (1024 * 1024);
-      cvtSize.textContent = formatSize(estMb);
     }
   }
 
   // 2. Extract Audio Estimate
-  const audTarget = document.getElementById("aud-est-target");
-  const audBitrate = document.getElementById("aud-est-bitrate");
-  const audSize = document.getElementById("aud-est-size");
-  if (audTarget && audBitrate && audSize) {
-    const fmt = document.getElementById("aud-format")?.value || "mp3";
-    const brVal = document.getElementById("aud-bitrate")?.value || "256k";
-    const bitdepth = parseInt(document.getElementById("aud-bitdepth")?.value || "16", 10);
-    const channels = 2;
-    const sampleRate = 44100;
+  if (!targetTool || activeTool === "extract_audio") {
+    const audTarget = document.getElementById("aud-est-target");
+    const audBitrate = document.getElementById("aud-est-bitrate");
+    const audSize = document.getElementById("aud-est-size");
+    if (audTarget && audBitrate && audSize) {
+      const fmt = document.getElementById("aud-format")?.value || "mp3";
+      const brVal = document.getElementById("aud-bitrate")?.value || "256k";
+      const bitdepth = parseInt(document.getElementById("aud-bitdepth")?.value || "16", 10);
+      const channels = 2;
+      const sampleRate = 44100;
 
-    if (["wav", "aiff"].includes(fmt)) {
-      audTarget.textContent = `${fmt.toUpperCase()} (${bitdepth}-bit PCM)`;
-      const pcmBitrate = (sampleRate * channels * bitdepth) / 1000;
-      audBitrate.textContent = `${pcmBitrate.toLocaleString()} kbps`;
-      const bytesPerSec = (sampleRate * channels * bitdepth) / 8;
-      const estMb = (durSec * bytesPerSec) / (1024 * 1024);
-      audSize.textContent = formatSize(estMb);
-    } else if (fmt === "flac") {
-      audTarget.textContent = `FLAC Lossless (${bitdepth}-bit)`;
-      const flacBitrate = Math.round(((sampleRate * channels * bitdepth) / 1000) * 0.58);
-      audBitrate.textContent = `~${flacBitrate.toLocaleString()} kbps`;
-      const estMb = ((flacBitrate * 1000 / 8) * durSec) / (1024 * 1024);
-      audSize.textContent = formatSize(estMb);
-    } else {
-      let kbps = 256;
-      if (brVal === "copy") {
-        kbps = Math.min(320, Math.max(128, Math.round(srcBitrateKbps * 0.08)));
+      if (["wav", "aiff"].includes(fmt)) {
+        audTarget.textContent = `${fmt.toUpperCase()} (${bitdepth}-bit PCM)`;
+        const pcmBitrate = (sampleRate * channels * bitdepth) / 1000;
+        audBitrate.textContent = `${pcmBitrate.toLocaleString()} kbps`;
+        const bytesPerSec = (sampleRate * channels * bitdepth) / 8;
+        const estMb = (durSec * bytesPerSec) / (1024 * 1024);
+        audSize.textContent = formatSize(estMb);
+      } else if (fmt === "flac") {
+        audTarget.textContent = `FLAC Lossless (${bitdepth}-bit)`;
+        const flacBitrate = Math.round(((sampleRate * channels * bitdepth) / 1000) * 0.58);
+        audBitrate.textContent = `~${flacBitrate.toLocaleString()} kbps`;
+        const estMb = ((flacBitrate * 1000 / 8) * durSec) / (1024 * 1024);
+        audSize.textContent = formatSize(estMb);
       } else {
-        kbps = parseInt(brVal, 10) || 256;
+        let kbps = 256;
+        if (brVal === "copy") {
+          kbps = Math.min(320, Math.max(128, Math.round(srcBitrateKbps * 0.08)));
+        } else {
+          kbps = parseInt(brVal, 10) || 256;
+        }
+        audTarget.textContent = `${fmt.toUpperCase()} (${kbps} kbps)`;
+        audBitrate.textContent = `${kbps} kbps`;
+        const estMb = ((kbps * 1000 / 8) * durSec * 1.01) / (1024 * 1024);
+        audSize.textContent = formatSize(estMb);
       }
-      audTarget.textContent = `${fmt.toUpperCase()} (${kbps} kbps)`;
-      audBitrate.textContent = `${kbps} kbps`;
-      const estMb = ((kbps * 1000 / 8) * durSec * 1.01) / (1024 * 1024);
-      audSize.textContent = formatSize(estMb);
     }
   }
 
   // 3. Trim & Cut Estimate
-  const trimDurationEl = document.getElementById("trim-est-duration");
-  const trimModeEl = document.getElementById("trim-est-mode");
-  const trimSizeEl = document.getElementById("trim-est-size");
-  if (trimDurationEl && trimModeEl && trimSizeEl) {
-    const startStr = document.getElementById("trim-start")?.value || "00:00:00.000";
-    const endStr = document.getElementById("trim-end")?.value || "00:01:00.000";
-    const parseTs = (t) => {
-      const parts = (t || "").split(":");
-      if (parts.length === 3) {
-        return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
-      }
-      return 0;
-    };
-    const sSec = parseTs(startStr);
-    const eSec = parseTs(endStr);
-    const clipDur = Math.max(0.1, eSec - sSec);
-    const m = Math.floor(clipDur / 60);
-    const s = Math.floor(clipDur % 60);
-    trimDurationEl.textContent = `00:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-    const mode = document.getElementById("trim-mode")?.value || "copy";
-    trimModeEl.textContent = mode === "copy" ? "Stream Copy (Lossless)" : "Accurate Cut (Re-encode)";
+  if (!targetTool || activeTool === "trim") {
+    const trimDurationEl = document.getElementById("trim-est-duration");
+    const trimModeEl = document.getElementById("trim-est-mode");
+    const trimSizeEl = document.getElementById("trim-est-size");
+    if (trimDurationEl && trimModeEl && trimSizeEl) {
+      const startStr = document.getElementById("trim-start")?.value || "00:00:00.000";
+      const endStr = document.getElementById("trim-end")?.value || "00:01:00.000";
+      const parseTs = (t) => {
+        const parts = (t || "").split(":");
+        if (parts.length === 3) {
+          return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+        }
+        return 0;
+      };
+      const sSec = parseTs(startStr);
+      const eSec = parseTs(endStr);
+      const clipDur = Math.max(0.1, eSec - sSec);
+      const m = Math.floor(clipDur / 60);
+      const s = Math.floor(clipDur % 60);
+      trimDurationEl.textContent = `00:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+      const mode = document.getElementById("trim-mode")?.value || "copy";
+      trimModeEl.textContent = mode === "copy" ? "Stream Copy (Lossless)" : "Accurate Cut (Re-encode)";
 
-    if (mode === "copy") {
-      const ratio = durSec > 0 ? clipDur / durSec : 0.5;
-      const estMb = srcSizeMb * ratio;
-      trimSizeEl.textContent = formatSize(estMb);
-    } else {
-      // Re-encode at CRF 20 (~3200 kbps total)
-      const estMb = ((3200 * 1000 / 8) * clipDur) / (1024 * 1024);
-      trimSizeEl.textContent = formatSize(estMb);
+      if (mode === "copy") {
+        const ratio = durSec > 0 ? clipDur / durSec : 0.5;
+        const estMb = srcSizeMb * ratio;
+        trimSizeEl.textContent = formatSize(estMb);
+      } else {
+        // Re-encode at CRF 20 (~3200 kbps total)
+        const estMb = ((3200 * 1000 / 8) * clipDur) / (1024 * 1024);
+        trimSizeEl.textContent = formatSize(estMb);
+      }
     }
   }
 
   // 3.5. Speed & Motion Estimate
-  const speedFactorEl = document.getElementById("speed-est-factor");
-  const speedDurEl = document.getElementById("speed-est-duration");
-  const speedSizeEl = document.getElementById("speed-est-size");
-  if (speedFactorEl && speedDurEl && speedSizeEl) {
-    const preset = document.getElementById("speed-preset")?.value || "2.0";
-    const speed = preset === "custom" ? (parseFloat(document.getElementById("speed-custom-val")?.value) || 2.0) : (parseFloat(preset) || 2.0);
-    speedFactorEl.textContent = `${speed}x`;
-    const newDur = Math.max(0.1, durSec / speed);
-    const m = Math.floor(newDur / 60);
-    const s = Math.floor(newDur % 60);
-    speedDurEl.textContent = `00:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-    const estMb = Math.max(0.1, (srcSizeMb / speed) * 1.05);
-    speedSizeEl.textContent = formatSize(estMb);
+  if (!targetTool || activeTool === "speed_motion") {
+    const speedFactorEl = document.getElementById("speed-est-factor");
+    const speedDurEl = document.getElementById("speed-est-duration");
+    const speedSizeEl = document.getElementById("speed-est-size");
+    if (speedFactorEl && speedDurEl && speedSizeEl) {
+      const preset = document.getElementById("speed-preset")?.value || "2.0";
+      const speed = preset === "custom" ? (parseFloat(document.getElementById("speed-custom-val")?.value) || 2.0) : (parseFloat(preset) || 2.0);
+      speedFactorEl.textContent = `${speed}x`;
+      const newDur = Math.max(0.1, durSec / speed);
+      const m = Math.floor(newDur / 60);
+      const s = Math.floor(newDur % 60);
+      speedDurEl.textContent = `00:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+      const estMb = Math.max(0.1, (srcSizeMb / speed) * 1.05);
+      speedSizeEl.textContent = formatSize(estMb);
+    }
   }
 
   // 3.6. Aspect Ratio & Crop Estimate
-  const cropRatioEl = document.getElementById("crop-est-ratio");
-  const cropModeEl = document.getElementById("crop-est-mode");
-  const cropSizeEl = document.getElementById("crop-est-size");
-  if (cropRatioEl && cropModeEl && cropSizeEl) {
-    const ratio = document.getElementById("crop-ratio")?.value || "9:16";
-    const mode = document.getElementById("crop-mode")?.value || "center_crop";
-    cropRatioEl.textContent = ratio === "9:16" ? "9:16 (Vertical)" : ratio === "1:1" ? "1:1 (Square)" : ratio;
-    cropModeEl.textContent = mode === "center_crop" ? "Center Crop" : mode === "pad_blur" ? "Blurred Background" : mode === "pad_black" ? "Letterbox" : "Fit & Scale";
-    const crf = parseInt(document.getElementById("crop-crf")?.value || "23", 10);
-    const crfFactor = Math.pow(2, (23 - crf) / 6);
-    const estMb = ((2800 * crfFactor * 1000 / 8) * durSec) / (1024 * 1024);
-    cropSizeEl.textContent = formatSize(estMb);
+  if (!targetTool || activeTool === "aspect_crop") {
+    const cropRatioEl = document.getElementById("crop-est-ratio");
+    const cropModeEl = document.getElementById("crop-est-mode");
+    const cropSizeEl = document.getElementById("crop-est-size");
+    if (cropRatioEl && cropModeEl && cropSizeEl) {
+      const ratio = document.getElementById("crop-ratio")?.value || "9:16";
+      const mode = document.getElementById("crop-mode")?.value || "center_crop";
+      cropRatioEl.textContent = ratio === "9:16" ? "9:16 (Vertical)" : ratio === "1:1" ? "1:1 (Square)" : ratio;
+      cropModeEl.textContent = mode === "center_crop" ? "Center Crop" : mode === "pad_blur" ? "Blurred Background" : mode === "pad_black" ? "Letterbox" : "Fit & Scale";
+      const crf = parseInt(document.getElementById("crop-crf")?.value || "23", 10);
+      const crfFactor = Math.pow(2, (23 - crf) / 6);
+      const estMb = ((2800 * crfFactor * 1000 / 8) * durSec) / (1024 * 1024);
+      cropSizeEl.textContent = formatSize(estMb);
+    }
   }
 
   // 3.7. Video Stabilization Estimate
-  const stabEngineEl = document.getElementById("stab-est-engine");
-  const stabSmoothEl = document.getElementById("stab-est-smooth");
-  const stabSizeEl = document.getElementById("stab-est-size");
-  if (stabEngineEl && stabSmoothEl && stabSizeEl) {
-    const engine = document.getElementById("stab-engine")?.value || "deshake";
-    const smooth = document.getElementById("stab-smooth")?.value || "medium";
-    stabEngineEl.textContent = engine === "deshake" ? "FFmpeg Deshake" : "VidStab 2-Pass";
-    stabSmoothEl.textContent = smooth.charAt(0).toUpperCase() + smooth.slice(1);
-    stabSizeEl.textContent = formatSize(srcSizeMb * 1.02);
+  if (!targetTool || activeTool === "stabilize") {
+    const stabEngineEl = document.getElementById("stab-est-engine");
+    const stabSmoothEl = document.getElementById("stab-est-smooth");
+    const stabSizeEl = document.getElementById("stab-est-size");
+    if (stabEngineEl && stabSmoothEl && stabSizeEl) {
+      const engine = document.getElementById("stab-engine")?.value || "deshake";
+      const smooth = document.getElementById("stab-smooth")?.value || "medium";
+      stabEngineEl.textContent = engine === "deshake" ? "FFmpeg Deshake" : "VidStab 2-Pass";
+      stabSmoothEl.textContent = smooth.charAt(0).toUpperCase() + smooth.slice(1);
+      stabSizeEl.textContent = formatSize(srcSizeMb * 1.02);
+    }
   }
 
   // 3.75. Loop & Duration Extender Estimate
-  const loopEstMode = document.getElementById("loop-est-mode");
-  const loopEstEngine = document.getElementById("loop-est-engine");
-  const loopEstLoops = document.getElementById("loop-est-loops");
-  const loopTotalTimeStr = document.getElementById("loop-total-time-str");
-  const loopCalcCount = document.getElementById("loop-calc-count");
-  const loopCountDurationStr = document.getElementById("loop-count-duration-str");
+  if (!targetTool || activeTool === "loop_duration") {
+    const loopEstMode = document.getElementById("loop-est-mode");
+    const loopEstEngine = document.getElementById("loop-est-engine");
+    const loopEstLoops = document.getElementById("loop-est-loops");
+    const loopTotalTimeStr = document.getElementById("loop-total-time-str");
+    const loopCalcCount = document.getElementById("loop-calc-count");
+    const loopCountDurationStr = document.getElementById("loop-count-duration-str");
 
-  if (loopEstMode && loopEstEngine && loopEstLoops) {
-    const mode = document.getElementById("loop-mode")?.value || "duration";
-    const engine = document.getElementById("loop-engine")?.value || "copy";
-    const vcodec = document.getElementById("loop-vcodec")?.value || "libx264";
-    const currentInput = getCurrentInputFile();
-    const hasMedia = !!(currentInput && currentInput.trim().length > 0 && mediaInfo && mediaInfo.duration_seconds > 0);
+    if (loopEstMode && loopEstEngine && loopEstLoops) {
+      const mode = document.getElementById("loop-mode")?.value || "duration";
+      const engine = document.getElementById("loop-engine")?.value || "copy";
+      const vcodec = document.getElementById("loop-vcodec")?.value || "libx264";
+      const currentInput = getCurrentInputFile();
+      const hasMedia = !!(currentInput && currentInput.trim().length > 0 && mediaInfo && mediaInfo.duration_seconds > 0);
 
-    const vcodecNames = {
-      libx264: "H.264",
-      libx265: "HEVC",
-      libsvtav1: "AV1",
-      "libvpx-vp9": "VP9",
-    };
-    const engineLabel = engine === "copy" ? "Direct Stream Copy" : `Re-encode (${vcodecNames[vcodec] || vcodec})`;
-    loopEstEngine.textContent = engineLabel;
+      const vcodecNames = {
+        libx264: "H.264",
+        libx265: "HEVC",
+        libsvtav1: "AV1",
+        "libvpx-vp9": "VP9",
+      };
+      const engineLabel = engine === "copy" ? "Direct Stream Copy" : `Re-encode (${vcodecNames[vcodec] || vcodec})`;
+      loopEstEngine.textContent = engineLabel;
 
-    if (mode === "duration") {
-      const hh = parseInt(document.getElementById("loop-target-hh")?.value, 10) || 0;
-      const mm = parseInt(document.getElementById("loop-target-mm")?.value, 10) || 0;
-      const ss = parseInt(document.getElementById("loop-target-ss")?.value, 10) || 0;
-      const totalSec = Math.max(1, hh * 3600 + mm * 60 + ss);
-      const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-
-      if (loopTotalTimeStr) loopTotalTimeStr.textContent = timeStr;
-      loopEstMode.textContent = `Target Duration (${timeStr})`;
-
-      if (hasMedia) {
-        const neededLoops = Math.max(1, Math.ceil(totalSec / durSec));
-        const estTotalMb = srcSizeMb * (totalSec / durSec);
-        if (loopCalcCount) loopCalcCount.textContent = `${neededLoops.toLocaleString()} repeats`;
-        loopEstLoops.textContent = `${neededLoops.toLocaleString()} loops (${formatSize(estTotalMb)})`;
-      } else {
-        if (loopCalcCount) loopCalcCount.textContent = "--";
-        loopEstLoops.textContent = "Waiting for media...";
-      }
-    } else {
-      const count = parseInt(document.getElementById("loop-repeat-count")?.value, 10) || 10;
-      loopEstMode.textContent = `Repeat Count (${count}x)`;
-
-      if (hasMedia) {
-        const totalSec = Math.round(durSec * count);
-        const hh = Math.floor(totalSec / 3600);
-        const mm = Math.floor((totalSec % 3600) / 60);
-        const ss = totalSec % 60;
+      if (mode === "duration") {
+        const hh = parseInt(document.getElementById("loop-target-hh")?.value, 10) || 0;
+        const mm = parseInt(document.getElementById("loop-target-mm")?.value, 10) || 0;
+        const ss = parseInt(document.getElementById("loop-target-ss")?.value, 10) || 0;
+        const totalSec = Math.max(1, hh * 3600 + mm * 60 + ss);
         const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-        const estTotalMb = srcSizeMb * count;
 
-        if (loopCountDurationStr) loopCountDurationStr.textContent = timeStr;
-        loopEstLoops.textContent = `${count.toLocaleString()} repeats (${timeStr}, ${formatSize(estTotalMb)})`;
+        if (loopTotalTimeStr) loopTotalTimeStr.textContent = timeStr;
+        loopEstMode.textContent = `Target Duration (${timeStr})`;
+
+        if (hasMedia) {
+          const neededLoops = Math.max(1, Math.ceil(totalSec / durSec));
+          const estTotalMb = srcSizeMb * (totalSec / durSec);
+          if (loopCalcCount) loopCalcCount.textContent = `${neededLoops.toLocaleString()} repeats`;
+          loopEstLoops.textContent = `${neededLoops.toLocaleString()} loops (${formatSize(estTotalMb)})`;
+        } else {
+          if (loopCalcCount) loopCalcCount.textContent = "--";
+          loopEstLoops.textContent = "Waiting for media...";
+        }
       } else {
-        if (loopCountDurationStr) loopCountDurationStr.textContent = "--:--:--";
-        loopEstLoops.textContent = `${count} repeats (No media)`;
+        const count = parseInt(document.getElementById("loop-repeat-count")?.value, 10) || 10;
+        loopEstMode.textContent = `Repeat Count (${count}x)`;
+
+        if (hasMedia) {
+          const totalSec = Math.round(durSec * count);
+          const hh = Math.floor(totalSec / 3600);
+          const mm = Math.floor((totalSec % 3600) / 60);
+          const ss = totalSec % 60;
+          const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+          const estTotalMb = srcSizeMb * count;
+
+          if (loopCountDurationStr) loopCountDurationStr.textContent = timeStr;
+          loopEstLoops.textContent = `${count.toLocaleString()} repeats (${timeStr}, ${formatSize(estTotalMb)})`;
+        } else {
+          if (loopCountDurationStr) loopCountDurationStr.textContent = "--:--:--";
+          loopEstLoops.textContent = `${count} repeats (No media)`;
+        }
       }
     }
   }
 
   // 3.8. Volume Normalization Estimate
-  const normTargetEl = document.getElementById("norm-est-target");
-  const normVideoEl = document.getElementById("norm-est-video");
-  const normSizeEl = document.getElementById("norm-est-size");
-  if (normTargetEl && normVideoEl && normSizeEl) {
-    const target = document.getElementById("norm-target")?.value || "spotify_youtube";
-    const videoMode = document.getElementById("norm-video-mode")?.value || "copy";
-    normTargetEl.textContent = target === "spotify_youtube" ? "-14 LUFS (YouTube/Spotify)" : target === "apple_podcast" ? "-16 LUFS (Apple/Podcasts)" : target === "ebu_r128" ? "-23 LUFS (Broadcast)" : target === "dynaudnorm" ? "Dynamic Normalizer" : "Peak 0dB";
-    normVideoEl.textContent = videoMode === "copy" ? "Stream Copy" : "Audio Only";
-    const estMb = videoMode === "strip" ? Math.max(0.1, ((256 * 1000 / 8) * durSec) / (1024 * 1024)) : srcSizeMb;
-    normSizeEl.textContent = formatSize(estMb);
+  if (!targetTool || activeTool === "normalize") {
+    const normTargetEl = document.getElementById("norm-est-target");
+    const normVideoEl = document.getElementById("norm-est-video");
+    const normSizeEl = document.getElementById("norm-est-size");
+    if (normTargetEl && normVideoEl && normSizeEl) {
+      const target = document.getElementById("norm-target")?.value || "spotify_youtube";
+      const videoMode = document.getElementById("norm-video-mode")?.value || "copy";
+      normTargetEl.textContent = target === "spotify_youtube" ? "-14 LUFS (YouTube/Spotify)" : target === "apple_podcast" ? "-16 LUFS (Apple/Podcasts)" : target === "ebu_r128" ? "-23 LUFS (Broadcast)" : target === "dynaudnorm" ? "Dynamic Normalizer" : "Peak 0dB";
+      normVideoEl.textContent = videoMode === "copy" ? "Stream Copy" : "Audio Only";
+      const estMb = videoMode === "strip" ? Math.max(0.1, ((256 * 1000 / 8) * durSec) / (1024 * 1024)) : srcSizeMb;
+      normSizeEl.textContent = formatSize(estMb);
+    }
   }
 
   // 4. Merge Estimate
-  const mergeCountEl = document.getElementById("merge-est-count");
-  const mergeFormatEl = document.getElementById("merge-est-format");
-  const mergeEngineEl = document.getElementById("merge-est-engine");
-  if (mergeCountEl && mergeFormatEl && mergeEngineEl) {
-    mergeCountEl.textContent = `${mergeFiles.length} files`;
-    mergeFormatEl.textContent = (document.getElementById("merge-format")?.value || "mp4").toUpperCase();
-    const engine = document.getElementById("merge-engine")?.value || "concat_demuxer";
-    mergeEngineEl.textContent = engine === "concat_demuxer" ? "Fast Concat (Stream Copy)" : "Re-encode Concat";
+  if (!targetTool || activeTool === "merge") {
+    const mergeCountEl = document.getElementById("merge-est-count");
+    const mergeFormatEl = document.getElementById("merge-est-format");
+    const mergeEngineEl = document.getElementById("merge-est-engine");
+    if (mergeCountEl && mergeFormatEl && mergeEngineEl) {
+      mergeCountEl.textContent = `${mergeFiles.length} files`;
+      mergeFormatEl.textContent = (document.getElementById("merge-format")?.value || "mp4").toUpperCase();
+      const engine = document.getElementById("merge-engine")?.value || "concat_demuxer";
+      mergeEngineEl.textContent = engine === "concat_demuxer" ? "Fast Concat (Stream Copy)" : "Re-encode Concat";
+    }
   }
 
   // 5. Mute / Replace Estimate
-  const muteActionEl = document.getElementById("mute-est-action");
-  const muteVideoEl = document.getElementById("mute-est-video");
-  const muteSizeEl = document.getElementById("mute-est-size");
-  if (muteActionEl && muteVideoEl && muteSizeEl) {
-    const action = document.getElementById("mute-action")?.value || "strip";
-    muteActionEl.textContent = action === "strip" ? "Mute / Strip Audio" : action === "replace" ? "Replace Audio Track" : "Mix Background Track";
-    muteVideoEl.textContent = "Stream Copy (Lossless)";
-    const audioStreamSizeMb = ((Math.min(320, Math.max(128, srcBitrateKbps * 0.08)) * 1000 / 8) * durSec) / (1024 * 1024);
-    const estMb = action === "strip" ? Math.max(0.1, srcSizeMb - audioStreamSizeMb) : srcSizeMb;
-    muteSizeEl.textContent = formatSize(estMb);
+  if (!targetTool || activeTool === "mute_replace") {
+    const muteActionEl = document.getElementById("mute-est-action");
+    const muteVideoEl = document.getElementById("mute-est-video");
+    const muteSizeEl = document.getElementById("mute-est-size");
+    if (muteActionEl && muteVideoEl && muteSizeEl) {
+      const action = document.getElementById("mute-action")?.value || "strip";
+      muteActionEl.textContent = action === "strip" ? "Mute / Strip Audio" : action === "replace" ? "Replace Audio Track" : "Mix Background Track";
+      muteVideoEl.textContent = "Stream Copy (Lossless)";
+      const audioStreamSizeMb = ((Math.min(320, Math.max(128, srcBitrateKbps * 0.08)) * 1000 / 8) * durSec) / (1024 * 1024);
+      const estMb = action === "strip" ? Math.max(0.1, srcSizeMb - audioStreamSizeMb) : srcSizeMb;
+      muteSizeEl.textContent = formatSize(estMb);
+    }
   }
 
   // 6. GIF & Frames Estimate
-  const gifModeEl = document.getElementById("gif-est-mode");
-  const gifFpsEl = document.getElementById("gif-est-fps");
-  const gifSizeEl = document.getElementById("gif-est-size");
-  if (gifModeEl && gifFpsEl && gifSizeEl) {
-    const mode = document.getElementById("gif-mode")?.value || "gif_hq";
-    const fps = parseInt(document.getElementById("gif-fps")?.value || "15", 10);
-    const clipDur = parseFloat(document.getElementById("gif-dur")?.value) || 5.0;
-    const widthSetting = document.getElementById("gif-width")?.value || "480";
-    const targetW = widthSetting === "original" ? srcW : parseInt(widthSetting, 10) || 480;
-    const targetH = Math.round(targetW * (srcH / srcW));
+  if (!targetTool || activeTool === "gif_frames") {
+    const gifModeEl = document.getElementById("gif-est-mode");
+    const gifFpsEl = document.getElementById("gif-est-fps");
+    const gifSizeEl = document.getElementById("gif-est-size");
+    if (gifModeEl && gifFpsEl && gifSizeEl) {
+      const mode = document.getElementById("gif-mode")?.value || "gif_hq";
+      const fps = parseInt(document.getElementById("gif-fps")?.value || "15", 10);
+      const clipDur = parseFloat(document.getElementById("gif-dur")?.value) || 5.0;
+      const widthSetting = document.getElementById("gif-width")?.value || "480";
+      const targetW = widthSetting === "original" ? srcW : parseInt(widthSetting, 10) || 480;
+      const targetH = Math.round(targetW * (srcH / srcW));
 
-    if (mode === "snapshot") {
-      const snapFmt = document.getElementById("gif-snap-fmt")?.value || "png";
-      gifModeEl.textContent = `Single Frame (${snapFmt.toUpperCase()})`;
-      gifFpsEl.textContent = "1 Frame";
-      const bpp = snapFmt === "png" ? 0.9 : snapFmt === "jpg" ? 0.15 : 0.08;
-      const estMb = (targetW * targetH * bpp) / (1024 * 1024);
-      gifSizeEl.textContent = formatSize(estMb);
-    } else if (mode === "frames_seq") {
-      gifModeEl.textContent = "Frame Sequence";
-      gifFpsEl.textContent = `${fps} FPS`;
-      const totalFrames = Math.round(clipDur * fps);
-      const estMb = (totalFrames * targetW * targetH * 0.15) / (1024 * 1024);
-      gifSizeEl.textContent = `${formatSize(estMb)} (${totalFrames} frames)`;
-    } else {
-      gifModeEl.textContent = "High-Quality Animated GIF";
-      gifFpsEl.textContent = `${fps} FPS`;
-      const totalBytes = clipDur * fps * targetW * targetH * 0.22;
-      const estMb = totalBytes / (1024 * 1024);
-      gifSizeEl.textContent = formatSize(estMb);
+      if (mode === "snapshot") {
+        const snapFmt = document.getElementById("gif-snap-fmt")?.value || "png";
+        gifModeEl.textContent = `Single Frame (${snapFmt.toUpperCase()})`;
+        gifFpsEl.textContent = "1 Frame";
+        const bpp = snapFmt === "png" ? 0.9 : snapFmt === "jpg" ? 0.15 : 0.08;
+        const estMb = (targetW * targetH * bpp) / (1024 * 1024);
+        gifSizeEl.textContent = formatSize(estMb);
+      } else if (mode === "frames_seq") {
+        gifModeEl.textContent = "Frame Sequence";
+        gifFpsEl.textContent = `${fps} FPS`;
+        const totalFrames = Math.round(clipDur * fps);
+        const estMb = (totalFrames * targetW * targetH * 0.15) / (1024 * 1024);
+        gifSizeEl.textContent = `${formatSize(estMb)} (${totalFrames} frames)`;
+      } else {
+        gifModeEl.textContent = "High-Quality Animated GIF";
+        gifFpsEl.textContent = `${fps} FPS`;
+        const totalBytes = clipDur * fps * targetW * targetH * 0.22;
+        const estMb = totalBytes / (1024 * 1024);
+        gifSizeEl.textContent = formatSize(estMb);
+      }
     }
   }
 
   // 7. Custom Command Estimate
-  const customFormatEl = document.getElementById("custom-est-format");
-  const customDurEl = document.getElementById("custom-est-duration");
-  if (customFormatEl && customDurEl) {
-    customFormatEl.textContent = `.${document.getElementById("custom-ext")?.value || "mp4"}`;
-    customDurEl.textContent = mediaInfo?.duration_string || "00:02:15";
+  if (!targetTool || activeTool === "custom") {
+    const customFormatEl = document.getElementById("custom-est-format");
+    const customDurEl = document.getElementById("custom-est-duration");
+    if (customFormatEl && customDurEl) {
+      customFormatEl.textContent = `.${document.getElementById("custom-ext")?.value || "mp4"}`;
+      customDurEl.textContent = mediaInfo?.duration_string || "00:02:15";
+    }
   }
 }
 
@@ -1146,159 +1285,174 @@ export function syncSpeedSliderUI() {
   }
 }
 
-export function syncFormatSpecificUI() {
+export function syncFormatSpecificUI(toolId = null) {
   // 1. Convert Video tool format sync
-  const cvtContainer = document.getElementById("cvt-container")?.value || "mp4";
-  const cvtVcodecWrapper = document.getElementById("cvt-vcodec-wrapper");
-  const cvtAcodecWrapper = document.getElementById("cvt-acodec-wrapper");
-  const cvtCrfWrapper = document.getElementById("cvt-crf-wrapper");
-  const cvtPresetWrapper = document.getElementById("cvt-preset-wrapper");
-  const cvtGifFpsWrapper = document.getElementById("cvt-gif-fps-wrapper");
-  const cvtGifQualityWrapper = document.getElementById("cvt-gif-quality-wrapper");
-  const cvtWebpFpsWrapper = document.getElementById("cvt-webp-fps-wrapper");
-  const cvtWebpQualityWrapper = document.getElementById("cvt-webp-quality-wrapper");
-  const cvtVcodec = document.getElementById("cvt-vcodec")?.value || "libx264";
+  if (!toolId || toolId === "convert") {
+    const cvtContainer = document.getElementById("cvt-container")?.value || "mp4";
+    const cvtVcodecWrapper = document.getElementById("cvt-vcodec-wrapper");
+    const cvtAcodecWrapper = document.getElementById("cvt-acodec-wrapper");
+    const cvtCrfWrapper = document.getElementById("cvt-crf-wrapper");
+    const cvtPresetWrapper = document.getElementById("cvt-preset-wrapper");
+    const cvtGifFpsWrapper = document.getElementById("cvt-gif-fps-wrapper");
+    const cvtGifQualityWrapper = document.getElementById("cvt-gif-quality-wrapper");
+    const cvtWebpFpsWrapper = document.getElementById("cvt-webp-fps-wrapper");
+    const cvtWebpQualityWrapper = document.getElementById("cvt-webp-quality-wrapper");
+    const cvtVcodec = document.getElementById("cvt-vcodec")?.value || "libx264";
 
-  if (cvtContainer === "gif") {
-    // For GIF: Hide video codec, audio codec, CRF, speed preset
-    if (cvtVcodecWrapper) cvtVcodecWrapper.classList.add("d-none");
-    if (cvtAcodecWrapper) cvtAcodecWrapper.classList.add("d-none");
-    if (cvtCrfWrapper) cvtCrfWrapper.classList.add("d-none");
-    if (cvtPresetWrapper) cvtPresetWrapper.classList.add("d-none");
-    // Show GIF-specific options
-    if (cvtGifFpsWrapper) cvtGifFpsWrapper.classList.remove("d-none");
-    if (cvtGifQualityWrapper) cvtGifQualityWrapper.classList.remove("d-none");
-    if (cvtWebpFpsWrapper) cvtWebpFpsWrapper.classList.add("d-none");
-    if (cvtWebpQualityWrapper) cvtWebpQualityWrapper.classList.add("d-none");
-  } else if (cvtContainer === "webp") {
-    // For WebP: Hide standard video/audio codec, CRF, speed preset
-    if (cvtVcodecWrapper) cvtVcodecWrapper.classList.add("d-none");
-    if (cvtAcodecWrapper) cvtAcodecWrapper.classList.add("d-none");
-    if (cvtCrfWrapper) cvtCrfWrapper.classList.add("d-none");
-    if (cvtPresetWrapper) cvtPresetWrapper.classList.add("d-none");
-    // Show WebP-specific options
-    if (cvtGifFpsWrapper) cvtGifFpsWrapper.classList.add("d-none");
-    if (cvtGifQualityWrapper) cvtGifQualityWrapper.classList.add("d-none");
-    if (cvtWebpFpsWrapper) cvtWebpFpsWrapper.classList.remove("d-none");
-    if (cvtWebpQualityWrapper) cvtWebpQualityWrapper.classList.remove("d-none");
-  } else {
-    // Standard video formats (MP4, MKV, WebM, MOV, AVI, etc.)
-    if (cvtVcodecWrapper) cvtVcodecWrapper.classList.remove("d-none");
-    if (cvtAcodecWrapper) cvtAcodecWrapper.classList.remove("d-none");
-    if (cvtGifFpsWrapper) cvtGifFpsWrapper.classList.add("d-none");
-    if (cvtGifQualityWrapper) cvtGifQualityWrapper.classList.add("d-none");
-    if (cvtWebpFpsWrapper) cvtWebpFpsWrapper.classList.add("d-none");
-    if (cvtWebpQualityWrapper) cvtWebpQualityWrapper.classList.add("d-none");
-
-    // If stream copy is selected for video, CRF and Preset don't apply
-    if (cvtVcodec === "copy") {
+    if (cvtContainer === "gif") {
+      // For GIF: Hide video codec, audio codec, CRF, speed preset
+      if (cvtVcodecWrapper) cvtVcodecWrapper.classList.add("d-none");
+      if (cvtAcodecWrapper) cvtAcodecWrapper.classList.add("d-none");
       if (cvtCrfWrapper) cvtCrfWrapper.classList.add("d-none");
       if (cvtPresetWrapper) cvtPresetWrapper.classList.add("d-none");
+      // Show GIF-specific options
+      if (cvtGifFpsWrapper) cvtGifFpsWrapper.classList.remove("d-none");
+      if (cvtGifQualityWrapper) cvtGifQualityWrapper.classList.remove("d-none");
+      if (cvtWebpFpsWrapper) cvtWebpFpsWrapper.classList.add("d-none");
+      if (cvtWebpQualityWrapper) cvtWebpQualityWrapper.classList.add("d-none");
+    } else if (cvtContainer === "webp") {
+      // For WebP: Hide standard video/audio codec, CRF, speed preset
+      if (cvtVcodecWrapper) cvtVcodecWrapper.classList.add("d-none");
+      if (cvtAcodecWrapper) cvtAcodecWrapper.classList.add("d-none");
+      if (cvtCrfWrapper) cvtCrfWrapper.classList.add("d-none");
+      if (cvtPresetWrapper) cvtPresetWrapper.classList.add("d-none");
+      // Show WebP-specific options
+      if (cvtGifFpsWrapper) cvtGifFpsWrapper.classList.add("d-none");
+      if (cvtGifQualityWrapper) cvtGifQualityWrapper.classList.add("d-none");
+      if (cvtWebpFpsWrapper) cvtWebpFpsWrapper.classList.remove("d-none");
+      if (cvtWebpQualityWrapper) cvtWebpQualityWrapper.classList.remove("d-none");
     } else {
-      if (cvtCrfWrapper) cvtCrfWrapper.classList.remove("d-none");
-      if (cvtPresetWrapper) cvtPresetWrapper.classList.remove("d-none");
+      // Standard video formats (MP4, MKV, WebM, MOV, AVI, etc.)
+      if (cvtVcodecWrapper) cvtVcodecWrapper.classList.remove("d-none");
+      if (cvtAcodecWrapper) cvtAcodecWrapper.classList.remove("d-none");
+      if (cvtGifFpsWrapper) cvtGifFpsWrapper.classList.add("d-none");
+      if (cvtGifQualityWrapper) cvtGifQualityWrapper.classList.add("d-none");
+      if (cvtWebpFpsWrapper) cvtWebpFpsWrapper.classList.add("d-none");
+      if (cvtWebpQualityWrapper) cvtWebpQualityWrapper.classList.add("d-none");
+
+      // If stream copy is selected for video, CRF and Preset don't apply
+      if (cvtVcodec === "copy") {
+        if (cvtCrfWrapper) cvtCrfWrapper.classList.add("d-none");
+        if (cvtPresetWrapper) cvtPresetWrapper.classList.add("d-none");
+      } else {
+        if (cvtCrfWrapper) cvtCrfWrapper.classList.remove("d-none");
+        if (cvtPresetWrapper) cvtPresetWrapper.classList.remove("d-none");
+      }
     }
   }
 
   // 2. Extract Audio format sync
-  const audFormat = document.getElementById("aud-format")?.value || "mp3";
-  const audBitrateWrapper = document.getElementById("aud-bitrate-wrapper");
-  const audBitdepthWrapper = document.getElementById("aud-bitdepth-wrapper");
+  if (!toolId || toolId === "extract_audio") {
+    const audFormat = document.getElementById("aud-format")?.value || "mp3";
+    const audBitrateWrapper = document.getElementById("aud-bitrate-wrapper");
+    const audBitdepthWrapper = document.getElementById("aud-bitdepth-wrapper");
 
-  if (["flac", "wav", "aiff"].includes(audFormat)) {
-    if (audBitrateWrapper) audBitrateWrapper.classList.add("d-none");
-    if (audBitdepthWrapper) audBitdepthWrapper.classList.remove("d-none");
-  } else {
-    if (audBitrateWrapper) audBitrateWrapper.classList.remove("d-none");
-    if (audBitdepthWrapper) audBitdepthWrapper.classList.add("d-none");
+    if (["flac", "wav", "aiff"].includes(audFormat)) {
+      if (audBitrateWrapper) audBitrateWrapper.classList.add("d-none");
+      if (audBitdepthWrapper) audBitdepthWrapper.classList.remove("d-none");
+    } else {
+      if (audBitrateWrapper) audBitrateWrapper.classList.remove("d-none");
+      if (audBitdepthWrapper) audBitdepthWrapper.classList.add("d-none");
+    }
   }
 
   // 3. GIF and Frames tool mode sync
-  const gifMode = document.getElementById("gif-mode")?.value || "gif_hq";
-  const gifFpsWrapper = document.getElementById("gif-fps-wrapper");
-  const gifDurWrapper = document.getElementById("gif-dur-wrapper");
-  const gifSnapWrapper = document.getElementById("gif-snap-wrapper");
+  if (!toolId || toolId === "gif_frames") {
+    const gifMode = document.getElementById("gif-mode")?.value || "gif_hq";
+    const gifFpsWrapper = document.getElementById("gif-fps-wrapper");
+    const gifDurWrapper = document.getElementById("gif-dur-wrapper");
+    const gifSnapWrapper = document.getElementById("gif-snap-wrapper");
 
-  if (gifMode === "snapshot") {
-    if (gifFpsWrapper) gifFpsWrapper.classList.add("d-none");
-    if (gifDurWrapper) gifDurWrapper.classList.add("d-none");
-    if (gifSnapWrapper) gifSnapWrapper.classList.remove("d-none");
-  } else if (gifMode === "frames_seq") {
-    if (gifFpsWrapper) gifFpsWrapper.classList.remove("d-none");
-    if (gifDurWrapper) gifDurWrapper.classList.remove("d-none");
-    if (gifSnapWrapper) gifSnapWrapper.classList.remove("d-none");
-  } else {
-    if (gifFpsWrapper) gifFpsWrapper.classList.remove("d-none");
-    if (gifDurWrapper) gifDurWrapper.classList.remove("d-none");
-    if (gifSnapWrapper) gifSnapWrapper.classList.add("d-none");
+    if (gifMode === "snapshot") {
+      if (gifFpsWrapper) gifFpsWrapper.classList.add("d-none");
+      if (gifDurWrapper) gifDurWrapper.classList.add("d-none");
+      if (gifSnapWrapper) gifSnapWrapper.classList.remove("d-none");
+    } else if (gifMode === "frames_seq") {
+      if (gifFpsWrapper) gifFpsWrapper.classList.remove("d-none");
+      if (gifDurWrapper) gifDurWrapper.classList.remove("d-none");
+      if (gifSnapWrapper) gifSnapWrapper.classList.remove("d-none");
+    } else {
+      if (gifFpsWrapper) gifFpsWrapper.classList.remove("d-none");
+      if (gifDurWrapper) gifDurWrapper.classList.remove("d-none");
+      if (gifSnapWrapper) gifSnapWrapper.classList.add("d-none");
+    }
   }
 
-  // 4. Speed & Motion slider <-> number <-> badge sync (runs on every
-  // input/change via the generic form listener, and on tool switches)
-  syncSpeedSliderUI();
+  // 4. Speed & Motion slider <-> number <-> badge sync
+  if (!toolId || toolId === "speed_motion") {
+    syncSpeedSliderUI();
+  }
 
   // 4.5. Loop & Duration Extender tool sync
-  const loopMode = document.getElementById("loop-mode")?.value || "duration";
-  const loopEngine = document.getElementById("loop-engine")?.value || "copy";
-  const loopDurationWrapper = document.getElementById("loop-duration-wrapper");
-  const loopCountWrapper = document.getElementById("loop-count-wrapper");
-  const loopReencodeCodecWrapper = document.getElementById("loop-reencode-codec-wrapper");
+  if (!toolId || toolId === "loop_duration") {
+    const loopMode = document.getElementById("loop-mode")?.value || "duration";
+    const loopEngine = document.getElementById("loop-engine")?.value || "copy";
+    const loopDurationWrapper = document.getElementById("loop-duration-wrapper");
+    const loopCountWrapper = document.getElementById("loop-count-wrapper");
+    const loopReencodeCodecWrapper = document.getElementById("loop-reencode-codec-wrapper");
 
-  if (loopDurationWrapper) {
-    loopDurationWrapper.classList.toggle("d-none", loopMode !== "duration");
-  }
-  if (loopCountWrapper) {
-    loopCountWrapper.classList.toggle("d-none", loopMode !== "count");
-  }
-  if (loopReencodeCodecWrapper) {
-    loopReencodeCodecWrapper.classList.toggle("d-none", loopEngine !== "reencode");
+    if (loopDurationWrapper) {
+      loopDurationWrapper.classList.toggle("d-none", loopMode !== "duration");
+    }
+    if (loopCountWrapper) {
+      loopCountWrapper.classList.toggle("d-none", loopMode !== "count");
+    }
+    if (loopReencodeCodecWrapper) {
+      loopReencodeCodecWrapper.classList.toggle("d-none", loopEngine !== "reencode");
+    }
   }
 
   // 5. Volume Normalization custom LUFS wrapper sync
-  const normTarget = document.getElementById("norm-target")?.value || "spotify_youtube";
-  const normCustomWrapper = document.getElementById("norm-custom-wrapper");
-  if (normCustomWrapper) {
-    normCustomWrapper.classList.toggle("d-none", normTarget !== "custom");
+  if (!toolId || toolId === "normalize") {
+    const normTarget = document.getElementById("norm-target")?.value || "spotify_youtube";
+    const normCustomWrapper = document.getElementById("norm-custom-wrapper");
+    if (normCustomWrapper) {
+      normCustomWrapper.classList.toggle("d-none", normTarget !== "custom");
+    }
   }
 
   // 6. Background Remover mode wrappers sync
-  const bgModel = document.getElementById("bg-model")?.value || "u2net";
-  const bgMode = document.getElementById("bg-output-mode")?.value || "transparent";
-  const bgColorWrapper = document.getElementById("bg-color-wrapper");
-  const bgBlurWrapper = document.getElementById("bg-blur-wrapper");
-  const fakeTransparencyOptions = document.getElementById("fake-transparency-options");
+  if (!toolId || toolId === "bg_remover") {
+    const bgModel = document.getElementById("bg-model")?.value || "u2net";
+    const bgMode = document.getElementById("bg-output-mode")?.value || "transparent";
+    const bgColorWrapper = document.getElementById("bg-color-wrapper");
+    const bgBlurWrapper = document.getElementById("bg-blur-wrapper");
+    const fakeTransparencyOptions = document.getElementById("fake-transparency-options");
 
-  if (bgColorWrapper) {
-    bgColorWrapper.classList.toggle("d-none", bgMode !== "solid_color");
-  }
-  if (bgBlurWrapper) {
-    bgBlurWrapper.classList.toggle("d-none", bgMode !== "blur_bg");
-  }
-  if (fakeTransparencyOptions) {
-    fakeTransparencyOptions.classList.toggle("d-none", bgModel !== "fake_transparency");
-  }
+    if (bgColorWrapper) {
+      bgColorWrapper.classList.toggle("d-none", bgMode !== "solid_color");
+    }
+    if (bgBlurWrapper) {
+      bgBlurWrapper.classList.toggle("d-none", bgMode !== "blur_bg");
+    }
+    if (fakeTransparencyOptions) {
+      fakeTransparencyOptions.classList.toggle("d-none", bgModel !== "fake_transparency");
+    }
 
-  // Sync fake transparency range readout values
-  const gridTolSlider = document.getElementById("fake-grid-tolerance");
-  const gridTolVal = document.getElementById("fake-grid-tolerance-val");
-  if (gridTolSlider && gridTolVal) {
-    gridTolVal.textContent = gridTolSlider.value;
-  }
-  const gapThreshSlider = document.getElementById("fake-gap-threshold");
-  const gapThreshVal = document.getElementById("fake-gap-threshold-val");
-  if (gapThreshSlider && gapThreshVal) {
-    gapThreshVal.textContent = gapThreshSlider.value;
+    // Sync fake transparency range readout values
+    const gridTolSlider = document.getElementById("fake-grid-tolerance");
+    const gridTolVal = document.getElementById("fake-grid-tolerance-val");
+    if (gridTolSlider && gridTolVal) {
+      gridTolVal.textContent = gridTolSlider.value;
+    }
+    const gapThreshSlider = document.getElementById("fake-gap-threshold");
+    const gapThreshVal = document.getElementById("fake-gap-threshold-val");
+    if (gapThreshSlider && gapThreshVal) {
+      gapThreshVal.textContent = gapThreshSlider.value;
+    }
   }
 
   // 7. Vectorizer mode wrappers sync
-  const vecMode = document.getElementById("vec-mode")?.value || "color";
-  const vecColorsWrapper = document.getElementById("vec-colors-wrapper");
-  const vecMonoWrapper = document.getElementById("vec-mono-color-wrapper");
-  if (vecColorsWrapper) {
-    vecColorsWrapper.classList.toggle("d-none", vecMode !== "color");
-  }
-  if (vecMonoWrapper) {
-    vecMonoWrapper.classList.toggle("d-none", vecMode !== "monochrome");
+  if (!toolId || toolId === "vectorizer") {
+    const vecMode = document.getElementById("vec-mode")?.value || "color";
+    const vecColorsWrapper = document.getElementById("vec-colors-wrapper");
+    const vecMonoWrapper = document.getElementById("vec-mono-color-wrapper");
+    if (vecColorsWrapper) {
+      vecColorsWrapper.classList.toggle("d-none", vecMode !== "color");
+    }
+    if (vecMonoWrapper) {
+      vecMonoWrapper.classList.toggle("d-none", vecMode !== "monochrome");
+    }
   }
 }
 
@@ -1499,7 +1653,7 @@ function bindFormEvents() {
         "icon_generator",
         "metadata_cleaner",
       ].includes(activeTool);
-      const filterMode = (activeTool === "extract_audio" || activeTool === "compress_audio")
+      const filterMode = (activeTool === "extract_audio" || activeTool === "compress_audio" || activeTool === "audio_tags")
         ? "audio"
         : isImageTool
           ? "image"
@@ -1525,7 +1679,7 @@ function bindFormEvents() {
       "icon_generator",
       "metadata_cleaner",
     ].includes(activeTool);
-    const filterMode = (activeTool === "extract_audio" || activeTool === "compress_audio")
+    const filterMode = (activeTool === "extract_audio" || activeTool === "compress_audio" || activeTool === "audio_tags")
       ? "audio"
       : isImageTool
         ? "image"
@@ -1904,6 +2058,11 @@ function bindFormEvents() {
           return;
         }
 
+        if (activeTool === "audio_tags") {
+          await executeAudioTagsQueue(executeFfmpegJob, isCancelRequested, resetCancelFlag);
+          return;
+        }
+
         if (!isYtDlp && activeTool !== "merge" && batchQueue.length > 0) {
           executeBatchQueue(batchQueue, activeTool, appSettings, buildCommandForTool);
           return;
@@ -1974,6 +2133,10 @@ function bindFormEvents() {
       const activeTool = getCurrentActiveTool();
       if (activeTool.startsWith("kit_")) {
         resetActiveKit();
+        return;
+      }
+      if (activeTool === "audio_tags") {
+        revertActiveTrack();
         return;
       }
 
@@ -2343,31 +2506,79 @@ export async function populateHardwareInfo() {
 
   const currentVal = appSettings.hwAccel || "auto";
 
-  // Auto label: prefers GPU first then CPU
-  const autoTargetName = hwInfo?.nvidia_gpu || hwInfo?.intel_gpu || hwInfo?.amd_gpu || hwInfo?.cpu_name || "";
-  const autoLabel = autoTargetName ? `Auto (${autoTargetName})` : "Auto";
+  let autoDesc = "CPU";
+  if (hwInfo?.nvenc_available) {
+    autoDesc = `NVIDIA NVENC${hwInfo.nvidia_gpu ? ` — ${hwInfo.nvidia_gpu}` : ""}`;
+  } else if (hwInfo?.qsv_available) {
+    autoDesc = `Intel QuickSync${hwInfo.intel_gpu ? ` — ${hwInfo.intel_gpu}` : ""}`;
+  } else if (hwInfo?.amf_available) {
+    autoDesc = `AMD AMF${hwInfo.amd_gpu ? ` — ${hwInfo.amd_gpu}` : ""}`;
+  } else if (hwInfo?.videotoolbox_available) {
+    autoDesc = "Apple VideoToolbox";
+  } else if (hwInfo?.d3d11va_available) {
+    autoDesc = "DirectML (D3D11VA)";
+  } else if (hwInfo?.cpu_name) {
+    autoDesc = `CPU (${hwInfo.cpu_name})`;
+  }
+  const autoLabel = `Auto (${autoDesc})`;
 
-  // CPU label: CPU (Host CPU Name)
   const cpuLabel = hwInfo?.cpu_name ? `CPU (${hwInfo.cpu_name})` : "CPU";
 
-  // NVIDIA label: NVIDIA NVENC (CUDA) (GPU Name) if available, else NVIDIA NVENC (CUDA)
-  const cudaLabel = hwInfo?.nvidia_gpu ? `NVIDIA NVENC (CUDA) (${hwInfo.nvidia_gpu})` : "NVIDIA NVENC (CUDA)";
+  const isCudaAvail = !!hwInfo?.nvenc_available;
+  const cudaSuffix = isCudaAvail
+    ? (hwInfo.nvidia_gpu ? ` (${hwInfo.nvidia_gpu})` : " (Verified)")
+    : " (Unavailable)";
+  const cudaLabel = `NVIDIA NVENC (CUDA)${cudaSuffix}`;
+  const cudaDisabled = !isCudaAvail ? " disabled" : "";
 
-  // Intel label: Intel QuickSync (QSV) (GPU Name) if available, else Intel QuickSync (QSV)
-  const qsvLabel = hwInfo?.intel_gpu ? `Intel QuickSync (QSV) (${hwInfo.intel_gpu})` : "Intel QuickSync (QSV)";
+  const isQsvAvail = !!hwInfo?.qsv_available;
+  const qsvSuffix = isQsvAvail
+    ? (hwInfo.intel_gpu ? ` (${hwInfo.intel_gpu})` : " (Verified)")
+    : " (Unavailable)";
+  const qsvLabel = `Intel QuickSync (QSV)${qsvSuffix}`;
+  const qsvDisabled = !isQsvAvail ? " disabled" : "";
 
-  // AMD label: AMD AMF (GPU Name) if available, else AMD AMF
-  const amfLabel = hwInfo?.amd_gpu ? `AMD AMF (${hwInfo.amd_gpu})` : "AMD AMF";
+  const isAmfAvail = !!hwInfo?.amf_available;
+  const amfSuffix = isAmfAvail
+    ? (hwInfo.amd_gpu ? ` (${hwInfo.amd_gpu})` : " (Verified)")
+    : " (Unavailable)";
+  const amfLabel = `AMD AMF${amfSuffix}`;
+  const amfDisabled = !isAmfAvail ? " disabled" : "";
 
-  setHw.innerHTML = `
+  const isD3dAvail = !!hwInfo?.d3d11va_available;
+  const d3dSuffix = isD3dAvail ? " (Verified)" : " (Unavailable)";
+  const d3dLabel = `DirectML (D3D11VA)${d3dSuffix}`;
+  const d3dDisabled = !isD3dAvail ? " disabled" : "";
+
+  let optionsHtml = `
     <option value="auto">${autoLabel}</option>
-    <option value="cuda">${cudaLabel}</option>
-    <option value="qsv">${qsvLabel}</option>
-    <option value="amf">${amfLabel}</option>
-    <option value="cpu">${cpuLabel}</option>
+    <option value="cuda"${cudaDisabled}>${cudaLabel}</option>
+    <option value="qsv"${qsvDisabled}>${qsvLabel}</option>
+    <option value="amf"${amfDisabled}>${amfLabel}</option>
+    <option value="d3d11va"${d3dDisabled}>${d3dLabel}</option>
   `;
 
-  setHw.value = currentVal;
+  if (hwInfo?.videotoolbox_available || (typeof navigator !== "undefined" && navigator.platform?.includes("Mac"))) {
+    const isVtAvail = !!hwInfo?.videotoolbox_available;
+    const vtSuffix = isVtAvail ? " (Verified)" : " (Unavailable)";
+    const vtDisabled = !isVtAvail ? " disabled" : "";
+    optionsHtml += `<option value="videotoolbox"${vtDisabled}>Apple VideoToolbox${vtSuffix}</option>`;
+  }
+
+  optionsHtml += `<option value="cpu">${cpuLabel}</option>`;
+
+  setHw.innerHTML = optionsHtml;
+
+  const targetOption = setHw.querySelector(`option[value="${currentVal}"]`);
+  if (targetOption && !targetOption.disabled) {
+    setHw.value = currentVal;
+  } else {
+    setHw.value = "auto";
+    if (currentVal !== "auto") {
+      appSettings.hwAccel = "auto";
+      saveSettings(appSettings);
+    }
+  }
 }
 
 function populateSettingsUI() {
@@ -2375,6 +2586,7 @@ function populateSettingsUI() {
   const setPromptOver = document.getElementById("set-prompt-overwrite");
   const setEnableNotif = document.getElementById("set-enable-notifications");
   const setDisableAnim = document.getElementById("set-disable-animations");
+  const setShowMediaPreview = document.getElementById("set-show-media-preview");
   const setEnableUserKits = document.getElementById("set-enable-user-kits");
   const setUseSystemTitlebar = document.getElementById("set-use-system-titlebar");
   const setHideScrollbars = document.getElementById("set-hide-scrollbars-on-hover");
@@ -2396,10 +2608,18 @@ function populateSettingsUI() {
   if (setPromptOver) setPromptOver.checked = !!appSettings.promptOverwrite;
   if (setEnableNotif) setEnableNotif.checked = appSettings.enableNotifications !== false;
   if (setDisableAnim) setDisableAnim.checked = !!appSettings.disableAnimations;
+  if (setShowMediaPreview) setShowMediaPreview.checked = appSettings.showMediaPreview !== false;
   if (setEnableUserKits) setEnableUserKits.checked = appSettings.enableUserKits === true;
   if (setUseSystemTitlebar) setUseSystemTitlebar.checked = appSettings.useSystemTitlebar !== false;
   if (setHideScrollbars) setHideScrollbars.checked = appSettings.hideScrollbarsOnHover === true;
-  if (setHw) setHw.value = appSettings.hwAccel || "auto";
+  if (setHw) {
+    const targetOpt = setHw.querySelector(`option[value="${appSettings.hwAccel || "auto"}"]`);
+    if (targetOpt && !targetOpt.disabled) {
+      setHw.value = appSettings.hwAccel || "auto";
+    } else {
+      setHw.value = "auto";
+    }
+  }
   if (setThr) setThr.value = appSettings.threads || "0";
   if (setDefVc) setDefVc.value = appSettings.defVCodec || "libx264";
   if (setDefSp) setDefSp.value = appSettings.defSpeed || "medium";
@@ -2561,11 +2781,48 @@ function initCaptionControls() {
   });
 }
 
+let userKitsWarningModalInstance = null;
+
+function showUserKitsWarningModal() {
+  const modalEl = document.getElementById("user-kits-warning-modal");
+  if (!modalEl || typeof bootstrap === "undefined") return;
+
+  if (!userKitsWarningModalInstance) {
+    userKitsWarningModalInstance = new bootstrap.Modal(modalEl, {
+      backdrop: "static",
+      keyboard: true,
+    });
+
+    const btnConfirm = document.getElementById("btn-user-kits-confirm-warning");
+    const setEnableUserKits = document.getElementById("set-enable-user-kits");
+
+    if (btnConfirm) {
+      btnConfirm.addEventListener("click", () => {
+        appSettings.enableUserKits = true;
+        saveSettings(appSettings);
+        if (setEnableUserKits) setEnableUserKits.checked = true;
+        applyUserKitsVisibility(true);
+        userKitsWarningModalInstance.hide();
+      });
+    }
+
+    modalEl.addEventListener("hidden.bs.modal", () => {
+      if (setEnableUserKits && appSettings.enableUserKits !== true) {
+        setEnableUserKits.checked = false;
+      }
+    });
+  }
+
+  userKitsWarningModalInstance.show();
+}
+
 function saveSettingsFromUI() {
+  let previewVisibilityChanged = false;
   const setOutDir = document.getElementById("set-output-dir");
   const setPromptOver = document.getElementById("set-prompt-overwrite");
   const setEnableNotif = document.getElementById("set-enable-notifications");
   const setDisableAnim = document.getElementById("set-disable-animations");
+  const setShowMediaPreview = document.getElementById("set-show-media-preview");
   const setEnableUserKits = document.getElementById("set-enable-user-kits");
   const setUseSystemTitlebar = document.getElementById("set-use-system-titlebar");
   const setHideScrollbars = document.getElementById("set-hide-scrollbars-on-hover");
@@ -2588,11 +2845,23 @@ function saveSettingsFromUI() {
   if (setPromptOver) appSettings.promptOverwrite = setPromptOver.checked;
   if (setEnableNotif) appSettings.enableNotifications = setEnableNotif.checked;
   if (setDisableAnim) appSettings.disableAnimations = setDisableAnim.checked;
+  if (setShowMediaPreview) {
+    const isShow = setShowMediaPreview.checked !== false;
+    if (appSettings.showMediaPreview !== isShow) {
+      appSettings.showMediaPreview = isShow;
+      previewVisibilityChanged = true;
+    }
+  }
   if (setEnableUserKits) {
     const isChecked = !!setEnableUserKits.checked;
     if (appSettings.enableUserKits !== isChecked) {
-      appSettings.enableUserKits = isChecked;
-      applyUserKitsVisibility(isChecked);
+      if (isChecked) {
+        setEnableUserKits.checked = false;
+        showUserKitsWarningModal();
+      } else {
+        appSettings.enableUserKits = false;
+        applyUserKitsVisibility(false);
+      }
     }
   }
   if (setUseSystemTitlebar) {
@@ -2609,7 +2878,13 @@ function saveSettingsFromUI() {
       document.documentElement.classList.toggle("hide-scrollbars-on-hover", isHide);
     }
   }
-  if (setHw) appSettings.hwAccel = setHw.value;
+  if (setHw) {
+    const selectedOption = setHw.options?.[setHw.selectedIndex];
+    if (selectedOption && selectedOption.disabled) {
+      setHw.value = "auto";
+    }
+    appSettings.hwAccel = setHw.value;
+  }
   if (setThr) appSettings.threads = setThr.value;
   if (setDefVc) appSettings.defVCodec = setDefVc.value;
   if (setDefSp) appSettings.defSpeed = setDefSp.value;
@@ -2625,6 +2900,12 @@ function saveSettingsFromUI() {
   if (setYtCustom) appSettings.ytdlpCustomArgs = setYtCustom.value;
 
   saveSettings(appSettings);
+
+  if (previewVisibilityChanged) {
+    // Apply immediately (both directions) instead of waiting for the next
+    // probe or tool switch. Runs after persist so readers see the new value.
+    applyMediaPreviewVisibility();
+  }
 }
 
 
@@ -2632,7 +2913,7 @@ function saveSettingsFromUI() {
 document.addEventListener("DOMContentLoaded", () => {
   initThemeManager();
   populateSettingsUI();
-  if (appSettings.useSystemTitlebar === undefined) appSettings.useSystemTitlebar = true;
+  if (appSettings.useSystemTitlebar === undefined) appSettings.useSystemTitlebar = false;
   document.documentElement.classList.toggle("hide-scrollbars-on-hover", appSettings.hideScrollbarsOnHover === true);
   initCaptionControls();
   applyTitlebarMode(appSettings.useSystemTitlebar);
@@ -2659,7 +2940,12 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCommandPreview();
   });
   bindFormEvents();
-  onMediaChange(() => {
+  onMediaChange((info, filePath) => {
+    if (getCurrentActiveTool() === "audio_tags") {
+      if (filePath && isAudioPath(filePath)) {
+        addAudioFilesToQueue([filePath]);
+      }
+    }
     updateAutoOutputFilename(true);
     updateCommandPreview();
   });
@@ -2711,11 +2997,13 @@ document.addEventListener("DOMContentLoaded", () => {
     tryAutoPasteYtDlpUrl();
   });
 
+  let navPendingRaf = null;
+  let settingsRefreshTimeout = null;
+
   initNavigation((toolId) => {
     restoreModuleState(toolId);
     const mediaInfo = getCurrentMediaInfo();
     if (mediaInfo) {
-      syncMediaDurationToTools(mediaInfo);
       syncVideoPreviewForActiveTool(toolId);
     }
     const playlistPanel = document.getElementById("playlist-entries-panel");
@@ -2727,13 +3015,34 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     if (toolId && toolId.startsWith("ytdlp_")) {
-      tryAutoPasteYtDlpUrl();
+      setTimeout(tryAutoPasteYtDlpUrl, 50);
+    }
+    if (toolId === "audio_tags") {
+      const cur = getCurrentInputFile();
+      if (cur && isAudioPath(cur) && getAudioTagQueue().length === 0) {
+        addAudioFilesToQueue([cur]);
+      }
     }
     if (toolId === "settings") {
-      refreshToolsUI();
+      if (settingsRefreshTimeout) clearTimeout(settingsRefreshTimeout);
+      settingsRefreshTimeout = setTimeout(() => {
+        if (getCurrentActiveTool() === "settings") {
+          refreshToolsUI();
+        }
+      }, 150);
     }
-    syncFormatSpecificUI();
-    updateAutoOutputFilename();
+    syncFormatSpecificUI(toolId);
+
+    if (navPendingRaf) cancelAnimationFrame(navPendingRaf);
+    navPendingRaf = requestAnimationFrame(() => {
+      navPendingRaf = null;
+      updateAutoOutputFilename();
+      updateCommandPreview();
+    });
+  });
+
+  initAudioTagsModule(() => {
+    updateExecuteButtonState();
     updateCommandPreview();
   });
 

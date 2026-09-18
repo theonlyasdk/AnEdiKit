@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="motion-tokens.css" />
     <link rel="stylesheet" href="drag_reorder.css" />
     <link rel="stylesheet" href="kits/kits.css" />
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
@@ -49,113 +50,131 @@
         <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" id="main-sidebar" style="width: 280px;">
           <div class="overflow-y-auto flex-grow-1 p-2 position-relative" id="sidebar-scroll-container">
             <div class="sidebar-indicator" id="sidebar-indicator"></div>
-            <div class="sidebar-section-header sidebar-section-first"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>FFmpeg</span></div>
-            <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
-              <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
-                <ion-icon name="film-outline" class="text-body-secondary"></ion-icon>
-                <span>Convert Video</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress" type="button" title="Compress video for Discord, WhatsApp, or custom target size">
-                <ion-icon name="archive-outline" class="text-body-secondary"></ion-icon>
-                <span>Compress Video</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="trim" type="button" title="Trim or cut media with timestamps">
-                <ion-icon name="cut-outline" class="text-body-secondary"></ion-icon>
-                <span>Trim and Cut</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="speed_motion" type="button" title="Speed up, slow down, timelapse, and optical flow interpolation">
-                <ion-icon name="speedometer-outline" class="text-body-secondary"></ion-icon>
-                <span>Speed &amp; Motion</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="aspect_crop" type="button" title="Aspect ratio presets, vertical video crop, and background padding">
-                <ion-icon name="crop-outline" class="text-body-secondary"></ion-icon>
-                <span>Aspect &amp; Crop</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="stabilize" type="button" title="Remove shaky camera motion and stabilize handheld video">
-                <ion-icon name="videocam-outline" class="text-body-secondary"></ion-icon>
-                <span>Video Stabilization</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="loop_duration" type="button" title="Repeat video or audio to an exact duration or loop count">
-                <ion-icon name="repeat-outline" class="text-body-secondary"></ion-icon>
-                <span>Loop to Duration</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="normalize" type="button" title="Standardize audio loudness to Spotify, YouTube, or EBU R128">
-                <ion-icon name="options-outline" class="text-body-secondary"></ion-icon>
-                <span>Normalize Loudness</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="mute_replace" type="button" title="Mute or replace background audio">
-                <ion-icon name="volume-mute-outline" class="text-body-secondary"></ion-icon>
-                <span>Mute or Replace Audio</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="gif_frames" type="button" title="Generate animated GIFs or extract image frames">
-                <ion-icon name="images-outline" class="text-body-secondary"></ion-icon>
-                <span>GIF and Frames</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="extract_audio" type="button" title="Extract audio tracks or convert audio formats">
-                <ion-icon name="musical-notes-outline" class="text-body-secondary"></ion-icon>
-                <span>Extract and Convert Audio</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress_audio" type="button" title="Compress audio files with target sizes, bitrates, channels, and Opus/MP3/AAC codecs">
-                <ion-icon name="pulse-outline" class="text-body-secondary"></ion-icon>
-                <span>Compress Audio</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="merge" type="button" title="Combine multiple audio or video files">
-                <ion-icon name="library-outline" class="text-body-secondary"></ion-icon>
-                <span>Merge and Concat</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="custom" type="button" title="Run custom FFmpeg commands with live preview">
-                <ion-icon name="terminal-outline" class="text-body-secondary"></ion-icon>
-                <span>Custom Command</span>
-              </button>
-            </nav>
-            <div class="sidebar-section-header mt-3"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>Image &amp; AI Tools</span></div>
-            <nav class="nav nav-pills flex-column gap-1" id="image-ai-nav">
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="bg_remover" type="button" title="Remove background and extract subjects locally using on-device neural models">
-                <ion-icon name="person-circle-outline" class="text-body-secondary"></ion-icon>
-                <span>Background Remover</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ai_upscaler" type="button" title="Super-resolution deep learning 2x, 3x, 4x image upscaling and enhancement">
-                <ion-icon name="scan-outline" class="text-body-secondary"></ion-icon>
-                <span>AI Image Upscaler</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="vectorizer" type="button" title="Convert raster images (PNG, JPG) to scalable SVG vectors">
-                <ion-icon name="shapes-outline" class="text-body-secondary"></ion-icon>
-                <span>Image Vectorizer</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="restore_denoise" type="button" title="Denoise, deblur, and restore low-light or degraded photos">
-                <ion-icon name="sparkles-outline" class="text-body-secondary"></ion-icon>
-                <span>Restore &amp; Denoise</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="icon_generator" type="button" title="Generate Windows .ico, Apple .icns, Favicon and PWA icon sets">
-                <ion-icon name="apps-outline" class="text-body-secondary"></ion-icon>
-                <span>Icon Generator</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="metadata_cleaner" type="button" title="Inspect and sanitize EXIF, GPS, and camera metadata">
-                <ion-icon name="shield-checkmark-outline" class="text-body-secondary"></ion-icon>
-                <span>Metadata Cleaner</span>
-              </button>
-            </nav>
-            <div class="sidebar-section-header mt-3"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>yt-dlp</span></div>
-            <nav class="nav nav-pills flex-column gap-1" id="ytdlp-nav">
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_audio" type="button" title="Download audio and extract MP3, M4A, FLAC with metadata">
-                <ion-icon name="musical-note-outline" class="text-body-secondary"></ion-icon>
-                <span>Download Audio</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_video" type="button" title="Download video streams with resolution and container options">
-                <ion-icon name="download-outline" class="text-body-secondary"></ion-icon>
-                <span>Download Video</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_playlist" type="button" title="Fetch and download playlists, channels, or select videos to download">
-                <ion-icon name="list-outline" class="text-body-secondary"></ion-icon>
-                <span>Download Playlist</span>
-              </button>
-              <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_subtitles" type="button" title="Download subtitles, closed captions, and video thumbnails">
-                <ion-icon name="image-outline" class="text-body-secondary"></ion-icon>
-                <span>Subtitles & Thumbnails</span>
-              </button>
-            </nav>
-            <div id="sidebar-user-kits-section" class="d-none">
-              <div class="sidebar-section-header mt-3 d-flex align-items-center justify-content-between">
+
+            <!-- yt-dlp section -->
+            <div class="sidebar-section" id="sidebar-ytdlp-section">
+              <div class="sidebar-section-header sidebar-section-first"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>yt-dlp</span></div>
+              <nav class="nav nav-pills flex-column gap-1" id="ytdlp-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_audio" type="button" title="Download audio and extract MP3, M4A, FLAC with metadata">
+                  <ion-icon name="musical-note-outline" class="text-body-secondary"></ion-icon>
+                  <span>Download Audio</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_video" type="button" title="Download video streams with resolution and container options">
+                  <ion-icon name="download-outline" class="text-body-secondary"></ion-icon>
+                  <span>Download Video</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_playlist" type="button" title="Fetch and download playlists, channels, or select videos to download">
+                  <ion-icon name="list-outline" class="text-body-secondary"></ion-icon>
+                  <span>Download Playlist</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_subtitles" type="button" title="Download subtitles, closed captions, and video thumbnails">
+                  <ion-icon name="image-outline" class="text-body-secondary"></ion-icon>
+                  <span>Subtitles &amp; Thumbnails</span>
+                </button>
+              </nav>
+            </div>
+
+            <!-- FFmpeg section -->
+            <div class="sidebar-section" id="sidebar-ffmpeg-section">
+              <div class="sidebar-section-header"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>FFmpeg</span></div>
+              <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
+                <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
+                  <ion-icon name="film-outline" class="text-body-secondary"></ion-icon>
+                  <span>Convert Video</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress" type="button" title="Compress video for Discord, WhatsApp, or custom target size">
+                  <ion-icon name="archive-outline" class="text-body-secondary"></ion-icon>
+                  <span>Compress Video</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="trim" type="button" title="Trim or cut media with timestamps">
+                  <ion-icon name="cut-outline" class="text-body-secondary"></ion-icon>
+                  <span>Trim and Cut</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="speed_motion" type="button" title="Speed up, slow down, timelapse, and optical flow interpolation">
+                  <ion-icon name="speedometer-outline" class="text-body-secondary"></ion-icon>
+                  <span>Speed &amp; Motion</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="aspect_crop" type="button" title="Aspect ratio presets, vertical video crop, and background padding">
+                  <ion-icon name="crop-outline" class="text-body-secondary"></ion-icon>
+                  <span>Aspect &amp; Crop</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="stabilize" type="button" title="Remove shaky camera motion and stabilize handheld video">
+                  <ion-icon name="videocam-outline" class="text-body-secondary"></ion-icon>
+                  <span>Video Stabilization</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="loop_duration" type="button" title="Repeat video or audio to an exact duration or loop count">
+                  <ion-icon name="repeat-outline" class="text-body-secondary"></ion-icon>
+                  <span>Loop to Duration</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="normalize" type="button" title="Standardize audio loudness to Spotify, YouTube, or EBU R128">
+                  <ion-icon name="options-outline" class="text-body-secondary"></ion-icon>
+                  <span>Normalize Loudness</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="mute_replace" type="button" title="Mute or replace background audio">
+                  <ion-icon name="volume-mute-outline" class="text-body-secondary"></ion-icon>
+                  <span>Mute or Replace Audio</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="gif_frames" type="button" title="Generate animated GIFs or extract image frames">
+                  <ion-icon name="images-outline" class="text-body-secondary"></ion-icon>
+                  <span>GIF and Frames</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="extract_audio" type="button" title="Extract audio tracks or convert audio formats">
+                  <ion-icon name="musical-notes-outline" class="text-body-secondary"></ion-icon>
+                  <span>Extract and Convert Audio</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress_audio" type="button" title="Compress audio files with target sizes, bitrates, channels, and Opus/MP3/AAC codecs">
+                  <ion-icon name="pulse-outline" class="text-body-secondary"></ion-icon>
+                  <span>Compress Audio</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="audio_tags" type="button" title="Audio Tag &amp; Metadata ID3 Editor for title, artist, album, and album cover artwork">
+                  <ion-icon name="pricetag-outline" class="text-body-secondary"></ion-icon>
+                  <span>Audio Tag Editor</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="merge" type="button" title="Combine multiple audio or video files">
+                  <ion-icon name="library-outline" class="text-body-secondary"></ion-icon>
+                  <span>Merge and Concat</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="custom" type="button" title="Run custom FFmpeg commands with live preview">
+                  <ion-icon name="terminal-outline" class="text-body-secondary"></ion-icon>
+                  <span>Custom Command</span>
+                </button>
+              </nav>
+            </div>
+
+            <!-- Image & AI Tools section -->
+            <div class="sidebar-section" id="sidebar-image-ai-section">
+              <div class="sidebar-section-header"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>Image &amp; AI Tools</span></div>
+              <nav class="nav nav-pills flex-column gap-1" id="image-ai-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="bg_remover" type="button" title="Remove background and extract subjects locally using on-device neural models">
+                  <ion-icon name="person-circle-outline" class="text-body-secondary"></ion-icon>
+                  <span>Background Remover</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ai_upscaler" type="button" title="Super-resolution deep learning 2x, 3x, 4x image upscaling and enhancement">
+                  <ion-icon name="scan-outline" class="text-body-secondary"></ion-icon>
+                  <span>AI Image Upscaler</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="vectorizer" type="button" title="Convert raster images (PNG, JPG) to scalable SVG vectors">
+                  <ion-icon name="shapes-outline" class="text-body-secondary"></ion-icon>
+                  <span>Image Vectorizer</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="restore_denoise" type="button" title="Denoise, deblur, and restore low-light or degraded photos">
+                  <ion-icon name="sparkles-outline" class="text-body-secondary"></ion-icon>
+                  <span>Restore &amp; Denoise</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="icon_generator" type="button" title="Generate Windows .ico, Apple .icns, Favicon and PWA icon sets">
+                  <ion-icon name="apps-outline" class="text-body-secondary"></ion-icon>
+                  <span>Icon Generator</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="metadata_cleaner" type="button" title="Inspect and sanitize EXIF, GPS, and camera metadata">
+                  <ion-icon name="shield-checkmark-outline" class="text-body-secondary"></ion-icon>
+                  <span>Metadata Cleaner</span>
+                </button>
+              </nav>
+            </div>
+
+            <!-- User Kits section -->
+            <div id="sidebar-user-kits-section" class="sidebar-section d-none">
+              <div class="sidebar-section-header d-flex align-items-center justify-content-between">
                 <div class="sidebar-section-header-bg" aria-hidden="true"></div>
                 <span>User Kits</span>
               </div>
@@ -168,8 +187,9 @@
                 <!-- Dynamically populated from saved user kits -->
               </nav>
             </div>
+
             <!-- Settings navigation at the very end of sidebar scrollview -->
-            <div class="pt-2 mt-3" id="sidebar-settings-container">
+            <div class="sidebar-section pt-2" id="sidebar-settings-container">
               <nav class="nav nav-pills flex-column gap-1" id="settings-nav">
                 <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
                   <ion-icon name="settings-outline" class="text-body-secondary"></ion-icon>
@@ -1191,6 +1211,160 @@
               </div>
             </div>
 
+            <!-- TOOL: Audio Tag & Metadata ID3 Editor -->
+            <div class="tool-view d-none" id="view-audio_tags">
+              <div class="mb-4">
+                <!-- Audio Queue Section -->
+                <div class="mb-4" id="audio-tag-queue-section">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="section-divider-header flex-grow-1 mb-0 me-3">
+                      Audio Queue (<span id="audio-tag-queue-count">0</span>&nbsp;tracks)
+                    </div>
+                    <div class="btn-group btn-group-sm flex-shrink-0" id="audio-tag-header-actions">
+                      <button class="btn btn-outline-primary d-none" type="button" id="btn-audio-tag-add" title="Add audio files to queue">
+                        <ion-icon name="add-outline" class="me-1"></ion-icon>Add Files...
+                      </button>
+                      <button class="btn btn-outline-danger d-none" type="button" id="btn-audio-tag-clear" title="Clear audio queue">
+                        <ion-icon name="trash-outline"></ion-icon>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="audio-tag-queue-list" class="mb-3">
+                    <div class="list-group-item text-body-secondary text-center py-4 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary" id="audio-tag-empty-msg" style="border: 2px dashed var(--bs-border-color); cursor: pointer; overscroll-behavior: none;">
+                      <ion-icon name="musical-notes-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
+                      <span class="fw-medium text-body" id="audio-tag-drop-label">Drop audio files here or click to select</span>
+                      <span class="small text-body-secondary" id="audio-tag-drop-sublabel">Supports MP3, M4A, FLAC, OGG</span>
+                      <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-audio-tag-add-empty" title="Add audio files to queue">
+                        <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Audio Files
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Metadata Editor Section (Shown when track selected) -->
+                <div id="audio-tag-editor-section" class="d-none">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="section-divider-header flex-grow-1 mb-0 me-3">Audio Metadata &amp; ID3 Tags</div>
+                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                      <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" type="button" id="btn-tag-autofill" title="Auto-fill Title and Artist from filename (e.g. 'Artist - Title')">
+                        <ion-icon name="sparkles-outline"></ion-icon> Auto-fill from Name
+                      </button>
+                      <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" type="button" id="btn-tag-revert" title="Revert tags to original metadata from file">
+                        <ion-icon name="refresh-outline"></ion-icon> Revert
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" type="button" id="btn-tag-clear" title="Clear all metadata fields">
+                        <ion-icon name="trash-outline"></ion-icon> Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="d-none align-items-center gap-2 alert alert-secondary py-2 px-3 mb-3 small text-body" id="audio-tag-loading-feedback">
+                    <div class="spinner-border spinner-border-sm text-primary flex-shrink-0" role="status"></div>
+                    <span id="audio-tag-loading-text">Loading audio metadata and artwork...</span>
+                  </div>
+
+                  <div class="row g-3">
+                    <!-- Cover Artwork Column -->
+                    <div class="col-12 col-md-4 col-lg-3">
+                      <div class="card h-100 p-3 bg-body border rounded d-flex flex-column align-items-center justify-content-between text-center">
+                        <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1 my-auto w-100 py-3">
+                          <div id="tag-cover-placeholder" class="d-flex flex-column align-items-center justify-content-center text-body-secondary py-3">
+                            <ion-icon name="image-outline" style="font-size: 3.5rem; opacity: 0.45;"></ion-icon>
+                            <span class="small text-body-secondary mt-1">No Artwork</span>
+                          </div>
+                          <img id="tag-cover-img" class="rounded border object-fit-cover d-none w-100" style="max-width: 220px; aspect-ratio: 1 / 1; height: auto;" alt="Album Cover Preview" />
+                        </div>
+
+                        <div class="d-flex gap-2 w-100 mt-2">
+                          <button class="btn btn-outline-primary btn-sm flex-fill text-truncate d-flex align-items-center justify-content-center gap-1" type="button" id="btn-tag-choose-cover" title="Choose image file (JPG, PNG) for album cover">
+                            <ion-icon name="image-outline"></ion-icon> Choose...
+                          </button>
+                          <button class="btn btn-outline-secondary btn-sm flex-fill tag-btn-remove text-truncate d-none d-flex align-items-center justify-content-center gap-1" type="button" id="btn-tag-remove-cover" title="Remove embedded album cover">
+                            <ion-icon name="trash-outline"></ion-icon> Remove
+                          </button>
+                        </div>
+                        <input type="file" id="tag-cover-input" class="d-none" accept="image/jpeg,image/png,image/webp" />
+                      </div>
+                    </div>
+
+                    <!-- Metadata Fields Column -->
+                    <div class="col-12 col-md-8 col-lg-9">
+                      <div class="row g-2">
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-title">Track Title</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-title" placeholder="e.g. Bohemian Rhapsody" />
+                        </div>
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-artist">Artist</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-artist" placeholder="e.g. Queen" />
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-album">Album</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-album" placeholder="e.g. A Night at the Opera" />
+                        </div>
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-album-artist">Album Artist</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-album-artist" placeholder="e.g. Queen" />
+                        </div>
+
+                        <div class="col-6 col-sm-3">
+                          <label class="form-label small fw-medium" for="tag-track">Track #</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-track" placeholder="e.g. 1" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <label class="form-label small fw-medium" for="tag-total-tracks">Total Tracks</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-total-tracks" placeholder="e.g. 12" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <label class="form-label small fw-medium" for="tag-disc">Disc #</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-disc" placeholder="e.g. 1" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <label class="form-label small fw-medium" for="tag-year">Year / Date</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-year" placeholder="e.g. 1975" />
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-genre">Genre</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-genre" list="tag-genre-list" placeholder="e.g. Rock" />
+                          <datalist id="tag-genre-list">
+                            <option value="Pop"></option>
+                            <option value="Rock"></option>
+                            <option value="Hip-Hop"></option>
+                            <option value="Electronic"></option>
+                            <option value="Classical"></option>
+                            <option value="Jazz"></option>
+                            <option value="Soundtrack"></option>
+                            <option value="R&amp;B"></option>
+                            <option value="Metal"></option>
+                            <option value="Ambient"></option>
+                            <option value="Acoustic"></option>
+                            <option value="Country"></option>
+                            <option value="Folk"></option>
+                            <option value="Blues"></option>
+                            <option value="Reggae"></option>
+                            <option value="Podcast"></option>
+                            <option value="Audiobook"></option>
+                          </datalist>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-composer">Composer</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-composer" placeholder="e.g. Freddie Mercury" />
+                        </div>
+
+                        <div class="col-12">
+                          <label class="form-label small fw-medium" for="tag-comment">Comment / Notes</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-comment" placeholder="Optional comments, descriptions, or notes" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
             <!-- TOOL 5: Merge & Concat -->
             <div class="tool-view d-none" id="view-merge">
               <div class="mb-4">
@@ -1848,6 +2022,17 @@
                     </div>
                   </label>
 
+                  <!-- Row: Show Media Preview -->
+                  <label class="settings-row clickable" for="set-show-media-preview" title="Show or hide media preview section to the right of input controls">
+                    <div class="me-3">
+                      <div class="fw-medium text-body">Show Media Preview Section</div>
+                      <div class="text-body-secondary small">Display video frame or audio album art preview panel to the right of input controls</div>
+                    </div>
+                    <div class="form-check form-switch mb-0 flex-shrink-0">
+                      <input class="form-check-input fs-5" type="checkbox" role="switch" id="set-show-media-preview" checked />
+                    </div>
+                  </label>
+
                   <!-- Row 3: Enable User Kits -->
                   <label class="settings-row clickable" for="set-enable-user-kits" title="Toggle User Kits in the sidebar">
                     <div class="me-3">
@@ -1924,14 +2109,15 @@
                   <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
                     <div class="me-sm-3 flex-grow-1">
                       <label class="fw-medium text-body mb-0" for="set-hwaccel">Hardware Acceleration Engine</label>
-                      <div class="text-body-secondary small">Select GPU encoder (NVIDIA NVENC, Intel QuickSync, AMD AMF) or CPU</div>
+                      <div class="text-body-secondary small">Select GPU encoder (NVIDIA NVENC, Intel QuickSync, AMD AMF, DirectML) or CPU</div>
                     </div>
                     <div class="flex-shrink-0" style="min-width: 220px; max-width: 320px;">
                       <select class="form-select form-select-sm" id="set-hwaccel" title="Select hardware acceleration engine">
                         <option value="auto" selected>Auto</option>
-                        <option value="cuda">NVIDIA NVENC (CUDA)</option>
-                        <option value="qsv">Intel QuickSync (QSV)</option>
-                        <option value="amf">AMD AMF</option>
+                        <option value="cuda" disabled>NVIDIA NVENC (CUDA)</option>
+                        <option value="qsv" disabled>Intel QuickSync (QSV)</option>
+                        <option value="amf" disabled>AMD AMF</option>
+                        <option value="d3d11va" disabled>DirectML (D3D11VA)</option>
                         <option value="cpu">CPU</option>
                       </select>
                     </div>
@@ -2228,7 +2414,7 @@
       <footer class="d-flex flex-shrink-0" id="bottom-footer-bar" style="height: 56px;">
         <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 border-top" id="bottom-control-bar">
           <div class="d-flex align-items-center">
-            <div class="text-body-secondary small d-none" id="status-message">Ready</div>
+            <div class="text-body-secondary small d-none" id="status-message"></div>
             <!-- Replace Source Toggle Switch (Visible in AI modes) -->
             <div class="form-check form-switch mb-0 d-none d-flex align-items-center gap-2 me-1" id="ai-replace-source-wrapper" title="Overwrite and replace original source files with generated AI results">
               <input class="form-check-input mt-0" type="checkbox" role="switch" id="ai-replace-source" style="cursor: pointer;" />
@@ -2241,6 +2427,33 @@
           </div>
         </div>
       </footer>
+    <!-- User Kits Experimental Warning Dialog -->
+    <div class="modal fade" id="user-kits-warning-modal" tabindex="-1" aria-labelledby="userKitsWarningModalLabel" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-5 fw-light text-body d-flex align-items-center gap-2" id="userKitsWarningModalLabel">
+              <ion-icon name="warning-outline" class="text-warning fs-4 lh-1"></ion-icon>
+              <span>Experimental Feature</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-user-kits-close-x"></button>
+          </div>
+          <div class="modal-body p-3">
+            <p class="text-body small mb-2">
+              User Kits and Custom Modules are an experimental feature.
+            </p>
+            <p class="text-body-secondary small mb-0">
+              Custom block pipelines and script definitions may change or break in future application updates. Custom scripts run directly on your system with local execution permissions.
+            </p>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal" id="btn-user-kits-cancel-warning">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-user-kits-confirm-warning">
+              <span>Enable User Kits</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Required Tools Missing Dialog -->
@@ -2258,7 +2471,7 @@
             <p class="text-body small mb-3">
               AnEdiKit requires core external tools to process media. One or more required tools are not installed or could not be found on your system:
             </p>
-            <div id="missing-tools-list" class="d-flex flex-column gap-2 mb-3">
+            <div id="missing-tools-list" class="settings-group-card mb-3">
               <!-- Dynamically populated missing tools -->
             </div>
             <div class="text-body-secondary small">
@@ -2328,7 +2541,7 @@
                 <span id="tool-download-eta-text">-- left</span>
               </span>
             </div>
-            <button type="button" class="btn btn-primary btn-sm px-3" data-bs-dismiss="modal">Done</button>
+            <button type="button" class="btn btn-primary btn-sm px-3" id="btn-manage-tools-done" data-bs-dismiss="modal">Done</button>
           </div>
         </div>
       </div>

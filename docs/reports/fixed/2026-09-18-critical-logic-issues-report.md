@@ -190,6 +190,7 @@ The detailed breakdown of each issue, its root cause, failure scenarios, and rec
 
 ### Issue 5.1: User Kit Execution Output Blackout and Engine Misalignment
 - Severity: High
+- Status: ✅ Fixed (2026-09-18)
 - Affected Files:
   - [src/kits/executor.js](file:///C:/Users/User/Documents/Toolkit/AnEdiKit/src/kits/executor.js#L142-L160)
   - [src/js/runner.js](file:///C:/Users/User/Documents/Toolkit/AnEdiKit/src/js/runner.js#L261-L273)
@@ -204,6 +205,7 @@ The detailed breakdown of each issue, its root cause, failure scenarios, and rec
 
 ### Issue 5.2: Tool Deletion Failure for Deno Runtime
 - Severity: Medium
+- Status: ✅ Fixed (2026-09-18)
 - Affected File:
   - [src-tauri/src/lib.rs](file:///C:/Users/User/Documents/Toolkit/AnEdiKit/src-tauri/src/lib.rs#L2379-L2384)
 - Description:
@@ -217,6 +219,7 @@ The detailed breakdown of each issue, its root cause, failure scenarios, and rec
 
 ### Issue 6.1: Global Process ID Collision and Cancellation State Races
 - Severity: High
+- Status: ✅ Fixed (2026-09-18)
 - Affected File:
   - [src-tauri/src/lib.rs](file:///C:/Users/User/Documents/Toolkit/AnEdiKit/src-tauri/src/lib.rs#L11-L12)
   - [src-tauri/src/lib.rs](file:///C:/Users/User/Documents/Toolkit/AnEdiKit/src-tauri/src/lib.rs#L635)
@@ -231,6 +234,7 @@ The detailed breakdown of each issue, its root cause, failure scenarios, and rec
 
 ### Issue 6.2: Missing Frame Limit in Album Art Extraction
 - Severity: High
+- Status: ✅ Fixed (2026-09-18)
 - Affected File:
   - [src-tauri/src/lib.rs](file:///C:/Users/User/Documents/Toolkit/AnEdiKit/src-tauri/src/lib.rs#L2510-L2525)
 - Description:
@@ -242,6 +246,7 @@ The detailed breakdown of each issue, its root cause, failure scenarios, and rec
 
 ### Issue 6.3: Unbounded Audio Decoding Memory Spike in Waveform Generator
 - Severity: High
+- Status: ✅ Fixed (2026-09-18)
 - Affected File:
   - [src/js/waveform.js](file:///C:/Users/User/Documents/Toolkit/AnEdiKit/src/js/waveform.js#L97-L105)
 - Description:
@@ -253,23 +258,23 @@ The detailed breakdown of each issue, its root cause, failure scenarios, and rec
 
 ## Summary Priority Matrix
 
-| ID | Issue Description | Component | Severity |
-|---|---|---|---|
-| 1.1 | Path corruption via unconditional URL decoding | Backend IPC & Storage | Critical |
-| 1.2 | Command injection in file opener | Backend IPC | High |
-| 1.3 | PowerShell injection in notifications | Backend IPC | High |
-| 1.4 | FFmpeg concat demuxer backslash failure | Frontend Runner | High |
-| 2.1 | OpenCV Windows Unicode path failures | Python AI Engine | Critical |
-| 2.2 | Memory exhaustion in metadata cleaner | Python AI Engine | Critical |
-| 2.3 | Unhandled RGBA mode crash on JPEG replacement | Python AI Engine | High |
-| 3.1 | Image AI execute button permanently disabled | Frontend Main | High |
-| 3.2 | Modal stacking and missing cancellation in Image AI queue | Frontend Main | High |
-| 3.3 | Reference error and inoperable save in comparison modal | Frontend Comparison | High |
-| 4.1 | Filtergraph failure on silent inputs | Frontend Commands | High |
-| 4.2 | Incompatible stream copy audio container | Frontend Commands | Medium |
-| 4.3 | Loudness normalizer defaulting to MP4 for audio | Frontend Commands | Medium |
-| 5.1 | User Kit output blackout and engine misalignment | User Kits IDE | High |
-| 5.2 | Tool deletion failure for Deno runtime | Backend IPC | Medium |
-| 6.1 | Global PID collision and cancel state races | Backend IPC | High |
-| 6.2 | Missing frame limit in album art extraction | Backend IPC | High |
-| 6.3 | Unbounded audio decoding memory spike | Frontend Waveform | High |
+| ID | Issue Description | Component | Severity | Status |
+|---|---|---|---|---|
+| 1.1 | Path corruption via unconditional URL decoding | Backend IPC & Storage | Critical | ✅ Fixed |
+| 1.2 | Command injection in file opener | Backend IPC | High | ✅ Fixed |
+| 1.3 | PowerShell injection in notifications | Backend IPC | High | ✅ Fixed |
+| 1.4 | FFmpeg concat demuxer backslash failure | Frontend Runner | High | ✅ Fixed |
+| 2.1 | OpenCV Windows Unicode path failures | Python AI Engine | Critical | ✅ Fixed |
+| 2.2 | Memory exhaustion in metadata cleaner | Python AI Engine | Critical | ✅ Fixed |
+| 2.3 | Unhandled RGBA mode crash on JPEG replacement | Python AI Engine | High | ✅ Fixed |
+| 3.1 | Image AI execute button permanently disabled | Frontend Main | High | ✅ Fixed |
+| 3.2 | Modal stacking and missing cancellation in Image AI queue | Frontend Main | High | ✅ Fixed |
+| 3.3 | Reference error and inoperable save in comparison modal | Frontend Comparison | High | ✅ Fixed |
+| 4.1 | Filtergraph failure on silent inputs | Frontend Commands | High | ✅ Fixed |
+| 4.2 | Incompatible stream copy audio container | Frontend Commands | Medium | ✅ Fixed |
+| 4.3 | Loudness normalizer defaulting to MP4 for audio | Frontend Commands | Medium | ✅ Fixed |
+| 5.1 | User Kit output blackout and engine misalignment | User Kits IDE | High | ✅ Fixed |
+| 5.2 | Tool deletion failure for Deno runtime | Backend IPC | Medium | ✅ Fixed |
+| 6.1 | Global PID collision and cancel state races | Backend IPC | High | ✅ Fixed |
+| 6.2 | Missing frame limit in album art extraction | Backend IPC | High | ✅ Fixed |
+| 6.3 | Unbounded audio decoding memory spike | Frontend Waveform | High | ✅ Fixed |

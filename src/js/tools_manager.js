@@ -493,6 +493,31 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     btnCheckAll.classList.add("opacity-50", "pe-none");
   }
 
+  const btnDone = document.getElementById("btn-manage-tools-done");
+  let updateCancelled = false;
+
+  const handleCancelUpdate = async () => {
+    updateCancelled = true;
+    if (btnDone) {
+      btnDone.disabled = true;
+      btnDone.innerHTML = `<div class="loader loader-sm me-1"></div> Cancelling...`;
+    }
+    if (window.__TAURI__?.core?.invoke) {
+      try {
+        await window.__TAURI__.core.invoke("cancel_tool_update");
+      } catch (err) {
+        console.warn("cancel_tool_update error:", err);
+      }
+    }
+  };
+
+  if (btnDone) {
+    btnDone.textContent = "Cancel";
+    btnDone.className = "btn btn-danger btn-sm px-3";
+    btnDone.removeAttribute("data-bs-dismiss");
+    btnDone.addEventListener("click", handleCancelUpdate);
+  }
+
   const restoreOtherButtons = () => {
     otherBtnsToRestore.forEach(({ el, wasDisabled }) => {
       el.disabled = wasDisabled;
@@ -503,6 +528,13 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     if (btnCheckAll) {
       btnCheckAll.disabled = false;
       btnCheckAll.classList.remove("opacity-50", "pe-none");
+    }
+    if (btnDone) {
+      btnDone.removeEventListener("click", handleCancelUpdate);
+      btnDone.disabled = false;
+      btnDone.textContent = "Done";
+      btnDone.className = "btn btn-primary btn-sm px-3";
+      btnDone.setAttribute("data-bs-dismiss", "modal");
     }
   };
 
@@ -603,19 +635,30 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
 
   if (updateError) {
     if (activeToolUpdates[toolId]) activeToolUpdates[toolId].isUpdating = false;
+    const isCancelled = updateCancelled || updateError.toLowerCase().includes("cancel");
     const curBtn = document.getElementById(`btn-update-${toolId}`);
     if (curBtn) {
-      curBtn.style.background = "var(--bs-danger)";
-      curBtn.innerHTML = `<ion-icon name="alert-circle-outline" class="me-1"></ion-icon> Failed`;
-      curBtn.className = "btn btn-danger btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
+      if (isCancelled) {
+        curBtn.style.background = "var(--bs-secondary)";
+        curBtn.innerHTML = `<ion-icon name="close-circle-outline" class="me-1"></ion-icon> Cancelled`;
+        curBtn.className = "btn btn-secondary btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
+      } else {
+        curBtn.style.background = "var(--bs-danger)";
+        curBtn.innerHTML = `<ion-icon name="alert-circle-outline" class="me-1"></ion-icon> Failed`;
+        curBtn.className = "btn btn-danger btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
+      }
     }
-    showToolAlert(`Failed to update ${toolName}: ${updateError}`, "danger");
+    if (isCancelled) {
+      showToolAlert(`Update for ${toolName} was cancelled.`, "secondary");
+    } else {
+      showToolAlert(`Failed to update ${toolName}: ${updateError}`, "danger");
+    }
     restoreOtherButtons();
 
     setTimeout(() => {
       delete activeToolUpdates[toolId];
       refreshToolsUI();
-    }, 2500);
+    }, isCancelled ? 1500 : 2500);
   } else {
     updateProgressStyles(100, "Updated", "Complete", "0s");
     if (activeToolUpdates[toolId]) activeToolUpdates[toolId].isUpdating = false;
@@ -664,6 +707,16 @@ export async function getMissingTools() {
     }
   }
 
+  // Also check if Python is available on the system
+  const pyTool = toolsManifest.find((t) => t.id === "python");
+  if (pyTool) {
+    const pyVer = versions["python"] || versions["python_installed"] || versions["python.exe"];
+    const pyInstalled = pyVer && pyVer !== "Not Found" && !pyVer.toLowerCase().includes("not");
+    if (!pyInstalled) {
+      missing.push(pyTool);
+    }
+  }
+
   return missing;
 }
 
@@ -676,13 +729,15 @@ export function showMissingToolsDialog(missingTools) {
     listContainer.innerHTML = missingTools
       .map(
         (tool) => `
-      <div class="d-flex align-items-center gap-3 p-2 px-3 border rounded bg-body-tertiary">
-        <ion-icon name="${tool.icon}" class="fs-4 ${tool.iconColorClass} flex-shrink-0 lh-1"></ion-icon>
-        <div class="flex-grow-1 min-w-0">
-          <div class="fw-medium text-body text-truncate">${tool.displayName}</div>
-          <div class="text-body-secondary small text-truncate" style="font-size: 0.75rem;">${tool.summary}</div>
+      <div class="settings-row py-2 px-3">
+        <div class="d-flex align-items-center gap-3 min-w-0">
+          <ion-icon name="${tool.icon}" class="fs-4 ${tool.iconColorClass} flex-shrink-0 lh-1"></ion-icon>
+          <div class="min-w-0">
+            <div class="fw-medium text-body text-truncate">${tool.displayName}</div>
+            <div class="text-body-secondary small text-truncate" style="font-size: 0.75rem;">${tool.summary}</div>
+          </div>
         </div>
-        <span class="badge text-bg-danger-subtle text-danger border border-danger-subtle flex-shrink-0" style="font-size: 0.7rem;">Not Installed</span>
+        <span class="badge text-bg-danger-subtle text-danger border border-danger-subtle flex-shrink-0 ms-2" style="font-size: 0.7rem;">Not Installed</span>
       </div>
     `
       )

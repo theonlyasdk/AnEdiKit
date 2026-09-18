@@ -228,6 +228,25 @@ export function updateProgress(data) {
 let activeJobInfo = null;
 let jobStartTime = 0;
 let jobCompletionResolver = null;
+// Optional per-job event sinks (used by User Kits to drive their own
+// log/progress UI). Cleared on every job finish.
+let activeJobCallbacks = null;
+
+function forwardJobLog(line) {
+  try {
+    if (line != null) activeJobCallbacks?.onLog?.(String(line));
+  } catch (err) {
+    console.warn("Job onLog callback error:", err);
+  }
+}
+
+function forwardJobProgress(payload) {
+  try {
+    if (payload) activeJobCallbacks?.onProgress?.(payload);
+  } catch (err) {
+    console.warn("Job onProgress callback error:", err);
+  }
+}
 
 export async function attachTauriListeners() {
   if (!window.__TAURI__?.event?.listen) return;
@@ -236,12 +255,14 @@ export async function attachTauriListeners() {
   if (!currentProgressUnlisten) {
     currentProgressUnlisten = await listen("ffmpeg-progress", (event) => {
       updateProgress(event.payload);
+      forwardJobProgress(event.payload);
     });
   }
 
   if (!currentLogUnlisten) {
     currentLogUnlisten = await listen("ffmpeg-log", (event) => {
       if (event.payload?.line) {
+        forwardJobLog(event.payload.line);
         // yt-dlp reports the real output file as "filepath:<abs path>"
         // (backend adds --print after_move:filepath:...). Point the finished
         // toast at the file instead of the output folder so "Open file" works.
@@ -278,6 +299,12 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
       destination: commandObj.destination || "",
       toolName: commandObj.executable === "yt-dlp" ? "Download" : "Conversion",
     };
+    // Capture kit (or other caller) event sinks so live logs/progress reach
+    // dedicated UI panels instead of only the shared job console.
+    activeJobCallbacks =
+      typeof commandObj.onLog === "function" || typeof commandObj.onProgress === "function"
+        ? { onLog: commandObj.onLog, onProgress: commandObj.onProgress }
+        : null;
 
   const statusPanel = document.getElementById("execution-status-panel");
   const statusMsg = document.getElementById("status-message");
@@ -383,17 +410,20 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
     const s = curSec % 60;
     const timeStr = `00:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 
-    updateProgress({
+    const simPayload = {
       time: timeStr,
       fps: "60",
       speed: "2.4x",
       bitrate: "3200 kbits/s",
       pct: simPct,
       current_item_title: displayName,
-    });
-    appendLog(
-      `frame= ${simPct * 12} fps=60 q=-1.0 size= ${simPct * 80}kB time=${timeStr} bitrate=3200kbits/s speed=2.4x`,
-    );
+    };
+    const simLine = `frame= ${simPct * 12} fps=60 q=-1.0 size= ${simPct * 80}kB time=${timeStr} bitrate=3200kbits/s speed=2.4x`;
+
+    updateProgress(simPayload);
+    forwardJobProgress(simPayload);
+    appendLog(simLine);
+    forwardJobLog(simLine);
 
     if (simPct >= 100) {
       clearInterval(simInterval);
@@ -602,6 +632,8 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
 export function onJobFinished(success, message) {
   isRunning = false;
   setControlsDisabledState(false);
+  // Release per-job sinks so later jobs don't inherit kit callbacks.
+  activeJobCallbacks = null;
 
   const bar = document.getElementById("job-progress-bar");
   const pctEl = document.getElementById("progress-pct");

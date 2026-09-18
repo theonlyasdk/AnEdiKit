@@ -1,13 +1,17 @@
 {
   "name": "anedikit",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.4.2",
+  "description": "All-in-one media toolkit for video, audio and image processing",
+  "author": "AnEdiKit",
   "type": "module",
   "scripts": {
     "tauri": "tauri",
     "build": "node tools/scripts/build_release.js",
     "release": "node tools/scripts/build_release.js",
     "build:release": "node tools/scripts/build_release.js",
+    "release:run": "node tools/scripts/run_release.js",
+    "new-cert": "node tools/scripts/new_signing_cert.js",
     "test:e2e": "wdio run wdio.conf.js",
     "screenshots": "node tools/scripts/capture_screenshots.js"
   },

@@ -139,8 +139,12 @@ export async function executeActiveKit() {
   if (statusMsg) statusMsg.textContent = `Running ${activeKit.name}...`;
 
   try {
+    const engine = activeKit.engine || "ffmpeg";
     const jobPromise = executeFfmpegJob({
+      executable: engine,
       args,
+      destination: "",
+      fullString: `${engine} ${args.map((a) => (a.includes(" ") ? `"${a}"` : a)).join(" ")}`,
       totalDuration: 0,
       onLog: (line) => {
         if (!logBox) return;

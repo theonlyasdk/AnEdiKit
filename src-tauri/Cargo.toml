@@ -1,8 +1,8 @@
 [package]
 name = "anedikit"
-version = "0.4.1"
-description = "A Tauri App"
-authors = ["you"]
+version = "0.4.2"
+description = "AnEdiKit - all-in-one media toolkit for video, audio and image processing"
+authors = ["AnEdiKit"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

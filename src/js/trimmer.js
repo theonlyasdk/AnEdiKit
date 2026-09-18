@@ -76,6 +76,15 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
   if (!container || !filePath) return;
 
   const thisToken = ++currentTimelineExtractToken;
+  // Already showing this file's strip: switching back and forth in the batch
+  // queue must not respawn 12 ffmpeg jobs. The token still bumps above so
+  // any in-flight extraction for another file is discarded on arrival.
+  if (
+    container.dataset.filmstripPath === filePath &&
+    container.querySelector(".trim-timeline-frame-slot, .trim-timeline-frame-item")
+  ) {
+    return;
+  }
   // A file is actually loading now: swap the idle prompt for the shimmer.
   const pendingEl = document.getElementById("trim-filmstrip-empty");
   if (pendingEl && !pendingEl.classList.contains("d-none")) {
@@ -102,6 +111,7 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
 
   if (isAudio) {
     container.innerHTML = "";
+    delete container.dataset.filmstripPath;
     if (waveformCanvas) {
       waveformCanvas.classList.remove("d-none");
     }
@@ -133,6 +143,7 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
     `;
   }
   container.innerHTML = slotsHtml;
+  container.dataset.filmstripPath = filePath;
 
   if (window.__TAURI__?.core?.invoke) {
     // Extract frames with live progressive frame-by-frame updates
@@ -156,6 +167,7 @@ export async function extractTimelineThumbnailsAsync(filePath, duration) {
   }
 
   // Fallback if in web mode
+  delete container.dataset.filmstripPath;
   container.innerHTML = `
     <div class="w-100 h-100 d-flex align-items-center justify-content-center text-body-secondary small">
       <ion-icon name="film-outline" class="me-2"></ion-icon> Video Timeline
