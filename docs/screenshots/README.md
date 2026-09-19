@@ -7,6 +7,7 @@ Reference captures of the AnEdiKit interface, one folder per release version. De
 | 0.1.0 | 3 pages | none | Early subset: Convert, Trim, Background Remover |
 | 0.2.0 | none | none | Folder reserved, no captures |
 | 0.3.0 | 25 pages, 3 dialogs | 25 pages, 4 drawer views | Complete tool set |
+| 0.4.2 | 26 pages, 3 dialogs | 26 pages, 4 drawer views | Added Audio Tag & Metadata Editor, UI refinements |
 
 ## 0.3.0
 
@@ -32,6 +33,7 @@ Files live directly in `0.3.0/`.
 | GIF and Frame Extraction | `gif_frames` | gif_and_frames.png |
 | Extract & Convert Audio | `extract_audio` | extract_and_convert_audio.png |
 | Compress Audio | `compress_audio` | compress_audio.png |
+| Audio Tag & Metadata Editor | `audio_tags` | audio_tag_editor.png |
 | Merge and Concatenate | `merge` | merge_and_concat.png |
 | Custom FFmpeg Command | `custom` | custom_command.png |
 | AI Background Remover | `bg_remover` | background_remover.png |
@@ -75,9 +77,9 @@ The Comparison View is normally opened from a finished queue item, which needs a
 
 ```bash
 npm run screenshots                                # desktop and mobile
-node tools/scripts/capture_screenshots.js --mode mobile
-node tools/scripts/capture_screenshots.js --mode desktop
-node tools/scripts/capture_screenshots.js --out docs/screenshots/0.3.0
+node tools/Scripts/capture_screenshots.js --mode mobile
+node tools/Scripts/capture_screenshots.js --mode desktop
+node tools/Scripts/capture_screenshots.js --out docs/screenshots/0.3.0
 ```
 
 The script serves `src/` over a local HTTP server and drives headless Chrome through the DevTools Protocol, walking every sidebar entry the same way a click does. No Tauri build, Rust toolchain, or running desktop app is required. The output folder is the app version from `src-tauri/tauri.conf.json`, so a version bump writes a new folder.

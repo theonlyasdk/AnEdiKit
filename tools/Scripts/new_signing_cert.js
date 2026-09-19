@@ -4,7 +4,7 @@
 // so locally-signed MSIX packages pass Add-AppxPackage signature checks.
 //
 // Usage:
-//   node tools/scripts/new_signing_cert.js [--subject CN=AnEdiKit]
+//   node tools/Scripts/new_signing_cert.js [--subject CN=AnEdiKit]
 //     [--password <pwd>] [--out <file.pfx>] [--years 5] [--no-install] [--force]
 //
 // Defaults match build_release.js MSIX Publisher expectations (CN=AnEdiKit).
@@ -125,7 +125,7 @@ export async function createSigningCert({ subject = 'CN=AnEdiKit', password = nu
       console.log(' Password : none (signtool may still prompt; prefer setting one)');
     }
     console.log('\n Sign your MSIX with:');
-    console.log(`   build_release.bat --msix --msix-cert "${out}"${password ? ' --msix-cert-password <pwd>' : ''}`);
+    console.log(`   node tools/Scripts/build_release.js --msix --msix-cert "${out}"${password ? ' --msix-cert-password <pwd>' : ''}`);
     console.log('====================================================\n');
     return { thumbprint, outPath: out, subject };
   } catch (err) {
@@ -143,7 +143,7 @@ async function main() {
   const { help, opts } = parseArgs(process.argv.slice(2));
   if (help) {
     console.log('Self-signed code-signing certificate generator');
-    console.log('Usage: node tools/scripts/new_signing_cert.js [options]');
+    console.log('Usage: node tools/Scripts/new_signing_cert.js [options]');
     console.log('');
     console.log('Options:');
     console.log('  --subject <name>   Certificate subject (default: CN=AnEdiKit)');

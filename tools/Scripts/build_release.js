@@ -200,7 +200,7 @@ function parseMsixOptions(rawArgs) {
 
 // ---------------------------------------------------------------------------
 // Interactive artifact picker (opt-in via --interactive; used by default when
-// build_release.bat is double-clicked without arguments).
+// the "Build release" option in launch.bat is double-clicked without arguments).
 // ---------------------------------------------------------------------------
 
 const INTERACTIVE_BUNDLES = [
@@ -215,12 +215,17 @@ async function runInteractiveSetup(input = process.stdin, output = process.stdou
   try {
     output.write('\nSelect artifacts to build (Windows):\n');
     output.write('  Portable .exe is always produced.\n\n');
+    output.write('  [0] Go back (cancel, return to launcher menu)\n');
     INTERACTIVE_BUNDLES.forEach((c, i) => output.write(`  [${i + 1}] ${c.label}\n`));
 
-    const raw = (await ask('\nEnter numbers separated by commas (default: all, e.g. 1,3): '))
+    const raw = (await ask('\nEnter numbers separated by commas (0 = go back, default: all, e.g. 1,3): '))
       .trim()
       .toLowerCase();
     let picked;
+    if (raw === '0' || raw === 'back' || raw === 'cancel') {
+      output.write('\nGoing back - nothing built.\n');
+      return null;
+    }
     if (raw === '' || raw === 'all') {
       picked = INTERACTIVE_BUNDLES.map((c) => c.id);
     } else {
@@ -491,7 +496,7 @@ async function buildMsixPackage({ productName, version, identifier, arch, standa
   } else {
     console.warn('[MSIX] Package is UNSIGNED and cannot be installed as-is.');
     console.warn('[MSIX] Create a dev certificate with tools\\new_signing_cert.bat, then rebuild with:');
-    console.warn('[MSIX]   build_release.bat --msix --msix-cert <file.pfx> [--msix-cert-password <pwd>]');
+    console.warn('[MSIX]   node tools/Scripts/build_release.js --msix --msix-cert <file.pfx> [--msix-cert-password <pwd>]');
     console.warn('[MSIX] To sideload: install the cert under Trusted People, then Add-AppxPackage.');
   }
 
@@ -666,7 +671,7 @@ async function main() {
 
   if (rawArgs.includes('--help') || rawArgs.includes('-h')) {
     console.log('AnEdiKit Release Builder');
-    console.log('Usage: node tools/scripts/build_release.js [tauri build options] [--msix ...]');
+    console.log('Usage: node tools/Scripts/build_release.js [tauri build options] [--msix ...]');
     console.log('');
     console.log('Options:');
     console.log('  -b, --bundles <BUNDLES>  Bundles to package (e.g. nsis, msi)');
@@ -702,7 +707,12 @@ async function main() {
   let msixOpts = cliOpts;
   if (cliOpts.interactive) {
     if (process.stdin.isTTY) {
-      ({ tauriArgs, msixOpts } = await runInteractiveSetup());
+      const setup = await runInteractiveSetup();
+      if (setup === null) {
+        console.log('[Build] Canceled, returning to launcher menu.');
+        return;
+      }
+      ({ tauriArgs, msixOpts } = setup);
       if (msixOpts.cleanFirst) {
         printCleanupSummary(performCleanup());
       }

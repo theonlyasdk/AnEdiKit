@@ -1,15 +1,26 @@
 # AnEdiKit
 
-AnEdiKit is a lightweight, all-in-one desktop toolkit for creators that integrates FFmpeg and yt-dlp media utilities into a responsive desktop application built with Tauri v2 and Rust. It also serves as a macro engine for making your own GUI for command line tools of your choice with JavaScript and drag-and-drop tools.
+AnEdiKit is a lightweight, all-in-one desktop toolkit for creators that combines FFmpeg video and audio utilities, a yt-dlp media downloader, and on-device neural processing into a single desktop application built with Tauri v2 and Rust. It also includes an extensible User Kits macro engine for creating custom GUI workflows with JavaScript.
 
 ## Screenshots
-For screenshots and a visual overview of the application, please visit the [Screenshots](docs/screenshots/0.3.0/) page.
+
+![Video Conversion](docs/screenshots/0.4.2/convert_video.png)
+*Video Conversion: Transcode video formats with customizable codecs, quality presets, hardware acceleration, and live command preview.*
+
+![Media Downloader](docs/screenshots/0.4.2/download_video.png)
+*Media Downloader: Download video and audio streams via yt-dlp with resolution presets, metadata embedding, and playlist support.*
+
+![Comparison View](docs/screenshots/0.4.2/modal_comparison.png)
+*Image & AI Processing: Local neural background removal and enhancement with interactive split-slider before/after comparison.*
+
+For full reference captures across all desktop tools, mobile views, and dialogs, see the [Screenshots Index](docs/screenshots/README.md).
 
 ## Features
 
 ### Video & Audio Processing (FFmpeg)
 - Video Conversion: Transcode video files across MP4, MKV, WebM, MOV, AVI, and other formats with customizable codecs (H.264, HEVC, AV1, VP9), CRF quality presets, and resolution scaling.
 - Audio Extraction & Conversion: Extract audio tracks from video or transcode audio files across MP3, M4A, FLAC, WAV, Opus, and OGG formats.
+- Audio Tag & Metadata Editor: Edit ID3 tags (title, artist, album, track, year, genre) and manage embedded album artwork with a conjoined queue view.
 - Precision Trimming & Cutting: Trim clips using instant lossless stream copying or frame-accurate re-encoding.
 - Targeted Media Compression: Compress video and audio to fit target file sizes (Discord, WhatsApp, Email, or custom megabyte limits) with automatic bitrate budgeting.
 - Media Concatenation & Merging: Join multiple video or audio tracks into a single continuous stream.
@@ -22,50 +33,39 @@ For screenshots and a visual overview of the application, please visit the [Scre
 - Playlist & Batch Queueing: Download full playlists and channels with dual-progress tracking for both current item and overall batch completion.
 - Global Downloader Settings: Centralized configuration for browser cookie authentication (Chrome, Firefox, Edge, Brave, Opera, Vivaldi), download speed limits, SponsorBlock segment removal, and custom flags.
 
+### On-Device Neural Processing (Image & AI)
+- Background Remover: Isolate subjects and remove backgrounds locally without uploading files to third-party services.
+- AI Image Upscaling: Enhance image resolution with deep learning super-resolution models.
+- Image Vectorizer: Trace and convert raster graphics (PNG, JPG) into scalable SVG vectors.
+- Interactive Comparison: Review results side-by-side or with a split slider before saving.
+
 ### Core Engine & Architecture
-- Hardware Acceleration: Support for NVIDIA NVENC (CUDA), Intel QuickSync (QSV), and AMD AMF hardware encoders.
-- Non-Blocking Background Processing: Asynchronous process management allows browsing between tools while tasks execute in the background.
-- Process Lifecycle Management: Background jobs persist across interface reloads, and active operations are safely terminated with child process tree cleanup on exit confirmation.
+- Hardware Acceleration: Support for NVIDIA NVENC (CUDA), Intel QuickSync (QSV), AMD AMF, and DirectML hardware encoders with automatic CPU fallback.
+- Non-Blocking Background Processing: Asynchronous process management keeps the interface responsive while long-running jobs execute in the background.
+- User Kits Macro Engine: Create custom GUI tools and automated workflows with JavaScript, form controls, and Monaco editor integration.
 
-## Development
+## Development & Building
 
-Requirements:
-- Rust (Cargo)
-- Node.js (npm)
-- FFmpeg and yt-dlp available on system PATH or local application tools folder
+Comprehensive prerequisites, setup instructions, packaging options, and screenshot tooling are documented in [Building AnEdiKit](docs/building.md).
 
-Install dependencies:
+Quick start:
 ```bash
 npm install
-```
-
-Run application in development mode:
-```bash
 npm run tauri dev
 ```
 
-Build release variant with installer bundles:
+Build release packages:
 ```bash
-npm run release
-# or
-build_release.bat
+npm run build
 ```
 
-The release files will be in the `build/` folder:
-- `AnEdiKit-ver-windows-x64-portable.exe` (Portable binary)
-- `AnEdiKit-ver-windows-x64-installer.msi` (MSI Installer)
-- `AnEdiKit-ver-windows-x64-setup.exe` (NSIS Setup)
-- `SHA256SUMS.txt` (SHA256 checksums)
-
-## Libraries and Tools Used
+## Tech Stack
 
 - Desktop Framework: Tauri v2
-- Backend and Systems: Rust, `serde`, `serde_json`, `rfd`, `base64`, `tauri-plugin-opener`
-- Frontend UI: HTML5, CSS3, JavaScript (ES Modules), Bootstrap 5, Ionicons
-- Media Processing: FFmpeg (transcoding, trimming, merging, compressing, filtering, palette generation), yt-dlp (stream/playlist downloading and metadata extraction)
-- AI and Computer Vision: Python 3, `rembg`, `onnxruntime`, `opencv-python`, `Pillow`, `numpy`, `tqdm`
-- Build and Packaging: Node.js, npm, NSIS, WiX Toolset
-- Testing and Automation: WebdriverIO (`@wdio/cli`, `@wdio/tauri-service`, `webdriverio`), Mocha
+- Backend Systems: Rust (`serde`, `serde_json`, `rfd`, `tauri-plugin-opener`)
+- Frontend Interface: HTML5, CSS3, JavaScript (ES Modules), Bootstrap 5, Ionicons
+- Media Processing: FFmpeg, yt-dlp
+- AI Processing: Python 3, `rembg`, `onnxruntime`, `opencv-python`, `Pillow`
 
 ## License
 

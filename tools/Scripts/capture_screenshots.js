@@ -8,7 +8,7 @@
 // `mobile/` subfolder, where a few pages are also captured with the navigation
 // drawer open. Dialogs are captured last, as modal_*.png in the version folder.
 //
-// Usage: node tools/scripts/capture_screenshots.js [--mode desktop|mobile|both] [--out <dir>]
+// Usage: node tools/Scripts/capture_screenshots.js [--mode desktop|mobile|both] [--out <dir>]
 
 import fs from 'node:fs';
 import http from 'node:http';

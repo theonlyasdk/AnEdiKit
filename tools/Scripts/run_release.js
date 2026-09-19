@@ -1,5 +1,5 @@
 // Launches the locally-built release binary (GUI, detached).
-// Build it first with: build_release.bat --no-bundle
+// Build it first with the "Build release" option in launch.bat (or: node tools/Scripts/build_release.js --no-bundle)
 // (Tauri has no `run --release`: `tauri dev` is debug-only, so release means
 // building with `tauri build` and launching the produced executable.)
 import fs from 'node:fs';
@@ -50,7 +50,7 @@ async function main() {
   const binary = findReleaseBinary();
   if (!binary) {
     console.error('[Run] No release binary found in src-tauri/target/release/.');
-    console.error('[Run] Build it first with: build_release.bat --no-bundle');
+    console.error('[Run] Build it first with the "Build release" option in launch.bat (or: node tools/Scripts/build_release.js --no-bundle)');
     process.exit(1);
   }
   console.log(`[Run] Launching release build: ${binary}`);

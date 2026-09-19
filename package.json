@@ -7,13 +7,13 @@
   "type": "module",
   "scripts": {
     "tauri": "tauri",
-    "build": "node tools/scripts/build_release.js",
-    "release": "node tools/scripts/build_release.js",
-    "build:release": "node tools/scripts/build_release.js",
-    "release:run": "node tools/scripts/run_release.js",
-    "new-cert": "node tools/scripts/new_signing_cert.js",
+    "build": "node tools/Scripts/build_release.js",
+    "release": "node tools/Scripts/build_release.js",
+    "build:release": "node tools/Scripts/build_release.js",
+    "release:run": "node tools/Scripts/run_release.js",
+    "new-cert": "node tools/Scripts/new_signing_cert.js",
     "test:e2e": "wdio run wdio.conf.js",
-    "screenshots": "node tools/scripts/capture_screenshots.js"
+    "screenshots": "node tools/Scripts/capture_screenshots.js"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
