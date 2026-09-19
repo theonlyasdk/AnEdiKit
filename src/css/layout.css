@@ -1,0 +1,871 @@
+/* Sidebar Navigation & Settings Button Sliding Indicator */
+.sidebar .nav,
+#settings-nav,
+#mobile-settings-nav {
+  position: relative;
+}
+
+#sidebar-scroll-container > .sidebar-indicator {
+  position: absolute;
+  top: 0;
+  left: 0.5rem;
+  right: 0.5rem;
+  background-color: var(--bs-primary);
+  border-radius: var(--bs-border-radius);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1), height 0.28s ease, opacity 0.2s ease;
+  will-change: transform, height;
+}
+
+#settings-nav > .sidebar-indicator,
+#mobile-settings-nav > .sidebar-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--bs-primary);
+  border-radius: var(--bs-border-radius);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1), height 0.28s ease, opacity 0.2s ease;
+  will-change: transform, height;
+}
+
+.sidebar .nav-link,
+#settings-nav .nav-link,
+#mobile-settings-nav .nav-link {
+  color: var(--bs-body-color);
+  border-radius: var(--bs-border-radius);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  position: relative;
+  z-index: 1;
+  background-color: transparent !important;
+  transition: color 0.25s ease;
+  overflow: hidden;
+}
+
+/* Fluent UI Proximity Border Reveal Effect */
+.sidebar .nav-link::before,
+#settings-nav .nav-link::before,
+#mobile-settings-nav .nav-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--bs-border-radius);
+  padding: 1px;
+  background: radial-gradient(
+    160px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.45) 0%,
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.12) 50%,
+    transparent 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 2;
+}
+
+.sidebar .nav-link.has-proximity::before,
+.sidebar .nav-link:hover:not(.active)::before,
+#settings-nav .nav-link:hover:not(.active)::before,
+#mobile-settings-nav .nav-link:hover:not(.active)::before {
+  opacity: 1;
+}
+
+.sidebar .nav-link.active::before,
+#settings-nav .nav-link.active::before,
+#mobile-settings-nav .nav-link.active::before {
+  opacity: 0 !important;
+}
+
+/* Fluent UI Radial Gradient Glow Effect on Hover (High-Strength Plain Radial Circle) */
+.sidebar .nav-link:hover:not(.active),
+#settings-nav .nav-link:hover:not(.active),
+#mobile-settings-nav .nav-link:hover:not(.active) {
+  background: radial-gradient(
+    160px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    color-mix(in srgb, var(--bs-emphasis-color) 22%, var(--bs-tertiary-bg)) 0%,
+    rgba(var(--bs-body-color-rgb, 128, 128, 128), 0) 100%
+  ) !important;
+  transition: none !important;
+}
+
+/* On Press: Background Gradient Circle Glows Out with Large Radius */
+.sidebar .nav-link:active:not(.active),
+#settings-nav .nav-link:active:not(.active),
+#mobile-settings-nav .nav-link:active:not(.active) {
+  background: radial-gradient(
+    280px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    color-mix(in srgb, var(--bs-emphasis-color) 28%, var(--bs-tertiary-bg)) 0%,
+    rgba(var(--bs-body-color-rgb, 128, 128, 128), 0) 100%
+  ) !important;
+}
+
+/* Mousedown Circle Expand Fade Effect (2s ease-in with zero-opacity start & end) */
+.fluent-ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  background: radial-gradient(
+    circle,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0) 0%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0) 10%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.02) 20%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.08) 32%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.18) 42%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.25) 50%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.18) 58%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.08) 68%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.02) 80%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0) 90%,
+    rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0) 100%
+  );
+  pointer-events: none;
+  z-index: 3;
+  will-change: transform, opacity;
+  animation: fluentRippleExpand 2s ease-in forwards;
+}
+
+@keyframes fluentRippleExpand {
+  0% {
+    transform: translate(-50%, -50%) scale(0.15);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(3.5);
+    opacity: 0;
+  }
+}
+
+/* Material You Soft Ripple (settings items): a low-alpha NEUTRAL-GRAY wash
+   with a feathered edge — no hard ring, no color tint. Sized in JS to just
+   cover the item from the press point, then blooms out and dissolves. */
+.m3-ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  background: radial-gradient(
+    circle,
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.16) 0%,
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.12) 45%,
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0.05) 65%,
+    rgba(var(--bs-emphasis-color-rgb, 128, 128, 128), 0) 78%
+  );
+  pointer-events: none;
+  z-index: 3;
+  will-change: transform, opacity;
+  animation: m3RippleSoft 600ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@keyframes m3RippleSoft {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+.sidebar .nav-link.active,
+#settings-nav .nav-link.active,
+#mobile-settings-nav .nav-link.active {
+  color: #ffffff;
+}
+
+.sidebar .nav-link.active i,
+#settings-nav .nav-link.active i,
+#mobile-settings-nav .nav-link.active i {
+  color: #ffffff !important;
+}
+
+/* Sidebar section wrapper for bounding sticky section headers so incoming headers push previous headers */
+.sidebar-section {
+  position: relative;
+  padding-bottom: 0.75rem;
+}
+
+#sidebar-all-tools-section {
+  padding-top: 0.5rem;
+}
+
+.sidebar-section:last-child {
+  padding-bottom: 0;
+}
+
+/* Center aligned sidebar section header with side border lines and sticky progressive blur fade */
+.sidebar-section-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--bs-secondary-color);
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  padding: 0.5rem 1rem 0.5rem 1rem;
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  pointer-events: none;
+}
+
+.sidebar-section-header-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none !important;
+  z-index: 0;
+  opacity: 0;
+  background-color: transparent !important;
+  background-image: linear-gradient(
+    to bottom,
+    rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), calc(0.92 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 0%,
+    rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), calc(0.70 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 50%,
+    rgba(var(--bs-tertiary-bg-rgb, 43, 48, 53), 0) 100%
+  ) !important;
+  /* Hardcoded (not variable-driven): the var-based filter was resolving
+     to ~zero blur in-app while the tint var worked, leaving sharp content
+     behind the fade. One static declaration blurs reliably. Multiplied by
+     the blur flag so disabling blur fully neutralizes it. */
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  /* Progressive fade: masks tint + blurred backdrop together so the top
+     reads full blur/tint and the bottom dissolves to sharp content. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 50%,
+    transparent 100%
+  ) !important;
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black 50%,
+    transparent 100%
+  ) !important;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-section-header.is-stuck .sidebar-section-header-bg {
+  opacity: 1;
+}
+
+.sidebar-section-header > *:not(.sidebar-section-header-bg) {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.sidebar-section-first {
+  margin-top: 0 !important;
+  padding-top: 0.5rem !important;
+}
+
+.sidebar-section-header::before,
+.sidebar-section-header::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--bs-border-color);
+  border-bottom-color: var(--anedikit-sidebar-border-color, var(--bs-border-color));
+  position: relative;
+  z-index: 1;
+  transition: border-color 0.18s ease;
+}
+
+.sidebar-section-header::before {
+  margin-right: 0.75rem;
+}
+
+.sidebar-section-header::after {
+  margin-left: 0.75rem;
+}
+
+/* Lighten category header borders when blur effects are enabled */
+.blur-enabled #main-sidebar .sidebar-section-header::before,
+.blur-enabled #main-sidebar .sidebar-section-header::after {
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+  border-bottom-color: color-mix(in srgb, var(--bs-border-color), #ffffff 40%);
+}
+
+/* Sidebar base — pulled up under the transparent header so nav items scroll
+   behind the frosted brand cell (mirrors the absolute footer overlay). */
+.sidebar {
+  position: relative;
+}
+
+/* Layout row must stay overflow:visible (sidebar overlap) AND min-height:0:
+   without min-height:0 the row's automatic minimum (content height) blocks
+   flex-shrink, the row balloons to full content height, and the sidebar
+   scroll container grows instead of scrolling. */
+#main-layout-row {
+  min-height: 0;
+}
+
+/* Sidebar acrylic approximation: a stop lighter than the body
+   (tertiary tone) with a deep frost + saturation lift. In the drawer this
+   blurs the dimmed workspace behind it; docked it reads as a lifted panel.
+   (True OS Acrylic/Mica would need window-level Tauri effects instead.) */
+#main-sidebar {
+  margin-top: 0 !important;
+  z-index: 10;
+  background-color: rgba(
+    var(--bs-tertiary-bg-rgb, 30, 30, 35),
+    calc(0 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+  ) !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+body.with-system-titlebar #main-sidebar {
+  margin-top: 0 !important;
+}
+
+#sidebar-scroll-container {
+  scroll-behavior: smooth;
+  scroll-padding-top: 0;
+  padding-top: 0 !important;
+  padding-bottom: 0.5rem !important;
+  min-height: 0;
+  overscroll-behavior: contain;
+  overflow-x: hidden !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
+body.with-system-titlebar #sidebar-scroll-container {
+  padding-top: 0 !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+
+/* Unified footer bar — workspace control bar (Reset & Execute).
+   Absolute overlay sitting over workspace scroll container. */
+#bottom-footer-bar {
+  position: absolute;
+  bottom: 0;
+  left: 280px;
+  right: 0;
+  height: 56px;
+  z-index: 20;
+  background: transparent !important;
+  background-color: transparent !important;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#bottom-footer-bar > * {
+  pointer-events: auto;
+}
+
+/* Do not show footer in settings page */
+body[data-active-tool="settings"] #bottom-footer-bar {
+  display: none !important;
+}
+
+body[data-active-tool="settings"] #tool-workspace {
+  padding-bottom: 1.5rem !important;
+}
+
+.header-brand-col {
+  /* Transparent at scroll top if and only if blur is on (alpha 0 when the
+     flag is 1, solid when 0); scrolled state is handled by
+     .has-stuck-header below. */
+  background-color: rgba(
+    var(--bs-tertiary-bg-rgb, 30, 30, 35),
+    calc(0 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+  ) !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-right: 1px solid var(--bs-border-color) !important;
+  z-index: 10;
+  position: relative;
+  transition: background-color 0.15s ease, backdrop-filter 0.15s ease;
+}
+
+.header-brand-col.has-stuck-header {
+  background-color: rgba(
+    var(--bs-tertiary-bg-rgb, 43, 48, 53),
+    calc(0.90 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+  ) !important;
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+}
+
+#sidebar-settings-container {
+  border-top: 1px solid var(--bs-border-color) !important;
+  border-top-color: var(--anedikit-sidebar-border-color, var(--bs-border-color)) !important;
+  transition: border-color 0.18s ease;
+}
+
+/* Lighten separator above settings button when blur effects are enabled */
+.blur-enabled #sidebar-settings-container {
+  border-top-color: rgba(255, 255, 255, 0.25) !important;
+  border-top-color: color-mix(in srgb, var(--bs-border-color), #ffffff 40%) !important;
+}
+
+#top-titlebar-col,
+.header-caption-controls,
+#bottom-control-bar {
+  background-color: rgba(
+    var(--bs-body-bg-rgb, 24, 24, 28),
+    calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+  ) !important;
+  background-image: linear-gradient(
+    to bottom,
+    rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.20 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 0%,
+    rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 100%
+  ) !important;
+  -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%);
+  backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%);
+  z-index: 10;
+  position: relative;
+}
+
+body.with-system-titlebar #top-titlebar-col {
+  border-top-left-radius: calc(12px * var(--anedikit-blur-enabled, 1)) !important;
+  border-bottom-left-radius: calc(12px * var(--anedikit-blur-enabled, 1)) !important;
+}
+
+.sidebar {
+  position: relative;
+}
+
+/* Left-aligned section divider header with extending side lines */
+.section-divider-header {
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--bs-secondary-color);
+  margin-bottom: 1rem;
+}
+
+.section-divider-header::before {
+  content: "";
+  height: 1px;
+  background-color: var(--bs-border-color);
+  margin-left: -1.5rem;
+  width: calc(1.5rem - 0.75rem);
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+}
+
+.section-divider-header::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: var(--bs-border-color);
+  margin-left: 0.75rem;
+  margin-right: -1.5rem;
+}
+
+/* Connect Input Media right HR to Media Preview left HR across column gutter */
+#media-inputs-col > .section-divider-header::after {
+  margin-right: -0.5rem;
+}
+
+/* Stop Output File and Batch Queue HRs cleanly at the end of the inputs column */
+#output-file-section .section-divider-header::after,
+#batch-queue-container .section-divider-header::after {
+  margin-right: 0 !important;
+}
+
+#media-preview-col .section-divider-header::before {
+  margin-left: -0.5rem;
+  width: auto;
+  flex: 1;
+}
+
+#media-preview-col .section-divider-header::after {
+  margin-right: calc(-1.5rem - 0.5rem) !important;
+}
+
+/* Prevent HR lines from overlapping with right-side action buttons / controls */
+.d-flex > .section-divider-header,
+.section-divider-header.flex-grow-1 {
+  margin-right: 0.75rem !important;
+}
+
+.d-flex > .section-divider-header::after,
+.section-divider-header.flex-grow-1::after {
+  margin-right: 0 !important;
+}
+
+.tag-btn-remove:hover {
+  color: var(--bs-danger) !important;
+  border-color: var(--bs-danger) !important;
+  background-color: rgba(var(--bs-danger-rgb), 0.1) !important;
+}
+
+/* Cover artwork hover actions: buttons stay hidden until hover/focus,
+   stacked vertically over a blurred backdrop, centered on the artwork. */
+.tag-cover-frame {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  min-width: min(200px, 100%);
+  overflow: hidden;
+  border-radius: var(--bs-border-radius);
+}
+.tag-cover-actions {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-quick, 150ms) var(--ease-out, ease-out), visibility var(--duration-quick, 150ms);
+}
+.tag-cover-wrap:hover .tag-cover-actions,
+.tag-cover-wrap:focus-within .tag-cover-actions {
+  opacity: 1;
+  visibility: visible;
+}
+.tag-cover-actions .btn {
+  width: 100%;
+  max-width: 200px;
+}
+[data-bs-theme="light"] .tag-cover-actions {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.brand-header-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  cursor: default;
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
+
+#brand-logo-title {
+  cursor: default !important;
+  user-select: none;
+}
+
+/* Real <button> hamburger: the inner icon keeps the global
+   pointer-events:none, so presses always land on the button itself — no
+   shadow-DOM retargeting quirks, and the drag exclusion matches `button`
+   unconditionally. Generous hit area via padding (layout-neutral margins). */
+#btn-mobile-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 6px;
+  margin: -6px;
+  cursor: pointer;
+  color: var(--bs-primary);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+}
+
+#btn-mobile-menu:hover,
+#btn-mobile-menu:focus,
+#btn-mobile-menu:active {
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+/* The rule above strips the default ring, so keyboard focus needs its own
+   indicator (declared after it to win on equal specificity). */
+#btn-mobile-menu:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+}
+
+/* Keyboard-reachable brand title (role="button"): give it the app's ring
+   instead of the low-contrast UA outline on the dark header. */
+#brand-logo-title:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 2px;
+  border-radius: var(--bs-border-radius-sm, 0.375rem);
+}
+
+.header-brand-col {
+  z-index: 10;
+  position: relative;
+  /* Never let native window-dragging claim presses on the brand cell or
+     hamburger in Tauri (a drag swallow would eat the click entirely). */
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/* Responsive Collapsible Sidebar & Hamburger Drawer */
+@media (max-width: 768px) {
+  .brand-header-btn {
+    cursor: pointer;
+  }
+  .brand-header-btn:hover #btn-mobile-menu {
+    transform: scale(1.1);
+  }
+  .brand-header-btn:active {
+    opacity: 0.75;
+  }
+  .header-brand-col {
+    width: auto !important;
+    min-width: auto;
+  }
+
+  /* Small widths: hamburger only, no brand text beside it. */
+  #brand-logo-title {
+    display: none !important;
+  }
+
+  /* Small widths: hamburger cell mirrors the tool title cell's exact
+     background treatment (same translucency + frost, solid when blur
+     is off), at all scroll positions. */
+  .header-brand-col,
+  .header-brand-col.has-stuck-header {
+    background-color: rgba(
+      var(--bs-body-bg-rgb, 24, 24, 28),
+      calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+    ) !important;
+    background-image: linear-gradient(
+      to bottom,
+      rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.20 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 0%,
+      rgba(var(--bs-body-bg-rgb, 24, 24, 28), calc(0.35 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))) 100%
+    ) !important;
+    -webkit-backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+    backdrop-filter: blur(calc(16px * var(--anedikit-blur-enabled, 1))) saturate(140%) !important;
+  }
+
+  .sidebar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1025;
+    width: 100% !important;
+    transform: translateY(-100%);
+    visibility: hidden;
+    transition: transform var(--duration-medium) var(--ease-apple), box-shadow 0.25s ease, visibility 0s 0.25s;
+    box-shadow: none;
+  }
+
+  /* Drawer starts below the header and keeps the frosted acrylic tone
+     (ID beats the bg-body class, no !important needed).
+     The aside root itself must outrank the backdrop (z-1020): the drawer's
+     own z-1025 can't save it (nested stacking via transform), and the
+     desktop z-10 would bury the whole drawer under the dim layer. */
+  #main-sidebar,
+  body.with-system-titlebar #main-sidebar {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    z-index: 1025 !important;
+    background-color: rgba(
+      var(--bs-tertiary-bg-rgb, 30, 30, 35),
+      calc(0.85 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+    ) !important;
+    background-image: none !important;
+    -webkit-backdrop-filter: blur(calc(var(--anedikit-blur-radius, 16px) * var(--anedikit-blur-enabled, 1))) saturate(var(--anedikit-blur-saturate, 160%)) !important;
+    backdrop-filter: blur(calc(var(--anedikit-blur-radius, 16px) * var(--anedikit-blur-enabled, 1))) saturate(var(--anedikit-blur-saturate, 160%)) !important;
+  }
+
+  /* Dual selector: the system-titlebar variant carries a class+ID (higher
+     specificity) and would otherwise keep its 60px padding in the drawer. */
+  #sidebar-scroll-container,
+  body.with-system-titlebar #sidebar-scroll-container {
+    padding-top: 0 !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
+  }
+
+  .sidebar.show-sidebar {
+    transform: translateY(0);
+    visibility: visible;
+    transition: transform var(--duration-medium) var(--ease-apple), box-shadow 0.25s ease, visibility 0s 0s;
+    box-shadow: 0 16px 32px -12px rgba(0, 0, 0, 0.65);
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 1020;
+    animation: fadeInBackdrop 0.2s ease forwards;
+  }
+
+  body.with-system-titlebar .sidebar-backdrop {
+    top: 48px;
+  }
+
+  #sidebar-scroll-container {
+    padding-bottom: 0.5rem !important;
+  }
+
+  #bottom-footer-bar {
+    left: 0 !important;
+  }
+
+  /* Small widths: settings dropdowns stretch the full row width. */
+  #view-settings select.form-select {
+    width: 100% !important;
+  }
+
+  /* Small widths: settings control wrappers drop their desktop caps so
+     every dropdown/input is uniformly full width instead of shrinking
+     to content width. */
+  #view-settings .flex-shrink-0[style] {
+    min-width: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Small widths: Browse button stacks below its text box, conjoined
+     and full width (button after input, shared border, no gap). */
+  #view-settings .input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #view-settings .input-group > .form-control,
+  #view-settings .input-group > .btn {
+    flex: 0 0 auto;
+    width: 100% !important;
+  }
+
+  #view-settings .input-group > .form-control {
+    margin-left: 0 !important;
+    border-radius: var(--bs-border-radius-sm) var(--bs-border-radius-sm) 0 0 !important;
+  }
+
+  #view-settings .input-group > .btn {
+    order: 2;
+    margin-left: 0 !important;
+    margin-top: -1px !important;
+    border-radius: 0 0 var(--bs-border-radius-sm) var(--bs-border-radius-sm) !important;
+  }
+
+  /* Small widths: stacked Browse reads as a filled action, not an outline. */
+  #view-settings .input-group > .btn-outline-secondary,
+  #view-settings .input-group > .btn-outline-secondary:hover,
+  #view-settings .input-group > .btn-outline-secondary:focus,
+  #view-settings .input-group > .btn-outline-secondary:active {
+    background-color: var(--bs-secondary) !important;
+    border-color: var(--bs-secondary) !important;
+    color: #fff !important;
+  }
+
+  #view-settings .input-group > .btn-outline-secondary:hover {
+    filter: brightness(1.12);
+  }
+
+  /* Small widths: dropdown rows and their labels always left align. The
+     base row brings align-items:center for its desktop row layout, which
+     would shrink-wrap and center stacked children once the direction
+     collapses to column — stretch keeps every label block full width. */
+  #view-settings .settings-row,
+  #view-settings .settings-row-content {
+    text-align: left;
+  }
+
+  #view-settings .settings-row {
+    align-items: stretch;
+  }
+
+  #view-settings select.form-select {
+    text-align: left;
+    text-align-last: left;
+  }
+
+  /* Mobile bottom-sheet dialog variants removed: the minimum window size
+     is 1100px, so the 768px view is unreachable. */
+}
+
+@keyframes fadeInBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Custom Theme Workspace Pane Background.
+   Pushed up under header bar so content scrolls underneath frosted top header
+   and gets blurred by backdrop-filter. Bottom padding clears the absolute footer overlay. */
+#tool-workspace {
+  margin-top: -56px;
+  padding-top: calc(56px + 1.5rem) !important;
+  padding-bottom: calc(56px + 1.5rem) !important;
+  background-color: var(--anedikit-pane-bg, var(--bs-tertiary-bg)) !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* While the audio queue is empty, the drop card already fills the view, so
+   the shared 80px footer clearance would render as a dead band beneath it.
+   Collapse it to the normal edge rhythm; populated views are untouched. */
+#tool-workspace:has(#view-audio_tags:not(.d-none):has(#audio-tag-empty-msg)) {
+  padding-bottom: 1.5rem !important;
+}
+
+body.with-system-titlebar #tool-workspace {
+  margin-top: -48px;
+  padding-top: calc(48px + 1.5rem) !important;
+}
+
+/* Click ripples are one-shot feedback; skip them when motion is reduced. */
+@media (prefers-reduced-motion: reduce) {
+  .fluent-ripple,
+  .m3-ripple {
+    animation: none;
+  }
+}
+
+/* All Tools Search Input Expansion Animation */
+.all-tools-search-group {
+  width: 100%;
+  max-width: 320px;
+  transition: max-width var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.all-tools-search-group:focus-within,
+.all-tools-search-group.is-expanded {
+  max-width: 520px;
+}
+
+/* Always show vertical scrollbar in All Tools area to prevent layout shift during search/filtering */
+body[data-active-tool="all_tools"] #tool-workspace {
+  overflow-y: scroll !important;
+  scrollbar-gutter: stable;
+}
+

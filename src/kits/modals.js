@@ -56,6 +56,32 @@ export function ensureCustomKitModals() {
     `;
     document.body.appendChild(promptModal);
   }
+
+  if (!document.getElementById("modal-kit-confirm")) {
+    const confirmModal = document.createElement("div");
+    confirmModal.className = "modal fade";
+    confirmModal.id = "modal-kit-confirm";
+    confirmModal.tabIndex = -1;
+    confirmModal.setAttribute("aria-hidden", "true");
+    confirmModal.innerHTML = `
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content shadow border">
+          <div class="modal-header py-2 px-3">
+            <h6 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="modal-kit-confirm-title">
+              Confirm
+            </h6>
+            <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3 small text-body" id="modal-kit-confirm-message"></div>
+          <div class="modal-footer py-2 px-3 border-top-0">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="btn-kit-confirm-cancel" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm px-3" id="btn-kit-confirm-ok">Confirm</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(confirmModal);
+  }
 }
 
 // Show custom asynchronous alert modal dialog
@@ -154,6 +180,120 @@ export function showCustomKitPrompt(message, defaultValue = "", title = "Prompt"
       inputEl?.focus();
       inputEl?.select();
     }, 250);
+  });
+}
+
+// Show a Bootstrap confirmation dialog and resolve true only when confirmed.
+// Reuses the shared kit modals so destructive actions stay in the app's visual
+// language instead of a native window.confirm().
+//
+// Pass `onConfirm` to let the dialog own the action: the modal stays open, the
+// confirm button shows a spinner and both buttons disable until the handler
+// settles, then the modal closes. Without `onConfirm` the promise resolves as
+// soon as the user confirms (caller runs the action afterwards).
+export function showCustomKitConfirm(
+  message,
+  {
+    title = "Confirm",
+    confirmLabel = "Confirm",
+    cancelLabel = "Cancel",
+    variant = "primary",
+    onConfirm = null,
+    busyLabel = "Working…",
+  } = {}
+) {
+  ensureCustomKitModals();
+  return new Promise((resolve) => {
+    const modalEl = document.getElementById("modal-kit-confirm");
+    if (!modalEl || !window.bootstrap?.Modal) {
+      if (typeof onConfirm === "function") {
+        Promise.resolve()
+          .then(onConfirm)
+          .then(() => resolve(true))
+          .catch((err) => {
+            console.warn("Kit confirm action failed:", err);
+            resolve(false);
+          });
+      } else if (typeof window.confirm === "function") {
+        resolve(!!window.confirm(message));
+      } else {
+        // No dialog UI available at all: refuse the action rather than run it.
+        resolve(false);
+      }
+      return;
+    }
+
+    const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+    const titleEl = document.getElementById("modal-kit-confirm-title");
+    const msgEl = document.getElementById("modal-kit-confirm-message");
+    const okBtn = document.getElementById("btn-kit-confirm-ok");
+    const cancelBtn = document.getElementById("btn-kit-confirm-cancel");
+
+    const isDanger = variant === "danger";
+    const icon = isDanger ? "warning-outline" : "help-circle-outline";
+    const iconColor = isDanger ? "text-danger" : "text-primary";
+
+    if (titleEl) {
+      titleEl.innerHTML = `<ion-icon name="${icon}" class="${iconColor} me-2"></ion-icon>${escapeHtml(title)}`;
+    }
+    if (msgEl) msgEl.textContent = String(message ?? "");
+    if (okBtn) okBtn.className = `btn btn-${isDanger ? "danger" : "primary"} btn-sm px-3`;
+    if (cancelBtn) cancelBtn.textContent = cancelLabel;
+
+    const setIdle = () => {
+      if (!okBtn) return;
+      okBtn.disabled = false;
+      okBtn.textContent = confirmLabel;
+      if (cancelBtn) cancelBtn.disabled = false;
+    };
+    const setBusy = () => {
+      if (!okBtn) return;
+      okBtn.disabled = true;
+      okBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>${escapeHtml(busyLabel)}`;
+      if (cancelBtn) cancelBtn.disabled = true;
+    };
+    setIdle();
+
+    let resolved = false;
+    const settle = (value) => {
+      if (resolved) return;
+      resolved = true;
+      resolve(value);
+    };
+
+    const cleanup = () => {
+      okBtn?.removeEventListener("click", onOk);
+      modalEl.removeEventListener("hidden.bs.modal", onHidden);
+    };
+    const onHidden = () => {
+      cleanup();
+      settle(false);
+    };
+    const onOk = async () => {
+      if (typeof onConfirm !== "function") {
+        settle(true);
+        modal.hide();
+        return;
+      }
+      setBusy();
+      // Yield a frame so the busy state paints before a synchronous handler
+      // (script rewrite, kit re-render) blocks the thread.
+      await new Promise((r) => requestAnimationFrame(() => r()));
+      try {
+        await onConfirm();
+        settle(true);
+        modal.hide();
+      } catch (err) {
+        console.warn("Kit confirm action failed:", err);
+        if (msgEl) msgEl.textContent = `Action failed: ${err?.message || err}`;
+        setIdle();
+      }
+    };
+
+    modalEl.addEventListener("hidden.bs.modal", onHidden);
+    okBtn?.addEventListener("click", onOk);
+
+    modal.show();
   });
 }
 

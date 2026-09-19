@@ -321,7 +321,7 @@ Phase 4 AI images: metadata cleaner plus icon generator plus restore/denoise (Op
 
 Phase 5 kits and themes: block runner plus JSON import/export, then builder plus script editor, 10 theme presets, tools manager with model updates.
 
-Phase 6 release hardening: ABI splits, scoped storage audit, background and battery optimization exemptions flow, Play vs F-Droid tracks, E2E tests mirroring `test/specs/example.e2e.js` plus fixture media.
+Phase 6 release hardening: ABI splits, scoped storage audit, background and battery optimization exemptions flow, Play vs F-Droid tracks, E2E tests mirroring the desktop app flows plus fixture media.
 
 ## 12. Permissions, storage, background, and size notes
 

@@ -8,7 +8,7 @@ import {
 } from "./state.js";
 import { getSavedScriptTheme, saveScriptTheme, saveUserKit } from "./storage.js";
 import { STARTER_TEMPLATES } from "./templates.js";
-import { bindUniversalDropdowns, showCustomKitAlert } from "./modals.js";
+import { bindUniversalDropdowns, showCustomKitAlert, showCustomKitConfirm } from "./modals.js";
 
 // 10 Common Monaco Themes configuration and color schemes
 export const MONACO_THEMES = [
@@ -642,38 +642,55 @@ export function renderKitScriptTab() {
   if (btnResetTpl) {
     btnResetTpl.addEventListener("click", (e) => {
       e.preventDefault();
-      if (confirm("Reset current script to the default starter template?")) {
-        const curKit = getActiveKit();
-        if (!curKit) return;
-        const tpl = STARTER_TEMPLATES.converter.script;
-        curKit.script = tpl;
-        const monacoInst = getMonacoEditorInstance();
-        if (monacoInst) {
-          monacoInst.setValue(tpl);
-        } else if (fallbackEditor) {
-          fallbackEditor.value = tpl;
-        }
-        saveUserKit(curKit);
-      }
+      showCustomKitConfirm(
+        "Reset the current script to the default starter template? This replaces your existing code.",
+        {
+          title: "Reset Script",
+          confirmLabel: "Reset",
+          busyLabel: "Resetting…",
+          onConfirm: () => {
+            const curKit = getActiveKit();
+            if (!curKit) return;
+            const tpl = STARTER_TEMPLATES.converter.script;
+            curKit.script = tpl;
+            const monacoInst = getMonacoEditorInstance();
+            if (monacoInst) {
+              monacoInst.setValue(tpl);
+            } else if (fallbackEditor) {
+              fallbackEditor.value = tpl;
+            }
+            saveUserKit(curKit);
+          },
+        },
+      );
     });
   }
 
   if (btnClearScript) {
     btnClearScript.addEventListener("click", (e) => {
       e.preventDefault();
-      if (confirm("Clear script contents?")) {
-        const curKit = getActiveKit();
-        if (!curKit) return;
-        const blank = `function buildCommand(ctx) {\n  const { values, helpers } = ctx;\n  return [];\n}\n`;
-        curKit.script = blank;
-        const monacoInst = getMonacoEditorInstance();
-        if (monacoInst) {
-          monacoInst.setValue(blank);
-        } else if (fallbackEditor) {
-          fallbackEditor.value = blank;
-        }
-        saveUserKit(curKit);
-      }
+      showCustomKitConfirm(
+        "Clear the script contents? A blank command template will replace the current code.",
+        {
+          title: "Clear Script",
+          confirmLabel: "Clear",
+          variant: "danger",
+          busyLabel: "Clearing…",
+          onConfirm: () => {
+            const curKit = getActiveKit();
+            if (!curKit) return;
+            const blank = `function buildCommand(ctx) {\n  const { values, helpers } = ctx;\n  return [];\n}\n`;
+            curKit.script = blank;
+            const monacoInst = getMonacoEditorInstance();
+            if (monacoInst) {
+              monacoInst.setValue(blank);
+            } else if (fallbackEditor) {
+              fallbackEditor.value = blank;
+            }
+            saveUserKit(curKit);
+          },
+        },
+      );
     });
   }
 

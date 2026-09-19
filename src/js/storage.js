@@ -7,15 +7,18 @@ export const STORAGE_KEYS = {
   IMAGE_AI_LAST_OUT_DIR: "anedikit:settings:last_image_ai_out_dir",
   BATCH_QUEUE: "anedikit:tools:batch:queue",
   IMAGE_AI_QUEUE: "anedikit:tools:image_ai:queue",
+  AUDIO_TAG_QUEUE: "anedikit:tools:audio_tags:queue",
   AI_REPLACE_SOURCE: "anedikit:tools:image_ai:replace_source",
   USER_KITS: "anedikit:tools:user_kits",
   ACTIVE_KIT: "anedikit:settings:active_kit",
   TOOL_PARAMS_PREFIX: "anedikit:tools:params:",
   CUSTOM_THEME: "anedikit:settings:theme",
   YTDLP_FILENAME_FORMAT: "anedikit:tools:ytdlp:filename_format",
+  YTDLP_CUSTOM_PRESETS: "anedikit:tools:ytdlp:custom_presets",
   SCRIPT_THEME: "anedikit:settings:script_theme",
   ACTIVE_KIT_TAB_PREFIX: "anedikit:settings:active_kit_tab:",
   FIRST_START_CHECKED: "anedikit:system:first_start_checked",
+  TOOLS_UPDATE_CACHE: "anedikit:cache:tools_update",
 };
 
 export const DEFAULT_SETTINGS = {
@@ -44,6 +47,10 @@ export const DEFAULT_SETTINGS = {
   ytdlpFilenameFormat: "%(title)s [%(id)s].%(ext)s",
   ffmpegBin: "ffmpeg (System PATH)",
   ffprobeBin: "ffprobe (System PATH)",
+  toolsUpdateCache: {
+    timestamp: 0,
+    releases: {},
+  },
 };
 
 export function loadSettings() {
@@ -200,6 +207,50 @@ export function saveImageAiQueue(queue) {
     localStorage.setItem(STORAGE_KEYS.IMAGE_AI_QUEUE, JSON.stringify(queue || []));
   } catch (err) {
     console.warn("Failed to save Image AI queue:", err);
+  }
+}
+
+// Audio Tags queue: only small durable fields are persisted. Volatile data
+// (embedded cover bytes, loaded original metadata, transient statuses) is
+// dropped and rebuilt from the audio files on restore, keeping the stored
+// payload far below quota even for large queues.
+export function loadSavedAudioTagQueue() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.AUDIO_TAG_QUEUE);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((item) => item && item.filePath)
+      .map((item) => ({
+        filePath: item.filePath,
+        fileName: item.fileName || String(item.filePath).split(/[/\\]/).pop() || item.filePath,
+        ext: item.ext || "",
+        title: item.title || "",
+        artist: item.artist || "",
+        album: item.album || "",
+        albumArtist: item.albumArtist || "",
+        track: item.track || "",
+        totalTracks: item.totalTracks || "",
+        disc: item.disc || "",
+        year: item.year || "",
+        genre: item.genre || "",
+        composer: item.composer || "",
+        comment: item.comment || "",
+        coverAction: item.coverAction === "replace" || item.coverAction === "remove" ? item.coverAction : "none",
+        chosenCoverPath: item.coverAction === "replace" ? item.chosenCoverPath || "" : "",
+      }));
+  } catch (err) {
+    console.warn("Failed to load audio tag queue from storage:", err);
+    return [];
+  }
+}
+
+export function saveAudioTagQueue(queue) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.AUDIO_TAG_QUEUE, JSON.stringify(queue || []));
+  } catch (err) {
+    console.warn("Failed to save audio tag queue:", err);
   }
 }
 
@@ -380,6 +431,61 @@ export function markFirstStartChecked() {
   }
 }
 
+export function getToolsUpdateCache() {
+  try {
+    const settings = loadSettings();
+    const cacheFromSettings = settings.toolsUpdateCache;
+    if (
+      cacheFromSettings &&
+      typeof cacheFromSettings === "object" &&
+      typeof cacheFromSettings.timestamp === "number" &&
+      cacheFromSettings.releases &&
+      typeof cacheFromSettings.releases === "object"
+    ) {
+      return cacheFromSettings;
+    }
 
+    const raw = localStorage.getItem(STORAGE_KEYS.TOOLS_UPDATE_CACHE);
+    if (!raw) return { timestamp: 0, releases: {} };
+    const parsed = JSON.parse(raw);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      typeof parsed.timestamp === "number" &&
+      parsed.releases &&
+      typeof parsed.releases === "object"
+    ) {
+      return parsed;
+    }
+    return { timestamp: 0, releases: {} };
+  } catch (err) {
+    console.warn("Failed to get tools update cache:", err);
+    return { timestamp: 0, releases: {} };
+  }
+}
 
+export function saveToolsUpdateCache(cacheData) {
+  try {
+    const payload = {
+      timestamp: typeof cacheData?.timestamp === "number" ? cacheData.timestamp : Date.now(),
+      releases: cacheData?.releases && typeof cacheData.releases === "object" ? cacheData.releases : {},
+    };
+    const settings = loadSettings();
+    settings.toolsUpdateCache = payload;
+    saveSettings(settings);
+    localStorage.setItem(STORAGE_KEYS.TOOLS_UPDATE_CACHE, JSON.stringify(payload));
+  } catch (err) {
+    console.warn("Failed to save tools update cache:", err);
+  }
+}
 
+export function clearToolsUpdateCache() {
+  try {
+    const settings = loadSettings();
+    settings.toolsUpdateCache = { timestamp: 0, releases: {} };
+    saveSettings(settings);
+    localStorage.removeItem(STORAGE_KEYS.TOOLS_UPDATE_CACHE);
+  } catch (err) {
+    console.warn("Failed to clear tools update cache:", err);
+  }
+}

@@ -38,10 +38,10 @@ python tools/Uninstallers/uninstall_tauri_dependencies.py
 
 Run these from the project root.
 
-- **`launch.bat`** — interactive launcher menu: `[0]` exit, `[1]` local dev, `[2]` run release, `[3]` build release.
-- **`tools/Scripts/build_release.js`** — builds the release (portable exe + installers + optional MSIX). Also via `npm run release`.
+- **`launch.bat`** — launcher menu: `[0]` exit, `[1]` local dev, `[2]` run release, `[3]` build release. Pass the option directly to skip the menu (e.g. `launch.bat 1`).
+- **`tools/Scripts/build_release.js`** — builds the release (portable exe + installers + optional MSIX). Also via `npm run build:release`.
 - **`tools/Scripts/run_release.js`** — launches the locally-built release binary. Also via `npm run release:run`.
-- **`tools/Scripts/new_signing_cert.js`** — generates a self-signed code-signing cert for MSIX signing. Also via `npm run new-cert` or `tools/new_signing_cert.bat`.
+- **`tools/Scripts/new_signing_cert.js`** — generates a self-signed code-signing cert for MSIX signing. Also via `npm run new-cert`.
 - **`tools/Scripts/capture_screenshots.js`** — captures documentation screenshots of every page. Also via `npm run screenshots`.
 - **`tools/Scripts/prompt.js`** — shared prompt helper used by the other scripts.
 - **`tools/reset_anedikit_data.bat`** — wipes app data so the next launch feels like a fresh install.

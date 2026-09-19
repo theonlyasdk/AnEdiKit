@@ -2,6 +2,7 @@
 // blurs out, the checkmark bounces in, holds, then zooms and blurs back out
 // as the original icon returns. Compositor-only (opacity/transform/filter on
 // the tiny glyph) so it never stutters.
+import { morph } from "./cube_motion.js";
 
 const FALLBACK_BOUNCE = "cubic-bezier(0.34, 1.36, 0.64, 1)";
 const FALLBACK_INOUT = "ease-in-out";
@@ -70,8 +71,14 @@ export async function animateCopyConfirm(iconEl, opts = {}) {
     // 1. Old icon zooms + blurs out.
     await phase({ o: 1, s: 1, b: 0 }, { o: 0, s: 0.3, b: BLUR_PX }, 120, inout);
 
-    // 2. Checkmark bounces in with dynamic high-contrast color class
-    iconEl.setAttribute("name", confirmIcon);
+    // 2. Cube Motion morphs the old glyph into the confirmation glyph.
+    const incomingIcon = iconEl.cloneNode(true);
+    incomingIcon.setAttribute("name", confirmIcon);
+    iconEl.parentElement?.insertBefore(incomingIcon, iconEl.nextSibling);
+    const morphAnimations = morph(iconEl, incomingIcon);
+    await Promise.all(morphAnimations.map((animation) => animation.finished.catch(() => {})));
+    iconEl.remove();
+    iconEl = incomingIcon;
     appliedCheckClass = getCheckClass();
     iconEl.classList.add(appliedCheckClass);
 

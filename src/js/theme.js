@@ -1,5 +1,5 @@
 // Theme & Appearance Management Module for AnEdiKit
-import { loadSettings, saveSettings } from "./storage.js";
+import { loadSettings, saveSettings, STORAGE_KEYS } from "./storage.js";
 
 export const THEME_PRESETS = {
   bootstrap_dark: {
@@ -260,7 +260,7 @@ export function setAnimationsEnabled(enabled) {
 
 export function loadSavedTheme() {
   try {
-    const raw = localStorage.getItem("anedikit:settings:theme");
+    const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_THEME);
     if (raw) {
       return JSON.parse(raw);
     }
@@ -272,7 +272,7 @@ export function loadSavedTheme() {
 
 export function saveCurrentTheme(themeObj) {
   try {
-    localStorage.setItem("anedikit:settings:theme", JSON.stringify(themeObj));
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_THEME, JSON.stringify(themeObj));
   } catch (e) {
     console.warn("saveCurrentTheme error:", e);
   }

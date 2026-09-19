@@ -6,9 +6,17 @@
     <title>AnEdiKit</title>
     <link rel="stylesheet" href="vendor/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="vendor/bootstrap-icons/bootstrap-icons.min.css" />
-    <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="motion-tokens.css" />
-    <link rel="stylesheet" href="drag_reorder.css" />
+    <link rel="stylesheet" href="css/motion-tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/animations.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/media_preview.css" />
+    <link rel="stylesheet" href="css/modals.css" />
+    <link rel="stylesheet" href="css/m3_switches.css" />
+    <link rel="stylesheet" href="css/titlebar.css" />
+    <link rel="stylesheet" href="css/queues.css" />
+    <link rel="stylesheet" href="css/drag_reorder.css" />
     <link rel="stylesheet" href="kits/kits.css" />
     <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
@@ -50,6 +58,16 @@
         <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" id="main-sidebar" style="width: 280px;">
           <div class="overflow-y-auto flex-grow-1 p-2 position-relative" id="sidebar-scroll-container">
             <div class="sidebar-indicator" id="sidebar-indicator"></div>
+
+            <!-- Unified tool browser -->
+            <div class="sidebar-section pt-2" id="sidebar-all-tools-section">
+              <nav class="nav nav-pills flex-column gap-1" id="all-tools-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="all_tools" type="button" title="Browse every tool by category">
+                  <ion-icon name="apps-outline" class="text-body-secondary"></ion-icon>
+                  <span>All Tools</span>
+                </button>
+              </nav>
+            </div>
 
             <!-- yt-dlp section -->
             <div class="sidebar-section" id="sidebar-ytdlp-section">
@@ -172,6 +190,17 @@
               </nav>
             </div>
 
+            <!-- PDF Tools section -->
+            <div class="sidebar-section" id="sidebar-pdf-section">
+              <div class="sidebar-section-header"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>PDF Tools</span></div>
+              <nav class="nav nav-pills flex-column gap-1" id="pdf-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf" type="button" title="Organize, convert, edit, secure, and analyze PDF documents">
+                  <ion-icon name="document-text-outline" class="text-body-secondary"></ion-icon>
+                  <span>All PDF Tools</span>
+                </button>
+              </nav>
+            </div>
+
             <!-- User Kits section -->
             <div id="sidebar-user-kits-section" class="sidebar-section d-none">
               <div class="sidebar-section-header d-flex align-items-center justify-content-between">
@@ -202,7 +231,29 @@
 
         <!-- Tool Workspace Panel -->
         <main class="flex-grow-1 overflow-y-auto p-4 bg-body-tertiary" id="tool-workspace">
-          <div id="tool-view-container" class="view-material-zoom">
+          <section class="mb-4 d-none" id="all-tools-browser" aria-labelledby="all-tools-title">
+            <div class="d-flex flex-wrap gap-3 justify-content-between align-items-end mb-4">
+              <div>
+                <h1 class="h2 fw-normal mb-1 d-flex align-items-center gap-2" id="all-tools-title">
+                  <ion-icon name="apps-outline" class="text-primary fs-2 lh-1 flex-shrink-0"></ion-icon>
+                  <span>All tools</span>
+                </h1>
+                <p class="text-body-secondary mb-0">Find a tool by category or search across the entire app.</p>
+              </div>
+              <div class="input-group all-tools-search-group" id="all-tools-search-group">
+                <span class="input-group-text"><ion-icon name="search-outline"></ion-icon></span>
+                <input class="form-control" id="all-tools-search" type="search" placeholder="Search all tools…" aria-label="Search all tools" />
+                <button class="btn btn-outline-secondary d-none" type="button" id="all-tools-clear-search" aria-label="Clear search"><ion-icon name="close-outline"></ion-icon></button>
+              </div>
+            </div>
+            <div id="all-tools-results" class="vstack gap-4"></div>
+            <div id="all-tools-empty" class="text-center text-body-secondary py-5 d-none">
+              <ion-icon name="search-outline" class="fs-1 text-secondary opacity-50 mb-2 d-block mx-auto"></ion-icon>
+              <div class="fw-medium text-body mb-1">No tools match your search</div>
+              <div class="small">Try searching with different keywords or check spelling.</div>
+            </div>
+          </section>
+          <div id="tool-view-container">
             
             <!-- Shared File Selection Section for FFmpeg Tools -->
             <div class="mb-4" id="shared-input-card">
@@ -1215,7 +1266,7 @@
             <div class="tool-view d-none" id="view-audio_tags">
               <div class="mb-4">
                 <!-- Audio Queue Section -->
-                <div class="mb-4" id="audio-tag-queue-section">
+                <div class="mb-2" id="audio-tag-queue-section">
                   <div class="d-flex justify-content-between align-items-center mb-2">
                     <div class="section-divider-header flex-grow-1 mb-0 me-3">
                       Audio Queue (<span id="audio-tag-queue-count">0</span>&nbsp;tracks)
@@ -1267,21 +1318,22 @@
                     <!-- Cover Artwork Column -->
                     <div class="col-12 col-md-4 col-lg-3">
                       <div class="card h-100 p-3 bg-body border rounded d-flex flex-column align-items-center justify-content-between text-center">
-                        <div class="d-flex flex-column align-items-center justify-content-center flex-grow-1 my-auto w-100 py-3">
-                          <div id="tag-cover-placeholder" class="d-flex flex-column align-items-center justify-content-center text-body-secondary py-3">
-                            <ion-icon name="image-outline" style="font-size: 3.5rem; opacity: 0.45;"></ion-icon>
-                            <span class="small text-body-secondary mt-1">No Artwork</span>
+                        <div class="tag-cover-wrap flex-grow-1 my-auto w-100 py-3 d-flex flex-column align-items-center justify-content-center" tabindex="0" role="group" aria-label="Album cover actions">
+                          <div class="tag-cover-frame">
+                            <div id="tag-cover-placeholder" class="d-flex flex-column align-items-center justify-content-center text-body-secondary py-3">
+                              <ion-icon name="image-outline" style="font-size: 3.5rem; opacity: 0.45;"></ion-icon>
+                              <span class="small text-body-secondary mt-1">No Artwork</span>
+                            </div>
+                            <img id="tag-cover-img" class="rounded border object-fit-cover d-none w-100 d-block" style="max-width: 220px; aspect-ratio: 1 / 1; height: auto;" alt="Album Cover Preview" />
+                            <div class="tag-cover-actions">
+                              <button class="btn btn-primary btn-sm text-truncate d-flex align-items-center justify-content-center gap-1" type="button" id="btn-tag-choose-cover" title="Choose image file (JPG, PNG) for album cover">
+                                <ion-icon name="image-outline"></ion-icon> Choose...
+                              </button>
+                              <button class="btn btn-outline-danger btn-sm tag-btn-remove text-truncate d-none d-flex align-items-center justify-content-center gap-1" type="button" id="btn-tag-remove-cover" title="Remove embedded album cover">
+                                <ion-icon name="trash-outline"></ion-icon> Remove
+                              </button>
+                            </div>
                           </div>
-                          <img id="tag-cover-img" class="rounded border object-fit-cover d-none w-100" style="max-width: 220px; aspect-ratio: 1 / 1; height: auto;" alt="Album Cover Preview" />
-                        </div>
-
-                        <div class="d-flex gap-2 w-100 mt-2">
-                          <button class="btn btn-outline-primary btn-sm flex-fill text-truncate d-flex align-items-center justify-content-center gap-1" type="button" id="btn-tag-choose-cover" title="Choose image file (JPG, PNG) for album cover">
-                            <ion-icon name="image-outline"></ion-icon> Choose...
-                          </button>
-                          <button class="btn btn-outline-secondary btn-sm flex-fill tag-btn-remove text-truncate d-none d-flex align-items-center justify-content-center gap-1" type="button" id="btn-tag-remove-cover" title="Remove embedded album cover">
-                            <ion-icon name="trash-outline"></ion-icon> Remove
-                          </button>
                         </div>
                         <input type="file" id="tag-cover-input" class="d-none" accept="image/jpeg,image/png,image/webp" />
                       </div>
@@ -1989,6 +2041,10 @@
             </div>
 
             <!-- TOOL 9: Settings View -->
+            <div class="tool-view d-none" id="view-pdf">
+              <div id="pdf-tools-workspace"></div>
+            </div>
+
             <div class="tool-view d-none" id="view-settings">
               <!-- Section: Appearance & Interface -->
               <div class="mb-4">
@@ -2309,11 +2365,13 @@
 
               <!-- Section: Executables & Environment (Horizontal Scrolling Cards) -->
               <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                   <div class="section-divider-header flex-grow-1 mb-0 me-3">External Tools</div>
-                  <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-manage-tools" data-bs-toggle="modal" data-bs-target="#manage-tools-modal" title="Manage, update, and check binaries">
-                    <ion-icon name="construct-outline" class="me-1"></ion-icon><span class="d-none d-md-inline"> Manage Tools...</span><span class="d-md-none"> Manage...</span>
-                  </button>
+                  <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <button class="btn btn-outline-primary btn-sm flex-shrink-0" type="button" id="btn-manage-tools" data-bs-toggle="modal" data-bs-target="#manage-tools-modal" title="Manage, update, and check binaries">
+                      <ion-icon name="construct-outline" class="me-1"></ion-icon><span class="d-none d-md-inline"> Manage Tools...</span><span class="d-md-none"> Manage...</span>
+                    </button>
+                  </div>
                 </div>
                 
                 <div class="settings-group-card executables-group-card">
@@ -2502,6 +2560,11 @@
           </div>
           <div class="modal-body p-3">
             
+            <!-- Update Status Cache Label -->
+            <div class="mb-2 px-1 text-body-secondary small" id="tools-cache-status-container">
+              <span id="tools-cache-status-text">Update status cache: None (0 items cached)</span>
+            </div>
+
             <!-- Update Error / Status Alert Banner -->
             <div class="alert alert-danger alert-dismissible fade show py-2 px-3 small d-none" id="tool-update-alert" role="alert">
               <div class="d-flex align-items-center gap-2">
@@ -2527,9 +2590,14 @@
 
           </div>
           <div class="modal-footer border-top py-2 px-3 justify-content-between align-items-center">
-            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-check-all-updates">
-              <ion-icon name="refresh-outline"></ion-icon> Check for Updates
-            </button>
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-check-all-updates">
+                <ion-icon name="refresh-outline"></ion-icon> Check for Updates
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-clear-tools-cache" title="Clear cached GitHub release status and force refetch">
+                <ion-icon name="trash-outline" class="me-1"></ion-icon>Clear Update Cache
+              </button>
+            </div>
             <div class="text-body-secondary small d-none align-items-center gap-2" id="tool-download-speed-badge">
               <span class="d-inline-flex align-items-center gap-1">
                 <ion-icon name="speedometer-outline" class="text-primary"></ion-icon>
@@ -2547,25 +2615,70 @@
       </div>
     </div>
 
-    <!-- Credits & About Dialog (Minimalist Creative Card) -->
+    <!-- Credits & About Dialog (Minimalist Creative Card with Morphing Keyboard Shortcuts View) -->
     <div class="modal fade" id="credits-modal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
-        <div class="modal-content about-dialog-content border-0 shadow-lg p-0 overflow-hidden position-relative">
-          <button type="button" class="btn-close position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal" aria-label="Close" title="Close Dialog"></button>
-          
-          <div class="p-4 text-center">
-            <h3 class="fw-light mb-1 text-body pt-2">AnEdiKit</h3>
-            <div class="text-body-secondary small mb-4">All-in-One Desktop Media Toolkit</div>
+      <div class="modal-dialog modal-dialog-centered" id="credits-modal-dialog" style="max-width: 400px; transition: max-width var(--duration-fast) var(--ease-apple);">
+        <div class="modal-content about-dialog-content border-0 shadow-lg p-0 overflow-hidden position-relative" id="about-modal-content">
+          <!-- View 1: About Info -->
+          <div class="about-pane about-pane-active p-4 text-center" id="about-pane-info">
+            <div class="d-flex align-items-center justify-content-end mb-2">
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Close Dialog"></button>
+            </div>
+            <h3 class="fw-light mb-1 text-body">AnEdiKit</h3>
+            <div class="text-body-secondary small mb-3">All-in-One Desktop Media Toolkit</div>
 
-            <!-- Developer profile link -->
-            <div class="mt-1 text-center">
-              <button type="button" class="btn btn-link btn-sm text-body-secondary text-decoration-none p-0" id="btn-open-github" title="Open GitHub Profile in Browser" style="font-size: 0.8rem;">theonlyasdk</button>
+            <!-- View Shortcuts Button -->
+            <div class="mb-3">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 px-3 py-1" id="btn-toggle-shortcuts" title="View Keyboard Shortcuts">
+                <ion-icon name="keypad-outline"></ion-icon>
+                <span>Keyboard Shortcuts</span>
+              </button>
             </div>
 
             <div class="mt-4 text-center">
-              <span class="text-body-secondary" style="font-size: 0.725rem;">&copy; 2026 theonlyasdk. All rights reserved.</span>
+              <span class="text-body-secondary" style="font-size: 0.725rem;">&copy; 2026 <button type="button" class="btn btn-link btn-sm text-body-secondary text-decoration-none p-0 align-baseline" id="btn-open-github" title="Open GitHub Profile in Browser" style="font-size: 0.725rem;">theonlyasdk</button>. All rights reserved.</span>
             </div>
           </div>
+
+          <!-- View 2: Keyboard Shortcuts (Morphed View) -->
+          <div class="about-pane d-none p-4 text-start" id="about-pane-shortcuts">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-link text-body p-0 text-decoration-none d-flex align-items-center" id="btn-back-to-about" title="Back to About">
+                  <ion-icon name="arrow-back-outline" class="fs-5"></ion-icon>
+                </button>
+                <h5 class="fw-medium mb-0 text-body fs-6 lh-1">Keyboard Shortcuts</h5>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Close Dialog"></button>
+            </div>
+
+            <div class="shortcuts-table-wrapper border rounded overflow-hidden bg-body">
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <span class="small text-body">Open media file</span>
+                <kbd class="shortcut-key">Ctrl + O</kbd>
+              </div>
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <span class="small text-body">Execute operation</span>
+                <div class="d-flex gap-1">
+                  <kbd class="shortcut-key">Ctrl + Enter</kbd>
+                  <kbd class="shortcut-key">Ctrl + E</kbd>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <span class="small text-body">Play / Pause preview</span>
+                <kbd class="shortcut-key">Space</kbd>
+              </div>
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <span class="small text-body">Navigate to Settings</span>
+                <kbd class="shortcut-key">Ctrl + ,</kbd>
+              </div>
+              <div class="d-flex justify-content-between align-items-center p-2">
+                <span class="small text-body">Dismiss dialogs & modals</span>
+                <kbd class="shortcut-key">Esc</kbd>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -2864,7 +2977,7 @@
         <div class="toast-header border-bottom py-2 px-3">
           <ion-icon name="checkmark-circle-outline" class="text-success me-2 fs-6"></ion-icon>
           <strong class="me-auto text-body" id="toast-title">Operation Completed</strong>
-          <small class="text-body-secondary">Just now</small>
+          <small class="text-body-secondary" id="toast-timestamp">Just now</small>
           <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
         <div class="toast-body p-3">
@@ -3074,7 +3187,7 @@
               <ion-icon name="grid-outline" class="me-1"></ion-icon> Split Slider
             </button>
             <button type="button" class="btn btn-outline-secondary" id="btn-comp-mode-side" title="Side-by-Side Comparison">
-              <ion-icon name="columns-outline" class="me-1"></ion-icon> Side-by-Side
+              <ion-icon name="apps-outline" class="me-1"></ion-icon> Side-by-Side
             </button>
             <button type="button" class="btn btn-outline-secondary" id="btn-comp-mode-fade" title="Opacity Crossfade / Onion Skin">
               <ion-icon name="layers-outline" class="me-1"></ion-icon> Onion Skin

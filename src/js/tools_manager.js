@@ -1,8 +1,33 @@
 // Tools Manager Module - Data-driven Engine using shared tools-manifest.json
 import toolsManifest from "../data/tools-manifest.json" with { type: "json" };
-import { isFirstStart, markFirstStartChecked } from "./storage.js";
+import {
+  isFirstStart,
+  markFirstStartChecked,
+  getToolsUpdateCache,
+  saveToolsUpdateCache,
+  clearToolsUpdateCache,
+} from "./storage.js";
 
-export { toolsManifest };
+export { toolsManifest, clearToolsUpdateCache };
+
+export const TOOLS_UPDATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// The Clear Update Cache action now lives in the Manage Tools footer alongside
+// the update/delete actions, so it has to be locked for the duration of any
+// tool operation. Returns a restore callback (null when the control isn't
+// mounted) that preserves the pre-existing disabled state, so an in-flight
+// cache clear is never re-enabled by an unrelated update or delete.
+function lockToolsCacheButton() {
+  const btn = document.getElementById("btn-clear-tools-cache");
+  if (!btn) return null;
+  const wasDisabled = btn.disabled;
+  btn.disabled = true;
+  btn.classList.add("opacity-50", "pe-none");
+  return () => {
+    btn.disabled = wasDisabled;
+    if (!wasDisabled) btn.classList.remove("opacity-50", "pe-none");
+  };
+}
 
 export async function checkLocalToolVersions() {
   if (window.__TAURI__?.core?.invoke) {
@@ -23,7 +48,24 @@ export async function checkLocalToolVersions() {
   return fallback;
 }
 
-export async function fetchLatestGitHubReleases() {
+export async function fetchLatestGitHubReleases({ force = false } = {}) {
+  // Check cached external tools update status (24 hours TTL)
+  if (!force) {
+    const cached = getToolsUpdateCache();
+    const now = Date.now();
+    if (
+      cached &&
+      typeof cached.timestamp === "number" &&
+      now - cached.timestamp >= 0 &&
+      now - cached.timestamp < TOOLS_UPDATE_CACHE_TTL_MS &&
+      cached.releases &&
+      typeof cached.releases === "object" &&
+      Object.keys(cached.releases).length > 0
+    ) {
+      return { ...cached.releases };
+    }
+  }
+
   const latest = {};
 
   const fetchPromises = toolsManifest.map(async (tool) => {
@@ -55,6 +97,13 @@ export async function fetchLatestGitHubReleases() {
   });
 
   await Promise.all(fetchPromises);
+
+  // Persist external tools update status to dedicated cache container in app config
+  saveToolsUpdateCache({
+    timestamp: Date.now(),
+    releases: latest,
+  });
+
   return latest;
 }
 
@@ -165,10 +214,12 @@ export async function deleteToolBinary(toolName, btnDelete, callback) {
     btnCheckAll.disabled = true;
     btnCheckAll.classList.add("opacity-50", "pe-none");
   }
+  const unlockCacheButton = lockToolsCacheButton();
 
   const restoreAllButtons = () => {
     otherBtnsToRestore.forEach(({ el, wasDisabled }) => {
       el.disabled = wasDisabled;
+      el.classList.remove("btn-shimmer");
       if (!wasDisabled) {
         el.classList.remove("opacity-50", "pe-none");
       }
@@ -181,8 +232,8 @@ export async function deleteToolBinary(toolName, btnDelete, callback) {
 
   if (btnDelete) {
     btnDelete.disabled = true;
-    btnDelete.classList.add("opacity-50", "pe-none");
-    btnDelete.innerHTML = `<div class="loader loader-sm"></div>`;
+    btnDelete.classList.add("opacity-50", "pe-none", "btn-shimmer");
+    btnDelete.innerHTML = `<ion-icon name="trash-outline"></ion-icon>`;
   }
 
   let deleteError = null;
@@ -207,10 +258,11 @@ export async function deleteToolBinary(toolName, btnDelete, callback) {
   }
 
   restoreAllButtons();
+  if (unlockCacheButton) unlockCacheButton();
   if (callback) callback();
 }
 
-export async function refreshToolsUI() {
+export async function refreshToolsUI({ force = false } = {}) {
   // Show all version slots in loading state
   toolsManifest.forEach((tool) => {
     const elLocal = document.getElementById(`${tool.id}-local-ver`);
@@ -224,8 +276,8 @@ export async function refreshToolsUI() {
         applyActiveUpdateStateToUI(tool.id);
       } else {
         btnUpdate.disabled = true;
-        btnUpdate.className = "btn btn-secondary btn-sm flex-grow-1 pe-none opacity-50";
-        btnUpdate.innerHTML = `<div class="loader loader-sm me-1"></div> Loading...`;
+        btnUpdate.className = "btn btn-secondary btn-sm flex-grow-1 pe-none opacity-50 btn-shimmer";
+        btnUpdate.innerHTML = `Loading...`;
       }
     }
     const btnDelete = document.getElementById(`btn-delete-${tool.id}`);
@@ -245,11 +297,19 @@ export async function refreshToolsUI() {
   }
   paintToolStatuses(localInfo, null);
 
-  // Phase 2: GitHub latest releases resolve whenever (slow network) and
+  // Phase 2: GitHub latest releases resolve (or return cached within 24 hours) and
   // upgrade versions/icons/buttons in place. Never blocks the UI thread.
-  fetchLatestGitHubReleases().then(
-    (latestInfo) => paintToolStatuses(localInfo, latestInfo || {}),
-    () => {},
+  return fetchLatestGitHubReleases({ force }).then(
+    (latestInfo) => {
+      paintToolStatuses(localInfo, latestInfo || {});
+      try {
+        window.dispatchEvent(new CustomEvent("anedikit:tools_cache_updated", { detail: latestInfo }));
+      } catch (_) {}
+      return latestInfo;
+    },
+    () => {
+      return {};
+    },
   );
 }
 
@@ -309,7 +369,7 @@ export function applyActiveUpdateStateToUI(toolId) {
   const btn = document.getElementById(`btn-update-${toolId}`);
   if (btn) {
     btn.disabled = true;
-    btn.className = "btn btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0";
+    btn.className = "btn btn-sm flex-shrink-0 pe-none btn-updating-progress text-white border-0 btn-shimmer";
     btn.style.removeProperty("background");
     btn.style.setProperty("--btn-progress", `${state.pct}%`);
     btn.style.border = "none";
@@ -317,7 +377,7 @@ export function applyActiveUpdateStateToUI(toolId) {
 
     let textNode = btn.querySelector(".btn-progress-label");
     if (!textNode) {
-      btn.innerHTML = `<div class="loader loader-sm me-1"></div><span class="btn-progress-label"></span>`;
+      btn.innerHTML = `<span class="btn-progress-label"></span>`;
       textNode = btn.querySelector(".btn-progress-label");
     }
 
@@ -492,6 +552,7 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     btnCheckAll.disabled = true;
     btnCheckAll.classList.add("opacity-50", "pe-none");
   }
+  const unlockCacheButton = lockToolsCacheButton();
 
   const btnDone = document.getElementById("btn-manage-tools-done");
   let updateCancelled = false;
@@ -500,7 +561,8 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     updateCancelled = true;
     if (btnDone) {
       btnDone.disabled = true;
-      btnDone.innerHTML = `<div class="loader loader-sm me-1"></div> Cancelling...`;
+      btnDone.classList.add("btn-shimmer");
+      btnDone.innerHTML = `Cancelling...`;
     }
     if (window.__TAURI__?.core?.invoke) {
       try {
@@ -654,6 +716,7 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
       showToolAlert(`Failed to update ${toolName}: ${updateError}`, "danger");
     }
     restoreOtherButtons();
+    if (unlockCacheButton) unlockCacheButton();
 
     setTimeout(() => {
       delete activeToolUpdates[toolId];
@@ -673,6 +736,7 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     setTimeout(() => {
       delete activeToolUpdates[toolId];
       restoreOtherButtons();
+      if (unlockCacheButton) unlockCacheButton();
       refreshToolsUI();
       if (callback) callback();
     }, 1200);
@@ -903,7 +967,7 @@ export function initToolsManager() {
   const btnCheckAll = document.getElementById("btn-check-all-updates");
   if (btnCheckAll) {
     btnCheckAll.addEventListener("click", () => {
-      refreshToolsUI();
+      refreshToolsUI({ force: true });
     });
   }
 

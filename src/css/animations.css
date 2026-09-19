@@ -1,0 +1,263 @@
+/* Header Text Vertical Slide without fade (Directional based on navigation) */
+#tool-header-text {
+  min-width: 0;
+  cursor: default;
+}
+
+#current-tool-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+  /* Segoe UI glyphs are ~1.33em tall but headings use line-height 1.2, so the
+     negative half-leading sliced descenders (e.g. the "g" in "Settings")
+     against overflow: hidden. Give the line box breathing room. */
+  line-height: 1.35;
+  padding-bottom: 2px;
+  margin-bottom: -2px;
+}
+
+/* Tool description hidden by default, slides in left-to-right with fade on title hover */
+#current-tool-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-12px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+#tool-header-text:hover #current-tool-desc {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.header-title-animated.slide-from-bottom {
+  animation: headerSlideFromBottom 0.28s cubic-bezier(0.05, 0.7, 0.1, 1.0);
+}
+
+.header-title-animated.slide-from-top {
+  animation: headerSlideFromTop 0.28s cubic-bezier(0.05, 0.7, 0.1, 1.0);
+}
+
+@keyframes headerSlideFromBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes headerSlideFromTop {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* Zoom In Ease Out Animation for Conditionally Appearing UI Elements */
+.ui-zoom-in {
+  animation: uiZoomIn 0.22s cubic-bezier(0, 0, 0.2, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes uiZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Drag & Drop Pulse Depth Animation for Media Input (Subtle, non-scaling) */
+@keyframes dropPulseShadow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4), 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.22), 0 6px 18px rgba(0, 0, 0, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4), 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Pulsing ellipsis for loading metadata fields */
+.meta-loading-pulse {
+  display: inline-block;
+  animation: metaPulse 0.85s infinite alternate ease-in-out;
+  color: var(--bs-secondary-color);
+  font-weight: 500;
+  letter-spacing: 2px;
+}
+
+@keyframes metaPulse {
+  0% {
+    opacity: 0.2;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.input-drop-pulsing {
+  animation: dropPulseShadow 1.3s ease-in-out infinite !important;
+  border-radius: var(--bs-border-radius);
+  position: relative;
+  z-index: 10;
+}
+
+.input-drop-pulsing .form-control,
+.input-drop-pulsing .btn,
+#input-file-path.input-drop-pulsing {
+  border-color: var(--bs-primary) !important;
+  background-color: var(--bs-tertiary-bg) !important;
+}
+
+.input-drop-pulsing .form-control::placeholder {
+  color: var(--bs-primary) !important;
+}
+
+/* Drag drop placement flash animation */
+@keyframes itemDropFlash {
+  0% {
+    background-color: rgba(var(--bs-primary-rgb), 0.4) !important;
+    outline: 2px solid var(--bs-primary);
+  }
+  100% {
+    background-color: transparent !important;
+    outline: 2px solid transparent;
+  }
+}
+
+.item-dropped-highlight {
+  animation: itemDropFlash 0.5s ease-out forwards !important;
+}
+
+/* Media Preview Slide-in Animation */
+.preview-slide-in {
+  animation: previewSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes previewSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Disable Animations Mode (Reduced Motion) */
+html.no-animations *,
+html.no-animations *::before,
+html.no-animations *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Material Design Indeterminate Progress Bar */
+#exec-progress-container {
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-material-indeterminate {
+  position: relative;
+  width: 100% !important;
+  height: 100%;
+  background-color: var(--bs-primary) !important;
+  animation: materialIndeterminate 1.6s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite !important;
+  transform-origin: 0% 50%;
+}
+
+@keyframes materialIndeterminate {
+  0% {
+    transform: translateX(-100%) scaleX(0.1);
+  }
+  50% {
+    transform: translateX(0%) scaleX(0.7);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.2);
+  }
+}
+
+/* Dropdown Menu Subtle Shadow and Curtain Fall Animation */
+@keyframes dropdownCurtainFall {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0 round 0.375rem);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0.375rem);
+  }
+}
+
+@keyframes dropupCurtainRise {
+  0% {
+    opacity: 0;
+    clip-path: inset(100% 0 0 0 round 0.375rem);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0 round 0.375rem);
+  }
+}
+
+.dropdown-menu {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+.dropdown-menu.show {
+  display: block !important;
+  animation: dropdownCurtainFall 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dropup .dropdown-menu.show {
+  animation: dropupCurtainRise 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dropdown-menu-end {
+  right: 0;
+  left: auto;
+}
+
+/* Button shimmer sweep for in-progress Manage Tools actions (replaces the
+   loading icon). Linear loop per the motion tokens (shimmer usage): the
+   label stays static while the sheen carries the motion. */
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 25%, rgba(255, 255, 255, 0.35) 50%, transparent 75%);
+  transform: translateX(-101%);
+  animation: btnShimmer 1.6s var(--ease-linear, linear) infinite;
+}
+@keyframes btnShimmer {
+  to {
+    transform: translateX(101%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-shimmer::after {
+    animation: none;
+  }
+}

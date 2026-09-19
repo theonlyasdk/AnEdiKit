@@ -1,5 +1,5 @@
 // yt-dlp Filename Format Editor Module
-import { loadSettings, saveSettings } from "./storage.js";
+import { loadSettings, saveSettings, STORAGE_KEYS } from "./storage.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
 
 export const YT_TOKENS = [
@@ -95,13 +95,13 @@ export function previewFormatString(formatStr) {
 
 export function getSavedYtDlpFormat() {
   const settings = loadSettings();
-  return settings.ytdlpFilenameFormat || localStorage.getItem("anedikit:tools:ytdlp:filename_format") || DEFAULT_FORMAT;
+  return settings.ytdlpFilenameFormat || localStorage.getItem(STORAGE_KEYS.YTDLP_FILENAME_FORMAT) || DEFAULT_FORMAT;
 }
 
 export function saveYtDlpFormat(formatStr) {
   const clean = formatStr?.trim() || DEFAULT_FORMAT;
   try {
-    localStorage.setItem("anedikit:tools:ytdlp:filename_format", clean);
+    localStorage.setItem(STORAGE_KEYS.YTDLP_FILENAME_FORMAT, clean);
     const settings = loadSettings();
     settings.ytdlpFilenameFormat = clean;
     saveSettings(settings);
@@ -279,7 +279,7 @@ export function updateEditorPreview() {
 
 export function getSavedCustomPresets() {
   try {
-    const raw = localStorage.getItem("anedikit:tools:ytdlp:custom_presets");
+    const raw = localStorage.getItem(STORAGE_KEYS.YTDLP_CUSTOM_PRESETS);
     return raw ? JSON.parse(raw) : [];
   } catch (_) {
     return [];
@@ -288,7 +288,7 @@ export function getSavedCustomPresets() {
 
 export function saveCustomPresets(presets) {
   try {
-    localStorage.setItem("anedikit:tools:ytdlp:custom_presets", JSON.stringify(presets));
+    localStorage.setItem(STORAGE_KEYS.YTDLP_CUSTOM_PRESETS, JSON.stringify(presets));
   } catch (e) {
     console.warn("Failed to persist custom presets:", e);
   }

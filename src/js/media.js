@@ -1399,7 +1399,7 @@ export function initDragAndDrop(onFileSelected) {
         (f) => f.path || f.name || "",
       ).filter(Boolean);
 
-      const activeTool = document.querySelector("#ytdlp-nav .nav-link.active, #tool-nav .nav-link.active, #image-ai-nav .nav-link.active")?.dataset?.tool;
+      const activeTool = document.querySelector("#ytdlp-nav .nav-link.active, #tool-nav .nav-link.active, #image-ai-nav .nav-link.active, #pdf-nav .nav-link.active")?.dataset?.tool;
       const isImageTool = [
         "bg_remover",
         "ai_upscaler",
@@ -1409,7 +1409,9 @@ export function initDragAndDrop(onFileSelected) {
         "metadata_cleaner",
       ].includes(activeTool);
 
-      if (isImageTool) {
+      if (activeTool === "pdf" && typeof window.addPdfFilesToPdfQueue === "function") {
+        window.addPdfFilesToPdfQueue(filePaths);
+      } else if (isImageTool) {
         await addImageFilesToQueue(filePaths);
       } else if (activeTool === "audio_tags") {
         const { addAudioFilesToQueue } = await import("./audio_tags.js");
@@ -1437,7 +1439,7 @@ export function initDragAndDrop(onFileSelected) {
           } else if (event.payload.type === "drop") {
             deactivatePulse();
             if (event.payload.paths && event.payload.paths.length > 0) {
-              const activeTool = document.querySelector("#ytdlp-nav .nav-link.active, #tool-nav .nav-link.active, #image-ai-nav .nav-link.active")?.dataset?.tool;
+              const activeTool = document.querySelector("#ytdlp-nav .nav-link.active, #tool-nav .nav-link.active, #image-ai-nav .nav-link.active, #pdf-nav .nav-link.active")?.dataset?.tool;
               const isImageTool = [
                 "bg_remover",
                 "ai_upscaler",
@@ -1447,7 +1449,9 @@ export function initDragAndDrop(onFileSelected) {
                 "metadata_cleaner",
               ].includes(activeTool);
 
-              if (isImageTool) {
+              if (activeTool === "pdf" && typeof window.addPdfFilesToPdfQueue === "function") {
+                window.addPdfFilesToPdfQueue(event.payload.paths);
+              } else if (isImageTool) {
                 await addImageFilesToQueue(event.payload.paths);
               } else if (activeTool === "audio_tags") {
                 const { addAudioFilesToQueue } = await import("./audio_tags.js");

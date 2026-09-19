@@ -495,7 +495,7 @@ async function buildMsixPackage({ productName, version, identifier, arch, standa
     }
   } else {
     console.warn('[MSIX] Package is UNSIGNED and cannot be installed as-is.');
-    console.warn('[MSIX] Create a dev certificate with tools\\new_signing_cert.bat, then rebuild with:');
+    console.warn('[MSIX] Create a dev certificate with npm run new-cert, then rebuild with:');
     console.warn('[MSIX]   node tools/Scripts/build_release.js --msix --msix-cert <file.pfx> [--msix-cert-password <pwd>]');
     console.warn('[MSIX] To sideload: install the cert under Trusted People, then Add-AppxPackage.');
   }

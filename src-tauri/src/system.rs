@@ -67,6 +67,9 @@ fn percent_decode_str(clean: &str) -> String {
 pub fn pick_file(filter_mode: Option<String>) -> Option<String> {
     let mut dialog = rfd::FileDialog::new();
     match filter_mode.as_deref() {
+        Some("pdf") => {
+            dialog = dialog.add_filter("PDF Files", &["pdf"]);
+        }
         Some("image") => {
             dialog = dialog.add_filter(
                 "Image Files",
@@ -102,6 +105,9 @@ pub fn pick_file(filter_mode: Option<String>) -> Option<String> {
 pub fn pick_files(filter_mode: Option<String>) -> Vec<String> {
     let mut dialog = rfd::FileDialog::new();
     match filter_mode.as_deref() {
+        Some("pdf") => {
+            dialog = dialog.add_filter("PDF Files", &["pdf"]);
+        }
         Some("image") => {
             dialog = dialog.add_filter(
                 "Image Files",
@@ -542,4 +548,133 @@ pub async fn probe_hardware_acceleration() -> HardwareInfo {
     tauri::async_runtime::spawn_blocking(move || get_hardware_info_internal())
         .await
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+
+    /// Unique per-process temp file name so parallel or repeated runs never collide.
+    fn unique_name(tag: &str) -> String {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let seq = COUNTER.fetch_add(1, Ordering::Relaxed);
+        format!("anedikit_test_{}_{}_{}_{}", tag, std::process::id(), nanos, seq)
+    }
+
+    /// Removes the tracked temp files on drop, including after a panic.
+    struct TempCleanup(Vec<PathBuf>);
+
+    impl Drop for TempCleanup {
+        fn drop(&mut self) {
+            for path in &self.0 {
+                let _ = std::fs::remove_file(path);
+            }
+        }
+    }
+
+    fn temp_path(tag: &str) -> PathBuf {
+        std::env::temp_dir().join(unique_name(tag))
+    }
+
+    #[test]
+    fn temp_text_file_round_trip() {
+        let src_path = temp_path("src.txt");
+        let dest_path = temp_path("dest.txt");
+        let _cleanup = TempCleanup(vec![src_path.clone(), dest_path.clone()]);
+
+        // A pre-existing destination proves replace_file overwrites it.
+        std::fs::write(&dest_path, b"before").unwrap();
+
+        let written = write_temp_text_file(
+            src_path.file_name().unwrap().to_string_lossy().to_string(),
+            "after".to_string(),
+        )
+        .unwrap();
+        assert_eq!(PathBuf::from(&written), src_path);
+        assert!(
+            check_file_exists(written.clone()),
+            "temp file should exist right after write_temp_text_file"
+        );
+
+        replace_file(written.clone(), dest_path.to_string_lossy().to_string()).unwrap();
+
+        assert_eq!(std::fs::read_to_string(&dest_path).unwrap(), "after");
+        assert!(
+            !src_path.exists(),
+            "replace_file should remove the source temp file"
+        );
+        assert!(
+            !check_file_exists(written),
+            "check_file_exists should report the consumed source as gone"
+        );
+    }
+
+    #[test]
+    fn replace_file_errors_when_source_is_missing() {
+        let missing = temp_path("missing.txt");
+        let dest = temp_path("missing_dest.txt");
+        let _cleanup = TempCleanup(vec![missing.clone(), dest.clone()]);
+
+        let err = replace_file(
+            missing.to_string_lossy().to_string(),
+            dest.to_string_lossy().to_string(),
+        )
+        .unwrap_err();
+        assert!(
+            err.contains("Source file does not exist"),
+            "unexpected error message: {err}"
+        );
+    }
+
+    #[test]
+    fn check_file_exists_distinguishes_files_from_missing_paths() {
+        let file = temp_path("exists.txt");
+        let _cleanup = TempCleanup(vec![file.clone()]);
+
+        assert!(!check_file_exists(file.to_string_lossy().to_string()));
+
+        std::fs::write(&file, b"x").unwrap();
+        assert!(check_file_exists(file.to_string_lossy().to_string()));
+    }
+
+    #[test]
+    fn percent_decode_path_regressions() {
+        let cases: [(&str, &str); 10] = [
+            // Plain filesystem paths are returned verbatim, literal '%' included.
+            (
+                r"C:\Users\me\Promo_100%_Final.mp4",
+                r"C:\Users\me\Promo_100%_Final.mp4",
+            ),
+            (
+                "/home/user/My%20Videos/clip.mp4",
+                "/home/user/My%20Videos/clip.mp4",
+            ),
+            // file:// URLs are decoded, including drive-slash normalization.
+            ("file:///C:/Videos/My%20Video.mp4", "C:/Videos/My Video.mp4"),
+            (
+                "file:///C:/Videos/Promo_100%_Final.mp4",
+                "C:/Videos/Promo_100%_Final.mp4",
+            ),
+            (
+                "file:///C:/Videos/Promo_100%25_Final.mp4",
+                "C:/Videos/Promo_100%_Final.mp4",
+            ),
+            ("file://localhost/C:/Videos/a%20b.mp4", "C:/Videos/a b.mp4"),
+            ("file:///C|/Videos/a.mp4", "C:/Videos/a.mp4"),
+            ("file:///home/user/My%20Video.mp4", "/home/user/My Video.mp4"),
+            ("file:///C:/a%2Fb.mp4", "C:/a/b.mp4"),
+            ("file:///C:/100%", "C:/100%"),
+        ];
+
+        for (input, expected) in cases {
+            assert_eq!(percent_decode_path(input), expected, "input: {input}");
+        }
+    }
 }

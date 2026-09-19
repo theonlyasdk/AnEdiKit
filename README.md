@@ -56,7 +56,7 @@ npm run tauri dev
 
 Build release packages:
 ```bash
-npm run build
+npm run build:release
 ```
 
 ## Tech Stack

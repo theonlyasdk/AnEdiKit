@@ -1,0 +1,14 @@
+Ideas for AnEdiKit
+DONE - A module where it allows you to repeat a video such that the resultant repeated video is exactly N time period long and the module will handle the number of repetitions.
+DONE - A Fix link button in url box of all ytdlp tools, which converts URLs of format https://youtu.be/86DvZHUgqms?si=tAtzyzbr42egeZfW or https://music.youtube.com/watch?v=86DvZHUgqms to https://www.youtube.com/watch?v=86DvZHUgqms
+DONE - Instead of showing settings button when hovering over sidebar, show it at the very end of sidebar scrollview. Keep current formatting, i.e border top and all, but just show it at the very end of the sidebar.
+DONE - Check whether all the tools are installed in first start. If not, ask the user to install it with a dialog, and a button that opens the manage tools dialog.
+DONE - After the first start, if one or many of the tools are not available, on clicking execute or any other task that trigger use of the tools, show the same dialog box. Why we don't wanna do it at startup everytime is it would probably make the UI unresponsive on low end machines for quite a bit.
+DONE - Combine the items in not installed dialog that shows up on first start together like how items in settings are combined together.
+DONE - Also check if python is available on the system on first start
+DONE - Write an analysis document on all possible file paths this application (including the libraries its built with) will write to the filesystem
+DONE - Move yt-dlp section to the very top of the sidebar
+DONE - in image and ai tools remove the label inside footer that says ready completely and remove any associated dead code without breaking other code with it
+DONE - When enabling user kits, show a warning dialog that its experimental and it can break with updates (bootstrap dialog)
+DONE - Cancelling a task in tool download dialog should instantly kill the underlying process and clean up any files (we can make it so the downloader processs downloads the file to a temporary file and if the download is complete it will then copy that over to the actual binary, allowing for instant cancellation without corrupting existing installation)
+DONE - In settings, add option to show/hide media preview section to the right side of queue (by default ON)

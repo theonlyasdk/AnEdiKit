@@ -1,0 +1,369 @@
+/* Actionable Notification Toast Slide-in & Fade-out */
+.toast-slide-in {
+  opacity: 0;
+  transform: translateX(120%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease-out, box-shadow 0.3s ease;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+#finished-toast {
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 10px 28px rgba(0, 0, 0, 0.5) !important;
+}
+
+.toast-slide-in.showing,
+.toast-slide-in.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast-slide-in.hiding,
+.toast-slide-in.toast-sliding-out,
+.toast-slide-in.hide,
+.toast-slide-in:not(.show) {
+  opacity: 0 !important;
+  transform: translateX(120%) !important;
+  transition: transform 0.35s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.3s ease-in !important;
+}
+
+/* Save Preset Dropdown Horizontal Slide Animation */
+.preset-save-wrapper {
+  position: relative;
+  height: 34px;
+  overflow: hidden;
+}
+
+.preset-save-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.preset-save-wrapper:not(.is-editing) .preset-save-btn-slide {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preset-save-wrapper:not(.is-editing) .preset-save-form-slide {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preset-save-wrapper.is-editing .preset-save-btn-slide {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.preset-save-wrapper.is-editing .preset-save-form-slide {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Custom Presets Hover Delete Button */
+.btn-custom-preset-item .btn-delete-custom-preset {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease, color 0.15s ease;
+  line-height: 1;
+}
+
+.btn-custom-preset-item:hover .btn-delete-custom-preset {
+  opacity: 1;
+  visibility: visible;
+}
+
+.btn-custom-preset-item .btn-delete-custom-preset:hover {
+  color: var(--bs-danger) !important;
+}
+
+/* Horizontal Scrolling Cards with Dynamic Progressive Blur & Gradient Shading */
+.executables-group-card {
+  --outer-radius: 16px;
+  --card-padding: 12px;
+  padding: var(--card-padding) var(--card-padding) 6px var(--card-padding) !important;
+  border-radius: var(--outer-radius) !important;
+}
+
+.scroll-cards-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--bs-border-radius, 4px);
+}
+
+.scroll-cards-wrapper::before,
+.scroll-cards-wrapper::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 6px;
+  width: 44px;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  -webkit-backdrop-filter: blur(calc(10px * var(--anedikit-blur-enabled, 1)));
+  backdrop-filter: blur(calc(10px * var(--anedikit-blur-enabled, 1)));
+}
+
+.scroll-cards-wrapper::before {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.95) 0%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.7) 40%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 100%);
+  mask-image: linear-gradient(to right, black 0%, transparent 100%);
+}
+
+.scroll-cards-wrapper::after {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.95) 0%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0.7) 40%,
+    rgba(var(--bs-body-bg-rgb, 33, 37, 41), 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 100%);
+  mask-image: linear-gradient(to left, black 0%, transparent 100%);
+}
+
+.scroll-cards-wrapper.has-overflow-left::before {
+  opacity: 1;
+}
+
+.scroll-cards-wrapper.has-overflow-right::after {
+  opacity: 1;
+}
+
+.scroll-cards-container {
+  /* Scrollbar fully hidden but scrolling stays enabled (wheel, touch,
+     keyboard, drag-to-scroll). Edge gradient fades remain as the
+     scroll affordance. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-behavior: auto !important;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  padding-bottom: 6px !important;
+}
+
+.scroll-cards-container.is-dragging {
+  cursor: grabbing !important;
+  scroll-behavior: auto !important;
+}
+
+.scroll-cards-container::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.scroll-cards-container::-webkit-scrollbar-track {
+  display: none;
+}
+
+.scroll-cards-container::-webkit-scrollbar-thumb {
+  display: none;
+}
+
+/* Button Inline Progress with Solid Fill.
+   The fill edge is driven by the registered --btn-progress custom property
+   so it smoothly lerps between ticks instead of snapping. */
+@property --btn-progress {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+.btn-updating-progress {
+  position: relative !important;
+  overflow: hidden !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
+  box-shadow: none !important;
+  background-color: var(--bs-secondary-bg) !important;
+  background-image: linear-gradient(
+    to right,
+    var(--bs-primary) 0%,
+    var(--bs-primary) var(--btn-progress, 0%),
+    var(--bs-secondary-bg) var(--btn-progress, 0%),
+    var(--bs-secondary-bg) 100%
+  ) !important;
+  transition: --btn-progress 0.38s linear;
+}
+
+/* Manage Tools modal: action button row with dominant update/install button and shrink-to-fit icon-only delete button */
+.tool-action-group {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+#manage-tools-list-container [id^="btn-update-"] {
+  flex: 1 1 auto !important;
+  width: auto !important;
+}
+
+#manage-tools-list-container [id^="btn-update-"].btn-updating-progress {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+#manage-tools-list-container .btn-progress-label {
+  display: inline-block !important;
+  max-width: min(380px, calc(100% - 32px)) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+
+#manage-tools-list-container [id^="btn-delete-"] {
+  flex: 0 0 auto !important;
+  width: auto !important;
+}
+
+/* Manage Tools footer: the live speed/ETA badge appears mid-row during
+   updates — keep everything on one line (no wrap pushing Done down) and
+   let the status text truncate instead of squeezing the buttons. */
+#manage-tools-modal .modal-footer {
+  flex-wrap: nowrap !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+/* Column alignment for Installed item so Latest aligns across rows without gaps inside labels */
+#manage-tools-modal .tool-ver-item {
+  min-width: 11rem;
+}
+#manage-tools-modal .modal-footer > .btn {
+  flex-shrink: 0;
+}
+#tool-download-speed-badge {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+#tool-download-speed-badge > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap !important;
+}
+
+/* Nested Corner Radius: Inner Radius = Outer Radius - Padding */
+.env-tool-card {
+  --inner-radius: calc(var(--outer-radius, 16px) - var(--card-padding, 12px));
+  border-radius: var(--inner-radius, 4px) !important;
+  aspect-ratio: 4 / 3;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  user-select: none;
+  transition: border-color 0.15s ease;
+}
+
+.env-tool-card:hover {
+  border-color: rgba(var(--bs-primary-rgb), 0.5) !important;
+}
+
+.env-tool-card [id^="status-"] {
+  pointer-events: auto !important;
+  cursor: help;
+  /* Plain glyph, never a badge: install check / missing cross read as
+     bare marks with no background behind them. */
+  background: transparent !important;
+  border-radius: 0 !important;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.env-tool-card [id^="status-"]:hover {
+  transform: scale(1.15);
+}
+
+/* Execution Log Copy Button */
+.log-copy-btn {
+  opacity: 0.35;
+  transition: opacity 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  line-height: 1;
+  padding: 0.25rem 0.4rem;
+  color: var(--bs-secondary-color);
+}
+
+.log-copy-btn:hover,
+#execution-status-panel .card:hover .log-copy-btn,
+.log-copy-btn:focus-visible {
+  opacity: 0.95;
+  color: var(--bs-body-color) !important;
+}
+
+.log-copy-btn.copied {
+  opacity: 1 !important;
+  color: var(--bs-success) !important;
+}
+
+/* Command Preview Box Non-Overflowing Styling */
+#cmd-preview {
+  overflow-x: auto;
+  white-space: nowrap;
+  word-break: normal;
+  max-width: 100%;
+}
+
+/* Settings Grouped Card & Row Layout */
+.settings-group-card {
+  background-color: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius-lg, 0.5rem);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  transition: background-color 0.15s ease;
+  user-select: none;
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.settings-row:last-child {
+  border-bottom: none;
+}
+
+.settings-row.clickable {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-row.clickable:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.settings-row-content {
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.settings-row-content:last-child {
+  border-bottom: none;
+}

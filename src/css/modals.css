@@ -1,0 +1,515 @@
+/* Custom sheet-header: mimics Bootstrap's .modal-header without the .modal-header class,
+   preventing desktop window dragging from the dialog header */
+.sheet-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--bs-modal-header-padding, 0.5rem 1rem);
+  border-bottom: var(--bs-modal-header-border-width, 1px) solid var(--bs-modal-header-border-color, var(--bs-border-color));
+  border-top-left-radius: var(--bs-modal-inner-border-radius, 0.375rem);
+  border-top-right-radius: var(--bs-modal-inner-border-radius, 0.375rem);
+}
+
+.manage-sheet-header-bg {
+  display: none;
+}
+
+/* Hero Zoom Lightbox Overlay */
+.image-lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1070;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  pointer-events: auto;
+}
+
+.image-lightbox-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(8, 8, 12, 0.92);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.image-lightbox-close-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 1rem;
+  z-index: 20;
+  transform: translateY(-50px);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease-out;
+  pointer-events: none;
+}
+
+.image-lightbox-overlay.lightbox-visible .image-lightbox-close-wrapper {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.image-lightbox-overlay.lightbox-closing .image-lightbox-close-wrapper {
+  transform: translateY(-50px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.15s ease-in;
+}
+
+.image-lightbox-card {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  user-select: none;
+}
+
+#image-lightbox-wrapper {
+  max-width: 84vw;
+  max-height: 76vh;
+  background-color: #121214;
+  transform-origin: center center;
+}
+
+.image-lightbox-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+  display: block;
+}
+
+.image-queue-item.image-item-deleted .image-queue-item-title {
+  color: var(--bs-danger) !important;
+  text-decoration: line-through !important;
+}
+
+.image-queue-thumb-fallback {
+  border-radius: 4px;
+}
+
+.image-drop-active {
+  border-color: var(--bs-primary) !important;
+  background-color: var(--bs-primary-bg-subtle) !important;
+  box-shadow: 0 0 16px rgba(var(--bs-primary-rgb), 0.25) !important;
+  transition: all 0.15s ease-in-out;
+}
+
+.image-drop-active i {
+  color: var(--bs-primary) !important;
+  opacity: 1 !important;
+  transform: scale(1.15);
+  transition: transform 0.15s ease-in-out;
+}
+
+.image-queue-drop-placeholder {
+  border: 2px dashed var(--bs-primary) !important;
+  background-color: var(--bs-primary-bg-subtle) !important;
+  color: var(--bs-primary) !important;
+  animation: dropPlaceholderPulse 1.2s ease-in-out infinite alternate;
+}
+
+/* Keep state indicators visible but stop their pulse/scan loops. */
+@media (prefers-reduced-motion: reduce) {
+  .image-queue-drop-placeholder,
+  .comp-shimmer-overlay::after {
+    animation: none;
+  }
+}
+
+@keyframes dropPlaceholderPulse {
+  0% {
+    background-color: var(--bs-primary-bg-subtle);
+    border-color: var(--bs-primary);
+  }
+  100% {
+    background-color: rgba(var(--bs-primary-rgb), 0.22);
+    border-color: #0d6efd;
+    box-shadow: 0 0 12px rgba(var(--bs-primary-rgb), 0.35);
+  }
+}
+
+/* Fullscreen Sliding Window Image Comparison Modal */
+.image-comp-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1060;
+  background-color: rgba(10, 10, 14, 0.95);
+  backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+}
+
+.comp-header {
+  height: 54px;
+  border-bottom: 1px solid var(--bs-border-color);
+  background-color: var(--bs-body-bg);
+}
+
+.comp-stage-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+.comp-split-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.comp-split-image-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.comp-split-image-layer img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+.comp-split-divider-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--bs-primary);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.75), 0 0 4px var(--bs-primary);
+  cursor: ew-resize;
+  z-index: 20;
+  transform: translateX(-50%);
+}
+
+.comp-split-divider-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--bs-body-bg);
+  border: 2px solid var(--bs-primary);
+  color: var(--bs-body-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  cursor: ew-resize;
+}
+
+.comp-floating-toolbar {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  background-color: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  padding: 0.6rem 1.25rem;
+}
+
+/* Crisp, subtle scanning pulse for image preview generation */
+.comp-shimmer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 25;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(2px);
+  display: none;
+  overflow: hidden;
+}
+
+.comp-shimmer-overlay::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--bs-primary);
+  box-shadow: 0 0 12px 2px var(--bs-primary);
+  animation: compLaserScan 1.4s ease-in-out infinite alternate;
+}
+
+.comp-stage-wrapper.is-generating .comp-shimmer-overlay {
+  display: block;
+}
+
+@keyframes compLaserScan {
+  0% {
+    top: 5%;
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 95%;
+    opacity: 0.4;
+  }
+}
+
+/* Floating tuning drawer in comparison modal */
+.comp-tuning-drawer {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 35;
+  background-color: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  border-radius: 8px;
+  width: 330px;
+  max-width: calc(100vw - 32px);
+  pointer-events: auto;
+}
+
+/* Snappy slide-in-from-bottom animation for comparison modal */
+.image-comp-modal-overlay {
+  animation: compModalSlideIn 0.35s cubic-bezier(0.09, -0.05, 0.12, 0.98) forwards;
+}
+
+@keyframes compModalSlideIn {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.image-comp-modal-overlay.comp-closing {
+  animation: compModalSlideOut 0.28s cubic-bezier(0.09, -0.05, 0.12, 0.98) forwards;
+}
+
+@keyframes compModalSlideOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+/* ==========================================================================
+   IMPORTANT: NEVER EVER REMOVE THE DIALOG OPEN/CLOSE ANIMATION OR TOUCH IT (SO AGENT DOESNT TOUCH IT ACCIDENTLY).
+   macOS-Style Modal Dialog Open / Close Animations
+   Zoom in from larger scale (1.10 -> 1.0) with ease-out on open.
+   Zoom out to larger scale (1.0 -> 1.10) at 2x speed with ease-in on close.
+   Slight 3D perspective tilt (rotateX) so bottom lifts up on close.
+   ========================================================================== */
+
+.modal {
+  perspective: 800px;
+}
+
+/* Closed state & Closing animation (100 -> 110 at 2x speed with ease-in) */
+.modal.fade .modal-dialog {
+  opacity: 0;
+  transform: perspective(800px) scale(1.10) rotateX(4deg) !important;
+  transform-origin: 50% 50%;
+  transition: transform 0.13s ease-in, opacity 0.13s ease-in !important;
+  will-change: transform, opacity;
+}
+
+/* Open state & Opening animation (110 -> 100 with ease-out) */
+.modal.fade.show .modal-dialog {
+  opacity: 1;
+  transform: perspective(800px) scale(1) rotateX(0deg) !important;
+  transition: transform 0.26s ease-out, opacity 0.24s ease-out !important;
+}
+
+/* Settled state (added by JS on shown.bs.modal, removed on hide.bs.modal):
+   pixel-identical to the open state above, but drops the dialog out of the
+   perspective/will-change 3D scene — Chromium disables backdrop-filter
+   inside 3D rendering contexts, which is why dialog glass stayed blind
+   while top/footer bars (flat 2D, no 3D ancestors) blurred fine. The close
+   animation still runs in 3D because the class is removed on hide. */
+.modal.fade.show.modal-settled .modal-dialog {
+  transform: none !important;
+  will-change: auto !important;
+}
+
+#credits-modal.modal.fade.show.modal-settled .modal-dialog,
+#manage-tools-modal.modal.fade.show.modal-settled .modal-dialog {
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/* HTML: <div class="loader"></div> */
+.loader {
+  width: 45px;
+  aspect-ratio: 1;
+  --c: no-repeat linear-gradient(currentColor 0 0);
+  background: var(--c), var(--c), var(--c);
+  animation: 
+    l18-1 1s infinite,
+    l18-2 1s infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.loader.loader-sm {
+  width: 14px;
+}
+
+@keyframes l18-1 {
+ 0%,100% {background-size:20% 100%}
+ 33%,66% {background-size:20% 20%}
+}
+@keyframes l18-2 {
+ 0%,33%   {background-position: 0 0, 50% 50%, 100% 100%}
+ 66%,100% {background-position: 100% 0, 50% 50%, 0 100%}
+}
+
+/* Backdrop fade shared by every dialog. Asymmetric on purpose: the .show
+   rule's transition governs entrance (with the dialog open animation),
+   the base rule governs exit (with the 0.13s dialog close animation),
+   so the dim lands exactly with the dialog in both directions.
+   CRITICAL: element opacity stays 1 and only the background alpha fades.
+   Matrix-proven: opacity < 1 on the same element as backdrop-filter blinds
+   sampling (page stays sharp), while opacity:1 + translucent background
+   blurs fine. (Dialog zoom animation above untouched.) */
+.modal-backdrop {
+  z-index: 1050 !important;
+}
+
+.modal-backdrop.fade {
+  opacity: 1 !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+  transition: background-color 0.13s ease-in !important;
+}
+
+.modal-backdrop.fade.show {
+  background-color: rgba(0, 0, 0, 0.55) !important;
+  transition: background-color var(--duration-fast) var(--ease-apple) !important;
+}
+
+.modal-backdrop.show {
+  opacity: 1 !important;
+}
+
+/* Prevent body scrollbar layout shifts during modal open/close animation */
+body.modal-open {
+  overflow: hidden !important;
+}
+
+.modal {
+  overflow-y: hidden !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.modal::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.modal-dialog-scrollable .modal-body {
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+/* Modal Content Aesthetics: subtle Windows 10 elevation */
+.modal-content {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.16) !important;
+  border-radius: var(--bs-border-radius-lg, 0.5rem);
+}
+
+/* Minimalist Creative About Modal Styling: deliberately solid opaque.
+   No translucency, no backdrop dependence — reads clean on every renderer. */
+/* About Dialog Morphing Shortcuts View (iOS-style fluid card morph) */
+.about-dialog-content {
+  border-radius: 20px !important;
+  background-color: var(--bs-tertiary-bg) !important;
+  overflow: hidden;
+  transform-origin: center center;
+  transition: max-width var(--duration-fast) var(--ease-apple),
+              height var(--duration-fast) var(--ease-apple);
+  will-change: max-width, height;
+}
+
+.about-pane {
+  display: none;
+  opacity: 0;
+  transform: scale(var(--scale-large));
+  filter: blur(var(--blur-small));
+  transition: opacity var(--duration-fast) var(--ease-apple),
+              transform var(--duration-fast) var(--ease-apple),
+              filter var(--duration-fast) var(--ease-apple);
+  will-change: transform, opacity, filter;
+}
+
+.about-pane.about-pane-active {
+  display: block;
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0px);
+}
+
+.about-pane.about-pane-entering {
+  display: block;
+  opacity: 0;
+  transform: scale(var(--scale-large));
+  filter: blur(var(--blur-small));
+}
+
+.shortcut-key {
+  display: inline-block;
+  padding: 0.18rem 0.45rem;
+  font-size: 0.75rem;
+  font-family: var(--bs-font-monospace);
+  color: var(--bs-body-color);
+  background-color: var(--bs-tertiary-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+

@@ -744,6 +744,7 @@ export async function showFinishedNotification(destination, toolName = "Conversi
   const toastTitle = document.getElementById("toast-title");
   const toastFileName = document.getElementById("toast-filename");
   const toastMetaDetails = document.getElementById("toast-meta-details");
+  const toastTimestamp = document.getElementById("toast-timestamp");
   const btnOpenFile = document.getElementById("toast-btn-open-file");
   const btnOpenFolder = document.getElementById("toast-btn-open-folder");
 
@@ -756,6 +757,14 @@ export async function showFinishedNotification(destination, toolName = "Conversi
   if (toastMetaDetails) {
     const sizeText = finalSizeStr ? `Final size: <strong class="text-body fw-medium">${finalSizeStr}</strong>` : "";
     toastMetaDetails.innerHTML = `Time taken: <strong class="text-body fw-medium">${elapsedSeconds}s</strong>${sizeText ? ` &bull; ${sizeText}` : ""}`;
+  }
+
+  if (toastTimestamp) {
+    toastTimestamp.textContent = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
   }
 
   if (btnOpenFile) {

@@ -812,22 +812,106 @@ fn find_image_ai_script(app: &tauri::AppHandle) -> std::path::PathBuf {
     std::path::PathBuf::from("src/py/image_ai_engine.py")
 }
 
+fn find_pdf_tools_script(app: &tauri::AppHandle) -> std::path::PathBuf {
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        let script = resource_dir.join("src").join("py").join("pdf_tools.py");
+        if script.is_file() { return script; }
+        let flat = resource_dir.join("pdf_tools.py");
+        if flat.is_file() { return flat; }
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        for candidate in [
+            exe.parent().unwrap_or(std::path::Path::new(".")).join("resources").join("src").join("py").join("pdf_tools.py"),
+            exe.parent().unwrap_or(std::path::Path::new(".")).join("src").join("py").join("pdf_tools.py"),
+        ] {
+            if candidate.is_file() { return candidate; }
+        }
+    }
+    let cwd_script = std::path::PathBuf::from("src").join("py").join("pdf_tools.py");
+    if cwd_script.is_file() { return cwd_script; }
+    let manifest_script = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(r"..\src\py\pdf_tools.py");
+    if manifest_script.is_file() { return manifest_script; }
+    std::path::PathBuf::from("src/py/pdf_tools.py")
+}
+
+#[tauri::command]
+pub fn render_pdf_pages(app: tauri::AppHandle, file_path: String) -> Result<Vec<String>, String> {
+    let script = find_pdf_tools_script(&app);
+    if !script.is_file() { return Err(format!("PDF worker not found. Checked packaged resources and {}", script.display())); }
+    let python = find_binary("python");
+    let mut command = Command::new(python);
+    command.args([script.to_string_lossy().as_ref(), "--preview", &file_path]);
+    #[cfg(windows)]
+    command.creation_flags(0x08000000);
+    let output = command.output().map_err(|error| format!("Unable to start PDF preview worker: {error}"))?;
+    if !output.status.success() {
+        let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        return Err(if detail.is_empty() { "Unable to render PDF page previews".into() } else { detail });
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let candidate = stdout.lines().rev().find(|line| line.trim_start().starts_with('[')).unwrap_or("");
+    if candidate.is_empty() {
+        return Err(format!("PDF preview worker returned no JSON. Output: {}", stdout.trim()));
+    }
+    serde_json::from_str(candidate).map_err(|error| format!("Invalid PDF preview response: {error}. Output: {}", stdout.trim()))
+}
+
+#[tauri::command]
+pub fn get_pdf_info(app: tauri::AppHandle, file_path: String) -> Result<serde_json::Value, String> {
+    let script = find_pdf_tools_script(&app);
+    if !script.is_file() { return Err(format!("PDF worker not found: {}", script.display())); }
+    let mut command = Command::new(find_binary("python"));
+    command.args([script.to_string_lossy().as_ref(), "--info", &file_path]);
+    #[cfg(windows)]
+    command.creation_flags(0x08000000);
+    let output = command.output().map_err(|error| format!("Unable to start PDF information worker: {error}"))?;
+    if !output.status.success() { return Err(String::from_utf8_lossy(&output.stderr).trim().to_string()); }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let line = stdout.lines().rev().find(|line| line.trim_start().starts_with('{')).unwrap_or("");
+    serde_json::from_str(line).map_err(|error| format!("Invalid PDF information response: {error}"))
+}
+
+#[tauri::command]
+pub fn install_pdf_dependencies() -> Result<String, String> {
+    let python = find_binary("python");
+    let mut command = Command::new(python);
+    command.args(["-m", "pip", "install", "pypdf>=5.0.0", "PyMuPDF>=1.24.0", "Pillow>=10.0.0", "reportlab>=4.2.0", "python-docx>=1.1.0", "openpyxl>=3.1.0", "python-pptx>=1.0.0", "weasyprint>=62.0"]);
+    #[cfg(windows)]
+    command.creation_flags(0x08000000);
+    let output = command.output()
+        .map_err(|error| format!("Unable to start Python package installer: {error}"))?;
+    if output.status.success() {
+        Ok("PDF support installed successfully. Retry the operation.".into())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        Err(if stderr.is_empty() { "Python package installation failed.".into() } else { stderr })
+    }
+}
+
 #[tauri::command]
 pub fn execute_image_ai(app: tauri::AppHandle, task: String, params: String) -> Result<(), String> {
     let (job_id, job_cancelled) = register_job(true);
 
     std::thread::spawn(move || {
-        let py_script = find_image_ai_script(&app);
+        let py_script = if task == "pdf_tool" { find_pdf_tools_script(&app) } else { find_image_ai_script(&app) };
         let py_bin = find_binary("python");
 
+        if task == "pdf_tool" && !py_script.is_file() {
+            finish_job(job_id);
+            let _ = app.emit("ffmpeg-finished", FinishPayload {
+                success: false,
+                exit_code: -1,
+                message: format!("PDF worker not found: {}", py_script.display()),
+            });
+            return;
+        }
+
         let mut child_cmd = Command::new(&py_bin);
-        child_cmd.args([
-            py_script.to_string_lossy().as_ref(),
-            "--task",
-            &task,
-            "--params",
-            &params,
-        ]);
+        child_cmd.arg(py_script.to_string_lossy().as_ref());
+        if task != "pdf_tool" {
+            child_cmd.args(["--task", &task]);
+        }
+        child_cmd.args(["--params", &params]);
         child_cmd.stdout(Stdio::piped());
         child_cmd.stderr(Stdio::piped());
 

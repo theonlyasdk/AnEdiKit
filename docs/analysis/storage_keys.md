@@ -31,6 +31,7 @@ All keys in the application follow the hierarchical `anedikit:` namespace conven
   - `ytdlpFilenameFormat` (string): Global template format string for downloaded filenames.
   - `ffmpegBin` (string): Resolved path or label for FFmpeg binary.
   - `ffprobeBin` (string): Resolved path or label for FFprobe binary.
+  - `toolsUpdateCache` (object): Cached external tools update status containing `timestamp` (number) and `releases` (map of tool versions). Refetched every 24 hours.
 
 ### 2. `anedikit:settings:active_tool`
 - Type: String

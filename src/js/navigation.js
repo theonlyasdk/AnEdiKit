@@ -2,8 +2,14 @@
 import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings, getUserKitById } from "./storage.js";
 import { isJobRunning } from "./runner.js";
 import { cancelAudioMetadataLoading } from "./audio_tags.js";
+import { PDF_CATEGORIES, renderTool } from "./pdf_tools.js";
 
 export const TOOL_METADATA = {
+  all_tools: {
+    title: "All Tools",
+    desc: "Browse every AnEdiKit tool, grouped by section.",
+    viewId: "all-tools-browser",
+  },
   convert: {
     title: "Convert Video Formats",
     desc: "Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.",
@@ -109,6 +115,11 @@ export const TOOL_METADATA = {
     desc: "Inspect and strip EXIF tags, GPS coordinates, and camera metadata for photo privacy.",
     viewId: "view-metadata_cleaner",
   },
+  pdf: {
+    title: "PDF Tools",
+    desc: "Organize, optimize, convert, edit, secure, and analyze PDF documents.",
+    viewId: "view-pdf",
+  },
   ytdlp_video: {
     title: "Download Video",
     desc: "Download full video streams from YouTube, Twitch, Twitter, TikTok, and 1000+ sites with resolution and container options.",
@@ -137,6 +148,7 @@ export const TOOL_METADATA = {
 };
 
 const TOOL_ORDER = [
+  "all_tools",
   "ytdlp_audio",
   "ytdlp_video",
   "ytdlp_playlist",
@@ -162,11 +174,142 @@ const TOOL_ORDER = [
   "restore_denoise",
   "icon_generator",
   "metadata_cleaner",
+  "pdf",
   "settings",
+];
+
+const ALL_PDF_TOOLS = PDF_CATEGORIES.flatMap((category) =>
+  category.tools.map(([name, description, icon]) => ({
+    id: `pdf_${name.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
+    title: name,
+    desc: description,
+    icon: icon,
+    isPdf: true,
+    pdfToolName: name,
+  }))
+);
+
+const ALL_TOOLS_GROUPS = [
+  { title: "Media", icon: "videocam-outline", tools: ["convert", "extract_audio", "trim", "speed_motion", "aspect_crop", "stabilize", "loop_duration", "normalize", "compress", "compress_audio", "merge", "mute_replace", "gif_frames", "custom"] },
+  { title: "Audio & Metadata", icon: "musical-notes-outline", tools: ["audio_tags"] },
+  { title: "Image AI", icon: "sparkles-outline", tools: ["bg_remover", "ai_upscaler", "vectorizer", "restore_denoise", "icon_generator", "metadata_cleaner"] },
+  { title: "Downloads", icon: "download-outline", tools: ["ytdlp_video", "ytdlp_audio", "ytdlp_playlist", "ytdlp_subtitles"] },
+  { title: "PDF Tools", icon: "document-text-outline", tools: ALL_PDF_TOOLS },
+  { title: "App", icon: "settings-outline", tools: ["settings"] },
 ];
 
 let currentActiveTool = "convert";
 let currentActiveViewEl = null;
+
+function initAllToolsBrowser(onToolChanged) {
+  const results = document.getElementById("all-tools-results");
+  const search = document.getElementById("all-tools-search");
+  const searchGroup = document.getElementById("all-tools-search-group");
+  const clear = document.getElementById("all-tools-clear-search");
+  const empty = document.getElementById("all-tools-empty");
+  if (!results || !search) return;
+  const icons = {
+    convert: "swap-horizontal-outline",
+    extract_audio: "musical-note-outline",
+    trim: "cut-outline",
+    speed_motion: "speedometer-outline",
+    aspect_crop: "crop-outline",
+    stabilize: "shield-checkmark-outline",
+    loop_duration: "repeat-outline",
+    normalize: "stats-chart-outline",
+    compress: "resize-outline",
+    compress_audio: "volume-low-outline",
+    merge: "git-merge-outline",
+    mute_replace: "volume-mute-outline",
+    gif_frames: "film-outline",
+    custom: "code-slash-outline",
+    audio_tags: "pricetag-outline",
+    bg_remover: "color-wand-outline",
+    ai_upscaler: "scan-outline",
+    vectorizer: "git-branch-outline",
+    restore_denoise: "sparkles-outline",
+    icon_generator: "apps-outline",
+    metadata_cleaner: "finger-print-outline",
+    ytdlp_video: "cloud-download-outline",
+    ytdlp_audio: "musical-notes-outline",
+    ytdlp_playlist: "list-outline",
+    ytdlp_subtitles: "image-outline",
+    pdf: "document-text-outline",
+    settings: "settings-outline"
+  };
+  const render = () => {
+    const query = search.value.trim().toLowerCase();
+    clear?.classList.toggle("d-none", !query);
+    searchGroup?.classList.toggle("is-expanded", Boolean(query));
+    let visible = 0;
+    results.replaceChildren();
+    ALL_TOOLS_GROUPS.forEach((group) => {
+      const items = group.tools
+        .map((tool) => {
+          if (typeof tool === "string") {
+            const metadata = TOOL_METADATA[tool];
+            if (!metadata) return null;
+            return {
+              id: tool,
+              title: metadata.title,
+              desc: metadata.desc,
+              icon: icons[tool] || "ellipse-outline",
+              isPdf: false,
+            };
+          }
+          return tool;
+        })
+        .filter((item) => {
+          if (!item) return false;
+          return !query || `${item.title} ${item.desc} ${group.title}`.toLowerCase().includes(query);
+        });
+      if (!items.length) return;
+      visible += items.length;
+      const section = document.createElement("section");
+      section.className = "mb-4";
+      const heading = document.createElement("div");
+      heading.className = "section-divider-header mb-3";
+      heading.innerHTML = `<span class="d-inline-flex align-items-center gap-2"><ion-icon name="${group.icon}" class="text-primary fs-5 flex-shrink-0"></ion-icon><span class="h5 mb-0 fw-medium text-body">${group.title}</span></span>`;
+      section.appendChild(heading);
+      const grid = document.createElement("div");
+      grid.className = "row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3";
+      items.forEach((item) => {
+        const column = document.createElement("div");
+        column.className = "col";
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn btn-outline-secondary text-start w-100 h-100 p-3 all-tool-card";
+        button.dataset.allTool = item.id;
+        button.innerHTML = `<div class="d-flex gap-3 align-items-start"><ion-icon name="${item.icon || "ellipse-outline"}" class="fs-2 text-primary flex-shrink-0"></ion-icon><span><span class="d-block fw-semibold text-body all-tool-title"></span><span class="d-block small text-body-secondary mt-1 all-tool-description"></span></span></div>`;
+        button.querySelector(".all-tool-title").textContent = item.title;
+        button.querySelector(".all-tool-description").textContent = item.desc;
+        button.addEventListener("click", () => {
+          if (item.isPdf) {
+            if (currentActiveTool !== "pdf") {
+              switchTool("pdf", onToolChanged);
+            }
+            renderTool(item.pdfToolName);
+          } else {
+            switchTool(item.id, onToolChanged);
+          }
+          document.getElementById("tool-view-container")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+        column.appendChild(button);
+        grid.appendChild(column);
+      });
+      section.appendChild(grid);
+      results.appendChild(section);
+    });
+    empty?.classList.toggle("d-none", visible !== 0);
+  };
+  search.addEventListener("input", render);
+  clear?.addEventListener("click", () => {
+    search.value = "";
+    search.focus();
+    render();
+  });
+  render();
+}
 
 export function getCurrentActiveTool() {
   return currentActiveTool;
@@ -224,17 +367,23 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
     cancelAudioMetadataLoading();
   }
 
-  const prevIndex = TOOL_ORDER.indexOf(currentActiveTool);
-  const nextIndex = TOOL_ORDER.indexOf(toolId);
-  const movingDown = nextIndex > prevIndex;
+  const getToolIndex = (id) => {
+    if (!id) return -1;
+    if (typeof id === "string" && id.startsWith("kit_")) return 24.5;
+    const idx = TOOL_ORDER.indexOf(id);
+    return idx !== -1 ? idx : 0;
+  };
+  const prevIndex = getToolIndex(currentActiveTool);
+  const nextIndex = getToolIndex(toolId);
+  const movingDown = prevIndex === -1 ? true : nextIndex > prevIndex;
 
   currentActiveTool = toolId;
   document.body.dataset.activeTool = toolId;
   saveActiveTool(toolId);
 
-  // Update nav buttons active states across tool-nav, image-ai-nav, ytdlp-nav, user-kits-nav, and settings-nav
+  // Update nav buttons active states across tool-nav, image-ai-nav, ytdlp-nav, pdf-nav, user-kits-nav, and settings-nav
   const allToolButtons = document.querySelectorAll(
-    "#tool-nav .nav-link, #image-ai-nav .nav-link, #ytdlp-nav .nav-link, #user-kits-nav .nav-link, #settings-nav .nav-link"
+    "#all-tools-nav .nav-link, #tool-nav .nav-link, #image-ai-nav .nav-link, #ytdlp-nav .nav-link, #pdf-nav .nav-link, #user-kits-nav .nav-link, #settings-nav .nav-link"
   );
 
   let activeNavBtn = null;
@@ -294,17 +443,16 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
     targetView.classList.remove("d-none");
     currentActiveViewEl = targetView;
   }
+  const allToolsBrowser = document.getElementById("all-tools-browser");
+  const toolViewContainer = document.getElementById("tool-view-container");
+  const isAllTools = toolId === "all_tools";
+  allToolsBrowser?.classList.toggle("d-none", !isAllTools);
+  toolViewContainer?.classList.toggle("d-none", isAllTools);
 
-  // Workspace material zoom animation
-  const workspaceContainer = document.getElementById("tool-view-container");
-  if (workspaceContainer) {
-    workspaceContainer.classList.remove("view-material-zoom");
-    void workspaceContainer.offsetWidth;
-    workspaceContainer.classList.add("view-material-zoom");
-  }
 
   // Toggle shared input cards (FFmpeg input file vs Image & AI queue vs yt-dlp URL input vs User Kit)
   const isYtDlp = toolId.startsWith("ytdlp_");
+  const isAllToolsView = toolId === "all_tools";
   const isSettings = toolId === "settings";
   const isImageTool = [
     "bg_remover",
@@ -315,6 +463,7 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
     "metadata_cleaner",
   ].includes(toolId);
   const isAudioTags = toolId === "audio_tags";
+  const isPdfTool = toolId === "pdf";
 
   const sharedInputCard = document.getElementById("shared-input-card");
   const sharedUrlCard = document.getElementById("shared-url-card");
@@ -322,13 +471,13 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
   const cmdPreviewCard = document.getElementById("command-preview-card");
 
   if (sharedInputCard) {
-    sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings || isImageTool || isKit || isAudioTags);
+    sharedInputCard.classList.toggle("d-none", isYtDlp || isSettings || isAllToolsView || isImageTool || isKit || isAudioTags || isPdfTool);
   }
   if (imageAiWorkspaceCard) {
-    imageAiWorkspaceCard.classList.toggle("d-none", !isImageTool || isSettings || isKit);
+    imageAiWorkspaceCard.classList.toggle("d-none", !isImageTool || isSettings || isAllToolsView || isKit);
   }
   if (cmdPreviewCard) {
-    cmdPreviewCard.classList.toggle("d-none", isSettings || isImageTool || isKit || isAudioTags);
+    cmdPreviewCard.classList.toggle("d-none", isSettings || isAllToolsView || isImageTool || isKit || isAudioTags || isPdfTool);
   }
 
   const aiReplaceSourceWrapper = document.getElementById("ai-replace-source-wrapper");
@@ -368,21 +517,21 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
   const btnExecute = document.getElementById("btn-execute");
   const btnReset = document.getElementById("btn-reset");
   if (btnExecute) {
-    btnExecute.classList.toggle("d-none", toolId === "settings");
+    btnExecute.classList.toggle("d-none", toolId === "settings" || isPdfTool);
   }
   if (btnReset) {
-    btnReset.classList.toggle("d-none", toolId === "settings");
+    btnReset.classList.toggle("d-none", toolId === "settings" || isPdfTool);
   }
 
   // Do not show footer in settings page
   const bottomFooterBar = document.getElementById("bottom-footer-bar");
   if (bottomFooterBar) {
-    bottomFooterBar.classList.toggle("d-none", toolId === "settings");
+    bottomFooterBar.classList.toggle("d-none", toolId === "settings" || isPdfTool);
   }
 
   const statusSlot = document.getElementById("status-message");
   if (statusSlot) {
-    statusSlot.classList.toggle("d-none", toolId === "settings" || isImageTool || isAudioTags);
+    statusSlot.classList.toggle("d-none", toolId === "settings" || isImageTool || isAudioTags || isPdfTool);
   }
 
   // Contextual status message for settings
@@ -782,115 +931,8 @@ export function setupSidebarButtonEffects(btn, onToolChanged) {
   }
 }
 
-// Shared bottom-sheet drag-to-dismiss core (small screens only): pull down
-// past ~100px (or flick) to dismiss, otherwise spring back. Plain taps and
-// clicks pass through untouched. The dialog's own show-state transition
-// does the motion; inline styles only carry the live finger offset.
-function attachSheetDrag(modalEl, handle) {
-  const dialog = modalEl.querySelector(".modal-dialog");
-  if (!dialog || !handle) return;
-  const isMobileSheet = () => window.matchMedia("(max-width: 768px)").matches;
-
-  let dragging = false;
-  let moved = false;
-  let startY = 0;
-  let dy = 0;
-  let lastY = 0;
-  let lastT = 0;
-  let velocity = 0;
-
-  handle.addEventListener("pointerdown", (e) => {
-    if (!isMobileSheet()) return;
-    if (!modalEl.classList.contains("show")) return;
-    if (e.button !== undefined && e.button !== 0) return;
-    dragging = true;
-    moved = false;
-    dy = 0;
-    velocity = 0;
-    startY = e.clientY;
-    lastY = e.clientY;
-    lastT = e.timeStamp;
-    try {
-      handle.setPointerCapture(e.pointerId);
-    } catch (_) {}
-  });
-
-  handle.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    const dt = Math.max(1, e.timeStamp - lastT);
-    velocity = 0.8 * ((e.clientY - lastY) / dt) + 0.2 * velocity;
-    lastY = e.clientY;
-    lastT = e.timeStamp;
-    dy = Math.max(0, e.clientY - startY);
-    if (Math.abs(e.clientY - startY) > 8) moved = true;
-    if (dy > 0) {
-      // Important-flagged: the sheet's own transitions/transforms are
-      // !important, so plain inline styles would lose and the sheet
-      // would only animate after release instead of tracking live.
-      dialog.style.setProperty("transition", "none", "important");
-      dialog.style.setProperty("transform", `translateY(${dy}px)`, "important");
-    }
-  });
-
-  const endDrag = (e) => {
-    if (!dragging) return;
-    dragging = false;
-    try {
-      if (handle.releasePointerCapture && e.pointerId !== undefined) handle.releasePointerCapture(e.pointerId);
-    } catch (_) {}
-    if (moved) {
-      // Swallow the tap that would otherwise hit sheet buttons after a drag.
-      handle.addEventListener(
-        "click",
-        (ce) => {
-          ce.preventDefault();
-          ce.stopPropagation();
-        },
-        { capture: true, once: true },
-      );
-    }
-    if ((dy > 100 || velocity > 0.55) && isMobileSheet() && window.bootstrap?.Modal) {
-      // Dismiss first (Bootstrap swaps to the slide-down close state),
-      // then release the inline offset so it glides from the finger
-      // position instead of snapping.
-      window.bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-      requestAnimationFrame(() => {
-        dialog.style.removeProperty("transition");
-        dialog.style.removeProperty("transform");
-      });
-    } else {
-      // Spring back via the sheet's own show-state transition.
-      dialog.style.removeProperty("transition");
-      dialog.style.removeProperty("transform");
-    }
-  };
-  handle.addEventListener("pointerup", endDrag);
-  handle.addEventListener("pointercancel", endDrag);
-}
-
-// Mobile bottom-sheet drag for the About dialog (whole sheet is the
-// handle: it has no scrollable body to protect).
-export function initCreditsSheetDrag() {
-  const modalEl = document.getElementById("credits-modal");
-  if (!modalEl || modalEl.dataset.sheetDragBound === "true") return;
-  const sheet = modalEl.querySelector(".about-dialog-content");
-  if (!sheet) return;
-  modalEl.dataset.sheetDragBound = "true";
-  attachSheetDrag(modalEl, sheet);
-}
-
-// Mobile bottom-sheet drag for the Manage Tools dialog. Only the header is
-// the handle so the tall body keeps its native touch scroll.
-export function initManageSheetDrag() {
-  const modalEl = document.getElementById("manage-tools-modal");
-  if (!modalEl || modalEl.dataset.sheetDragBound === "true") return;
-  const header = modalEl.querySelector(".sheet-header, .modal-header");
-  if (!header) return;
-  modalEl.dataset.sheetDragBound = "true";
-  attachSheetDrag(modalEl, header);
-}
-
 export function initNavigation(onToolChanged) {
+  initAllToolsBrowser(onToolChanged);
   const allToolButtons = document.querySelectorAll("button[data-tool]");
   const btnToggle = document.getElementById("btn-sidebar-toggle");
   const backdrop = document.getElementById("sidebar-backdrop");
@@ -979,14 +1021,6 @@ export function initNavigation(onToolChanged) {
     row.dataset.m3RippleBound = "true";
     attachMaterialRipple(row);
   });
-
-  // About + Manage Tools bottom-sheet drag-to-dismiss (guarded inside).
-  try {
-    initCreditsSheetDrag();
-    initManageSheetDrag();
-  } catch (err) {
-    console.warn("sheet drag init failed:", err);
-  }
 
   // Drop every dialog out of the 3D animation scene once open (see
   // .modal-settled in styles.css): the entrance/exit keeps its perspective

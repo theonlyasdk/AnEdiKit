@@ -9,7 +9,7 @@ AnEdiKit provides a 60fps vertical pointer drag-and-drop reordering engine for l
 - **JavaScript Module**: `src/js/drag_reorder.js`  
   Exports `setupListDragAndDrop(options)` to attach pointer listeners, calculate midpoint slot thresholds, apply Y-axis shift transforms to sibling elements, manage edge auto-scrolling, and animate item release.
 
-- **Stylesheet**: `src/drag_reorder.css` (also aligned in `src/kits/kits.css`)  
+- **Stylesheet**: `src/css/drag_reorder.css` (also aligned in `src/kits/kits.css`)  
   Provides standardized CSS utility classes for drag rows and handles (`.drag-reorder-row`, `.drag-reorder-handle`, `.is-dragging`, `.is-releasing`).
 
 ---
@@ -36,7 +36,7 @@ Each draggable item should be wrapped inside a parent scrollable container.
 Ensure `drag_reorder.css` is included in your view or HTML header:
 
 ```html
-<link rel="stylesheet" href="drag_reorder.css" />
+<link rel="stylesheet" href="css/drag_reorder.css" />
 ```
 
 Key CSS classes:

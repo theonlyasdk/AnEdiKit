@@ -1,0 +1,184 @@
+:root {
+  --bs-body-font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif;
+  font-size: 17px;
+  --anedikit-blur-enabled: 0;
+  --anedikit-blur-radius: 16px;
+  --anedikit-blur-saturate: 140%;
+  --anedikit-sidebar-border-color: var(--bs-border-color);
+}
+
+:root.blur-enabled,
+body.blur-enabled {
+  --anedikit-sidebar-border-color: rgba(255, 255, 255, 0.25);
+  --anedikit-sidebar-border-color: color-mix(in srgb, var(--bs-border-color), #ffffff 40%);
+}
+
+body {
+  margin: 0;
+  font-size: 15px;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Dynamic Transparency: Transparent when blur is ON (1), Opaque when blur is OFF (0) */
+html,
+body,
+body.bg-body-tertiary,
+#app-root,
+#main-layout-row {
+  background-color: rgba(
+    var(--bs-body-bg-rgb, 18, 18, 18),
+    calc(0 * var(--anedikit-blur-enabled, 1) + 1 * (1 - var(--anedikit-blur-enabled, 1)))
+  ) !important;
+}
+
+#tool-workspace {
+  background-color: var(--bs-body-bg, #181818) !important;
+}
+
+/* Custom Overlay Scrollbars: Zero layout shift & space */
+#sidebar-scroll-container,
+#tool-workspace,
+.overflow-y-auto,
+.table-responsive {
+  overflow-y: overlay !important;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-track-piece,
+::-webkit-scrollbar-corner {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Default state (Hide Scrollbars When Not Hovering is OFF):
+   Scrollbar thumb is visible resting with subtle opacity, brightening on hover */
+::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22);
+  border-radius: 9999px;
+  transition: background-color 0.15s ease;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.35);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.6) !important;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.22) transparent;
+}
+
+*:hover {
+  scrollbar-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.35) transparent;
+}
+
+/* When "Hide Scrollbars When Not Hovering" setting is ENABLED (html.hide-scrollbars-on-hover):
+   Scrollbar track width is 0px & transparent when resting (zero layout footprint),
+   expanding to 5px and revealing thumb only when hovering the scrollable container */
+html.hide-scrollbars-on-hover ::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+}
+
+html.hide-scrollbars-on-hover *:hover::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+html.hide-scrollbars-on-hover ::-webkit-scrollbar-thumb {
+  background-color: transparent !important;
+}
+
+html.hide-scrollbars-on-hover *:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.28) !important;
+}
+
+html.hide-scrollbars-on-hover ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.6) !important;
+}
+
+html.hide-scrollbars-on-hover * {
+  scrollbar-color: transparent transparent;
+}
+
+html.hide-scrollbars-on-hover *:hover {
+  scrollbar-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.28) transparent;
+}
+
+/* Cursor pointer for dropdowns and interactive buttons */
+select,
+.form-select,
+.dropdown-toggle,
+[data-bs-toggle="dropdown"] {
+  cursor: pointer;
+}
+
+/* Ionicons Global Sizing and Alignment.
+   width/height reserve the 1em box before the web component upgrades and
+   its SVGs arrive, so labels never shift on (re)load. Matches the
+   component's own :host sizing; flex-shrink keeps flex rows stable. */
+ion-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: -0.15em;
+  font-size: 1.15em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.nav-link ion-icon {
+  font-size: 1.22rem;
+  vertical-align: -0.2em;
+}
+
+.btn ion-icon {
+  vertical-align: -0.16em;
+  font-size: 1.1em;
+}
+
+.btn-sm ion-icon {
+  font-size: 0.95rem;
+}
+
+/* Interactive Clickable Components: Instant brightness 75% on mousedown, smooth linear recovery on mouseup */
+button,
+.btn,
+.nav-link,
+.form-select,
+.form-check-input,
+a,
+[role="button"] {
+  transition: filter 0.15s linear;
+}
+
+button:active,
+.btn:active,
+.nav-link:active,
+.form-select:active,
+.form-check-input:active,
+a:active,
+[role="button"]:active {
+  filter: brightness(75%);
+  transition: none !important;
+}
+
+#tool-workspace {
+  overflow-x: hidden;
+}

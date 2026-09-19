@@ -34,3 +34,15 @@
 .drag-reorder-handle:active {
   cursor: grabbing !important;
 }
+
+/* PDF page-grid drop target: a clear, moving insertion target for both
+   vertical and horizontal grid movement. */
+.pdf-page-ants {
+  animation: pdfPageMarch 0.7s linear infinite;
+}
+
+@keyframes pdfPageMarch {
+  to {
+    stroke-dashoffset: -14;
+  }
+}

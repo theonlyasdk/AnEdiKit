@@ -1,0 +1,60 @@
+tools offered by iLovePDF - each one of these is a module, and each sub-option will be displayed in a grid view (see ilovepdf.png in this directory).
+clicking on them will transition the contents of content area to the tools.
+
+1. Organize PDF
+
+* Merge PDF: Combine multiple PDF files into one in any order.
+* Split PDF: Separate specific page ranges or extract all pages into separate PDF files.
+* Remove Pages: Delete unwanted pages from a PDF document.
+* Extract Pages: Pull selected pages out of a PDF document to create a new file.
+* Organize PDF: Rearrange, sort, add, or delete individual pages visually.
+* Scan to PDF: Capture document scans using a mobile device and send them directly to your browser.
+
+2. Optimize PDF
+
+* Compress PDF: Reduce file size while balancing visual quality.
+* Repair PDF: Recover and repair data from damaged or corrupted PDF files.
+* OCR PDF: Run optical character recognition on scanned documents to make text searchable and selectable.
+
+3. Convert to PDF
+
+* JPG to PDF: Convert image files (JPG/JPEG) into PDF pages with custom orientation and margins.
+* Word to PDF: Convert .doc and .docx files to PDF.
+* PowerPoint to PDF: Convert .ppt and .pptx presentations to PDF.
+* Excel to PDF: Convert .xls and .xlsx spreadsheets to PDF.
+* HTML to PDF: Convert a webpage into a PDF document via its URL.
+
+4. Convert from PDF
+
+* PDF to JPG: Convert each PDF page into an image or extract embedded images.
+* PDF to Word: Convert PDFs into editable DOC/DOCX files.
+* PDF to PowerPoint: Convert PDF pages into editable presentation slides.
+* PDF to Excel: Extract tabular data straight from PDFs into Excel spreadsheets.
+* PDF to PDF/A: Convert to ISO-standardized PDF/A format for long-term archiving.
+* PDF to Markdown: Convert PDFs into Markdown files for note-taking, documentation, or LLM workflows.
+
+5. Edit PDF
+
+* Edit PDF: Add custom text, images, shapes, and freehand annotations.
+* Rotate PDF: Rotate pages 90, 180, or 270 degrees individually or in bulk.
+* Crop PDF: Crop margins or trim specific rectangular areas of document pages.
+* Page Numbers: Insert customizable page numbering (position, font, styling).
+* Watermark: Add customizable text or image watermarks over pages.
+* PDF Forms: Create interactive fillable PDF forms or fill out existing forms with fields, checkboxes, and dropdowns.
+
+6. PDF Security
+
+* Protect PDF: Encrypt and lock PDF documents with a password.
+* Unlock PDF: Remove password protection and security restrictions from PDFs.
+* Sign PDF: Fill and sign documents electronically or send signature requests to others.
+* Redact PDF: Permanently black out/remove sensitive text, graphics, and data.
+* Compare PDF: View side-by-side comparisons of two PDF versions to spot differences.
+
+7. PDF Intelligence (AI Tools)
+
+* AI Summarizer: Generate concise executive summaries and bullet points from PDFs.
+* Translate PDF: Translate full documents into other languages using AI while preserving layout and typography.
+
+
+You can use python or any other tools as a backend to this. You must not use custom styles other than bootstrap 5. look at other modules and arrange the UI in a similar way to keep UI coherent
+you may use transitions skill to incorporate slight morphing animations and other slight animations that do not annoy the user.

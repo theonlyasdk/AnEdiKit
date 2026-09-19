@@ -1,0 +1,405 @@
+/* Audio Tags: the empty queue drop card fills the remaining workspace
+   height. The view is at least as tall as the scrollport, so the flex
+   chain below stretches the drop card when the queue is empty and stays
+   out of the way (content scrolls normally) once tracks are added.
+   `d-none` still wins on the hidden view via `display: none !important`. */
+#view-audio_tags {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+#view-audio_tags > .mb-4 {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+#audio-tag-queue-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+#audio-tag-queue-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  position: relative;
+}
+#audio-tag-empty-msg {
+  flex: 1 1 auto;
+}
+
+/* Empty state only: trailing margins (wrapper mb-4, section mb-2, list
+   mb-3) and the workspace bottom pad would otherwise stack ~128px of dead
+   space below the stretched drop card. Zero them while the empty card is
+   present; populated views keep their normal rhythm. The morph clones strip
+   ids, so these never match mid-animation. */
+#view-audio_tags:has(#audio-tag-empty-msg) > .mb-4,
+#view-audio_tags:has(#audio-tag-empty-msg) #audio-tag-queue-section,
+#view-audio_tags:has(#audio-tag-empty-msg) #audio-tag-queue-list {
+  margin-bottom: 0 !important;
+}
+#tool-workspace:has(#view-audio_tags:not(.d-none):has(#audio-tag-empty-msg)) {
+  padding-bottom: 1.5rem !important;
+}
+
+/* Filename Format Editor, Image Queue & Batch Queue Drag Styles */
+.format-list-item,
+.image-queue-item,
+.batch-queue-item {
+  position: relative;
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease;
+  user-select: none;
+  border-radius: 0 !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid var(--bs-border-color) !important;
+}
+
+.format-list-item:last-child,
+.image-queue-item:last-child,
+.batch-queue-item:last-child {
+  border-bottom: none !important;
+}
+
+.format-list-item.is-dragging:not(.is-releasing),
+.image-queue-item.is-dragging:not(.is-releasing),
+.batch-queue-item.is-dragging:not(.is-releasing) {
+  position: relative;
+  z-index: 1050 !important;
+  opacity: 0.98;
+  background-color: var(--bs-body-bg) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), 0 3px 10px rgba(0, 0, 0, 0.25) !important;
+  transition: none !important;
+  cursor: grabbing !important;
+  will-change: transform;
+}
+
+.format-drag-handle,
+.image-queue-drag-handle,
+.batch-queue-drag-handle {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.format-drag-handle:active,
+.image-queue-drag-handle:active,
+.batch-queue-drag-handle:active,
+.format-list-item.is-dragging .format-drag-handle,
+.image-queue-item.is-dragging .image-queue-drag-handle,
+.batch-queue-item.is-dragging .batch-queue-drag-handle {
+  cursor: grabbing;
+}
+
+/* Ensure drag lists allow dragging on top without horizontal scrollbar flash */
+#image-ai-queue-list.list-group,
+#batch-queue-list.list-group {
+  overflow-x: hidden !important;
+}
+
+/* Transparency Checkerboard Pattern */
+.transparency-grid {
+  background-color: #121215;
+  background-image: 
+    linear-gradient(45deg, #1e1e24 25%, transparent 25%), 
+    linear-gradient(-45deg, #1e1e24 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #1e1e24 75%), 
+    linear-gradient(-45deg, transparent 75%, #1e1e24 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+
+[data-bs-theme="light"] .transparency-grid {
+  background-color: #ffffff;
+  background-image: 
+    linear-gradient(45deg, #f0f0f0 25%, transparent 25%), 
+    linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #f0f0f0 75%), 
+    linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+}
+
+/* Image & AI Queue UI Items */
+.image-queue-item {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.image-queue-item:hover {
+  background-color: var(--bs-tertiary-bg);
+}
+
+.image-queue-thumb-wrapper {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.image-queue-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-queue-thumb-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  color: #ffffff;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.image-queue-thumb-wrapper:hover .image-queue-thumb-overlay {
+  opacity: 1;
+}
+
+/* Audio Queue List Item Styling & Bootstrap Highlight */
+.audio-queue-item {
+  position: relative;
+  transition:
+    filter var(--duration-very-slow, 500ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity var(--duration-very-slow, 500ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.audio-queue-item:hover:not(.active-track-item) {
+  background-color: var(--bs-tertiary-bg) !important;
+}
+
+.audio-queue-item.active-track-item {
+  background-color: var(--bs-primary) !important;
+  color: #ffffff !important;
+}
+
+.audio-queue-item.active-track-item .queue-item-title {
+  color: #ffffff !important;
+}
+
+.audio-queue-item.active-track-item .queue-item-sub {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Trailing full-height remove strip: reads as one combined item segment.
+   Hidden until the row is hovered or focused (keyboard tab reaches the
+   button via focus-within); space is reserved so rows never shift. */
+.audio-queue-remove-strip {
+  align-self: stretch;
+  appearance: none;
+  padding: 0;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid var(--bs-border-color);
+  border-radius: 0;
+  color: var(--bs-danger);
+  cursor: pointer;
+  font: inherit;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-quick, 150ms) var(--ease-out, ease-out), visibility var(--duration-quick, 150ms);
+}
+.audio-queue-item:hover .audio-queue-remove-strip,
+.audio-queue-item:focus-within .audio-queue-remove-strip {
+  opacity: 1;
+  visibility: visible;
+}
+.audio-queue-remove-strip:hover {
+  background: rgba(220, 53, 69, 0.12);
+  color: var(--bs-danger);
+}
+.audio-queue-remove-strip:focus-visible {
+  outline: 2px solid var(--bs-danger);
+  outline-offset: -2px;
+}
+.audio-queue-item.active-track-item .audio-queue-remove-strip {
+  border-left-color: rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.15);
+  color: #ffffff;
+}
+.audio-queue-item.active-track-item .audio-queue-remove-strip:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Artwork thumb with modified-star overlay (replaces the Modified badge). */
+.audio-queue-thumb {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.audio-queue-modified-star {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffc107;
+  font-size: 10px;
+  pointer-events: none;
+}
+
+/* Audio queue item entrance: fade + rise on add, staggered per row.
+   Tokens: --duration-fast (open, 250ms), --ease-smooth-out,
+   --distance-base (8px), --duration-stagger (40ms, capped so the total
+   stays under ~300ms). `backwards` fill hides pre-delay rows. */
+@keyframes audioQueueItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--distance-base, 8px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.audio-queue-item.queue-item-enter {
+  animation: audioQueueItemIn var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)) backwards;
+  animation-delay: calc(var(--enter-index, 0) * var(--duration-stagger, 40ms));
+}
+
+/* Audio queue item exit: faster and quieter than the entrance
+   (--duration-quick close token, 150ms). Height collapses so siblings
+   glide shut; the row is removed from data once it finishes. */
+.audio-queue-item.is-leaving {
+  opacity: 0;
+  transform: translateX(var(--distance-base, 8px));
+  max-height: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom-width: 0;
+  overflow: hidden;
+  transition:
+    opacity var(--duration-quick, 150ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    transform var(--duration-quick, 150ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    max-height var(--duration-quick, 150ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    padding-top var(--duration-quick, 150ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    padding-bottom var(--duration-quick, 150ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.audio-queue-conjoined-list {
+  position: relative;
+}
+
+.audio-queue-conjoined-list.is-dragover {
+  border-color: transparent !important;
+  position: relative;
+}
+
+.audio-queue-conjoined-list.is-dragover > .audio-queue-item {
+  filter: blur(4px) !important;
+  opacity: 0.35 !important;
+  pointer-events: none !important;
+  transition:
+    filter var(--duration-quick, 150ms) var(--ease-out, ease-out),
+    opacity var(--duration-quick, 150ms) var(--ease-out, ease-out);
+}
+
+/* Audio queue fills the view's remaining vertical space so the drop area
+   (or short list) isn't stranded above a void. */
+#audio-tag-queue-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+/* Drop overlay eases in (quick appear token); replays each time d-none lifts. */
+.audio-queue-drag-overlay {
+  animation: audioQueueDropIn var(--duration-quick, 150ms) var(--ease-out, ease-out);
+  opacity: 1;
+  transition:
+    opacity var(--duration-very-slow, 500ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    backdrop-filter var(--duration-very-slow, 500ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    -webkit-backdrop-filter var(--duration-very-slow, 500ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.audio-queue-drag-overlay.is-leaving {
+  opacity: 0 !important;
+  backdrop-filter: blur(0px) !important;
+  -webkit-backdrop-filter: blur(0px) !important;
+  pointer-events: none !important;
+}
+
+.audio-queue-ants-rect {
+  width: calc(100% - 3px);
+  height: calc(100% - 3px);
+  animation: audioQueueAntsSvg 0.8s linear infinite;
+  transition: stroke var(--duration-quick, 150ms) var(--ease-out, ease-out);
+}
+
+/* Accelerate marching ants when about to disappear */
+.audio-queue-drag-overlay.is-leaving .audio-queue-ants-rect,
+.audio-queue-ants-rect.is-accelerating {
+  animation: audioQueueAntsSvg 0.2s linear infinite !important;
+}
+
+@keyframes audioQueueAntsSvg {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+@keyframes audioQueueDropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes audioQueueWobble {
+  0% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-8px) rotate(-3deg);
+  }
+  30% {
+    transform: translateX(7px) rotate(2.5deg);
+  }
+  45% {
+    transform: translateX(-5px) rotate(-1.5deg);
+  }
+  60% {
+    transform: translateX(3px) rotate(1deg);
+  }
+  75% {
+    transform: translateX(-1px) rotate(-0.5deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+.audio-queue-wobble {
+  animation: audioQueueWobble 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .audio-queue-ants-rect,
+  .audio-queue-drag-overlay,
+  .audio-queue-wobble {
+    animation: none;
+  }
+}

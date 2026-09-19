@@ -2,10 +2,16 @@
 import { selectMediaFiles } from "./media.js";
 import { buildAudioTagsCommand } from "./commands.js";
 import { animateQueueHeight } from "./navigation.js";
+import { loadSavedAudioTagQueue, saveAudioTagQueue } from "./storage.js";
+import { morphContent } from "./cube_motion.js";
 
 let audioTagQueue = [];
 let selectedTrackIndex = -1;
 let changeCallback = null;
+// Two-step inline confirm for the Remove cover button: first click arms it
+// (button turns solid red with a Confirm label), second click removes.
+let removeCoverArmed = false;
+let removeCoverArmTimer = null;
 // Entrance tracking: track id -> timestamp when added. A row plays the
 // entrance only while fresh, so the metadata-completion refresh and later
 // select/remove/sort renders stay still. Horizon covers max stagger
@@ -16,6 +22,10 @@ const MAX_ENTER_STAGGER = 7;
 
 export function getAudioTagQueue() {
   return audioTagQueue;
+}
+
+export function getSelectedTrackIndex() {
+  return selectedTrackIndex;
 }
 
 /**
@@ -177,8 +187,38 @@ function setupDragDropZone(el, onFallbackPick) {
 }
 
 function notifyChange() {
+  persistAudioTagQueue();
   if (typeof changeCallback === "function") {
     changeCallback();
+  }
+}
+
+// Persist the queue across sessions. Only small durable fields are stored;
+// embedded cover bytes and loaded file metadata are rebuilt on restore.
+function persistAudioTagQueue() {
+  try {
+    saveAudioTagQueue(
+      audioTagQueue.map((t) => ({
+        filePath: t.filePath,
+        fileName: t.fileName,
+        ext: t.ext,
+        title: t.title,
+        artist: t.artist,
+        album: t.album,
+        albumArtist: t.albumArtist,
+        track: t.track,
+        totalTracks: t.totalTracks,
+        disc: t.disc,
+        year: t.year,
+        genre: t.genre,
+        composer: t.composer,
+        comment: t.comment,
+        coverAction: t.coverAction,
+        chosenCoverPath: t.coverAction === "replace" ? t.chosenCoverPath || "" : "",
+      })),
+    );
+  } catch (err) {
+    console.warn("Failed to persist audio tag queue:", err);
   }
 }
 
@@ -418,6 +458,124 @@ export function removeTrackFromQueue(index) {
   notifyChange();
 }
 
+export async function initSavedAudioTagQueue() {
+  const saved = loadSavedAudioTagQueue();
+  if (saved.length === 0) {
+    renderAudioQueueUI();
+    return;
+  }
+
+  const canInvoke = !!window.__TAURI__?.core?.invoke;
+  const restored = [];
+  for (const s of saved) {
+    if (canInvoke) {
+      let exists = false;
+      try {
+        exists = await window.__TAURI__.core.invoke("check_file_exists", { filePath: s.filePath });
+      } catch (_) {
+        exists = false;
+      }
+      if (!exists) continue;
+    }
+    restored.push({
+      id: `at_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      filePath: s.filePath,
+      fileName: s.fileName,
+      ext: s.ext,
+      title: s.title,
+      artist: s.artist,
+      album: s.album,
+      albumArtist: s.albumArtist,
+      track: s.track,
+      totalTracks: s.totalTracks,
+      disc: s.disc,
+      year: s.year,
+      genre: s.genre,
+      composer: s.composer,
+      comment: s.comment,
+      coverAction: s.coverAction,
+      chosenCoverPath: s.chosenCoverPath,
+      coverDataUrl: "",
+      originalMeta: null,
+      status: "loading_meta",
+      metaLoaded: false,
+    });
+  }
+
+  audioTagQueue = restored;
+  selectedTrackIndex = restored.length > 0 ? 0 : -1;
+  renderAudioQueueUI();
+  if (selectedTrackIndex >= 0) {
+    loadTrackIntoForm(audioTagQueue[selectedTrackIndex]);
+  }
+  persistAudioTagQueue();
+
+  if (restored.length === 0) return;
+
+  // Reload fresh file metadata as the new baseline. Saved values (user edits
+  // included) always win, so anything differing from the file reads back as
+  // modified; untouched tracks settle back to ready.
+  currentMetaLoadToken++;
+  const thisToken = currentMetaLoadToken;
+  isAudioMetaLoading = true;
+  setControlsDisabled(true);
+  showLoadingFeedback(`Restoring audio queue (${restored.length} track(s))...`);
+
+  for (const track of restored) {
+    if (thisToken !== currentMetaLoadToken) break;
+
+    let meta = null;
+    if (canInvoke) {
+      try {
+        meta = await window.__TAURI__.core.invoke("get_audio_metadata", { filePath: track.filePath });
+      } catch (e) {
+        console.warn("Failed to get audio metadata for", track.filePath, e);
+      }
+    }
+    if (thisToken !== currentMetaLoadToken) break;
+
+    if (meta) {
+      track.originalMeta = { ...meta };
+      const freshCover = meta.cover_data_url || "";
+      if (track.coverAction === "replace" && track.chosenCoverPath && canInvoke) {
+        let coverOk = false;
+        try {
+          coverOk = await window.__TAURI__.core.invoke("check_file_exists", { filePath: track.chosenCoverPath });
+          if (coverOk) {
+            track.coverDataUrl = await window.__TAURI__.core.invoke("read_image_data", { filePath: track.chosenCoverPath });
+          }
+        } catch (_) {
+          coverOk = false;
+        }
+        if (!coverOk) {
+          track.coverAction = freshCover ? "keep" : "none";
+          track.chosenCoverPath = "";
+          track.coverDataUrl = freshCover;
+        }
+      } else if (track.coverAction === "remove") {
+        track.coverDataUrl = "";
+      } else {
+        track.coverAction = freshCover ? "keep" : "none";
+        track.coverDataUrl = freshCover;
+      }
+    }
+
+    track.metaLoaded = true;
+    track.status = track.originalMeta && isTrackModified(track) ? "modified" : "ready";
+  }
+
+  if (thisToken === currentMetaLoadToken) {
+    isAudioMetaLoading = false;
+    setControlsDisabled(false);
+    hideLoadingFeedback();
+    renderAudioQueueUI();
+    if (selectedTrackIndex >= 0 && audioTagQueue[selectedTrackIndex]) {
+      loadTrackIntoForm(audioTagQueue[selectedTrackIndex]);
+    }
+    notifyChange();
+  }
+}
+
 export function selectTrack(index) {
   if (index < 0 || index >= audioTagQueue.length || index === selectedTrackIndex) return;
 
@@ -540,7 +698,28 @@ function isTrackModified(track) {
   );
 }
 
+function setRemoveCoverArmed(armed) {
+  removeCoverArmed = armed;
+  if (removeCoverArmTimer) {
+    clearTimeout(removeCoverArmTimer);
+    removeCoverArmTimer = null;
+  }
+  const btn = document.getElementById("btn-tag-remove-cover");
+  if (!btn) return;
+  if (armed) {
+    btn.classList.remove("btn-outline-danger");
+    btn.classList.add("btn-danger");
+    morphContent(btn, `<ion-icon name="alert-outline"></ion-icon> Confirm?`);
+    removeCoverArmTimer = setTimeout(() => setRemoveCoverArmed(false), 3000);
+  } else {
+    btn.classList.remove("btn-danger");
+    btn.classList.add("btn-outline-danger");
+    morphContent(btn, `<ion-icon name="trash-outline"></ion-icon> Remove`);
+  }
+}
+
 function updateCoverUI(track) {
+  setRemoveCoverArmed(false);
   const placeholder = document.getElementById("tag-cover-placeholder");
   const img = document.getElementById("tag-cover-img");
   const btnRemove = document.getElementById("btn-tag-remove-cover");
@@ -597,6 +776,11 @@ function applyChosenCover(dataUrl, coverPath) {
 
 function handleRemoveCover() {
   if (selectedTrackIndex < 0 || selectedTrackIndex >= audioTagQueue.length) return;
+  if (!removeCoverArmed) {
+    setRemoveCoverArmed(true);
+    return;
+  }
+  setRemoveCoverArmed(false);
   const track = audioTagQueue[selectedTrackIndex];
   track.coverAction = "remove";
   track.coverDataUrl = "";
@@ -833,21 +1017,19 @@ function renderAudioQueueUIInner() {
     const subDisplay = item.artist ? `${escapeHtml(item.artist)}${item.album ? ` — ${escapeHtml(item.album)}` : ""}` : escapeHtml(item.fileName);
 
     let statusBadge = "";
-    if (item.status === "loading_meta") {
-      statusBadge = `<span class="badge bg-secondary-subtle text-secondary"><span class="spinner-border spinner-border-sm me-1" style="width: 0.65rem; height: 0.65rem;" role="status"></span>Loading</span>`;
-    } else if (item.status === "processing") {
+    if (item.status === "processing") {
       statusBadge = `<span class="badge bg-primary">Updating...</span>`;
     } else if (item.status === "done") {
       statusBadge = `<span class="badge bg-success">Updated</span>`;
     } else if (item.status === "error") {
       statusBadge = `<span class="badge bg-danger">Error</span>`;
-    } else if (item.status === "modified") {
-      statusBadge = `<span class="badge bg-warning text-dark">Modified</span>`;
     }
+    // Modified state is shown as a star overlay on the artwork instead of a badge.
 
-    const thumbHtml = item.coverDataUrl && item.coverAction !== "remove"
-      ? `<img src="${item.coverDataUrl}" class="border object-fit-cover flex-shrink-0" style="width: 36px; height: 36px; border-radius: ${artRadius}px;" alt="Art" />`
-      : `<div class="border d-flex align-items-center justify-content-center bg-body-tertiary text-body-secondary flex-shrink-0" style="width: 36px; height: 36px; border-radius: ${artRadius}px;"><ion-icon name="musical-note-outline" style="font-size: 1.15rem;"></ion-icon></div>`;
+    const thumbInner = item.coverDataUrl && item.coverAction !== "remove"
+      ? `<img src="${item.coverDataUrl}" class="audio-queue-art border object-fit-cover" style="width: 36px; height: 36px; border-radius: ${artRadius}px;" alt="Art" />`
+      : `<div class="audio-queue-art border d-flex align-items-center justify-content-center bg-body-tertiary text-body-secondary" style="width: 36px; height: 36px; border-radius: ${artRadius}px;"><ion-icon name="musical-note-outline" style="font-size: 1.15rem;"></ion-icon></div>`;
+    const thumbHtml = `<div class="audio-queue-thumb flex-shrink-0">${thumbInner}<ion-icon name="star" id="atag-star-${idx}" class="audio-queue-modified-star${item.status === "modified" ? "" : " d-none"}" title="Modified"></ion-icon></div>`;
 
     html += `
       <div class="audio-queue-item d-flex align-items-stretch justify-content-between gap-0 ${borderClass} ${activeClass}${enterClass}" data-track-index="${idx}" style="${enterIndex}padding: ${itemPadding}px 0 ${itemPadding}px ${itemPadding}px; cursor: pointer;">
@@ -1184,11 +1366,7 @@ function updateQueueRowText(idx, track) {
   if (subEl) subEl.textContent = track.artist ? `${track.artist}${track.album ? ` — ${track.album}` : ""}` : track.fileName;
 
   if (badgeEl) {
-    if (track.status === "loading_meta") {
-      badgeEl.innerHTML = `<span class="badge bg-secondary-subtle text-secondary"><span class="spinner-border spinner-border-sm me-1" style="width: 0.65rem; height: 0.65rem;" role="status"></span>Loading</span>`;
-    } else if (track.status === "modified") {
-      badgeEl.innerHTML = `<span class="badge bg-warning text-dark">Modified</span>`;
-    } else if (track.status === "done") {
+    if (track.status === "done") {
       badgeEl.innerHTML = `<span class="badge bg-success">Updated</span>`;
     } else if (track.status === "error") {
       badgeEl.innerHTML = `<span class="badge bg-danger">Error</span>`;
@@ -1197,19 +1375,21 @@ function updateQueueRowText(idx, track) {
     } else {
       badgeEl.innerHTML = "";
     }
+    const star = document.getElementById(`atag-star-${idx}`);
+    if (star) star.classList.toggle("d-none", track.status !== "modified");
   }
 }
 
 function updateQueueRowThumbnail(idx, track) {
   const row = document.querySelector(`[data-track-index="${idx}"][data-action="select"]`);
   if (!row) return;
-  const oldThumb = row.querySelector("img, div.flex-shrink-0");
+  const oldThumb = row.querySelector(".audio-queue-art");
   if (!oldThumb) return;
 
   if (track.coverDataUrl && track.coverAction !== "remove") {
     const img = document.createElement("img");
     img.src = track.coverDataUrl;
-    img.className = "border object-fit-cover flex-shrink-0";
+    img.className = "audio-queue-art border object-fit-cover";
     img.style.width = "36px";
     img.style.height = "36px";
     img.style.borderRadius = "6px";
@@ -1217,7 +1397,7 @@ function updateQueueRowThumbnail(idx, track) {
     oldThumb.replaceWith(img);
   } else {
     const div = document.createElement("div");
-    div.className = "border d-flex align-items-center justify-content-center bg-body-tertiary text-body-secondary flex-shrink-0";
+    div.className = "audio-queue-art border d-flex align-items-center justify-content-center bg-body-tertiary text-body-secondary";
     div.style.width = "36px";
     div.style.height = "36px";
     div.style.borderRadius = "6px";

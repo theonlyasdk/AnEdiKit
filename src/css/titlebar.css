@@ -1,0 +1,122 @@
+/* System Title Bar Mode Styles */
+body.with-system-titlebar #top-header-bar {
+  height: 48px !important;
+}
+
+body.with-system-titlebar .header-brand-col {
+  border-right: none !important;
+}
+
+/* ==========================================================================
+   Merged Header Caption Controls (Windows 10 style)
+   The top header bar doubles as the custom title bar when "Use System
+   Title Bar" is OFF (body WITHOUT .with-system-titlebar). Caption buttons
+   sit at the top-right of the header; the header itself is the drag region.
+   Hidden when native system decorations are used (default).
+   ========================================================================== */
+
+#top-header-bar {
+  cursor: default;
+  position: relative;
+  /* Above the mobile drawer (1025) so it slides underneath, but below
+     Bootstrap's modal backdrop (1050) so dialogs and their dim always cover it. */
+  z-index: 1030;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.header-caption-controls {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  cursor: default;
+  -webkit-app-region: no-drag;
+  transform: translateY(0);
+  opacity: 1;
+  max-width: 140px;
+  visibility: visible;
+  overflow: hidden;
+  /* Show in two phases, no fade anywhere: layout width opens first, then
+     the buttons drop straight down from the top side, snapping visible. */
+  transition:
+    transform var(--duration-fast) var(--ease-apple) 0.05s,
+    max-width 0.15s ease-out 0s,
+    opacity 0s 0s,
+    visibility 0s 0s;
+}
+
+body.with-system-titlebar .header-caption-controls {
+  transform: translateY(-100%);
+  opacity: 0;
+  max-width: 0;
+  visibility: hidden;
+  pointer-events: none;
+  /* Hide in two phases, no fade: retreat straight up fully visible, snap
+     off exactly when parked, then collapse the leftover width. */
+  transition:
+    transform var(--duration-fast) var(--ease-apple) 0s,
+    max-width 0.15s ease-in 0.1s,
+    opacity 0s var(--duration-fast),
+    visibility 0s var(--duration-fast);
+}
+
+.header-caption-btn {
+  width: 46px;
+  min-width: 46px;
+  height: 100%;
+  min-height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--bs-body-color);
+  line-height: 1;
+  cursor: default;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  transition: background-color 0.08s linear;
+  -webkit-app-region: no-drag;
+}
+
+/* Authentic Windows 10 caption glyphs, always normal (arrow) cursor */
+.header-caption-btn .tb-glyph {
+  font-family: "Segoe MDL2 Assets", "Segoe UI Symbol", sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: default;
+  pointer-events: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.header-caption-btn:hover {
+  background-color: #e5e5e5;
+  cursor: default;
+}
+
+[data-bs-theme="dark"] .header-caption-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-caption-btn:active {
+  background-color: #cacacd;
+  filter: none;
+}
+
+[data-bs-theme="dark"] .header-caption-btn:active {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.header-caption-btn.header-caption-close:hover {
+  background-color: #e81123 !important;
+  color: #ffffff !important;
+}
+
+.header-caption-btn.header-caption-close:active {
+  background-color: #f1707a !important;
+  color: #000000 !important;
+  filter: none;
+}

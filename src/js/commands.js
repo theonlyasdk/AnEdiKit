@@ -1792,6 +1792,8 @@ export function buildCommandForTool(
   extraParams = {},
 ) {
   switch (toolId) {
+    case "all_tools":
+      return null;
     case "convert":
       return buildConvertCommand(inputFile, outputDir, settings);
     case "extract_audio":

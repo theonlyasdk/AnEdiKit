@@ -1,14 +1,14 @@
 # Project Overview - AnEdiKit
 
-AnEditKit is a lightweight, all-in-one toolkit for creators, combining a wide range of media utilities into a single desktop application. It includes FFmpeg-based video and audio tools, a yt-dlp frontend for downloading media, image extraction utilities, and other tools for common content creation workflows.
+AnEdiKit is a lightweight, all-in-one toolkit for creators, combining a wide range of media utilities into a single desktop application. It includes FFmpeg-based video and audio tools, a yt-dlp frontend for downloading media, image extraction utilities, and other tools for common content creation workflows.
 
 The application uses Tauri for its frontend, keeping the overall application size and resource usage relatively low compared to traditional desktop frameworks. Python is used as the backend for image processing and other tasks that benefit from its extensive ecosystem of media and machine-learning libraries.
 
-AnEditKit is designed around asynchronous processing, allowing long-running tasks such as encoding, downloading, image processing, and AI-based operations to run in the background without freezing the interface. Tasks can provide clear progress and status feedback while keeping the UI responsive.
+AnEdiKit is designed around asynchronous processing, allowing long-running tasks such as encoding, downloading, image processing, and AI-based operations to run in the background without freezing the interface. Tasks can provide clear progress and status feedback while keeping the UI responsive.
 
 The interface follows a simple and predictable workflow, making tools easy to discover and use without requiring users to navigate through unnecessary screens or complex settings. Common actions, inputs, outputs, progress states, and errors are presented consistently across the application.
 
-AnEditKit also supports on-device neural processing for features such as background removal and image upscaling, allowing these operations to run locally without requiring files to be uploaded to external services. This keeps creator data on the user's device while providing advanced processing capabilities.
+AnEdiKit also supports on-device neural processing for features such as background removal and image upscaling, allowing these operations to run locally without requiring files to be uploaded to external services. This keeps creator data on the user's device while providing advanced processing capabilities.
 
 Tech:
 - Application Type: Desktop app (Tauri v2)
@@ -96,6 +96,16 @@ Avoid:
 - Always load Bootstrap scripts (`bootstrap.bundle.min.js`) before Monaco Editor's loader (`vs/loader.min.js`) in HTML; Monaco's AMD loader (`define.amd`) hijacks Bootstrap's UMD module definition and prevents Bootstrap modals/dialogs from initializing globally
 
 
+# WebView2 rendering notes
+
+- `mask-image` + `backdrop-filter` on the same element works fine in WebView2 and is the approved way to do progressive blur fades (tint + blur masked together). Do not remove the mask on sticky blur layers out of fear it zeroes the backdrop. That claim was tested and found wrong.
+- Keep `backdrop-filter` declarations simple: one `-webkit-` line + one standard line using `blur(var(--anedikit-blur-radius, 16px)) saturate(var(--anedikit-blur-saturate, 140%))`. Do not stack duplicate fallback declarations for the same property.
+- Pure frosted glass = one semi-transparent `background-color` layer + `backdrop-filter`. Never stack a translucent `background-image` gradient over a translucent `background-color`, and never use the `opacity` property for it. Both turn the blur milky.
+- Never nest `backdrop-filter`: a blurred ancestor forms a Backdrop Root that blinds descendant blurs (proven by screenshot repro: child glass goes flat). Modals live as direct `body` children, keep them there. Dialog background frost belongs on the sibling `.modal-backdrop`, never on `.modal` or `.modal-dialog`.
+- Blur works on the top/footer bars but stays blind inside dialogs: the protected modal animation's `perspective` + `will-change: transform` keeps `.modal-dialog` in a 3D rendering context at rest, and Chromium disables backdrop-filter inside 3D scenes. JS adds `.modal-settled` on `shown.bs.modal` (flat `transform: none`, `will-change: auto`, pixel-identical) and removes it on `hide.bs.modal` so the close tilt still runs. Never leave a resting dialog in the 3D scene.
+- Blur effects are OFF by default (`--anedikit-blur-enabled: 0`, theme default `blur_enabled: false`); every frosted surface falls back to solid opaque. The theme-customizer toggle is the explicit opt-in and must keep working. Gate blurs with `blur(calc(Npx * var(--anedikit-blur-enabled, 1)))`, never with a bare radius var.
+- `opacity` < 1 on the SAME element as `backdrop-filter` blinds sampling (matrix-proven: identical probes, opacity:1 blurs, opacity:0.55 stays sharp; transition irrelevant). Frosted elements must keep `opacity: 1` and carry translucency in `background-color` alpha only — e.g. the modal dim animates `background-color`, never `opacity`. Same reason top/footer bars (opacity 1) blur while the old 0.55 backdrop never did.
+
 # LocalStorage Key System
 
 All localStorage keys must follow the hierarchical `anedikit:` namespace convention:
@@ -112,6 +122,7 @@ All localStorage keys must follow the hierarchical `anedikit:` namespace convent
 - `anedikit:tools:image_ai:queue`: List of queued image files for AI processing.
 - `anedikit:tools:image_ai:replace_source`: In-place source replacement toggle for AI images.
 - `anedikit:tools:ytdlp:filename_format`: Global template format string for downloaded filenames.
+- `anedikit:tools:ytdlp:custom_presets`: Array of user-saved yt-dlp filename format presets.
 - `anedikit:tools:user_kits`: Array of custom user kit definitions.
 - `anedikit:tools:params:<tool_id>`: Saved parameters and properties array per specific tool view.
 

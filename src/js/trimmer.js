@@ -53,6 +53,16 @@ export function refreshWaveformDisplay(peaks = null) {
   });
 }
 
+// Re-render the cached waveform after layout changes (window resize):
+// the canvas bitmap is sized from layout at render time, so without this
+// it keeps stretching stale pixels. Skips when the trim view is hidden
+// or no waveform has been generated yet.
+export function handleTrimResize() {
+  const trimView = document.getElementById("view-trim");
+  if (trimView && trimView.classList.contains("d-none")) return;
+  refreshWaveformDisplay();
+}
+
 export function isAudioFile(filePath) {
   if (!filePath) return false;
   const ext = filePath.split(/[?#]/)[0].split(".").pop().toLowerCase();
@@ -447,4 +457,15 @@ export function initTrimmerControls() {
       });
     });
   }
+
+  // Debounced window resize: re-render the cached waveform at the new
+  // layout size instead of stretching the old bitmap.
+  let trimResizeTimer = null;
+  window.addEventListener("resize", () => {
+    if (trimResizeTimer) clearTimeout(trimResizeTimer);
+    trimResizeTimer = setTimeout(() => {
+      trimResizeTimer = null;
+      handleTrimResize();
+    }, 150);
+  });
 }

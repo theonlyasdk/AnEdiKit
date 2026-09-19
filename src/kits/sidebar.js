@@ -1,5 +1,5 @@
 // AnEdiKit - User Kits Sidebar & Navigation Integration
-import { loadUserKits, getUserKitById, saveUserKit } from "./storage.js";
+import { loadUserKits, getUserKitById, saveUserKit, STORAGE_KEYS } from "./storage.js";
 import { escapeHtml } from "./state.js";
 import { STARTER_TEMPLATES, generateKitId } from "./templates.js";
 import { showCustomKitAlert } from "./modals.js";
@@ -47,7 +47,7 @@ export function applyUserKitsVisibility(enabled) {
     section.classList.add("d-none");
     section.classList.remove("ui-zoom-in");
     if (window.switchAppTool) {
-      const activeTool = localStorage.getItem("anedikit:settings:active_tool");
+      const activeTool = localStorage.getItem(STORAGE_KEYS.ACTIVE_TOOL);
       if (activeTool && activeTool.startsWith("kit_")) {
         window.switchAppTool("convert");
       }

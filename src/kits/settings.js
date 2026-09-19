@@ -11,7 +11,7 @@ import {
 } from "./storage.js";
 import { getIonicIconName, renderUserKitsSidebar } from "./sidebar.js";
 import { selectAndOpenKit, renderKitIdeWorkspace } from "./workspace.js";
-import { showCustomKitAlert } from "./modals.js";
+import { showCustomKitAlert, showCustomKitConfirm } from "./modals.js";
 
 // Export kit configuration as downloadable JSON file
 export function exportKitAsJSON(kit) {
@@ -45,25 +45,32 @@ export function duplicateKitById(kitId) {
   selectAndOpenKit(newId);
 }
 
-// Delete existing kit by ID with confirmation
+// Delete existing kit by ID with a Bootstrap confirmation dialog. The dialog
+// owns the deletion so its confirm button can show an in-progress state.
 export function deleteKitById(kitId) {
   const kit = getUserKitById(kitId);
   if (!kit) return;
 
-  if (confirm(`Are you sure you want to delete the kit "${kit.name}"?`)) {
-    deleteUserKit(kitId);
-    renderUserKitsSidebar();
+  showCustomKitConfirm(`Delete the kit "${kit.name}"? This cannot be undone.`, {
+    title: "Delete Kit",
+    confirmLabel: "Delete",
+    variant: "danger",
+    busyLabel: "Deleting…",
+    onConfirm: () => {
+      deleteUserKit(kitId);
+      renderUserKitsSidebar();
 
-    const remaining = loadUserKits();
-    if (remaining.length > 0) {
-      selectAndOpenKit(remaining[0].id);
-    } else {
-      setActiveKit(null);
-      if (window.switchAppTool) {
-        window.switchAppTool("convert");
+      const remaining = loadUserKits();
+      if (remaining.length > 0) {
+        selectAndOpenKit(remaining[0].id);
+      } else {
+        setActiveKit(null);
+        if (window.switchAppTool) {
+          window.switchAppTool("convert");
+        }
       }
-    }
-  }
+    },
+  });
 }
 
 // TAB 4: KIT SETTINGS (Properties, metadata, icon changer, save)

@@ -1,0 +1,419 @@
+/* Audio CD Spinner & Pulsing Gray Animation */
+@keyframes cdSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes grayPulse {
+  0%, 100% {
+    opacity: 1;
+    color: #6c757d;
+  }
+  50% {
+    opacity: 0.3;
+    color: #adb5bd;
+  }
+}
+
+.cd-loading-spin {
+  display: inline-block;
+  animation: cdSpin 2s linear infinite, grayPulse 1.5s ease-in-out infinite;
+}
+
+/* Editor Timeline Format & Trimmer Controls */
+.trim-panel-card {
+  border-radius: 8px !important;
+}
+
+#trim-timeline-track {
+  background-color: #0d0e11;
+  border-color: var(--bs-border-color) !important;
+  /* Concentric corners via the shared outer = inner + gap formula: the
+     1px track border is the gap between the outer border box and the
+     flush content layers (waveform canvas, filmstrip, dimmers). */
+  --trim-content-radius: 7px;
+  border-radius: calc(var(--trim-content-radius) + 1px) !important;
+  cursor: pointer;
+}
+
+/* Flush content layers share the inner radius so none poke past the
+   track's rounded corners on resize or re-render. */
+#trim-filmstrip-container {
+  border-radius: var(--trim-content-radius) !important;
+}
+#trim-waveform-canvas {
+  border-radius: var(--trim-content-radius);
+}
+#trim-dimmer-left {
+  border-radius: var(--trim-content-radius) 0 0 var(--trim-content-radius);
+}
+#trim-dimmer-right {
+  border-radius: 0 var(--trim-content-radius) var(--trim-content-radius) 0;
+}
+/* Rounded + clipped so the top/bottom highlight bars stay concentric
+   with the track at any selection position or width. */
+#trim-selection-window {
+  border-radius: var(--trim-content-radius);
+  overflow: hidden;
+}
+
+.trim-drag-tooltip {
+  top: -27px;
+  transform: translateX(-50%);
+  background-color: #000000;
+  color: #ffffff;
+  font-family: var(--bs-body-font-family), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  user-select: none;
+}
+
+.trim-drag-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: #000000 transparent transparent transparent;
+}
+
+.trim-timeline-frame-item {
+  flex: 1 1 0px;
+  height: 100%;
+  min-width: 0;
+  object-fit: cover;
+  border-right: 1px solid rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  display: block;
+}
+
+.trim-timeline-frame-item:last-child {
+  border-right: none;
+}
+
+/* AI-chatbot style shimmering text effect */
+.text-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.3) 0%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-flex;
+  align-items: center;
+  animation: textShimmer 2s ease-in-out infinite;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+[data-bs-theme="light"] .text-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.95) 50%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes textShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.trim-range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.trim-range-slider:focus,
+.trim-range-slider:focus-visible,
+.trim-range-slider:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Keyboard focus: the input is a transparent, full-size track, so the ring
+   belongs on the draggable thumb rather than the whole trim area. */
+.trim-range-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-primary) !important;
+}
+
+.trim-range-slider:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-primary) !important;
+}
+
+.trim-range-slider::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 100%;
+  outline: none !important;
+  border: none !important;
+}
+
+.trim-range-slider::-moz-range-track {
+  background: transparent;
+  height: 100%;
+  outline: none !important;
+  border: none !important;
+}
+
+.trim-range-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  cursor: ew-resize;
+  width: 12px;
+  height: 68px;
+  background-color: var(--bs-primary);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 2px;
+  box-shadow: none !important;
+  transform: translateY(4px);
+  outline: none !important;
+  transition: filter 0.1s ease;
+}
+
+.trim-range-slider::-webkit-slider-thumb:hover {
+  filter: brightness(1.25);
+}
+
+.trim-range-slider::-moz-range-thumb {
+  pointer-events: auto;
+  cursor: ew-resize;
+  width: 12px;
+  height: 68px;
+  background-color: var(--bs-primary);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 2px;
+  box-shadow: none !important;
+  transform: translateY(4px);
+  outline: none !important;
+  transition: filter 0.1s ease;
+}
+
+.trim-range-slider::-moz-range-thumb:hover {
+  filter: brightness(1.25);
+}
+
+/* Playhead with strong hover shadow and 75% active brightness */
+#trim-playhead {
+  box-shadow: none !important;
+  transition: box-shadow 0.15s ease, filter 0.1s ease;
+  pointer-events: auto;
+}
+
+#trim-playhead > div {
+  filter: none;
+  transition: filter 0.15s ease;
+}
+
+#trim-playhead:hover {
+  box-shadow: 0 0 24px 6px rgba(255, 59, 48, 0.7), 0 8px 28px rgba(0, 0, 0, 0.65) !important;
+}
+
+#trim-playhead:hover > div {
+  filter: drop-shadow(0 4px 12px rgba(255, 59, 48, 0.8));
+}
+
+#trim-playhead:active,
+#trim-playhead.active-drag {
+  filter: brightness(75%) !important;
+  box-shadow: 0 0 28px 8px rgba(255, 59, 48, 0.85), 0 8px 32px rgba(0, 0, 0, 0.75) !important;
+}
+
+/* Remove easing transition from dimmer overlays for instantaneous scrubbing */
+#trim-dimmer-left,
+#trim-dimmer-right,
+#trim-selection-window {
+  transition: none !important;
+}
+
+/* Morphing Media Preview Card - Smooth size and aspect-ratio interpolation */
+.media-preview-morpher {
+  border-radius: 0 !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 16 / 9;
+  transition: max-width 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              aspect-ratio 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.35s ease;
+  overflow: hidden;
+  position: relative;
+  margin: 0 auto;
+}
+
+.media-preview-morpher.video-mode {
+  max-width: 360px;
+  aspect-ratio: 16 / 9;
+}
+
+.media-preview-morpher.audio-mode {
+  max-width: 200px;
+  aspect-ratio: 1 / 1;
+}
+
+.media-preview-morpher.image-mode {
+  max-width: 360px;
+  aspect-ratio: 16 / 9;
+}
+
+.media-preview-layer {
+  transition: opacity 0.35s ease-in-out, visibility 0.35s ease-in-out;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.media-preview-morpher.video-mode #video-preview-layer {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.media-preview-morpher.audio-mode #audio-preview-layer {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.media-preview-morpher.image-mode #image-preview-layer {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.media-thumb-fade {
+  opacity: 0;
+  transition: opacity 0.35s ease-in-out;
+}
+
+.media-thumb-fade.thumb-visible {
+  opacity: 1;
+}
+
+@media (min-width: 1200px) {
+  .media-preview-morpher.audio-mode {
+    max-width: 220px;
+  }
+
+  .media-preview-morpher.video-mode {
+    max-width: 420px;
+  }
+}
+
+/* Marquee scrolling text for song / audio track name */
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  position: relative;
+}
+
+.marquee-scroll-wrap {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marqueeLinear 12s linear infinite;
+}
+
+.marquee-scroll-wrap:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marqueeLinear {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Flashing / pulsing animation for video thumbnail extraction */
+@keyframes iconFlashPulse {
+  0% {
+    opacity: 0.25;
+    transform: scale(0.95);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0.25;
+    transform: scale(0.95);
+  }
+}
+
+.icon-loading-pulse {
+  animation: iconFlashPulse 1.2s ease-in-out infinite;
+}
+
+/* Stop decorative loops when the user requests reduced motion. The static
+   elements remain visible; the marquee falls back to an ellipsized title. */
+@media (prefers-reduced-motion: reduce) {
+  .cd-loading-spin,
+  .icon-loading-pulse {
+    animation: none;
+  }
+  .text-shimmer {
+    animation: none;
+  }
+  .marquee-scroll-wrap {
+    animation: none;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Heavy drop shadows for audio and video titles and filetypes in preview card */
+#audio-art-title,
+#audio-art-format,
+#audio-title-container,
+#audio-preview-wrapper .z-1,
+#video-fallback-filename,
+#video-overlay-title,
+#video-overlay-format,
+#video-preview-wrapper .z-1,
+.preview-card-text {
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 4px 14px rgba(0, 0, 0, 0.85), 0 1px 2px #000 !important;
+}
+
+#audio-preview-wrapper i,
+#video-preview-wrapper i {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.75));
+}
