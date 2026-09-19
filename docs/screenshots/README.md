@@ -8,6 +8,7 @@ Reference captures of the AnEdiKit interface, one folder per release version. De
 | 0.2.0 | none | none | Folder reserved, no captures |
 | 0.3.0 | 25 pages, 3 dialogs | 25 pages, 4 drawer views | Complete tool set |
 | 0.4.2 | 26 pages, 3 dialogs | 26 pages, 4 drawer views | Added Audio Tag & Metadata Editor, UI refinements |
+| 0.5.0 | 34 pages, 3 dialogs | 34 pages, 4 drawer views | Added PDF Tools, All Tools browser, UI & motion polish |
 
 ## 0.3.0
 

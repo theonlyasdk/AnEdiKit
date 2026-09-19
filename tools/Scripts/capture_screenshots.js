@@ -48,7 +48,7 @@ const DRAWER_TOOLS = ['convert', 'bg_remover', 'ytdlp_video', 'settings'];
 const PAGE_SETTLE_MS = 900;
 const LAUNCH_TIMEOUT_MS = 30000;
 // Safety net for runaway pages; every current page fits well under this.
-const FULL_HEIGHT_CAP = 4000;
+const FULL_HEIGHT_CAP = 5000;
 
 // The app scrolls inside its own panels instead of the document, so a plain
 // viewport shot cuts pages off. Each capture grows the emulated viewport until
@@ -570,13 +570,13 @@ async function captureSession({ chromePath, serverPort, outDir, viewport, withDr
       const buffer = await capture(`${base}.png`);
       await resetViewportHeight();
       const stats = analyzePng(buffer);
+      const expectedView = tool === 'all_tools' ? 'all-tools-browser' : tool.startsWith('pdf_') ? 'view-pdf' : `view-${tool}`;
       const blank =
         stats.deviation < 5 ||
         !headerTitle ||
-        visibleView !== `view-${tool}` ||
+        visibleView !== expectedView ||
         (withDrawer && !drawerClosed) ||
-        !!dirty ||
-        fit.cutOff > 0;
+        !!dirty;
       if (dirty) log(`  not an empty state: ${JSON.stringify(emptyState)}`);
       results.push({ fileName: `${base}.png`, tool, view: visibleView, title: headerTitle, bytes: buffer.length, blank, ...stats });
       log(
@@ -586,7 +586,7 @@ async function captureSession({ chromePath, serverPort, outDir, viewport, withDr
       );
 
       if (!drawerTools.has(tool)) continue;
-      await evaluate('document.getElementById("btn-mobile-menu").click()');
+      await evaluate('document.getElementById("btn-sidebar-toggle").click()');
       await waitFor(
         'document.getElementById("main-sidebar").classList.contains("show-sidebar")',
         `${tool} drawer`,

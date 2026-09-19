@@ -4,13 +4,13 @@ AnEdiKit is a lightweight, all-in-one desktop toolkit for creators that combines
 
 ## Screenshots
 
-![Video Conversion](docs/screenshots/0.4.2/convert_video.png)
+![Video Conversion](docs/screenshots/0.5.0/convert_video.png)
 *Video Conversion: Transcode video formats with customizable codecs, quality presets, hardware acceleration, and live command preview.*
 
-![Media Downloader](docs/screenshots/0.4.2/download_video.png)
+![Media Downloader](docs/screenshots/0.5.0/download_video.png)
 *Media Downloader: Download video and audio streams via yt-dlp with resolution presets, metadata embedding, and playlist support.*
 
-![Comparison View](docs/screenshots/0.4.2/modal_comparison.png)
+![Comparison View](docs/screenshots/0.5.0/modal_comparison.png)
 *Image & AI Processing: Local neural background removal and enhancement with interactive split-slider before/after comparison.*
 
 For full reference captures across all desktop tools, mobile views, and dialogs, see the [Screenshots Index](docs/screenshots/README.md).
