@@ -35,7 +35,7 @@ body.bg-body-tertiary,
 }
 
 #tool-workspace {
-  background-color: var(--bs-body-bg, #181818) !important;
+  background-color: var(--bs-body-bg, #181818);
 }
 
 /* Custom Overlay Scrollbars: Zero layout shift & space */
@@ -49,17 +49,17 @@ body.bg-body-tertiary,
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
-  background: transparent !important;
-  background-color: transparent !important;
+  background: transparent;
+  background-color: transparent;
 }
 
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-track-piece,
 ::-webkit-scrollbar-corner {
-  background: transparent !important;
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+  background: transparent;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 /* Default state (Hide Scrollbars When Not Hovering is OFF):
@@ -75,7 +75,7 @@ body.bg-body-tertiary,
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.6) !important;
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.6);
 }
 
 * {
@@ -101,15 +101,15 @@ html.hide-scrollbars-on-hover *:hover::-webkit-scrollbar {
 }
 
 html.hide-scrollbars-on-hover ::-webkit-scrollbar-thumb {
-  background-color: transparent !important;
+  background-color: transparent;
 }
 
 html.hide-scrollbars-on-hover *:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.28) !important;
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.28);
 }
 
 html.hide-scrollbars-on-hover ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.6) !important;
+  background-color: rgba(var(--bs-emphasis-color-rgb, 255, 255, 255), 0.6);
 }
 
 html.hide-scrollbars-on-hover * {
@@ -176,7 +176,7 @@ button:active,
 a:active,
 [role="button"]:active {
   filter: brightness(75%);
-  transition: none !important;
+  transition: none;
 }
 
 #tool-workspace {

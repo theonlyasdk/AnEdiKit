@@ -21,7 +21,17 @@ import { STORAGE_KEYS } from "../../src/js/storage.js";
 
 const NAMESPACE = "anedikit:";
 
-const CONFIG_ONLY_TOOLS = new Set(["settings", "pdf"]);
+const CONFIG_ONLY_TOOLS = new Set([
+  "settings",
+  "pdf",
+  "pdf_organize",
+  "pdf_optimize",
+  "pdf_to",
+  "pdf_from",
+  "pdf_edit",
+  "pdf_security",
+  "pdf_intelligence",
+]);
 
 function extractHtmlDataTools() {
   const html = fs.readFileSync(indexPath, "utf8");

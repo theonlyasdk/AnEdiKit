@@ -355,18 +355,66 @@ def preview_pages(path):
 
 def pdf_info(path):
     source = Path(path)
-    result = {"name": source.name, "size_bytes": source.stat().st_size, "pages": 0, "width": None, "height": None}
+    result = {
+        "name": source.name,
+        "size_bytes": source.stat().st_size,
+        "pages": 0,
+        "width": None,
+        "height": None,
+        "title": None,
+        "author": None,
+        "subject": None,
+        "creator": None,
+        "producer": None,
+        "version": None,
+        "encrypted": False,
+    }
     if source.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}:
         from PIL import Image
         with Image.open(source) as image:
             result.update(pages=1, width=image.width, height=image.height)
         return result
-    _, PdfReader, _ = require_pdf_libs()
-    reader = PdfReader(str(source), strict=False)
-    result["pages"] = len(reader.pages)
-    if reader.pages:
-        page = reader.pages[0]
-        result["width"] = float(page.mediabox.width); result["height"] = float(page.mediabox.height)
+    fitz, PdfReader, _ = require_pdf_libs()
+    try:
+        reader = PdfReader(str(source), strict=False)
+        result["pages"] = len(reader.pages)
+        result["encrypted"] = bool(getattr(reader, "is_encrypted", False))
+        header = getattr(reader, "pdf_header", "")
+        if header:
+            result["version"] = header.replace("%PDF-", "")
+        if reader.pages:
+            try:
+                page = reader.pages[0]
+                result["width"] = float(page.mediabox.width)
+                result["height"] = float(page.mediabox.height)
+            except Exception:
+                pass
+        meta = getattr(reader, "metadata", None)
+        if meta:
+            result["title"] = getattr(meta, "title", None) or None
+            result["author"] = getattr(meta, "author", None) or None
+            result["subject"] = getattr(meta, "subject", None) or None
+            result["creator"] = getattr(meta, "creator", None) or None
+            result["producer"] = getattr(meta, "producer", None) or None
+    except Exception:
+        try:
+            doc = fitz.open(str(source))
+            result["pages"] = len(doc)
+            result["encrypted"] = bool(doc.is_encrypted)
+            if len(doc) > 0:
+                rect = doc[0].rect
+                result["width"] = float(rect.width)
+                result["height"] = float(rect.height)
+            meta = doc.metadata or {}
+            result["title"] = meta.get("title") or None
+            result["author"] = meta.get("author") or None
+            result["subject"] = meta.get("subject") or None
+            result["creator"] = meta.get("creator") or None
+            result["producer"] = meta.get("producer") or None
+            if meta.get("format"):
+                result["version"] = meta.get("format").replace("PDF ", "")
+        except Exception:
+            pass
     return result
 
 

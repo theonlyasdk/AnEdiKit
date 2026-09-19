@@ -19,6 +19,7 @@ export const STORAGE_KEYS = {
   ACTIVE_KIT_TAB_PREFIX: "anedikit:settings:active_kit_tab:",
   FIRST_START_CHECKED: "anedikit:system:first_start_checked",
   TOOLS_UPDATE_CACHE: "anedikit:cache:tools_update",
+  SIDEBAR_COLLAPSED: "anedikit:sidebar:collapsed",
 };
 
 export const DEFAULT_SETTINGS = {

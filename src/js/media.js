@@ -1409,7 +1409,8 @@ export function initDragAndDrop(onFileSelected) {
         "metadata_cleaner",
       ].includes(activeTool);
 
-      if (activeTool === "pdf" && typeof window.addPdfFilesToPdfQueue === "function") {
+      const isPdfTool = activeTool === "pdf" || activeTool?.startsWith("pdf_");
+      if (isPdfTool && typeof window.addPdfFilesToPdfQueue === "function") {
         window.addPdfFilesToPdfQueue(filePaths);
       } else if (isImageTool) {
         await addImageFilesToQueue(filePaths);
@@ -1449,7 +1450,8 @@ export function initDragAndDrop(onFileSelected) {
                 "metadata_cleaner",
               ].includes(activeTool);
 
-              if (activeTool === "pdf" && typeof window.addPdfFilesToPdfQueue === "function") {
+              const isPdfTool = activeTool === "pdf" || activeTool?.startsWith("pdf_");
+              if (isPdfTool && typeof window.addPdfFilesToPdfQueue === "function") {
                 window.addPdfFilesToPdfQueue(event.payload.paths);
               } else if (isImageTool) {
                 await addImageFilesToQueue(event.payload.paths);

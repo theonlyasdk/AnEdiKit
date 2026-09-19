@@ -6,33 +6,33 @@
 }
 
 .drag-reorder-row:hover {
-  background-color: var(--bs-tertiary-bg) !important;
+  background-color: var(--bs-tertiary-bg);
 }
 
 .drag-reorder-row.is-dragging {
-  z-index: 100 !important;
-  position: relative !important;
+  z-index: 100;
+  position: relative;
   opacity: 0.95;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45) !important;
-  background-color: var(--bs-body-bg) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  background-color: var(--bs-body-bg);
   border-radius: var(--bs-border-radius);
-  transition: none !important;
+  transition: none;
 }
 
 .drag-reorder-row.is-releasing {
-  z-index: 99 !important;
-  position: relative !important;
-  box-shadow: none !important;
-  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease !important;
+  z-index: 99;
+  position: relative;
+  box-shadow: none;
+  transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1), box-shadow 0.15s ease;
 }
 
 .drag-reorder-handle {
-  cursor: grab !important;
+  cursor: grab;
   touch-action: none;
 }
 
 .drag-reorder-handle:active {
-  cursor: grabbing !important;
+  cursor: grabbing;
 }
 
 /* PDF page-grid drop target: a clear, moving insertion target for both

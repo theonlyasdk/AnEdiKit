@@ -1,10 +1,18 @@
 /* System Title Bar Mode Styles */
+:root {
+  --top-header-height: 56px;
+}
+
+body.with-system-titlebar {
+  --top-header-height: 48px;
+}
+
 body.with-system-titlebar #top-header-bar {
-  height: 48px !important;
+  height: 48px;
 }
 
 body.with-system-titlebar .header-brand-col {
-  border-right: none !important;
+  border-right: none;
 }
 
 /* ==========================================================================
@@ -16,13 +24,14 @@ body.with-system-titlebar .header-brand-col {
    ========================================================================== */
 
 #top-header-bar {
+  height: var(--top-header-height, 56px);
   cursor: default;
   position: relative;
   /* Above the mobile drawer (1025) so it slides underneath, but below
      Bootstrap's modal backdrop (1050) so dialogs and their dim always cover it. */
   z-index: 1030;
-  background: transparent !important;
-  background-color: transparent !important;
+  background: transparent;
+  background-color: transparent;
 }
 
 .header-caption-controls {
@@ -110,13 +119,15 @@ body.with-system-titlebar .header-caption-controls {
   background-color: rgba(255, 255, 255, 0.16);
 }
 
-.header-caption-btn.header-caption-close:hover {
-  background-color: #e81123 !important;
-  color: #ffffff !important;
+.header-caption-controls .header-caption-btn.header-caption-close:hover,
+[data-bs-theme="dark"] .header-caption-btn.header-caption-close:hover {
+  background-color: #e81123;
+  color: #ffffff;
 }
 
-.header-caption-btn.header-caption-close:active {
-  background-color: #f1707a !important;
-  color: #000000 !important;
+.header-caption-controls .header-caption-btn.header-caption-close:active,
+[data-bs-theme="dark"] .header-caption-btn.header-caption-close:active {
+  background-color: #f1707a;
+  color: #000000;
   filter: none;
 }

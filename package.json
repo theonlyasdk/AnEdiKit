@@ -1,7 +1,7 @@
 {
   "name": "anedikit",
   "private": true,
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "All-in-one media toolkit for video, audio and image processing",
   "author": "AnEdiKit",
   "type": "module",

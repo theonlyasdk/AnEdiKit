@@ -55,7 +55,7 @@ import {
 } from "./js/app_settings.js";
 import { updateExecuteButtonState, updateCommandPreview, bindFormEvents } from "./js/execution.js";
 import { initKeyboardShortcuts } from "./js/shortcuts.js";
-import { initPdfTools, showPdfToolsHome } from "./js/pdf_tools.js";
+import { initPdfTools, showPdfToolsHome, renderCategory, PDF_ID_TO_CATEGORY } from "./js/pdf_tools.js";
 
 // Re-export public module APIs for backward compatibility
 export {
@@ -196,8 +196,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let settingsRefreshTimeout = null;
 
   initNavigation((toolId) => {
-    if (toolId === "pdf") {
-      showPdfToolsHome();
+    if (toolId.startsWith("pdf_") || toolId === "pdf") {
+      const catTitle = PDF_ID_TO_CATEGORY[toolId];
+      if (catTitle) {
+        renderCategory(catTitle);
+      } else {
+        showPdfToolsHome();
+      }
     }
     restoreModuleState(toolId);
     const mediaInfo = getCurrentMediaInfo();

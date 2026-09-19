@@ -1,8 +1,8 @@
 // Navigation & View Transitions Module
-import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings, getUserKitById } from "./storage.js";
+import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings, getUserKitById, STORAGE_KEYS } from "./storage.js";
 import { isJobRunning } from "./runner.js";
 import { cancelAudioMetadataLoading } from "./audio_tags.js";
-import { PDF_CATEGORIES, renderTool } from "./pdf_tools.js";
+import { PDF_CATEGORIES, renderTool, getCategoryToolIdForPdfTool } from "./pdf_tools.js";
 
 export const TOOL_METADATA = {
   all_tools: {
@@ -115,9 +115,39 @@ export const TOOL_METADATA = {
     desc: "Inspect and strip EXIF tags, GPS coordinates, and camera metadata for photo privacy.",
     viewId: "view-metadata_cleaner",
   },
-  pdf: {
-    title: "PDF Tools",
-    desc: "Organize, optimize, convert, edit, secure, and analyze PDF documents.",
+  pdf_organize: {
+    title: "Organize PDF",
+    desc: "Merge, split, remove, extract, organize, and scan PDF pages.",
+    viewId: "view-pdf",
+  },
+  pdf_optimize: {
+    title: "Optimize PDF",
+    desc: "Compress, repair, and OCR PDF documents.",
+    viewId: "view-pdf",
+  },
+  pdf_to: {
+    title: "Convert to PDF",
+    desc: "Convert images, Word, PowerPoint, Excel, and HTML to PDF.",
+    viewId: "view-pdf",
+  },
+  pdf_from: {
+    title: "Convert from PDF",
+    desc: "Convert PDFs to images, Word, PowerPoint, Excel, PDF/A, and Markdown.",
+    viewId: "view-pdf",
+  },
+  pdf_edit: {
+    title: "Edit PDF",
+    desc: "Edit text, rotate, crop, add page numbers, watermarks, and fill interactive forms.",
+    viewId: "view-pdf",
+  },
+  pdf_security: {
+    title: "PDF Security",
+    desc: "Protect, unlock, sign, redact, and compare PDF documents.",
+    viewId: "view-pdf",
+  },
+  pdf_intelligence: {
+    title: "PDF Intelligence",
+    desc: "AI document summarization and multi-language translation.",
     viewId: "view-pdf",
   },
   ytdlp_video: {
@@ -174,7 +204,13 @@ const TOOL_ORDER = [
   "restore_denoise",
   "icon_generator",
   "metadata_cleaner",
-  "pdf",
+  "pdf_organize",
+  "pdf_optimize",
+  "pdf_to",
+  "pdf_from",
+  "pdf_edit",
+  "pdf_security",
+  "pdf_intelligence",
   "settings",
 ];
 
@@ -205,7 +241,6 @@ function initAllToolsBrowser(onToolChanged) {
   const results = document.getElementById("all-tools-results");
   const search = document.getElementById("all-tools-search");
   const searchGroup = document.getElementById("all-tools-search-group");
-  const clear = document.getElementById("all-tools-clear-search");
   const empty = document.getElementById("all-tools-empty");
   if (!results || !search) return;
   const icons = {
@@ -239,7 +274,6 @@ function initAllToolsBrowser(onToolChanged) {
   };
   const render = () => {
     const query = search.value.trim().toLowerCase();
-    clear?.classList.toggle("d-none", !query);
     searchGroup?.classList.toggle("is-expanded", Boolean(query));
     let visible = 0;
     results.replaceChildren();
@@ -285,12 +319,16 @@ function initAllToolsBrowser(onToolChanged) {
         button.querySelector(".all-tool-description").textContent = item.desc;
         button.addEventListener("click", () => {
           if (item.isPdf) {
-            if (currentActiveTool !== "pdf") {
-              switchTool("pdf", onToolChanged);
+            const catId = getCategoryToolIdForPdfTool(item.pdfToolName);
+            if (currentActiveTool !== catId) {
+              switchTool(catId, onToolChanged, true);
+            } else {
+              const pdfBtn = document.querySelector(`#pdf-nav button[data-tool="${catId}"]`);
+              pdfBtn?.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
             }
             renderTool(item.pdfToolName);
           } else {
-            switchTool(item.id, onToolChanged);
+            switchTool(item.id, onToolChanged, true);
           }
           document.getElementById("tool-view-container")?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
@@ -303,11 +341,8 @@ function initAllToolsBrowser(onToolChanged) {
     empty?.classList.toggle("d-none", visible !== 0);
   };
   search.addEventListener("input", render);
-  clear?.addEventListener("click", () => {
-    search.value = "";
-    search.focus();
-    render();
-  });
+  // Native search-field Esc-clear path (no custom clear button).
+  search.addEventListener("search", render);
   render();
 }
 
@@ -325,9 +360,13 @@ export function updateSidebarIndicator(activeBtn) {
   const containerRect = scrollContainer.getBoundingClientRect();
   const btnRect = activeBtn.getBoundingClientRect();
   const top = btnRect.top - containerRect.top + scrollContainer.scrollTop;
+  const left = btnRect.left - containerRect.left;
+  const width = btnRect.width;
   const height = btnRect.height;
 
   sidebarIndicator.style.transform = `translateY(${top}px)`;
+  sidebarIndicator.style.left = `${left}px`;
+  sidebarIndicator.style.width = `${width}px`;
   sidebarIndicator.style.height = `${height}px`;
   sidebarIndicator.style.opacity = "1";
 }
@@ -398,6 +437,7 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
 
   if (activeNavBtn) {
     updateSidebarIndicator(activeNavBtn);
+    updateSidebarScrollShadows();
     if (autoScroll) {
       // Wheel navigation passes instantScroll: queued "smooth" scrolls pile
       // up and fight each other under high-rate wheels, freezing the UI.
@@ -463,7 +503,7 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
     "metadata_cleaner",
   ].includes(toolId);
   const isAudioTags = toolId === "audio_tags";
-  const isPdfTool = toolId === "pdf";
+  const isPdfTool = toolId.startsWith("pdf_") || toolId === "pdf";
 
   const sharedInputCard = document.getElementById("shared-input-card");
   const sharedUrlCard = document.getElementById("shared-url-card");
@@ -513,20 +553,21 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
     }
   }
 
-  // Toggle execute and reset buttons on settings view
+  // Toggle execute and reset buttons on settings, all_tools, and pdf views
+  const isNoFooterTool = toolId === "settings" || toolId === "all_tools" || isPdfTool;
   const btnExecute = document.getElementById("btn-execute");
   const btnReset = document.getElementById("btn-reset");
   if (btnExecute) {
-    btnExecute.classList.toggle("d-none", toolId === "settings" || isPdfTool);
+    btnExecute.classList.toggle("d-none", isNoFooterTool);
   }
   if (btnReset) {
-    btnReset.classList.toggle("d-none", toolId === "settings" || isPdfTool);
+    btnReset.classList.toggle("d-none", isNoFooterTool);
   }
 
-  // Do not show footer in settings page
+  // Do not show footer in settings page, all tools, or PDF tools
   const bottomFooterBar = document.getElementById("bottom-footer-bar");
   if (bottomFooterBar) {
-    bottomFooterBar.classList.toggle("d-none", toolId === "settings" || isPdfTool);
+    bottomFooterBar.classList.toggle("d-none", isNoFooterTool);
   }
 
   const statusSlot = document.getElementById("status-message");
@@ -623,7 +664,7 @@ export function attachMaterialRipple(element) {
 export function attachFluentRipple(element) {
   if (!element) return;
   element.addEventListener("mousedown", (e) => {
-    // If click is on a child button or control, ignore to prevent duplicate ripples
+    if (e.button !== undefined && e.button !== 0) return;
     const reduceMotion =
       window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
       document.documentElement.classList.contains("no-animations");
@@ -632,7 +673,9 @@ export function attachFluentRipple(element) {
     if (!rect.width || !rect.height) return;
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const size = Math.max(rect.width, rect.height) * 1.5;
+    const dx = Math.max(x, rect.width - x);
+    const dy = Math.max(y, rect.height - y);
+    const size = Math.ceil(Math.hypot(dx, dy) * 2);
 
     const ripple = document.createElement("span");
     ripple.className = "fluent-ripple";
@@ -642,9 +685,6 @@ export function attachFluentRipple(element) {
     ripple.style.top = `${y}px`;
 
     element.appendChild(ripple);
-    // animationend removes it at opacity 0; the timeout is a backstop so a
-    // missed event (hidden tab, toggled animations) can never accumulate
-    // compositor layers and wedge the UI.
     let gone = false;
     const remove = () => {
       if (gone) return;
@@ -654,6 +694,100 @@ export function attachFluentRipple(element) {
     ripple.addEventListener("animationend", remove);
     setTimeout(remove, 2100);
   });
+}
+
+// Collapsed-rail hover labels: an instantaneous Bootstrap tooltip (with
+// arrow) showing the tool title, removed the instant the pointer leaves.
+// Instances are created on demand and disposed synchronously, so each
+// button's native `title` (the expanded-mode hover text) is left intact.
+let activeCollapsedTipBtn = null;
+let lastTipHideAt = 0;
+
+// Design rule: the first hover fades in, but hopping straight to another
+// item swaps instantly without re-animating while a label is on screen
+// (or just left it).
+function shouldShowTipInstantly() {
+  if (document.querySelector(".tooltip.sidebar-nav-tip")) return true;
+  return Date.now() - lastTipHideAt < 300;
+}
+
+export function hideActiveCollapsedTooltip() {
+  if (activeCollapsedTipBtn) hideCollapsedTooltip(activeCollapsedTipBtn);
+}
+
+function showCollapsedTooltip(btn) {
+  if (!btn) return;
+  if (!document.body.classList.contains("sidebar-collapsed")) return;
+  if (window.innerWidth <= 768) return;
+  const BT = window.bootstrap?.Tooltip;
+  if (!BT) return;
+  if (activeCollapsedTipBtn && activeCollapsedTipBtn !== btn) {
+    hideCollapsedTooltip(activeCollapsedTipBtn);
+  }
+  let existing = null;
+  try {
+    existing = BT.getInstance(btn);
+  } catch (_) {
+    existing = null;
+  }
+  if (existing) return;
+  const labelEl = btn.querySelector("span:not(.fluent-ripple):not(.m3-ripple)");
+  const label = labelEl?.textContent?.trim() || btn.getAttribute("title")?.trim();
+  if (!label) return;
+  let inst = null;
+  try {
+    inst = new BT(btn, {
+      title: label,
+      placement: "right",
+      trigger: "manual",
+      animation: !shouldShowTipInstantly(),
+      delay: { show: 0, hide: 0 },
+      fallbackPlacements: ["right", "left"],
+      offset: [0, 10],
+      customClass: "sidebar-nav-tip",
+    });
+  } catch (_) {
+    return;
+  }
+  activeCollapsedTipBtn = btn;
+  try {
+    inst.show();
+  } catch (_) {
+    try {
+      inst.dispose();
+    } catch (_) {}
+    if (activeCollapsedTipBtn === btn) activeCollapsedTipBtn = null;
+  }
+}
+
+function hideCollapsedTooltip(btn) {
+  if (!btn) return;
+  if (activeCollapsedTipBtn === btn) activeCollapsedTipBtn = null;
+  const BT = window.bootstrap?.Tooltip;
+  if (!BT) return;
+  let inst = null;
+  try {
+    inst = BT.getInstance(btn);
+  } catch (_) {
+    inst = null;
+  }
+  if (!inst) return;
+  // Dismiss synchronously the moment the pointer leaves: no fade-out, so
+  // a slow traversal never shows the old label fading under the new one
+  // (the flashing), and the native title is restored at once.
+  lastTipHideAt = Date.now();
+  try {
+    inst.dispose();
+  } catch (_) {}
+}
+
+function attachCollapsedTooltip(btn) {
+  if (!btn) return;
+  btn.addEventListener("mouseenter", () => showCollapsedTooltip(btn));
+  btn.addEventListener("mouseleave", () => hideCollapsedTooltip(btn));
+  btn.addEventListener("focus", () => showCollapsedTooltip(btn));
+  btn.addEventListener("blur", () => hideCollapsedTooltip(btn));
+  btn.addEventListener("click", () => hideCollapsedTooltip(btn));
 }
 
 // Smoothly morph a queue container across a re-render (empty drop card <->
@@ -922,6 +1056,7 @@ export function setupSidebarButtonEffects(btn, onToolChanged) {
   });
 
   attachFluentRipple(btn);
+  attachCollapsedTooltip(btn);
 
   if (onToolChanged && btn.dataset.tool) {
     btn.addEventListener("click", () => {
@@ -950,11 +1085,45 @@ export function initNavigation(onToolChanged) {
       toggleMobileSidebar();
     });
   }
+  const btnCollapse = document.getElementById("btn-sidebar-collapse");
+  if (btnCollapse) {
+    btnCollapse.addEventListener("click", (e) => {
+      e.stopPropagation();
+      hideActiveCollapsedTooltip();
+      if (isSmallWidth()) {
+        toggleMobileSidebar();
+      } else {
+        const isCollapsed = document.body.classList.toggle("sidebar-collapsed");
+        try {
+          localStorage.setItem(STORAGE_KEYS.SIDEBAR_COLLAPSED, isCollapsed ? "true" : "false");
+        } catch (_) {}
+        updateSidebarScrollShadows();
+        // Rail geometry is mid-transition: re-measure once it lands.
+        setTimeout(resyncSidebarGeometry, 260);
+      }
+    });
+  }
+
+  // Restore collapsed sidebar state on desktop
+  try {
+    if (localStorage.getItem(STORAGE_KEYS.SIDEBAR_COLLAPSED) === "true" && !isSmallWidth()) {
+      document.body.classList.add("sidebar-collapsed");
+    }
+  } catch (_) {}
+
+  window.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+      const activeTag = document.activeElement?.tagName;
+      if (activeTag !== "INPUT" && activeTag !== "TEXTAREA") {
+        e.preventDefault();
+        btnCollapse?.click();
+      }
+    }
+  });
+
   if (btnToggle) {
     btnToggle.addEventListener("click", (e) => {
       if (!isSmallWidth()) return;
-      // Button already handled it (and stopped propagation); this catches
-      // clicks that land on the title/padding around the button instead.
       toggleMobileSidebar();
     });
   }
@@ -1096,11 +1265,12 @@ export function initNavigation(onToolChanged) {
   const scrollContainer = document.getElementById("sidebar-scroll-container");
   if (scrollContainer) {
     scrollContainer.addEventListener("scroll", () => {
+      hideActiveCollapsedTooltip();
       const activeBtn = document.querySelector("#sidebar-scroll-container .nav-link.active");
       if (activeBtn) {
         updateSidebarIndicator(activeBtn);
       }
-      updateStickyHeaders();
+      updateSidebarScrollShadows();
     });
   }
 
@@ -1109,42 +1279,57 @@ export function initNavigation(onToolChanged) {
     if (activeBtn) {
       updateSidebarIndicator(activeBtn);
     }
-    updateStickyHeaders();
+    updateSidebarScrollShadows();
   });
 
   // Expose global switcher for custom modules like kits
   window.switchAppTool = (toolId) => switchTool(toolId, onToolChanged);
 
   // Restore saved active tool on startup
-  const savedTool = getSavedActiveTool("convert");
+  let savedTool = getSavedActiveTool("convert");
+  if (savedTool === "pdf") savedTool = "pdf_organize";
   currentActiveTool = ""; // reset to trigger clean initial load
   switchTool(savedTool, onToolChanged);
-  updateStickyHeaders();
+  updateSidebarScrollShadows();
+  // Reload with a restored collapsed rail: it is still animating from full
+  // width here (and icon fonts may not be ready), so the indicator measured
+  // above has expanded geometry. Re-sync past the width transition and again
+  // once fonts/icons settle.
+  setTimeout(resyncSidebarGeometry, 320);
+  if (document.readyState === "complete") {
+    resyncSidebarGeometry();
+  } else {
+    window.addEventListener("load", resyncSidebarGeometry);
+  }
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(() => resyncSidebarGeometry()).catch(() => {});
+  }
 }
 
-export function updateStickyHeaders() {
+export function updateSidebarScrollShadows() {
   const scrollContainer = document.getElementById("sidebar-scroll-container");
-  if (!scrollContainer) return;
-  const containerTop = scrollContainer.getBoundingClientRect().top;
-  const sectionHeaders = scrollContainer.querySelectorAll(".sidebar-section-header");
-  const isAtTop = scrollContainer.scrollTop <= 4;
-  let anyStuck = false;
+  const mainSidebar = document.getElementById("main-sidebar");
+  if (!scrollContainer || !mainSidebar) return;
 
-  sectionHeaders.forEach((header) => {
-    if (!header.querySelector(".sidebar-section-header-bg")) {
-      const bg = document.createElement("div");
-      bg.className = "sidebar-section-header-bg";
-      bg.setAttribute("aria-hidden", "true");
-      header.prepend(bg);
-    }
-    const rect = header.getBoundingClientRect();
-    const isStuck = !isAtTop && rect.top <= containerTop + 2 && rect.bottom > containerTop;
-    if (isStuck) anyStuck = true;
-    header.classList.toggle("is-stuck", isStuck);
-  });
+  const scrollTop = scrollContainer.scrollTop;
+  const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
 
-  const brandCol = document.querySelector(".header-brand-col");
-  if (brandCol) {
-    brandCol.classList.toggle("has-stuck-header", anyStuck);
+  const hasTop = scrollTop > 4;
+  const hasBottom = maxScroll > 4 && scrollTop < maxScroll - 4;
+
+  mainSidebar.classList.toggle("has-scroll-top", hasTop);
+  mainSidebar.classList.toggle("has-scroll-bottom", hasBottom);
+}
+
+// Re-measure the active button after async geometry changes (sidebar width
+// transition on toggle/restore, webfont/icon load) so the sliding indicator
+// never keeps stale inline dimensions.
+export function resyncSidebarGeometry() {
+  const activeBtn = document.querySelector(
+    "#sidebar-scroll-container .nav-link.active, #settings-nav .nav-link.active"
+  );
+  if (activeBtn) {
+    updateSidebarIndicator(activeBtn);
   }
+  updateSidebarScrollShadows();
 }

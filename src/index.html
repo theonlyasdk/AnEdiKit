@@ -27,19 +27,23 @@
   <body class="bg-body-tertiary">
     <div class="d-flex flex-column vh-100 overflow-hidden" id="app-root">
       <!-- Unified Top Header Bar (also acts as the custom title bar when system title bar is disabled) -->
-      <header class="d-flex border-bottom flex-shrink-0" id="top-header-bar" style="height: 56px;">
-        <div class="d-flex align-items-center justify-content-center px-3 flex-shrink-0 header-brand-col" style="width: 280px;">
-          <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn" id="btn-sidebar-toggle" title="AnEdiKit - Click Logo for Credits / Scroll to Switch Tools">
-            <button type="button" class="brand-menu-btn d-md-none" id="btn-mobile-menu" title="Toggle Navigation" aria-label="Toggle navigation menu">
-              <ion-icon name="menu-outline" class="text-primary fs-4 lh-1"></ion-icon>
-            </button>
-            <h1 class="fs-4 mb-0 fw-light text-body user-select-none" id="brand-logo-title" role="button" tabindex="0" title="About AnEdiKit Credits">AnEdiKit</h1>
+      <header class="d-flex border-bottom flex-shrink-0" id="top-header-bar">
+        <div class="d-flex align-items-center justify-content-between px-3 flex-shrink-0 header-brand-col" id="header-brand-col" style="width: var(--sidebar-width, 280px);">
+          <button type="button" class="brand-menu-btn" id="btn-sidebar-collapse" title="Toggle sidebar (Ctrl+B)" aria-label="Toggle sidebar width">
+            <ion-icon name="menu-outline" class="text-primary fs-4 lh-1"></ion-icon>
+          </button>
+          <div class="d-flex align-items-center justify-content-center gap-2 brand-header-btn flex-grow-1" id="btn-sidebar-toggle" title="AnEdiKit - Click Logo for Credits / Scroll to Switch Tools">
+            <h1 class="fs-4 mb-0 fw-light text-body user-select-none brand-title-text" id="brand-logo-title" role="button" tabindex="0" title="About AnEdiKit Credits">AnEdiKit</h1>
           </div>
         </div>
-        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 overflow-hidden" id="top-titlebar-col" style="min-width: 0;" data-tauri-drag-region>
+        <div class="d-flex align-items-center justify-content-between gap-3 px-3 flex-grow-1 overflow-hidden" id="top-titlebar-col" style="min-width: 0;" data-tauri-drag-region>
           <div class="d-flex align-items-center gap-3 header-title-animated overflow-hidden w-100" id="tool-header-text" style="min-width: 0;" data-tauri-drag-region>
             <h2 class="fs-4 mb-0 fw-light text-body flex-shrink-0 text-truncate" id="current-tool-title">Convert Video Formats</h2>
             <span class="text-body-secondary small text-truncate" id="current-tool-desc">Convert between MP4, MKV, WebM, MOV, and AVI with codec, CRF quality, and resolution controls.</span>
+          </div>
+          <div class="input-group all-tools-search-group" id="all-tools-search-group">
+            <span class="input-group-text"><ion-icon name="search-outline"></ion-icon></span>
+            <input class="form-control" id="all-tools-search" type="search" placeholder="Search all tools…" aria-label="Search all tools" />
           </div>
         </div>
         <div class="header-caption-controls">
@@ -55,12 +59,13 @@
         <div class="sidebar-backdrop d-none" id="sidebar-backdrop"></div>
 
         <!-- Sidebar Navigation -->
-        <aside class="sidebar bg-body border-end d-flex flex-column flex-shrink-0" id="main-sidebar" style="width: 280px;">
+        <aside class="sidebar border-end d-flex flex-column flex-shrink-0" id="main-sidebar"
+style="width: var(--sidebar-width, 280px);">
           <div class="overflow-y-auto flex-grow-1 p-2 position-relative" id="sidebar-scroll-container">
             <div class="sidebar-indicator" id="sidebar-indicator"></div>
 
             <!-- Unified tool browser -->
-            <div class="sidebar-section pt-2" id="sidebar-all-tools-section">
+            <div class="sidebar-section pt-3" id="sidebar-all-tools-section">
               <nav class="nav nav-pills flex-column gap-1" id="all-tools-nav">
                 <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="all_tools" type="button" title="Browse every tool by category">
                   <ion-icon name="apps-outline" class="text-body-secondary"></ion-icon>
@@ -71,7 +76,7 @@
 
             <!-- yt-dlp section -->
             <div class="sidebar-section" id="sidebar-ytdlp-section">
-              <div class="sidebar-section-header sidebar-section-first"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>yt-dlp</span></div>
+              <div class="sidebar-section-header sidebar-section-first"><span>yt-dlp</span></div>
               <nav class="nav nav-pills flex-column gap-1" id="ytdlp-nav">
                 <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_audio" type="button" title="Download audio and extract MP3, M4A, FLAC with metadata">
                   <ion-icon name="musical-note-outline" class="text-body-secondary"></ion-icon>
@@ -94,7 +99,7 @@
 
             <!-- FFmpeg section -->
             <div class="sidebar-section" id="sidebar-ffmpeg-section">
-              <div class="sidebar-section-header"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>FFmpeg</span></div>
+              <div class="sidebar-section-header"><span>FFmpeg</span></div>
               <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
                 <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
                   <ion-icon name="film-outline" class="text-body-secondary"></ion-icon>
@@ -161,7 +166,7 @@
 
             <!-- Image & AI Tools section -->
             <div class="sidebar-section" id="sidebar-image-ai-section">
-              <div class="sidebar-section-header"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>Image &amp; AI Tools</span></div>
+              <div class="sidebar-section-header"><span>Image &amp; AI Tools</span></div>
               <nav class="nav nav-pills flex-column gap-1" id="image-ai-nav">
                 <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="bg_remover" type="button" title="Remove background and extract subjects locally using on-device neural models">
                   <ion-icon name="person-circle-outline" class="text-body-secondary"></ion-icon>
@@ -192,11 +197,35 @@
 
             <!-- PDF Tools section -->
             <div class="sidebar-section" id="sidebar-pdf-section">
-              <div class="sidebar-section-header"><div class="sidebar-section-header-bg" aria-hidden="true"></div><span>PDF Tools</span></div>
+              <div class="sidebar-section-header"><span>PDF Tools</span></div>
               <nav class="nav nav-pills flex-column gap-1" id="pdf-nav">
-                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf" type="button" title="Organize, convert, edit, secure, and analyze PDF documents">
-                  <ion-icon name="document-text-outline" class="text-body-secondary"></ion-icon>
-                  <span>All PDF Tools</span>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_organize" type="button" title="Merge, split, remove, extract, organize, and scan pages">
+                  <ion-icon name="file-tray-stacked-outline" class="text-body-secondary"></ion-icon>
+                  <span>Organize PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_optimize" type="button" title="Compress, repair, and OCR PDF documents">
+                  <ion-icon name="speedometer-outline" class="text-body-secondary"></ion-icon>
+                  <span>Optimize PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_to" type="button" title="Convert images, Office documents, and webpages to PDF">
+                  <ion-icon name="arrow-down-circle-outline" class="text-body-secondary"></ion-icon>
+                  <span>Convert to PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_from" type="button" title="Convert PDFs to images, Word, PowerPoint, Excel, and Markdown">
+                  <ion-icon name="arrow-up-circle-outline" class="text-body-secondary"></ion-icon>
+                  <span>Convert from PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_edit" type="button" title="Edit text, rotate, crop, add page numbers, watermark, and forms">
+                  <ion-icon name="create-outline" class="text-body-secondary"></ion-icon>
+                  <span>Edit PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_security" type="button" title="Protect, unlock, sign, redact, and compare PDFs">
+                  <ion-icon name="shield-checkmark-outline" class="text-body-secondary"></ion-icon>
+                  <span>PDF Security</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_intelligence" type="button" title="AI summarizer and document translation">
+                  <ion-icon name="sparkles-outline" class="text-body-secondary"></ion-icon>
+                  <span>PDF Intelligence</span>
                 </button>
               </nav>
             </div>
@@ -204,7 +233,6 @@
             <!-- User Kits section -->
             <div id="sidebar-user-kits-section" class="sidebar-section d-none">
               <div class="sidebar-section-header d-flex align-items-center justify-content-between">
-                <div class="sidebar-section-header-bg" aria-hidden="true"></div>
                 <span>User Kits</span>
               </div>
               <div class="px-1 mb-3">
@@ -230,22 +258,9 @@
         </aside>
 
         <!-- Tool Workspace Panel -->
-        <main class="flex-grow-1 overflow-y-auto p-4 bg-body-tertiary" id="tool-workspace">
+        <main class="flex-grow-1 overflow-y-auto px-4" id="tool-workspace">
           <section class="mb-4 d-none" id="all-tools-browser" aria-labelledby="all-tools-title">
-            <div class="d-flex flex-wrap gap-3 justify-content-between align-items-end mb-4">
-              <div>
-                <h1 class="h2 fw-normal mb-1 d-flex align-items-center gap-2" id="all-tools-title">
-                  <ion-icon name="apps-outline" class="text-primary fs-2 lh-1 flex-shrink-0"></ion-icon>
-                  <span>All tools</span>
-                </h1>
-                <p class="text-body-secondary mb-0">Find a tool by category or search across the entire app.</p>
-              </div>
-              <div class="input-group all-tools-search-group" id="all-tools-search-group">
-                <span class="input-group-text"><ion-icon name="search-outline"></ion-icon></span>
-                <input class="form-control" id="all-tools-search" type="search" placeholder="Search all tools…" aria-label="Search all tools" />
-                <button class="btn btn-outline-secondary d-none" type="button" id="all-tools-clear-search" aria-label="Clear search"><ion-icon name="close-outline"></ion-icon></button>
-              </div>
-            </div>
+            <h1 class="visually-hidden" id="all-tools-title">All tools</h1>
             <div id="all-tools-results" class="vstack gap-4"></div>
             <div id="all-tools-empty" class="text-center text-body-secondary py-5 d-none">
               <ion-icon name="search-outline" class="fs-1 text-secondary opacity-50 mb-2 d-block mx-auto"></ion-icon>

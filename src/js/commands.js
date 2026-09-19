@@ -1793,6 +1793,13 @@ export function buildCommandForTool(
 ) {
   switch (toolId) {
     case "all_tools":
+    case "pdf_organize":
+    case "pdf_optimize":
+    case "pdf_to":
+    case "pdf_from":
+    case "pdf_edit":
+    case "pdf_security":
+    case "pdf_intelligence":
       return null;
     case "convert":
       return buildConvertCommand(inputFile, outputDir, settings);

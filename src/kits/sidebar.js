@@ -3,7 +3,7 @@ import { loadUserKits, getUserKitById, saveUserKit, STORAGE_KEYS } from "./stora
 import { escapeHtml } from "./state.js";
 import { STARTER_TEMPLATES, generateKitId } from "./templates.js";
 import { showCustomKitAlert } from "./modals.js";
-import { setupSidebarButtonEffects } from "../js/navigation.js";
+import { setupSidebarButtonEffects, hideActiveCollapsedTooltip } from "../js/navigation.js";
 import { selectAndOpenKit } from "./workspace.js";
 import { exportKitAsJSON, duplicateKitById, deleteKitById } from "./settings.js";
 
@@ -150,6 +150,7 @@ export function renderUserKitsSidebar() {
   const container = document.getElementById("user-kits-nav");
   if (!container) return;
 
+  hideActiveCollapsedTooltip();
   const kits = loadUserKits();
   if (kits.length === 0) {
     container.innerHTML = `

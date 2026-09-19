@@ -155,19 +155,112 @@ function showPdfErrorDialog(tool, payload, logs) {
   if (window.bootstrap?.Modal) window.bootstrap.Modal.getOrCreateInstance(pdfErrorModal).show();
 }
 
+export function formatPdfFileSize(bytes) {
+  if (bytes == null || isNaN(bytes)) return "—";
+  const num = Number(bytes);
+  if (num < 1024) return `${num} B`;
+  if (num < 1048576) return `${(num / 1024).toFixed(1)} KB`;
+  return `${(num / 1048576).toFixed(2)} MB`;
+}
+
+export function formatPdfDimensions(width, height) {
+  if (!width || !height) return "—";
+  const w = Math.round(width);
+  const h = Math.round(height);
+  const isClose = (a, b) => Math.abs(a - b) <= 4;
+  let standard = "";
+  if ((isClose(w, 595) && isClose(h, 842)) || (isClose(w, 842) && isClose(h, 595))) {
+    standard = " (A4)";
+  } else if ((isClose(w, 612) && isClose(h, 792)) || (isClose(w, 792) && isClose(h, 612))) {
+    standard = " (Letter)";
+  } else if ((isClose(w, 612) && isClose(h, 1008)) || (isClose(w, 1008) && isClose(h, 612))) {
+    standard = " (Legal)";
+  } else if ((isClose(w, 420) && isClose(h, 595)) || (isClose(w, 595) && isClose(h, 420))) {
+    standard = " (A5)";
+  }
+  return `${w} × ${h} pt${standard}`;
+}
+
 async function updatePdfInfo(tool) {
   const body = workspace?.querySelector("#pdf-info-body");
   if (!body) return;
   const names = selectedFiles.map((path) => path.split(/[\\/]/).pop()).filter(Boolean);
-  body.innerHTML = `<dl class="row small mb-0"><dt class="col-5 text-body-secondary">File</dt><dd class="col-7 text-truncate" title="${names.join("; ")}">${names.length ? names[0] : (workspace.querySelector("#pdf-source-url")?.value ? "Web URL" : "None selected")}</dd><dt class="col-5 text-body-secondary">Queued</dt><dd class="col-7">${names.length}</dd><dt class="col-5 text-body-secondary">Pages</dt><dd class="col-7" id="pdf-info-pages">${names.length ? "Reading…" : "—"}</dd><dt class="col-5 text-body-secondary">Size</dt><dd class="col-7" id="pdf-info-size">${names.length ? "Reading…" : "—"}</dd><dt class="col-5 text-body-secondary">Page size</dt><dd class="col-7" id="pdf-info-dimensions">—</dd><dt class="col-5 text-body-secondary">Output</dt><dd class="col-7 text-truncate">${workspace.querySelector("#pdf-output-path")?.value || "Beside source"}</dd></dl>`;
-  if (names.length && window.__TAURI__?.core?.invoke) {
+  if (!names.length) {
+    const url = workspace.querySelector("#pdf-source-url")?.value;
+    if (url) {
+      body.innerHTML = `
+        <dl class="row small mb-0">
+          <dt class="col-5 text-body-secondary">Source</dt>
+          <dd class="col-7 text-truncate" title="${url}">Web URL</dd>
+        </dl>`;
+    } else {
+      body.innerHTML = '<span class="small text-body-secondary">No document selected. Select a PDF to view metadata.</span>';
+    }
+    return;
+  }
+
+  const primaryName = names[0];
+  body.innerHTML = `
+    <dl class="row small mb-0">
+      <dt class="col-5 text-body-secondary">Document</dt>
+      <dd class="col-7 text-truncate" title="${names.join("; ")}">${primaryName}</dd>
+      <dt class="col-5 text-body-secondary">File size</dt>
+      <dd class="col-7" id="pdf-info-size">Reading…</dd>
+      <dt class="col-5 text-body-secondary">Pages</dt>
+      <dd class="col-7" id="pdf-info-pages">Reading…</dd>
+      <dt class="col-5 text-body-secondary">Dimensions</dt>
+      <dd class="col-7" id="pdf-info-dimensions">Reading…</dd>
+      <dt class="col-5 text-body-secondary">Version</dt>
+      <dd class="col-7" id="pdf-info-version">—</dd>
+      <dt class="col-5 text-body-secondary">Security</dt>
+      <dd class="col-7" id="pdf-info-security">—</dd>
+    </dl>`;
+
+  if (window.__TAURI__?.core?.invoke) {
     try {
       const info = await window.__TAURI__.core.invoke("get_pdf_info", { filePath: selectedFiles[0] });
-      const pages = workspace.querySelector("#pdf-info-pages"); const size = workspace.querySelector("#pdf-info-size"); const dimensions = workspace.querySelector("#pdf-info-dimensions");
-      if (pages) pages.textContent = info.pages ?? "—";
-      if (size) size.textContent = info.size_bytes != null ? `${(Number(info.size_bytes) / 1048576).toFixed(2)} MB` : "—";
-      if (dimensions) dimensions.textContent = info.width && info.height ? `${Math.round(info.width)} × ${Math.round(info.height)} pt` : "—";
-    } catch (_) { const pages = workspace.querySelector("#pdf-info-pages"); if (pages) pages.textContent = "Unavailable"; }
+      const rows = [];
+      rows.push(["Document", primaryName, names.join("; ")]);
+      if (names.length > 1) {
+        rows.push(["Queued", `${names.length} files`]);
+      }
+      if (info.size_bytes != null) {
+        rows.push(["File size", formatPdfFileSize(info.size_bytes)]);
+      }
+      if (info.pages != null) {
+        rows.push(["Pages", `${info.pages} ${info.pages === 1 ? "page" : "pages"}`]);
+      }
+      if (info.width && info.height) {
+        rows.push(["Dimensions", formatPdfDimensions(info.width, info.height)]);
+      }
+      if (info.version) {
+        rows.push(["PDF version", `PDF ${info.version}`]);
+      }
+      rows.push(["Security", info.encrypted ? "Password protected" : "Unencrypted"]);
+      if (info.title) {
+        rows.push(["Title", info.title]);
+      }
+      if (info.author) {
+        rows.push(["Author", info.author]);
+      }
+      if (info.subject) {
+        rows.push(["Subject", info.subject]);
+      }
+      if (info.producer || info.creator) {
+        rows.push(["Producer", info.producer || info.creator]);
+      }
+
+      body.innerHTML = `
+        <dl class="row small mb-0">
+          ${rows.map(([label, val, titleVal]) => `
+            <dt class="col-5 text-body-secondary text-truncate" title="${label}">${label}</dt>
+            <dd class="col-7 text-truncate mb-1" title="${titleVal || val}">${val}</dd>
+          `).join("")}
+        </dl>`;
+    } catch (_) {
+      const pages = workspace.querySelector("#pdf-info-pages");
+      if (pages) pages.textContent = "Unavailable";
+    }
   }
 }
 
@@ -185,6 +278,80 @@ function allTools() {
   return PDF_CATEGORIES.flatMap((category) => category.tools.map(([name, description, icon]) => ({
     name, description, icon, category: category.title,
   })));
+}
+
+export const PDF_CATEGORY_IDS = {
+  "Organize PDF": "pdf_organize",
+  "Optimize PDF": "pdf_optimize",
+  "Convert to PDF": "pdf_to",
+  "Convert from PDF": "pdf_from",
+  "Edit PDF": "pdf_edit",
+  "PDF Security": "pdf_security",
+  "PDF Intelligence": "pdf_intelligence",
+};
+
+export const PDF_ID_TO_CATEGORY = {
+  pdf_organize: "Organize PDF",
+  pdf_optimize: "Optimize PDF",
+  pdf_to: "Convert to PDF",
+  pdf_from: "Convert from PDF",
+  pdf_edit: "Edit PDF",
+  pdf_security: "PDF Security",
+  pdf_intelligence: "PDF Intelligence",
+};
+
+export function getCategoryToolId(categoryTitle) {
+  return PDF_CATEGORY_IDS[categoryTitle] || "pdf_organize";
+}
+
+export function getCategoryToolIdForPdfTool(toolName) {
+  const category = PDF_CATEGORIES.find((cat) => cat.tools.some(([name]) => name === toolName));
+  return category ? PDF_CATEGORY_IDS[category.title] : "pdf_organize";
+}
+
+let currentCategory = null;
+
+export function renderCategory(categoryTitleOrId) {
+  if (!workspace) {
+    workspace = document.getElementById("pdf-tools-workspace");
+  }
+  if (!workspace) return;
+
+  const category = PDF_CATEGORIES.find((cat) =>
+    cat.title.toLowerCase() === (categoryTitleOrId || "").toLowerCase() ||
+    getCategoryToolId(cat.title) === categoryTitleOrId
+  ) || PDF_CATEGORIES[0];
+
+  currentCategory = category;
+
+  setWorkspaceContent(`
+    <div class="mb-4">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <ion-icon name="${category.icon}" class="fs-4 text-primary"></ion-icon>
+        <h3 class="h4 fw-normal mb-0">${category.title}</h3>
+      </div>
+      <p class="text-body-secondary mb-0">Choose a tool to work with your documents locally.</p>
+    </div>
+    <section class="mb-4">
+      <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+        ${category.tools.map(([name, description, icon]) => `
+          <div class="col">
+            <button type="button" class="btn btn-outline-secondary w-100 h-100 text-start p-3 all-tool-card" data-pdf-tool="${name}">
+              <div class="d-flex gap-3 align-items-start">
+                <ion-icon name="${icon}" class="fs-4 text-primary flex-shrink-0"></ion-icon>
+                <span>
+                  <span class="d-block fw-semibold text-body mb-1">${name}</span>
+                  <span class="d-block small text-body-secondary text-wrap">${description}</span>
+                </span>
+              </div>
+            </button>
+          </div>`).join("")}
+      </div>
+    </section>`);
+
+  workspace.querySelectorAll("[data-pdf-tool]").forEach((button) => {
+    button.addEventListener("click", () => renderTool(button.dataset.pdfTool));
+  });
 }
 
 function renderHome() {
@@ -205,7 +372,7 @@ function renderHome() {
         <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
           ${category.tools.map(([name, description, icon]) => `
             <div class="col">
-              <button type="button" class="btn btn-outline-secondary w-100 h-100 text-start p-3" data-pdf-tool="${name}">
+              <button type="button" class="btn btn-outline-secondary w-100 h-100 text-start p-3 all-tool-card" data-pdf-tool="${name}">
                 <div class="d-flex gap-3 align-items-start">
                   <ion-icon name="${icon}" class="fs-4 text-primary flex-shrink-0"></ion-icon>
                   <span>
@@ -259,10 +426,13 @@ export function renderTool(toolName) {
   pageOrder = [];
   pageSelection = [];
 
+  const category = PDF_CATEGORIES.find((cat) => cat.tools.some(([name]) => name === tool.name)) || currentCategory;
+  if (category) currentCategory = category;
+
   setWorkspaceContent(`
     <div class="d-flex align-items-center gap-3 mb-4">
       <button type="button" class="btn btn-outline-secondary btn-sm" id="pdf-back-to-tools">
-        <ion-icon name="arrow-back-outline" class="me-1"></ion-icon> All PDF Tools
+        <ion-icon name="arrow-back-outline" class="me-1"></ion-icon> ${category ? category.title : "All PDF Tools"}
       </button>
       <div class="vr"></div>
       <div class="min-w-0">
@@ -311,7 +481,13 @@ export function renderTool(toolName) {
       </div>
     </div>`);
 
-  workspace.querySelector("#pdf-back-to-tools")?.addEventListener("click", renderHome);
+  workspace.querySelector("#pdf-back-to-tools")?.addEventListener("click", () => {
+    if (currentCategory) {
+      renderCategory(currentCategory.title);
+    } else {
+      renderHome();
+    }
+  });
   renderPdfQueue(tool);
   updatePdfInfo(tool);
   workspace.querySelector("#btn-pdf-select-all")?.addEventListener("click", () => { pageSelection = [...pageOrder]; renderPageGrid(tool); });

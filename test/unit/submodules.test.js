@@ -31,7 +31,8 @@ import { getAppSettings, setAppSettings, initToolsCacheControls } from "../../sr
 import { updateEstimatesUI } from "../../src/js/estimates.js";
 import { saveActiveModuleState, restoreModuleState, restoreAllModulesState } from "../../src/js/module_state.js";
 import { updateExecuteButtonState, updateCommandPreview } from "../../src/js/execution.js";
-import { switchTool } from "../../src/js/navigation.js";
+import { switchTool, updateSidebarScrollShadows, updateSidebarIndicator } from "../../src/js/navigation.js";
+import { formatPdfFileSize, formatPdfDimensions } from "../../src/js/pdf_tools.js";
 import * as mainModule from "../../src/main.js";
 
 describe("Submodule: format_sync.js", () => {
@@ -298,6 +299,77 @@ describe("Navigation: Workspace Tool Switching", () => {
     assert.equal(container.classList.contains("view-slide-from-bottom"), false);
     assert.equal(container.classList.contains("view-slide-from-top"), false);
     assert.equal(container.classList.contains("view-material-zoom"), false);
+  });
+});
+
+describe("Navigation: Sidebar Scroll Shadows and Indicator", () => {
+  it("should update scroll shadows according to scroll position", () => {
+    const scrollContainer = document.getElementById("sidebar-scroll-container");
+    const mainSidebar = document.getElementById("main-sidebar");
+    assert.ok(scrollContainer);
+    assert.ok(mainSidebar);
+
+    // Mock scroll properties: at top, scrollable
+    Object.defineProperty(scrollContainer, "scrollTop", { value: 0, configurable: true });
+    Object.defineProperty(scrollContainer, "scrollHeight", { value: 1000, configurable: true });
+    Object.defineProperty(scrollContainer, "clientHeight", { value: 500, configurable: true });
+
+    updateSidebarScrollShadows();
+    assert.equal(mainSidebar.classList.contains("has-scroll-top"), false);
+    assert.equal(mainSidebar.classList.contains("has-scroll-bottom"), true);
+
+    // Scrolled to middle
+    Object.defineProperty(scrollContainer, "scrollTop", { value: 200, configurable: true });
+    updateSidebarScrollShadows();
+    assert.equal(mainSidebar.classList.contains("has-scroll-top"), true);
+    assert.equal(mainSidebar.classList.contains("has-scroll-bottom"), true);
+
+    // Scrolled to bottom
+    Object.defineProperty(scrollContainer, "scrollTop", { value: 500, configurable: true });
+    updateSidebarScrollShadows();
+    assert.equal(mainSidebar.classList.contains("has-scroll-top"), true);
+    assert.equal(mainSidebar.classList.contains("has-scroll-bottom"), false);
+  });
+
+  it("should position sidebar indicator with left, width, and height matching the button", () => {
+    const indicator = document.getElementById("sidebar-indicator");
+    const scrollContainer = document.getElementById("sidebar-scroll-container");
+    const btn = document.querySelector("#tool-nav button[data-tool='convert']");
+    assert.ok(indicator);
+    assert.ok(scrollContainer);
+    assert.ok(btn);
+
+    // Mock bounding rects
+    scrollContainer.getBoundingClientRect = () => ({ top: 50, left: 10, width: 280, height: 600 });
+    btn.getBoundingClientRect = () => ({ top: 80, left: 18, width: 264, height: 40 });
+    Object.defineProperty(scrollContainer, "scrollTop", { value: 0, configurable: true });
+
+    updateSidebarIndicator(btn);
+    assert.equal(indicator.style.transform, "translateY(30px)");
+    assert.equal(indicator.style.left, "8px");
+    assert.equal(indicator.style.width, "264px");
+    assert.equal(indicator.style.height, "40px");
+    assert.equal(indicator.style.opacity, "1");
+  });
+});
+
+describe("Submodule: pdf_tools metadata helpers", () => {
+  it("should correctly format PDF file sizes", () => {
+    assert.equal(formatPdfFileSize(500), "500 B");
+    assert.equal(formatPdfFileSize(2048), "2.0 KB");
+    assert.equal(formatPdfFileSize(1048576 * 2.5), "2.50 MB");
+    assert.equal(formatPdfFileSize(null), "—");
+    assert.equal(formatPdfFileSize(NaN), "—");
+  });
+
+  it("should correctly format PDF dimensions and detect standard paper sizes", () => {
+    assert.equal(formatPdfDimensions(595.28, 841.89), "595 × 842 pt (A4)");
+    assert.equal(formatPdfDimensions(841.89, 595.28), "842 × 595 pt (A4)");
+    assert.equal(formatPdfDimensions(612, 792), "612 × 792 pt (Letter)");
+    assert.equal(formatPdfDimensions(612, 1008), "612 × 1008 pt (Legal)");
+    assert.equal(formatPdfDimensions(420, 595), "420 × 595 pt (A5)");
+    assert.equal(formatPdfDimensions(400, 300), "400 × 300 pt");
+    assert.equal(formatPdfDimensions(null, null), "—");
   });
 });
 

@@ -96,8 +96,8 @@
 }
 
 .image-queue-item.image-item-deleted .image-queue-item-title {
-  color: var(--bs-danger) !important;
-  text-decoration: line-through !important;
+  color: var(--bs-danger);
+  text-decoration: line-through;
 }
 
 .image-queue-thumb-fallback {
@@ -105,23 +105,23 @@
 }
 
 .image-drop-active {
-  border-color: var(--bs-primary) !important;
-  background-color: var(--bs-primary-bg-subtle) !important;
-  box-shadow: 0 0 16px rgba(var(--bs-primary-rgb), 0.25) !important;
+  border-color: var(--bs-primary);
+  background-color: var(--bs-primary-bg-subtle);
+  box-shadow: 0 0 16px rgba(var(--bs-primary-rgb), 0.25);
   transition: all 0.15s ease-in-out;
 }
 
 .image-drop-active i {
-  color: var(--bs-primary) !important;
-  opacity: 1 !important;
+  color: var(--bs-primary);
+  opacity: 1;
   transform: scale(1.15);
   transition: transform 0.15s ease-in-out;
 }
 
 .image-queue-drop-placeholder {
-  border: 2px dashed var(--bs-primary) !important;
-  background-color: var(--bs-primary-bg-subtle) !important;
-  color: var(--bs-primary) !important;
+  border: 2px dashed var(--bs-primary);
+  background-color: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary);
   animation: dropPlaceholderPulse 1.2s ease-in-out infinite alternate;
 }
 
@@ -458,7 +458,7 @@ body.modal-open {
 
 /* Modal Content Aesthetics: subtle Windows 10 elevation */
 .modal-content {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.16) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32), 0 2px 6px rgba(0, 0, 0, 0.16);
   border-radius: var(--bs-border-radius-lg, 0.5rem);
 }
 
@@ -466,8 +466,8 @@ body.modal-open {
    No translucency, no backdrop dependence — reads clean on every renderer. */
 /* About Dialog Morphing Shortcuts View (iOS-style fluid card morph) */
 .about-dialog-content {
-  border-radius: 20px !important;
-  background-color: var(--bs-tertiary-bg) !important;
+  border-radius: 20px;
+  background-color: var(--bs-tertiary-bg);
   overflow: hidden;
   transform-origin: center center;
   transition: max-width var(--duration-fast) var(--ease-apple),

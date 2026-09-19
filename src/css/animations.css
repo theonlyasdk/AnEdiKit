@@ -110,7 +110,7 @@
 }
 
 .input-drop-pulsing {
-  animation: dropPulseShadow 1.3s ease-in-out infinite !important;
+  animation: dropPulseShadow 1.3s ease-in-out infinite;
   border-radius: var(--bs-border-radius);
   position: relative;
   z-index: 10;
@@ -119,28 +119,28 @@
 .input-drop-pulsing .form-control,
 .input-drop-pulsing .btn,
 #input-file-path.input-drop-pulsing {
-  border-color: var(--bs-primary) !important;
-  background-color: var(--bs-tertiary-bg) !important;
+  border-color: var(--bs-primary);
+  background-color: var(--bs-tertiary-bg);
 }
 
 .input-drop-pulsing .form-control::placeholder {
-  color: var(--bs-primary) !important;
+  color: var(--bs-primary);
 }
 
 /* Drag drop placement flash animation */
 @keyframes itemDropFlash {
   0% {
-    background-color: rgba(var(--bs-primary-rgb), 0.4) !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.4);
     outline: 2px solid var(--bs-primary);
   }
   100% {
-    background-color: transparent !important;
+    background-color: transparent;
     outline: 2px solid transparent;
   }
 }
 
 .item-dropped-highlight {
-  animation: itemDropFlash 0.5s ease-out forwards !important;
+  animation: itemDropFlash 0.5s ease-out forwards;
 }
 
 /* Media Preview Slide-in Animation */
@@ -175,10 +175,10 @@ html.no-animations *::after {
 
 .progress-bar-material-indeterminate {
   position: relative;
-  width: 100% !important;
+  width: 100%;
   height: 100%;
-  background-color: var(--bs-primary) !important;
-  animation: materialIndeterminate 1.6s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite !important;
+  background-color: var(--bs-primary);
+  animation: materialIndeterminate 1.6s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
   transform-origin: 0% 50%;
 }
 
@@ -218,11 +218,11 @@ html.no-animations *::after {
 }
 
 .dropdown-menu {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .dropdown-menu.show {
-  display: block !important;
+  display: block;
   animation: dropdownCurtainFall 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 

@@ -26,24 +26,24 @@
 
 /* Editor Timeline Format & Trimmer Controls */
 .trim-panel-card {
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 #trim-timeline-track {
   background-color: #0d0e11;
-  border-color: var(--bs-border-color) !important;
+  border-color: var(--bs-border-color);
   /* Concentric corners via the shared outer = inner + gap formula: the
      1px track border is the gap between the outer border box and the
      flush content layers (waveform canvas, filmstrip, dimmers). */
   --trim-content-radius: 7px;
-  border-radius: calc(var(--trim-content-radius) + 1px) !important;
+  border-radius: calc(var(--trim-content-radius) + 1px);
   cursor: pointer;
 }
 
 /* Flush content layers share the inner radius so none poke past the
    track's rounded corners on resize or re-render. */
 #trim-filmstrip-container {
-  border-radius: var(--trim-content-radius) !important;
+  border-radius: var(--trim-content-radius);
 }
 #trim-waveform-canvas {
   border-radius: var(--trim-content-radius);
@@ -154,40 +154,40 @@
   padding: 0;
   width: 100%;
   height: 100%;
-  outline: none !important;
-  border: none !important;
-  box-shadow: none !important;
+  outline: none;
+  border: none;
+  box-shadow: none;
 }
 
 .trim-range-slider:focus,
 .trim-range-slider:focus-visible,
 .trim-range-slider:active {
-  outline: none !important;
-  box-shadow: none !important;
+  outline: none;
+  box-shadow: none;
 }
 
 /* Keyboard focus: the input is a transparent, full-size track, so the ring
    belongs on the draggable thumb rather than the whole trim area. */
 .trim-range-slider:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-primary) !important;
+  box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-primary);
 }
 
 .trim-range-slider:focus-visible::-moz-range-thumb {
-  box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-primary) !important;
+  box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-primary);
 }
 
 .trim-range-slider::-webkit-slider-runnable-track {
   background: transparent;
   height: 100%;
-  outline: none !important;
-  border: none !important;
+  outline: none;
+  border: none;
 }
 
 .trim-range-slider::-moz-range-track {
   background: transparent;
   height: 100%;
-  outline: none !important;
-  border: none !important;
+  outline: none;
+  border: none;
 }
 
 .trim-range-slider::-webkit-slider-thumb {
@@ -200,9 +200,9 @@
   background-color: var(--bs-primary);
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 2px;
-  box-shadow: none !important;
+  box-shadow: none;
   transform: translateY(4px);
-  outline: none !important;
+  outline: none;
   transition: filter 0.1s ease;
 }
 
@@ -218,9 +218,9 @@
   background-color: var(--bs-primary);
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 2px;
-  box-shadow: none !important;
+  box-shadow: none;
   transform: translateY(4px);
-  outline: none !important;
+  outline: none;
   transition: filter 0.1s ease;
 }
 
@@ -230,7 +230,7 @@
 
 /* Playhead with strong hover shadow and 75% active brightness */
 #trim-playhead {
-  box-shadow: none !important;
+  box-shadow: none;
   transition: box-shadow 0.15s ease, filter 0.1s ease;
   pointer-events: auto;
 }
@@ -241,7 +241,7 @@
 }
 
 #trim-playhead:hover {
-  box-shadow: 0 0 24px 6px rgba(255, 59, 48, 0.7), 0 8px 28px rgba(0, 0, 0, 0.65) !important;
+  box-shadow: 0 0 24px 6px rgba(255, 59, 48, 0.7), 0 8px 28px rgba(0, 0, 0, 0.65);
 }
 
 #trim-playhead:hover > div {
@@ -250,21 +250,21 @@
 
 #trim-playhead:active,
 #trim-playhead.active-drag {
-  filter: brightness(75%) !important;
-  box-shadow: 0 0 28px 8px rgba(255, 59, 48, 0.85), 0 8px 32px rgba(0, 0, 0, 0.75) !important;
+  filter: brightness(75%);
+  box-shadow: 0 0 28px 8px rgba(255, 59, 48, 0.85), 0 8px 32px rgba(0, 0, 0, 0.75);
 }
 
 /* Remove easing transition from dimmer overlays for instantaneous scrubbing */
 #trim-dimmer-left,
 #trim-dimmer-right,
 #trim-selection-window {
-  transition: none !important;
+  transition: none;
 }
 
 /* Morphing Media Preview Card - Smooth size and aspect-ratio interpolation */
 .media-preview-morpher {
-  border-radius: 0 !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+  border-radius: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
   width: 100%;
   max-width: 360px;
   aspect-ratio: 16 / 9;
@@ -410,7 +410,7 @@
 #video-overlay-format,
 #video-preview-wrapper .z-1,
 .preview-card-text {
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 4px 14px rgba(0, 0, 0, 0.85), 0 1px 2px #000 !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95), 0 4px 14px rgba(0, 0, 0, 0.85), 0 1px 2px #000;
 }
 
 #audio-preview-wrapper i,

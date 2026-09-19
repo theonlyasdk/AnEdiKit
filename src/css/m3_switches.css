@@ -1,72 +1,3 @@
-/* Material Design 3 Toggle Switch */
-.form-check.form-switch {
-  padding-left: 3.25rem;
-  min-height: 1.75rem;
-  display: flex;
-  align-items: center;
-}
-
-.form-check.form-switch .form-check-label {
-  cursor: pointer;
-  user-select: none;
-  margin-left: 0.25rem;
-  font-size: 0.9375rem;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.form-check.form-switch .form-check-input {
-  width: 42px;
-  height: 23px;
-  margin-left: -3.25rem;
-  margin-right: 0.25rem;
-  margin-top: 0;
-  flex-shrink: 0;
-  border-radius: 9999px;
-  border: 2px solid var(--bs-border-color);
-  background-color: var(--bs-body-bg);
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='4.5' fill='%238a9096'/%3e%3c/svg%3e");
-  background-position: left 2px center;
-  background-size: 14px 14px;
-  background-repeat: no-repeat;
-  transition:
-    background-position 0.24s cubic-bezier(0.2, 0, 0, 1),
-    background-size 0.24s cubic-bezier(0.2, 0, 0, 1),
-    background-color 0.24s cubic-bezier(0.2, 0, 0, 1),
-    border-color 0.24s cubic-bezier(0.2, 0, 0, 1),
-    box-shadow 0.2s ease;
-  cursor: pointer;
-}
-
-.form-check.form-switch .form-check-input:hover {
-  border-color: rgba(var(--bs-primary-rgb), 0.6);
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='4.5' fill='%23a2a8b0'/%3e%3c/svg%3e");
-}
-
-.form-check.form-switch .form-check-input:focus {
-  border-color: var(--bs-primary);
-  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.2);
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='4.5' fill='%23a2a8b0'/%3e%3c/svg%3e");
-}
-
-.form-check.form-switch .form-check-input:checked {
-  background-color: var(--bs-primary);
-  border-color: var(--bs-primary);
-  background-position: right 2px center;
-  background-size: 18px 18px;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='5.5' fill='%23ffffff'/%3e%3c/svg%3e");
-}
-
-.form-check.form-switch .form-check-input:checked:hover {
-  background-color: var(--bs-primary);
-  border-color: var(--bs-primary);
-  filter: brightness(1.08);
-}
-
-.form-check.form-switch .form-check-input:checked:focus {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-6 -6 12 12'%3e%3ccircle r='5.5' fill='%23ffffff'/%3e%3c/svg%3e");
-}
-
 /* ==========================================================================
    Pixel-Accurate Material 3 Switches (Specification: 52px x 32px)
    - Track: 52px width, 32px height, 16px border-radius
@@ -75,6 +6,7 @@
    - Real-time drag support via --m3-drag-progress
    ========================================================================== */
 
+.form-check.form-switch,
 .form-switch {
   padding-left: 3.5rem;
   min-height: 2rem;
@@ -82,22 +14,33 @@
   align-items: center;
 }
 
+.form-check.form-switch .form-check-label,
+.form-switch .form-check-label {
+  cursor: pointer;
+  user-select: none;
+  margin-left: 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.form-check.form-switch .form-check-input,
 .form-switch .form-check-input,
 input[type="checkbox"][role="switch"].form-check-input {
-  width: 52px !important;
-  height: 32px !important;
-  min-width: 52px !important;
-  max-width: 52px !important;
-  border-radius: 16px !important;
-  background-image: none !important; /* Discard Bootstrap SVG dot */
-  margin-left: -3.5rem !important;
-  margin-top: 0 !important;
+  width: 52px;
+  height: 32px;
+  min-width: 52px;
+  max-width: 52px;
+  border-radius: 16px;
+  background-image: none; /* Discard Bootstrap SVG dot */
+  margin-left: -3.5rem;
+  margin-top: 0;
   cursor: pointer;
   position: relative;
   touch-action: pan-y;
   vertical-align: middle;
   background-color: var(--bs-tertiary-bg, #e7e0ec);
-  border: 2px solid var(--bs-outline, var(--bs-border-color, #79747e)) !important;
+  border: 2px solid var(--bs-outline, var(--bs-border-color, #79747e));
   transition: background-color 0.2s cubic-bezier(0.2, 0, 0, 1),
               border-color 0.2s cubic-bezier(0.2, 0, 0, 1),
               box-shadow 0.2s ease;
@@ -109,6 +52,7 @@ input[type="checkbox"][role="switch"].form-check-input {
 }
 
 /* Material 3 Switch Thumb (Handle) */
+.form-check.form-switch .form-check-input::after,
 .form-switch .form-check-input::after,
 input[type="checkbox"][role="switch"].form-check-input::after {
   content: "";
@@ -132,7 +76,9 @@ input[type="checkbox"][role="switch"].form-check-input::after {
 }
 
 /* Active / Pressed state before or during toggle */
+.form-check.form-switch .form-check-input:active::after,
 .form-switch .form-check-input:active::after,
+.form-check.form-switch .form-check-input.m3-switch-active::after,
 .form-switch .form-check-input.m3-switch-active::after {
   width: 28px;
   height: 28px;
@@ -141,13 +87,15 @@ input[type="checkbox"][role="switch"].form-check-input::after {
 }
 
 /* Selected / Checked Track */
+.form-check.form-switch .form-check-input:checked,
 .form-switch .form-check-input:checked,
 input[type="checkbox"][role="switch"].form-check-input:checked {
-  background-color: var(--bs-primary) !important;
-  border-color: var(--bs-primary) !important;
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
 }
 
 /* Selected / Checked Thumb: Expands to 24px, rests at left: 22px, top: 2px */
+.form-check.form-switch .form-check-input:checked::after,
 .form-switch .form-check-input:checked::after,
 input[type="checkbox"][role="switch"].form-check-input:checked::after {
   width: 24px;
@@ -158,7 +106,9 @@ input[type="checkbox"][role="switch"].form-check-input:checked::after {
   transform: translateX(calc((var(--m3-drag-progress, 1) - 1) * 18px));
 }
 
+.form-check.form-switch .form-check-input:checked:active::after,
 .form-switch .form-check-input:checked:active::after,
+.form-check.form-switch .form-check-input:checked.m3-switch-active::after,
 .form-switch .form-check-input:checked.m3-switch-active::after {
   width: 28px;
   height: 28px;
@@ -167,34 +117,40 @@ input[type="checkbox"][role="switch"].form-check-input:checked::after {
 }
 
 /* Dragging in Progress - disable transitions for instant responsive drag follow */
+.form-check.form-switch .form-check-input.m3-switch-dragging::after,
 .form-switch .form-check-input.m3-switch-dragging::after {
-  transition: none !important;
+  transition: none;
 }
 
 /* Focus indicator conforming to M3 state layer */
+.form-check.form-switch .form-check-input:focus,
 .form-switch .form-check-input:focus {
-  border-color: var(--bs-primary) !important;
-  box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.25) !important;
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 3px rgba(var(--bs-primary-rgb), 0.25);
 }
 
 /* Dark mode adjustments for M3 switch track & thumb */
+[data-bs-theme="dark"] .form-check.form-switch .form-check-input,
 [data-bs-theme="dark"] .form-switch .form-check-input,
 [data-bs-theme="dark"] input[type="checkbox"][role="switch"].form-check-input {
   background-color: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.38) !important;
+  border-color: rgba(255, 255, 255, 0.38);
 }
 
+[data-bs-theme="dark"] .form-check.form-switch .form-check-input::after,
 [data-bs-theme="dark"] .form-switch .form-check-input::after,
 [data-bs-theme="dark"] input[type="checkbox"][role="switch"].form-check-input::after {
   background-color: rgba(255, 255, 255, 0.65);
 }
 
+[data-bs-theme="dark"] .form-check.form-switch .form-check-input:checked,
 [data-bs-theme="dark"] .form-switch .form-check-input:checked,
 [data-bs-theme="dark"] input[type="checkbox"][role="switch"].form-check-input:checked {
-  background-color: var(--bs-primary) !important;
-  border-color: var(--bs-primary) !important;
+  background-color: var(--bs-primary);
+  border-color: var(--bs-primary);
 }
 
+[data-bs-theme="dark"] .form-check.form-switch .form-check-input:checked::after,
 [data-bs-theme="dark"] .form-switch .form-check-input:checked::after,
 [data-bs-theme="dark"] input[type="checkbox"][role="switch"].form-check-input:checked::after {
   background-color: #ffffff;

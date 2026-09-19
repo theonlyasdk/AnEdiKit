@@ -3,11 +3,11 @@
   opacity: 0;
   transform: translateX(120%);
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease-out, box-shadow 0.3s ease;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 8px 24px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 8px 24px rgba(0, 0, 0, 0.45);
 }
 
 #finished-toast {
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 10px 28px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 10px 28px rgba(0, 0, 0, 0.5);
 }
 
 .toast-slide-in.showing,
@@ -20,9 +20,9 @@
 .toast-slide-in.toast-sliding-out,
 .toast-slide-in.hide,
 .toast-slide-in:not(.show) {
-  opacity: 0 !important;
-  transform: translateX(120%) !important;
-  transition: transform 0.35s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.3s ease-in !important;
+  opacity: 0;
+  transform: translateX(120%);
+  transition: transform 0.35s cubic-bezier(0.7, 0, 0.84, 0), opacity 0.3s ease-in;
 }
 
 /* Save Preset Dropdown Horizontal Slide Animation */
@@ -81,15 +81,16 @@
 }
 
 .btn-custom-preset-item .btn-delete-custom-preset:hover {
-  color: var(--bs-danger) !important;
+  color: var(--bs-danger);
 }
 
 /* Horizontal Scrolling Cards with Dynamic Progressive Blur & Gradient Shading */
+.card.executables-group-card,
 .executables-group-card {
   --outer-radius: 16px;
   --card-padding: 12px;
-  padding: var(--card-padding) var(--card-padding) 6px var(--card-padding) !important;
-  border-radius: var(--outer-radius) !important;
+  padding: var(--card-padding) var(--card-padding) 6px var(--card-padding);
+  border-radius: var(--outer-radius);
 }
 
 .scroll-cards-wrapper {
@@ -151,16 +152,16 @@
      scroll affordance. */
   scrollbar-width: none;
   -ms-overflow-style: none;
-  scroll-behavior: auto !important;
+  scroll-behavior: auto;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
-  padding-bottom: 6px !important;
+  padding-bottom: 6px;
 }
 
 .scroll-cards-container.is-dragging {
-  cursor: grabbing !important;
-  scroll-behavior: auto !important;
+  cursor: grabbing;
+  scroll-behavior: auto;
 }
 
 .scroll-cards-container::-webkit-scrollbar {
@@ -185,20 +186,21 @@
   inherits: false;
   initial-value: 0%;
 }
+.btn.btn-updating-progress,
 .btn-updating-progress {
-  position: relative !important;
-  overflow: hidden !important;
-  border-color: transparent !important;
-  border-width: 0 !important;
-  box-shadow: none !important;
-  background-color: var(--bs-secondary-bg) !important;
+  position: relative;
+  overflow: hidden;
+  border-color: transparent;
+  border-width: 0;
+  box-shadow: none;
+  background-color: var(--bs-secondary-bg);
   background-image: linear-gradient(
     to right,
     var(--bs-primary) 0%,
     var(--bs-primary) var(--btn-progress, 0%),
     var(--bs-secondary-bg) var(--btn-progress, 0%),
     var(--bs-secondary-bg) 100%
-  ) !important;
+  );
   transition: --btn-progress 0.38s linear;
 }
 
@@ -211,39 +213,39 @@
 }
 
 #manage-tools-list-container [id^="btn-update-"] {
-  flex: 1 1 auto !important;
-  width: auto !important;
+  flex: 1 1 auto;
+  width: auto;
 }
 
 #manage-tools-list-container [id^="btn-update-"].btn-updating-progress {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 #manage-tools-list-container .btn-progress-label {
-  display: inline-block !important;
-  max-width: min(380px, calc(100% - 32px)) !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  vertical-align: middle !important;
+  display: inline-block;
+  max-width: min(380px, calc(100% - 32px));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 #manage-tools-list-container [id^="btn-delete-"] {
-  flex: 0 0 auto !important;
-  width: auto !important;
+  flex: 0 0 auto;
+  width: auto;
 }
 
 /* Manage Tools footer: the live speed/ETA badge appears mid-row during
    updates — keep everything on one line (no wrap pushing Done down) and
    let the status text truncate instead of squeezing the buttons. */
 #manage-tools-modal .modal-footer {
-  flex-wrap: nowrap !important;
-  padding-top: 0.5rem !important;
-  padding-bottom: 0.5rem !important;
+  flex-wrap: nowrap;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 /* Column alignment for Installed item so Latest aligns across rows without gaps inside labels */
 #manage-tools-modal .tool-ver-item {
@@ -261,13 +263,14 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap !important;
+  white-space: nowrap;
 }
 
 /* Nested Corner Radius: Inner Radius = Outer Radius - Padding */
+.card.env-tool-card,
 .env-tool-card {
   --inner-radius: calc(var(--outer-radius, 16px) - var(--card-padding, 12px));
-  border-radius: var(--inner-radius, 4px) !important;
+  border-radius: var(--inner-radius, 4px);
   aspect-ratio: 4 / 3;
   width: 200px;
   display: flex;
@@ -278,16 +281,16 @@
 }
 
 .env-tool-card:hover {
-  border-color: rgba(var(--bs-primary-rgb), 0.5) !important;
+  border-color: rgba(var(--bs-primary-rgb), 0.5);
 }
 
 .env-tool-card [id^="status-"] {
-  pointer-events: auto !important;
+  pointer-events: auto;
   cursor: help;
   /* Plain glyph, never a badge: install check / missing cross read as
      bare marks with no background behind them. */
-  background: transparent !important;
-  border-radius: 0 !important;
+  background: transparent;
+  border-radius: 0;
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
@@ -308,12 +311,12 @@
 #execution-status-panel .card:hover .log-copy-btn,
 .log-copy-btn:focus-visible {
   opacity: 0.95;
-  color: var(--bs-body-color) !important;
+  color: var(--bs-body-color);
 }
 
 .log-copy-btn.copied {
-  opacity: 1 !important;
-  color: var(--bs-success) !important;
+  opacity: 1;
+  color: var(--bs-success);
 }
 
 /* Command Preview Box Non-Overflowing Styling */
@@ -367,3 +370,28 @@
 .settings-row-content:last-child {
   border-bottom: none;
 }
+
+.all-tool-card {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  text-align: left;
+  transition: transform var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+              border-color var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+              background-color var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+              box-shadow var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.all-tool-card > .d-flex {
+  align-items: flex-start !important;
+  width: 100%;
+}
+
+.all-tool-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--bs-primary);
+  background-color: var(--bs-tertiary-bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
