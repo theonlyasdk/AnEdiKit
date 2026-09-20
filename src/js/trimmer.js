@@ -2,6 +2,11 @@
 import { generateWaveformFromSource, renderWaveformToCanvas } from "./waveform.js";
 import { sharedPlaybackController } from "./playback.js";
 import { getCurrentMediaInfo, getCurrentInputFile } from "./media.js";
+import {
+  isAudioFile as isAudioFilePure,
+  isImageFile as isImageFilePure,
+  isVideoFile as isVideoFilePure,
+} from "./media_types.js";
 
 let currentWaveformPeaks = null;
 let currentTimelineExtractToken = 0;
@@ -63,21 +68,18 @@ export function handleTrimResize() {
   refreshWaveformDisplay();
 }
 
+// Delegated to media_types.js (single source of truth). Kept here for
+// backward compatibility — existing imports from trimmer.js keep working.
 export function isAudioFile(filePath) {
-  if (!filePath) return false;
-  const ext = filePath.split(/[?#]/)[0].split(".").pop().toLowerCase();
-  return ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "aiff", "alac"].includes(ext);
+  return isAudioFilePure(filePath);
 }
 
 export function isImageFile(filePath) {
-  if (!filePath) return false;
-  const ext = filePath.split(/[?#]/)[0].split(".").pop().toLowerCase();
-  return ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg", "ico"].includes(ext);
+  return isImageFilePure(filePath);
 }
 
 export function isVideoFile(filePath) {
-  if (!filePath) return false;
-  return !isAudioFile(filePath) && !isImageFile(filePath);
+  return isVideoFilePure(filePath);
 }
 
 export async function extractTimelineThumbnailsAsync(filePath, duration) {

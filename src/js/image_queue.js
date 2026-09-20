@@ -224,11 +224,12 @@ function renderImageAiQueueUIInner() {
               <ion-icon name="reorder-two-outline" class="fs-5"></ion-icon>
             </span>
             <div class="d-flex align-items-center gap-3 text-truncate flex-grow-1 btn-image-preview-thumb" data-preview-idx="${idx}" style="cursor: pointer;" title="Click to expand preview">
-              <div class="image-queue-thumb-wrapper transparency-grid border flex-shrink-0 position-relative">
+              <div class="image-queue-thumb-wrapper transparency-grid border flex-shrink-0 position-relative${item.status === 'done' ? ' is-done' : ''}">
                 <img class="image-queue-thumb" src="${assetSrc}" alt="${item.name}" onerror="this.onerror=null; this.classList.add('d-none'); this.nextElementSibling?.classList.remove('d-none'); const qItem = this.closest('.image-queue-item'); if (qItem) { qItem.classList.add('image-item-deleted'); const title = qItem.querySelector('.image-queue-item-title'); if (title) { title.classList.remove('text-body'); title.classList.add('text-danger', 'text-decoration-line-through'); } const badge = qItem.querySelector('.image-queue-status-badge'); if (badge) { badge.className = 'badge bg-danger-subtle text-danger image-queue-status-badge'; badge.innerHTML = '<ion-icon name=\\'alert-circle-outline\\' class=\\'me-1\\'></ion-icon>Deleted'; } }" />
                 <div class="image-queue-thumb-fallback d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark">
                   <ion-icon name="alert-circle-outline" class="text-danger fs-5"></ion-icon>
                 </div>
+                <div class="image-queue-thumb-scrim"></div>
                 ${item.status === "done" ? `<div class="image-queue-thumb-done"><ion-icon name="checkmark-circle"></ion-icon></div>` : ""}
                 <div class="image-queue-thumb-overlay">
                   <ion-icon name="scan-outline"></ion-icon>

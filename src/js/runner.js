@@ -1,7 +1,8 @@
 import { updateBatchItemStatus, updateActiveImageAiProgress } from "./media.js";
 import { loadSettings } from "./storage.js";
 import { animateCopyConfirm } from "./copy_anim.js";
-import { TOOL_METADATA } from "./navigation.js";
+import { TOOL_METADATA } from "./tool_metadata.js";
+import { classifyLogLine, logKindToCssClass } from "./log_classify.js";
 
 let isRunning = false;
 let isBatchRunning = false;
@@ -12,10 +13,6 @@ let currentFinishedUnlisten = null;
 
 export function isJobRunning() {
   return isRunning || isBatchRunning;
-}
-
-export function isBatchJobActive() {
-  return isBatchRunning;
 }
 
 export function isCancelRequested() {
@@ -63,22 +60,7 @@ export function appendLog(text, isError = false) {
   if (!logConsole || !text) return;
 
   const lineEl = document.createElement("div");
-  const lower = text.toLowerCase();
-  // WARNING lines (e.g. yt-dlp PO-token notices mentioning "Error 403") are
-  // advisories, not failures -- check warning first so they stay yellow.
-  const isWarn = lower.startsWith("warning") || lower.includes("warning:");
-  const isErr = !isWarn && (isError || lower.includes("error") || lower.includes("failed"));
-  const isSuccess = !isErr && !isWarn && (lower.includes("success") || lower.includes("100%"));
-
-  if (isErr) {
-    lineEl.className = "text-danger";
-  } else if (isWarn) {
-    lineEl.className = "text-warning";
-  } else if (isSuccess) {
-    lineEl.className = "text-success";
-  } else {
-    lineEl.className = "text-body-secondary";
-  }
+  lineEl.className = logKindToCssClass(classifyLogLine(text, isError));
 
   lineEl.textContent = text;
   logConsole.appendChild(lineEl);

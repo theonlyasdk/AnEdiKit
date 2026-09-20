@@ -1,6 +1,6 @@
 // AnEdiKit - Module State Persistence and Restoration Submodule
 import { getSavedToolParams, saveToolParams } from "./storage.js";
-import { TOOL_METADATA } from "./navigation.js";
+import { TOOL_METADATA } from "./tool_metadata.js";
 import { syncSpeedSliderUI, syncFormatSpecificUI } from "./format_sync.js";
 
 export function saveActiveModuleState(toolId) {

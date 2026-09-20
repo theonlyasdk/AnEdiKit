@@ -3,7 +3,7 @@
 // rest of AnEdiKit without introducing a parallel style system.
 import { setupListDragAndDrop } from "./drag_reorder.js";
 import { rise } from "./cube_motion.js";
-import { saveLastOutputDir, getLastOutputDir } from "./storage.js";
+import { saveLastOutputDir } from "./storage.js";
 
 const PDF_CATEGORIES = [
   {

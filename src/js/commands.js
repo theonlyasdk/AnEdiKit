@@ -1,5 +1,7 @@
 import { getLastYtDlpOutDir } from "./storage.js";
 import { getSavedYtDlpFormat } from "./ytdlp_format.js";
+import { isAudioPath as isAudioPathPure } from "./media_types.js";
+import { resolveDestinationPathPure } from "./path_resolve.js";
 
 // Probed media metadata cache (populated by media.js after each probe and by
 // main.js for merge list files). Lets synchronous command builders adapt to
@@ -43,12 +45,10 @@ export function probeIsAudioOnly(filePath) {
   return false;
 }
 
-const AUDIO_EXTS = new Set(["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "aiff", "alac"]);
-
+// Delegated to media_types.js (single source of truth). Kept here for
+// backward compatibility — existing imports from commands.js keep working.
 export function isAudioPath(filePath) {
-  if (!filePath) return false;
-  const ext = String(filePath).split(/[?#]/)[0].split(".").pop().toLowerCase();
-  return AUDIO_EXTS.has(ext);
+  return isAudioPathPure(filePath);
 }
 
 // Map a source audio codec to a container that can mux it with `-c:a copy`.
@@ -71,39 +71,14 @@ export function audioCodecToContainer(codec) {
 }
 
 export function resolveDestinationPath(defaultFileName, settings = {}, inputFile = "") {
+  // Thin DOM adapter over the pure resolver in path_resolve.js.
+  // Keeps the existing (defaultFileName, settings, inputFile) signature so
+  // current callers and unit tests keep working.
   const currentInput = inputFile || document.getElementById("input-file-path")?.value?.trim() || "";
-  let outDir = "";
-
-  // 1. If explicit custom output directory specified
-  if (settings.customOutputDir && settings.customOutputDir.trim()) {
-    outDir = settings.customOutputDir.trim();
-  }
-
-  // 2. Default directly to the enclosing directory of the source file
-  if (!outDir && currentInput) {
-    const lastSlash = Math.max(currentInput.lastIndexOf("\\"), currentInput.lastIndexOf("/"));
-    if (lastSlash > 0) {
-      outDir = currentInput.substring(0, lastSlash);
-    }
-  }
-
-  // 3. Fallback to settings outputDir or system Videos directory
-  if (!outDir) {
-    outDir = settings.outputDir || "C:\\Users\\User\\Videos";
-  }
-
   const customNameInput = document.getElementById("output-file-name");
-  let targetName = customNameInput?.dataset?.fullPath || customNameInput?.value?.trim() || "";
-
-  if (!targetName) {
-    targetName = defaultFileName;
-  }
-
-  if (targetName.includes("\\") || targetName.includes("/")) {
-    return targetName;
-  }
-
-  return `${outDir.replace(/[/\\]+$/, "")}\\${targetName}`;
+  const fullPath = customNameInput?.dataset?.fullPath || "";
+  const customName = customNameInput?.value?.trim() || "";
+  return resolveDestinationPathPure(defaultFileName, settings, currentInput, customName, fullPath);
 }
 
 let detectedHardwareInfo = null;

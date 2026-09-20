@@ -1,7 +1,7 @@
 // Universal Reusable Media Playback & Scrubbing Controller
 // Usable across Trim, Audio Mastering, Video Cutters, Preview Players, etc.
 
-import { formatSecondsToTimestamp, parseTimestampToSeconds } from "./media.js";
+import { formatSecondsToTimestamp } from "./media.js";
 
 export class MediaPlaybackController {
   constructor(options = {}) {

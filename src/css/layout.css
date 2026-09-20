@@ -39,7 +39,11 @@
 #mobile-settings-nav .nav-link {
   color: var(--bs-body-color);
   border-radius: var(--bs-border-radius);
-  padding: 0.5rem 0.85rem;
+  padding: 0 0.85rem;
+  height: 38px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
   font-size: 0.875rem;
   position: relative;
   z-index: 1;
@@ -52,6 +56,8 @@
 #settings-nav .nav-link ion-icon,
 #mobile-settings-nav .nav-link ion-icon {
   font-size: 1.25rem;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
   transition: font-size 0.2s ease, color 0.25s ease;
 }
@@ -933,7 +939,9 @@ body.sidebar-collapsed {
 .brand-menu-btn {
   background: transparent;
   border: none;
-  padding: 0.35rem;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   margin: 0;
   display: inline-flex;
   align-items: center;
@@ -951,9 +959,9 @@ body.sidebar-collapsed {
 @media (min-width: 769px) {
   .brand-menu-btn {
     position: absolute;
-    left: 0.75rem;
+    left: 34px;
     top: 50%;
-    transform: translateY(-50%);
+    transform: translate(-50%, -50%);
     z-index: 2;
   }
 
@@ -1075,24 +1083,22 @@ body.sidebar-collapsed #sidebar-scroll-container::-webkit-scrollbar {
 }
 
 body.sidebar-collapsed .header-brand-col {
-  /* !important beats Bootstrap px-3 (!important) so the 68px cell can
-     truly center the hamburger. */
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  justify-content: center;
   align-items: center;
 }
 
 body.sidebar-collapsed .brand-menu-btn {
   position: absolute;
-  left: 50%;
+  left: 34px;
   top: 50%;
   transform: translate(-50%, -50%);
   margin: 0;
 }
 
 body.sidebar-collapsed .brand-header-btn {
-  display: none !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease, visibility 0.12s ease;
 }
 
 body.sidebar-collapsed .brand-title-text {
@@ -1105,8 +1111,6 @@ body.sidebar-collapsed .brand-title-text {
 }
 
 body.sidebar-collapsed #sidebar-scroll-container {
-  /* !important beats Bootstrap p-2 (!important): 5.6px + 16px = 21.6px,
-     matching expanded 8px + 13.6px so icons never shift. */
   padding-left: 0.35rem !important;
   padding-right: 0.35rem !important;
 }
@@ -1120,29 +1124,31 @@ body.sidebar-collapsed #sidebar-settings-container {
 
 body.sidebar-collapsed .sidebar .nav-link,
 body.sidebar-collapsed #settings-nav .nav-link {
-  justify-content: flex-start;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  text-align: left;
-  /* !important beats Bootstrap gap-2 (!important) so the hidden label
-     adds no trailing gap and the icon stays at exactly 21.6px. */
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  padding: 0 !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  margin: 0 auto !important;
   gap: 0 !important;
+  width: 100% !important;
 }
 
 body.sidebar-collapsed .sidebar .nav-link span:not(.fluent-ripple):not(.m3-ripple),
 body.sidebar-collapsed #settings-nav .nav-link span:not(.fluent-ripple):not(.m3-ripple) {
-  opacity: 0;
-  max-width: 0;
-  display: inline-block;
-  pointer-events: none;
-  transform: translateX(-8px);
-  transition: opacity 0.12s ease, max-width 0.18s ease, transform 0.12s ease;
+  display: none !important;
 }
 
 body.sidebar-collapsed .sidebar .nav-link ion-icon,
 body.sidebar-collapsed #settings-nav .nav-link ion-icon {
   font-size: 1.25rem;
-  margin: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0 auto !important;
+  display: block !important;
+  flex-shrink: 0;
 }
 
 body.sidebar-collapsed .sidebar-section-header {

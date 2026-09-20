@@ -145,54 +145,91 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
+/* Stationary background dim/scrim (does not transform/scale) */
+.image-queue-thumb-scrim {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.image-queue-thumb-wrapper.is-done .image-queue-thumb-scrim {
+  opacity: 0.45;
+}
+
+.image-queue-thumb-wrapper:hover .image-queue-thumb-scrim {
+  opacity: 0.65;
+}
+
+/* Fullscreen / Scan Icon Overlay */
 .image-queue-thumb-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.45);
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.image-queue-thumb-overlay ion-icon {
+  color: #ffffff;
+  font-size: 16px;
   opacity: 0;
   transform: scale(0.65);
-  transition: opacity 0.22s cubic-bezier(0.2, 0, 0, 1), transform 0.22s cubic-bezier(0.2, 0, 0, 1);
-  color: #ffffff;
-  font-size: 15px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
+  transition:
+    opacity var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    transform var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+  will-change: transform, opacity;
+}
+
+.image-queue-thumb-wrapper:hover .image-queue-thumb-overlay ion-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Checkmark Icon Overlay for Completed Items */
+.image-queue-thumb-done {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
   z-index: 2;
 }
 
-.image-queue-thumb-wrapper:hover .image-queue-thumb-overlay {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.image-queue-thumb-done {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.image-queue-thumb-done ion-icon {
   color: var(--bs-success, #22c55e);
   font-size: 22px;
-  pointer-events: none;
-  z-index: 1;
   opacity: 1;
   transform: scale(1);
-  transition: opacity 0.22s cubic-bezier(0.2, 0, 0, 1), transform 0.22s cubic-bezier(0.2, 0, 0, 1);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+  transition:
+    opacity var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    transform var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
+  will-change: transform, opacity;
 }
 
-.image-queue-thumb-wrapper:hover .image-queue-thumb-done {
+.image-queue-thumb-wrapper:hover .image-queue-thumb-done ion-icon {
   opacity: 0;
   transform: scale(0.65);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-queue-thumb-overlay ion-icon,
+  .image-queue-thumb-done ion-icon,
+  .image-queue-thumb-scrim {
+    transition: none;
+    transform: none !important;
+  }
 }
 
 /* Audio Queue List Item Styling & Bootstrap Highlight */

@@ -3,14 +3,11 @@ import {
   getSavedInputFile,
   loadSavedBatchQueue,
   saveBatchQueue,
-  loadSavedImageAiQueue,
-  saveImageAiQueue,
   loadSettings,
 } from "./storage.js";
-import { generateWaveformFromSource, renderWaveformToCanvas, clearWaveformCache } from "./waveform.js";
+import { generateWaveformFromSource, clearWaveformCache } from "./waveform.js";
 import { setCachedMediaProbe } from "./commands.js";
 import { mediaPreviewManager, setMediaSrc } from "./preview_providers.js";
-import { sharedPlaybackController, MediaPlaybackController } from "./playback.js";
 import {
   refreshWaveformDisplay,
   syncMediaDurationToTools,
@@ -1039,10 +1036,6 @@ function scheduleBatchProbe(getPath) {
       if (filePath) probeMedia(filePath);
     } catch (_) {}
   }, 120);
-}
-
-export function requestBatchItemProbe(idx) {
-  scheduleBatchProbe(() => (idx >= 0 && idx < batchQueue.length ? batchQueue[idx].path : null));
 }
 
 export function requestBatchItemProbePath(filePath) {

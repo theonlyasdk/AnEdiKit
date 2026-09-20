@@ -27,7 +27,9 @@ import {
   resetCancelFlag,
   showBatchFinishedNotification,
 } from "./runner.js";
-import { getCurrentActiveTool, TOOL_METADATA } from "./navigation.js";
+import { getCurrentActiveTool } from "./navigation.js";
+import { TOOL_METADATA } from "./tool_metadata.js";
+import { resolveExecuteButtonState } from "./execute_state.js";
 import { animateCopyConfirm } from "./copy_anim.js";
 import { checkToolsBeforeExecution } from "./tools_manager.js";
 import { openComparisonModal, setComparisonShimmer } from "./comparison.js";
@@ -39,7 +41,7 @@ import {
   revertActiveTrack,
   isAudioTagsLoading,
 } from "./audio_tags.js";
-import { formatSpeedValue, syncFormatSpecificUI } from "./format_sync.js";
+import { syncFormatSpecificUI } from "./format_sync.js";
 import { updateEstimatesUI } from "./estimates.js";
 import {
   getOutputFilePath,
@@ -57,9 +59,11 @@ import {
   fetchPlaylistVideosHandler,
   initPlaylistControls,
 } from "./playlist.js";
-import { getMergeFiles, initMergeControls, renderMergeList } from "./merge.js";
+import { getMergeFiles, initMergeControls } from "./merge.js";
 
 export function updateExecuteButtonState() {
+  // Thin DOM adapter: gather state, delegate branching to the pure
+  // resolveExecuteButtonState() in execute_state.js, then apply to the button.
   const btnExecute = document.getElementById("btn-execute");
   const activeTool = getCurrentActiveTool();
   const currentInput = getCurrentInputFile();
@@ -67,128 +71,57 @@ export function updateExecuteButtonState() {
 
   if (!btnExecute) return;
 
-  if (activeTool === "settings") {
+  const queue = typeof getBatchQueue === "function" ? getBatchQueue() : [];
+  const playlistVideos = typeof getPlaylistVideos === "function" ? getPlaylistVideos() : [];
+  const imgQueue = typeof getImageAiQueue === "function" ? getImageAiQueue() : [];
+  const audioQueue = typeof getAudioTagQueue === "function" ? getAudioTagQueue() : [];
+  const cmdInput = document.getElementById("custom-args");
+
+  const state = resolveExecuteButtonState({
+    activeTool,
+    currentUrl,
+    fetchedPlaylistUrl: typeof getFetchedPlaylistUrl === "function" ? getFetchedPlaylistUrl() : "",
+    playlistVideos,
+    isFetchingPlaylist: typeof isPlaylistFetching === "function" ? isPlaylistFetching() : false,
+    jobRunning: typeof isJobRunning === "function" ? isJobRunning() : false,
+    batchQueueLen: queue ? queue.length : 0,
+    hasInput: !!(currentInput && currentInput.trim().length > 0),
+    imgQueueLen: imgQueue ? imgQueue.length : 0,
+    audioQueueLen: audioQueue ? audioQueue.length : 0,
+    audioLoading: typeof isAudioTagsLoading === "function" ? isAudioTagsLoading() : false,
+    mergeFilesLen: typeof getMergeFiles === "function" ? (getMergeFiles() || []).length : 0,
+    hasCustomArgs: !!(cmdInput && cmdInput.value.trim().length > 0),
+  });
+
+  if (state.mode === "hidden") {
     btnExecute.classList.add("d-none");
     btnExecute.disabled = true;
     return;
   }
 
   btnExecute.classList.remove("d-none");
+  btnExecute.classList.remove("btn-shimmer");
 
-  if (isJobRunning()) {
+  if (state.mode === "cancel") {
     btnExecute.disabled = false;
-    btnExecute.textContent = "Cancel";
+    btnExecute.textContent = state.text;
     btnExecute.className = "btn btn-danger btn-sm px-4";
     btnExecute.classList.remove("btn-shimmer");
     return;
   }
 
-  btnExecute.classList.remove("btn-shimmer");
-
-  const queue = getBatchQueue();
-  let canExecute = false;
-
-  const isImageAiTool = [
-    "bg_remover",
-    "ai_upscaler",
-    "vectorizer",
-    "restore_denoise",
-    "icon_generator",
-    "metadata_cleaner",
-  ].includes(activeTool);
-
-  const playlistVideos = getPlaylistVideos();
-  const isFetchingPlaylist = isPlaylistFetching();
-  const fetchedPlaylistUrl = getFetchedPlaylistUrl();
-
-  if (activeTool === "ytdlp_playlist") {
-    const isUrlChanged = currentUrl !== fetchedPlaylistUrl;
-    if (playlistVideos.length === 0 || isUrlChanged) {
-      btnExecute.textContent = isFetchingPlaylist ? "Fetching..." : "Fetch Playlist";
-      canExecute = currentUrl.length > 0 && !isFetchingPlaylist;
-    } else {
-      const selectedCount = playlistVideos.filter((v) => v.checked).length;
-      btnExecute.textContent = `Download (${selectedCount})`;
-      canExecute = selectedCount > 0;
-    }
-  } else if (activeTool.startsWith("kit_")) {
-    btnExecute.textContent = "Execute Kit";
-    canExecute = true;
-  } else if (activeTool.startsWith("ytdlp_")) {
-    btnExecute.textContent = "Download";
-    canExecute = currentUrl.length > 0;
-  } else if (isImageAiTool) {
-    // Image AI tools take input exclusively from imageAiQueue while the
-    // primary input card is hidden -- currentInput stays empty by design.
-    const imgQueue = typeof getImageAiQueue === "function" ? getImageAiQueue() : [];
-    const imgCount = imgQueue ? imgQueue.length : 0;
-    btnExecute.textContent = imgCount > 1 ? `Execute (${imgCount})` : "Execute";
-    canExecute = imgCount > 0;
-  } else if (activeTool === "audio_tags") {
-    const audioQueue = typeof getAudioTagQueue === "function" ? getAudioTagQueue() : [];
-    const audioCount = audioQueue ? audioQueue.length : 0;
-    const isLoading = typeof isAudioTagsLoading === "function" && isAudioTagsLoading();
-    if (isLoading) {
-      btnExecute.textContent = "Loading...";
-      btnExecute.disabled = true;
-      btnExecute.className = "btn btn-primary btn-sm px-4";
-      btnExecute.setAttribute("title", "Reading audio metadata and artwork...");
-      return;
-    }
-    btnExecute.textContent = audioCount > 1 ? `Apply (${audioCount})` : "Apply";
-    canExecute = audioCount > 0;
-  } else if (queue && queue.length > 1 && activeTool !== "merge" && activeTool !== "settings") {
-    btnExecute.textContent = `Execute (${queue.length})`;
-    canExecute = !!(currentInput && currentInput.trim().length > 0);
-  } else {
-    btnExecute.textContent = "Execute";
-    if (activeTool === "merge") {
-      const mergeFiles = getMergeFiles();
-      canExecute = mergeFiles && mergeFiles.length >= 2;
-    } else if (activeTool === "custom") {
-      const cmdInput = document.getElementById("custom-args");
-      canExecute = !!(cmdInput && cmdInput.value.trim().length > 0);
-    } else {
-      canExecute = !!(currentInput && currentInput.trim().length > 0);
-    }
+  if (state.mode === "loading") {
+    btnExecute.textContent = state.text;
+    btnExecute.disabled = true;
+    btnExecute.className = "btn btn-primary btn-sm px-4";
+    btnExecute.setAttribute("title", state.tooltip);
+    return;
   }
 
+  btnExecute.textContent = state.text;
   btnExecute.className = "btn btn-primary btn-sm px-4";
-  btnExecute.disabled = !canExecute;
-
-  if (!canExecute) {
-    btnExecute.setAttribute(
-      "title",
-      activeTool === "ytdlp_playlist"
-        ? (playlistVideos.length > 0 ? "Select at least 1 video to download" : "Enter a playlist URL to fetch")
-        : activeTool.startsWith("ytdlp_")
-          ? "Enter a valid media URL to download"
-          : activeTool === "merge"
-            ? "Add at least 2 files to merge"
-            : activeTool === "custom"
-              ? "Enter custom arguments to execute"
-              : isImageAiTool
-                ? "Add images to the queue to execute operation"
-                : activeTool === "audio_tags"
-                  ? "Add audio tracks to the queue to apply tags"
-                  : "Select a file to execute operation",
-    );
-  } else {
-    btnExecute.setAttribute(
-      "title",
-      activeTool.startsWith("kit_")
-        ? "Execute current User Kit"
-        : activeTool === "ytdlp_playlist"
-          ? (playlistVideos.length > 0 ? "Download selected playlist videos" : "Fetch videos from playlist URL")
-          : activeTool.startsWith("ytdlp_")
-            ? "Start download task"
-            : isImageAiTool
-              ? `Run image processing queue (${(typeof getImageAiQueue === "function" ? getImageAiQueue().length : 0)})`
-              : activeTool === "audio_tags"
-                ? `Apply metadata changes to ${getAudioTagQueue().length} track(s)`
-                : "Run processing operation",
-    );
-  }
+  btnExecute.disabled = !state.canExecute;
+  if (state.tooltip) btnExecute.setAttribute("title", state.tooltip);
 }
 
 export function updateCommandPreview() {
