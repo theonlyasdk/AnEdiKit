@@ -284,6 +284,7 @@
    behind the frosted brand cell (mirrors the absolute footer overlay). */
 .sidebar {
   position: relative;
+  transition: background-color var(--duration-fast, 250ms) var(--ease-smooth-out);
 }
 
 /* Layout row must stay overflow:visible (sidebar overlap) AND min-height:0:
@@ -968,7 +969,8 @@ body.sidebar-collapsed {
 
 #main-sidebar {
   width: var(--sidebar-width, 280px);
-  transition: width var(--duration-fast, 250ms) var(--ease-smooth-out);
+  transition: width var(--duration-fast, 250ms) var(--ease-smooth-out),
+              background-color var(--duration-fast, 250ms) var(--ease-smooth-out);
   position: relative;
   overflow: hidden;
 }

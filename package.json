@@ -10,7 +10,9 @@
     "build:release": "node tools/Scripts/build_release.js",
     "release:run": "node tools/Scripts/run_release.js",
     "new-cert": "node tools/Scripts/new_signing_cert.js",
-    "test": "node --import ./test/unit/setup.js --test test/unit/submodules.test.js test/unit/pure_helpers.test.js test/unit/command_builders.test.js test/unit/css_modules.test.js test/unit/contract.test.js test/unit/tools_cache.test.js test/unit/queue_state.test.js test/unit/image_commands.test.js test/unit/ytdlp_url.test.js test/unit/ytdlp_format.test.js test/unit/commands_options.test.js test/unit/storage_kits.test.js test/unit/theme_io.test.js test/unit/waveform.test.js test/unit/media_batch.test.js test/unit/shortcuts.test.js test/unit/trimmer_display.test.js",
+    "test": "node --import ./test/unit/setup.js --test test/unit/submodules.test.js test/unit/pure_helpers.test.js test/unit/command_builders.test.js test/unit/css_modules.test.js test/unit/contract.test.js test/unit/tools_cache.test.js test/unit/queue_state.test.js test/unit/image_commands.test.js test/unit/ytdlp_url.test.js test/unit/ytdlp_format.test.js test/unit/commands_options.test.js test/unit/storage_kits.test.js test/unit/theme_io.test.js test/unit/waveform.test.js test/unit/media_batch.test.js test/unit/shortcuts.test.js test/unit/trimmer_display.test.js test/unit/copy_anim.test.js",
+    "test:py": "python -m unittest test/unit/test_image_ai_engine.py",
+    "test:all": "npm test && npm run test:py",
     "screenshots": "node tools/Scripts/capture_screenshots.js"
   },
   "devDependencies": {

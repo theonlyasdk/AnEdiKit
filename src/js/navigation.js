@@ -347,7 +347,7 @@ function initAllToolsBrowser(onToolChanged) {
 }
 
 export function getCurrentActiveTool() {
-  return currentActiveTool;
+  return document.body?.dataset?.activeTool || currentActiveTool;
 }
 
 export function updateSidebarIndicator(activeBtn) {

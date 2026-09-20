@@ -162,6 +162,27 @@ function hexToRgb(hex) {
   return "13, 110, 253";
 }
 
+let _isWindows10 = false;
+
+export function isWindows10() {
+  return _isWindows10;
+}
+
+export function setIsWindows10(val) {
+  _isWindows10 = !!val;
+}
+
+export async function checkIsWindows10() {
+  if (typeof window !== "undefined" && window.__TAURI__?.core?.invoke) {
+    try {
+      const result = await window.__TAURI__.core.invoke("is_windows_10");
+      _isWindows10 = !!result;
+      return _isWindows10;
+    } catch (_) {}
+  }
+  return _isWindows10;
+}
+
 export function applyTheme(themeObj) {
   if (!themeObj) return;
   const root = document.documentElement;
@@ -223,8 +244,10 @@ export function applyTheme(themeObj) {
     applyFontFamily(themeObj.font_family);
   }
 
-  // Frosted Glass Blur Parameters (off by default; explicit opt-in only)
-  const blurEnabled = themeObj.blur_enabled !== undefined ? (themeObj.blur_enabled ? 1 : 0) : 0;
+  // Frosted Glass Blur Parameters (enabled by default; disabled on Windows 10)
+  const isWin10 = isWindows10();
+  const rawBlur = themeObj.blur_enabled !== undefined ? (themeObj.blur_enabled ? 1 : 0) : 1;
+  const blurEnabled = !isWin10 && rawBlur === 1 ? 1 : 0;
   const blurRadius = blurEnabled ? (themeObj.blur_radius ? `${Math.max(12, themeObj.blur_radius)}px` : "16px") : "0px";
   const blurSaturate = blurEnabled ? (themeObj.blur_saturate !== undefined ? `${themeObj.blur_saturate}%` : "140%") : "100%";
 
@@ -262,12 +285,20 @@ export function loadSavedTheme() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_THEME);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (isWindows10()) {
+        parsed.blur_enabled = false;
+      }
+      return parsed;
     }
   } catch (e) {
     console.warn("loadSavedTheme error:", e);
   }
-  return { ...THEME_PRESETS.bootstrap_dark, font_family: "" };
+  const defaultTheme = { ...THEME_PRESETS.bootstrap_dark, font_family: "" };
+  defaultTheme.blur_enabled = !isWindows10();
+  defaultTheme.blur_radius = 16;
+  defaultTheme.blur_saturate = 140;
+  return defaultTheme;
 }
 
 export function saveCurrentTheme(themeObj) {
@@ -295,8 +326,8 @@ export function serializeThemeToText(themeObj) {
     `pane_bg=${themeObj.pane_bg || "#212529"}`,
     `text_color=${themeObj.text_color || "#dee2e6"}`,
     `border_color=${themeObj.border_color || "#495057"}`,
-    `blur_enabled=${themeObj.blur_enabled !== undefined ? themeObj.blur_enabled : false}`,
-    `blur_radius=${themeObj.blur_radius !== undefined ? themeObj.blur_radius : 4}`,
+    `blur_enabled=${themeObj.blur_enabled !== undefined ? themeObj.blur_enabled : !isWindows10()}`,
+    `blur_radius=${themeObj.blur_radius !== undefined ? themeObj.blur_radius : 16}`,
     `blur_saturate=${themeObj.blur_saturate !== undefined ? themeObj.blur_saturate : 140}`,
   ].join("\n");
 }
@@ -313,9 +344,9 @@ export function parseThemeFromText(text) {
       const val = trimmed.substring(idx + 1).trim();
       if (key) {
         if (key === "blur_enabled") {
-          theme[key] = val === "true" || val === "1";
+          theme[key] = isWindows10() ? false : (val === "true" || val === "1");
         } else if (key === "blur_radius" || key === "blur_saturate") {
-          theme[key] = parseInt(val, 10) || (key === "blur_radius" ? 4 : 140);
+          theme[key] = parseInt(val, 10) || (key === "blur_radius" ? 16 : 140);
         } else {
           theme[key] = val;
         }
@@ -369,17 +400,24 @@ export function initThemeManager() {
     const txtBlurSaturateVal = document.getElementById("theme-blur-saturate-val");
     const controlsWrapper = document.getElementById("theme-blur-controls-wrapper");
 
-    const isEnabled = th.blur_enabled !== undefined ? !!th.blur_enabled : false;
-    const radiusVal = th.blur_radius !== undefined ? th.blur_radius : 4;
+    const win10 = isWindows10();
+    const isEnabled = !win10 && (th.blur_enabled !== undefined ? !!th.blur_enabled : true);
+    const radiusVal = th.blur_radius !== undefined ? th.blur_radius : 16;
     const saturateVal = th.blur_saturate !== undefined ? th.blur_saturate : 140;
 
-    if (chkBlurEnable) chkBlurEnable.checked = isEnabled;
+    if (chkBlurEnable) {
+      chkBlurEnable.checked = isEnabled;
+      if (win10) {
+        chkBlurEnable.disabled = true;
+        chkBlurEnable.title = "Blur effects are disabled on Windows 10 for performance";
+      }
+    }
     if (rngBlurRadius) rngBlurRadius.value = radiusVal;
     if (txtBlurRadiusVal) txtBlurRadiusVal.textContent = `${radiusVal}px`;
     if (rngBlurSaturate) rngBlurSaturate.value = saturateVal;
     if (txtBlurSaturateVal) txtBlurSaturateVal.textContent = `${saturateVal}%`;
     if (controlsWrapper) {
-      if (isEnabled) {
+      if (isEnabled && !win10) {
         controlsWrapper.classList.remove("opacity-50", "pe-none");
       } else {
         controlsWrapper.classList.add("opacity-50", "pe-none");
@@ -388,6 +426,19 @@ export function initThemeManager() {
   };
 
   syncInputsFromTheme(currentTheme);
+
+  // Check if running on Windows 10 asynchronously via Tauri and update UI
+  if (typeof window !== "undefined" && window.__TAURI__?.core?.invoke) {
+    window.__TAURI__.core.invoke("is_windows_10").then((isWin10) => {
+      if (isWin10) {
+        setIsWindows10(true);
+        const th = loadSavedTheme();
+        th.blur_enabled = false;
+        applyTheme(th);
+        syncInputsFromTheme(th);
+      }
+    }).catch(() => {});
+  }
 
   // Frosted Glass Blur Event Listeners
   const chkBlurEnable = document.getElementById("theme-blur-enable");

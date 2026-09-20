@@ -486,6 +486,57 @@ pub(crate) fn get_hardware_info_internal() -> HardwareInfo {
     result
 }
 
+#[tauri::command]
+pub fn is_windows_10() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        let output = Command::new("reg")
+            .args(["query", r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "/v", "CurrentBuild"])
+            .creation_flags(0x08000000)
+            .output();
+
+        if let Ok(out) = output {
+            if let Ok(text) = String::from_utf8(out.stdout) {
+                for line in text.lines() {
+                    if line.contains("CurrentBuild") {
+                        if let Some(idx) = line.find("REG_SZ") {
+                            let build_str = line[idx + 6..].trim();
+                            if let Ok(build_num) = build_str.parse::<u32>() {
+                                return build_num < 22000;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let output2 = Command::new("reg")
+            .args(["query", r"HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "/v", "CurrentBuildNumber"])
+            .creation_flags(0x08000000)
+            .output();
+
+        if let Ok(out) = output2 {
+            if let Ok(text) = String::from_utf8(out.stdout) {
+                for line in text.lines() {
+                    if line.contains("CurrentBuildNumber") {
+                        if let Some(idx) = line.find("REG_SZ") {
+                            let build_str = line[idx + 6..].trim();
+                            if let Ok(build_num) = build_str.parse::<u32>() {
+                                return build_num < 22000;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        false
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
+    }
+}
+
 pub fn probe_encoder_available(ffmpeg_bin: &str, encoder: &str) -> bool {
     let mut cmd = Command::new(ffmpeg_bin);
     cmd.args([

@@ -595,6 +595,16 @@ async function selectPdfFiles(tool, acceptsMany) {
       return;
     }
     if (pdfQueueMode) renderPdfQueue(tool); else input.value = selectedFiles.join("; ");
+    if (selectedFiles && selectedFiles.length > 0) {
+      const outInput = workspace?.querySelector("#pdf-output-path");
+      if (outInput && (!outInput.value || !outInput.dataset.custom)) {
+        const firstFile = selectedFiles[0];
+        const lastSlash = Math.max(firstFile.lastIndexOf("\\"), firstFile.lastIndexOf("/"));
+        if (lastSlash > 0) {
+          outInput.value = firstFile.substring(0, lastSlash);
+        }
+      }
+    }
     updatePdfInfo(tool);
     if (tool.name !== "Redact PDF" && ["Split PDF", "Remove Pages", "Extract Pages", "Organize PDF", "Rotate PDF", "Crop PDF", "JPG to PDF", "Scan to PDF"].includes(tool.name)) await loadPdfPageGrid(tool);
   } catch (error) {

@@ -15,8 +15,10 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 #[cfg(target_os = "windows")]
                 {
-                    use window_vibrancy::apply_acrylic;
-                    let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
+                    if !system::is_windows_10() {
+                        use window_vibrancy::apply_acrylic;
+                        let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
+                    }
                 }
                 #[cfg(target_os = "macos")]
                 {
@@ -35,6 +37,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            system::is_windows_10,
             system::pick_file,
             system::pick_files,
             system::pick_folder,

@@ -111,22 +111,34 @@ export function updateProgress(data) {
   // Currently processing item and heading
   const currentItemWrapper = document.getElementById("current-item-wrapper");
   const currentHeading = document.getElementById("current-processing-heading");
-  const currentItemName = document.getElementById("current-item-name");
+  const statItemCount = document.getElementById("stat-item-count");
+  const progressContainer = document.getElementById("exec-progress-container");
 
-  if (playlist_total && playlist_total > 1) {
-    const itemNum = playlist_item || 1;
-    if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
-    if (currentHeading) currentHeading.textContent = `Currently processing: (${itemNum} of ${playlist_total})`;
-  } else if (current_item_title) {
-    if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
-    if (currentHeading) currentHeading.textContent = `Currently processing: (1 of 1)`;
-  } else if (isRunning) {
-    if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
-    if (currentHeading) currentHeading.textContent = `Currently processing: (1 of 1)`;
+  if (progressContainer) {
+    progressContainer.classList.remove("d-none");
   }
 
-  if (current_item_title && currentItemName) {
-    currentItemName.textContent = current_item_title;
+  const displayName = current_item_title || (data.fileName ? data.fileName : "");
+  if (currentHeading) {
+    if (displayName) {
+      currentHeading.textContent = `Processing: ${displayName}`;
+    } else if (!currentHeading.textContent || currentHeading.textContent === "Processing: ...") {
+      currentHeading.textContent = "Processing...";
+    }
+  }
+  if (currentItemWrapper) {
+    currentItemWrapper.classList.remove("d-none");
+  }
+
+  // Item count readout in status strip (e.g. 1 of 5)
+  if (statItemCount) {
+    if (playlist_total && playlist_total > 1) {
+      const itemNum = playlist_item || 1;
+      statItemCount.textContent = `${itemNum} of ${playlist_total}`;
+      statItemCount.classList.remove("d-none");
+    } else {
+      statItemCount.classList.add("d-none");
+    }
   }
 
   // Format message / time readout
@@ -147,9 +159,23 @@ export function updateProgress(data) {
   }
 
   // Live status message at bottom bar
-  if (statusMsg && time) {
-    if (time.toLowerCase().includes("downloading") || time.toLowerCase().includes("model") || time.toLowerCase().includes("segmentation") || time.toLowerCase().includes("upscal")) {
-      statusMsg.textContent = time;
+  if (statusMsg) {
+    const parts = [];
+    if (playlist_total && playlist_total > 1) {
+      parts.push(`${playlist_item || 1} of ${playlist_total}`);
+    }
+    if (time) parts.push(time);
+    if (eta && eta !== "--:--" && eta !== "--:--:--") {
+      parts.push(eta.startsWith("ETA:") ? eta : `ETA: ${eta}`);
+    } else if (pct >= 100) {
+      parts.push("ETA: 00:00:00");
+    }
+    if (speed && speed !== "0x" && speed !== "0") {
+      parts.push(speed.startsWith("Speed:") ? speed : `Speed: ${speed}`);
+    }
+    if (parts.length > 0) {
+      statusMsg.textContent = parts.join(" • ");
+      statusMsg.classList.remove("d-none");
     }
   }
 
@@ -311,13 +337,15 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   const btnExecute = document.getElementById("btn-execute");
   const currentItemWrapper = document.getElementById("current-item-wrapper");
   const currentHeading = document.getElementById("current-processing-heading");
-  const currentItemName = document.getElementById("current-item-name");
+  const statItemCount = document.getElementById("stat-item-count");
+  const progressContainer = document.getElementById("exec-progress-container");
 
-  if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
-  if (currentHeading) currentHeading.textContent = "Currently processing: (1 of 1)";
   const srcFile = commandObj.args ? commandObj.args[commandObj.args.indexOf("-i") + 1] : "";
-  const displayName = srcFile ? srcFile.split(/[/\\]/).pop() : (commandObj.destination ? commandObj.destination.split(/[/\\]/).pop() : "Processing media file...");
-  if (currentItemName) currentItemName.textContent = displayName;
+  const displayName = srcFile ? srcFile.split(/[/\\]/).pop() : (commandObj.destination ? commandObj.destination.split(/[/\\]/).pop() : "media file");
+  if (currentHeading) currentHeading.textContent = `Processing: ${displayName}`;
+  if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
+  if (statItemCount) statItemCount.classList.add("d-none");
+  if (progressContainer) progressContainer.classList.remove("d-none");
 
   if (statusPanel) {
     statusPanel.classList.remove("d-none", "ui-zoom-in");
@@ -467,8 +495,10 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
   const btnExecute = document.getElementById("btn-execute");
   const currentItemWrapper = document.getElementById("current-item-wrapper");
   const currentHeading = document.getElementById("current-processing-heading");
-  const currentItemName = document.getElementById("current-item-name");
+  const statItemCount = document.getElementById("stat-item-count");
+  const progressContainer = document.getElementById("exec-progress-container");
 
+  if (progressContainer) progressContainer.classList.remove("d-none");
   if (statusPanel) {
     statusPanel.classList.remove("d-none", "ui-zoom-in");
     void statusPanel.offsetWidth;
@@ -520,8 +550,12 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
     item.status = "processing";
     updateBatchItemStatus(i, "processing");
 
-    if (currentHeading) currentHeading.textContent = `Currently processing: (${i + 1} of ${queue.length})`;
-    if (currentItemName) currentItemName.textContent = item.name;
+    if (currentHeading) currentHeading.textContent = `Processing: ${item.name}`;
+    if (statItemCount) {
+      statItemCount.textContent = `${i + 1} of ${queue.length}`;
+      statItemCount.classList.remove("d-none");
+    }
+    if (progressContainer) progressContainer.classList.remove("d-none");
 
     const commandObj = buildCommandFn(toolId, item.path, settings.outputDir, settings);
     appendLog(`[Item ${i + 1}/${queue.length}: Processing ${item.name}]`);
@@ -605,13 +639,17 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
   isRunning = false;
   setControlsDisabledState(false);
 
+  if (progressContainer) {
+    progressContainer.classList.add("d-none");
+  }
+
   if (!batchCancelRequested) {
     const bar = document.getElementById("job-progress-bar");
     const pctEl = document.getElementById("progress-pct");
     const statEta = document.getElementById("stat-eta");
     const statTime = document.getElementById("stat-time");
     if (bar && pctEl) {
-      bar.classList.remove("progress-bar-striped", "progress-bar-animated", "bg-danger");
+      bar.classList.remove("progress-bar-striped", "progress-bar-animated", "progress-bar-material-indeterminate", "bg-danger");
       bar.classList.add("bg-success");
       bar.style.width = "100%";
       pctEl.textContent = "100%";
@@ -635,13 +673,18 @@ export function onJobFinished(success, message) {
   // Release per-job sinks so later jobs don't inherit kit callbacks.
   activeJobCallbacks = null;
 
+  const progressContainer = document.getElementById("exec-progress-container");
+  if (progressContainer) {
+    progressContainer.classList.add("d-none");
+  }
+
   const bar = document.getElementById("job-progress-bar");
   const pctEl = document.getElementById("progress-pct");
   const statEta = document.getElementById("stat-eta");
   const statTime = document.getElementById("stat-time");
 
   if (bar && pctEl) {
-    bar.classList.remove("progress-bar-striped", "progress-bar-animated");
+    bar.classList.remove("progress-bar-striped", "progress-bar-animated", "progress-bar-material-indeterminate");
     if (success) {
       bar.classList.remove("bg-danger");
       bar.classList.add("bg-success");

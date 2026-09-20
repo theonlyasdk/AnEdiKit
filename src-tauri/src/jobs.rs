@@ -777,61 +777,108 @@ pub fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), Str
     Ok(())
 }
 
-fn find_image_ai_script(app: &tauri::AppHandle) -> std::path::PathBuf {
-    // 1. Check bundled resource path
+fn clean_script_path(p: std::path::PathBuf) -> std::path::PathBuf {
+    if let Ok(canon) = p.canonicalize() {
+        let s = canon.to_string_lossy();
+        if let Some(stripped) = s.strip_prefix(r"\\?\") {
+            return std::path::PathBuf::from(stripped);
+        }
+        return canon;
+    }
+    p
+}
+
+fn find_python_script(app: &tauri::AppHandle, script_name: &str) -> std::path::PathBuf {
+    // 1. Check bundled resource directory
     if let Ok(resource_dir) = app.path().resource_dir() {
-        let script = resource_dir.join("src").join("py").join("image_ai_engine.py");
-        if script.is_file() {
-            return script;
-        }
-        let script_flat = resource_dir.join("image_ai_engine.py");
-        if script_flat.is_file() {
-            return script_flat;
+        for candidate in [
+            resource_dir.join("src").join("py").join(script_name),
+            resource_dir.join("py").join(script_name),
+            resource_dir.join("resources").join("src").join("py").join(script_name),
+            resource_dir.join(script_name),
+        ] {
+            if candidate.is_file() {
+                return clean_script_path(candidate);
+            }
         }
     }
 
-    // 2. Check current working directory structure
-    let cwd_script = std::path::PathBuf::from("src").join("py").join("image_ai_engine.py");
-    if cwd_script.is_file() {
-        return cwd_script;
+    // 2. Check current executable parent directories and ancestors (up to 6 levels up)
+    if let Ok(exe) = std::env::current_exe() {
+        let mut curr = exe.parent();
+        for _ in 0..6 {
+            if let Some(dir) = curr {
+                for candidate in [
+                    dir.join("src").join("py").join(script_name),
+                    dir.join("py").join(script_name),
+                    dir.join("resources").join("src").join("py").join(script_name),
+                    dir.join(script_name),
+                ] {
+                    if candidate.is_file() {
+                        return clean_script_path(candidate);
+                    }
+                }
+                curr = dir.parent();
+            } else {
+                break;
+            }
+        }
     }
 
-    // 3. Check AppData local script storage
+    // 3. Check current working directory and its ancestors (up to 6 levels up)
+    if let Ok(cwd) = std::env::current_dir() {
+        let mut curr = Some(cwd.as_path());
+        for _ in 0..6 {
+            if let Some(dir) = curr {
+                for candidate in [
+                    dir.join("src").join("py").join(script_name),
+                    dir.join("py").join(script_name),
+                    dir.join("resources").join("src").join("py").join(script_name),
+                    dir.join(script_name),
+                ] {
+                    if candidate.is_file() {
+                        return clean_script_path(candidate);
+                    }
+                }
+                curr = dir.parent();
+            } else {
+                break;
+            }
+        }
+    }
+
+    // 4. Check AppData local script storage
     if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
-        let p = std::path::Path::new(&local_app_data)
-            .join("ASDK")
-            .join("AnEdiKit")
-            .join("py")
-            .join("image_ai_engine.py");
-        if p.is_file() {
-            return p;
+        for candidate in [
+            std::path::Path::new(&local_app_data).join("ASDK").join("AnEdiKit").join("py").join(script_name),
+            std::path::Path::new(&local_app_data).join("ASDK").join("AnEdiKit").join("src").join("py").join(script_name),
+        ] {
+            if candidate.is_file() {
+                return clean_script_path(candidate);
+            }
+        }
+    }
+
+    // 5. Check Cargo manifest dir (development / testing mode)
+    for candidate in [
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("src").join("py").join(script_name),
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src").join("py").join(script_name),
+    ] {
+        if candidate.is_file() {
+            return clean_script_path(candidate);
         }
     }
 
     // Fallback default
-    std::path::PathBuf::from("src/py/image_ai_engine.py")
+    std::path::PathBuf::from("src").join("py").join(script_name)
+}
+
+fn find_image_ai_script(app: &tauri::AppHandle) -> std::path::PathBuf {
+    find_python_script(app, "image_ai_engine.py")
 }
 
 fn find_pdf_tools_script(app: &tauri::AppHandle) -> std::path::PathBuf {
-    if let Ok(resource_dir) = app.path().resource_dir() {
-        let script = resource_dir.join("src").join("py").join("pdf_tools.py");
-        if script.is_file() { return script; }
-        let flat = resource_dir.join("pdf_tools.py");
-        if flat.is_file() { return flat; }
-    }
-    if let Ok(exe) = std::env::current_exe() {
-        for candidate in [
-            exe.parent().unwrap_or(std::path::Path::new(".")).join("resources").join("src").join("py").join("pdf_tools.py"),
-            exe.parent().unwrap_or(std::path::Path::new(".")).join("src").join("py").join("pdf_tools.py"),
-        ] {
-            if candidate.is_file() { return candidate; }
-        }
-    }
-    let cwd_script = std::path::PathBuf::from("src").join("py").join("pdf_tools.py");
-    if cwd_script.is_file() { return cwd_script; }
-    let manifest_script = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(r"..\src\py\pdf_tools.py");
-    if manifest_script.is_file() { return manifest_script; }
-    std::path::PathBuf::from("src/py/pdf_tools.py")
+    find_python_script(app, "pdf_tools.py")
 }
 
 #[tauri::command]
@@ -840,6 +887,9 @@ pub fn render_pdf_pages(app: tauri::AppHandle, file_path: String) -> Result<Vec<
     if !script.is_file() { return Err(format!("PDF worker not found. Checked packaged resources and {}", script.display())); }
     let python = find_binary("python");
     let mut command = Command::new(python);
+    if let Some(parent) = script.parent() {
+        command.current_dir(parent);
+    }
     command.args([script.to_string_lossy().as_ref(), "--preview", &file_path]);
     #[cfg(windows)]
     command.creation_flags(0x08000000);
@@ -861,6 +911,9 @@ pub fn get_pdf_info(app: tauri::AppHandle, file_path: String) -> Result<serde_js
     let script = find_pdf_tools_script(&app);
     if !script.is_file() { return Err(format!("PDF worker not found: {}", script.display())); }
     let mut command = Command::new(find_binary("python"));
+    if let Some(parent) = script.parent() {
+        command.current_dir(parent);
+    }
     command.args([script.to_string_lossy().as_ref(), "--info", &file_path]);
     #[cfg(windows)]
     command.creation_flags(0x08000000);
@@ -896,17 +949,21 @@ pub fn execute_image_ai(app: tauri::AppHandle, task: String, params: String) -> 
         let py_script = if task == "pdf_tool" { find_pdf_tools_script(&app) } else { find_image_ai_script(&app) };
         let py_bin = find_binary("python");
 
-        if task == "pdf_tool" && !py_script.is_file() {
+        if !py_script.is_file() {
             finish_job(job_id);
+            let worker_label = if task == "pdf_tool" { "PDF worker" } else { "Image AI engine" };
             let _ = app.emit("ffmpeg-finished", FinishPayload {
                 success: false,
                 exit_code: -1,
-                message: format!("PDF worker not found: {}", py_script.display()),
+                message: format!("{} script not found: {}", worker_label, py_script.display()),
             });
             return;
         }
 
         let mut child_cmd = Command::new(&py_bin);
+        if let Some(parent) = py_script.parent() {
+            child_cmd.current_dir(parent);
+        }
         child_cmd.arg(py_script.to_string_lossy().as_ref());
         if task != "pdf_tool" {
             child_cmd.args(["--task", &task]);

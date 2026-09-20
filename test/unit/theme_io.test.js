@@ -9,11 +9,14 @@ import {
   applyTheme,
   applyFontFamily,
   setAnimationsEnabled,
+  isWindows10,
+  setIsWindows10,
 } from "../../src/js/theme.js";
 
 const root = () => document.documentElement;
 
 beforeEach(() => {
+  setIsWindows10(false);
   root().classList.remove("blur-enabled", "no-animations");
   document.body.classList.remove("blur-enabled");
   localStorage.clear();
@@ -24,8 +27,8 @@ describe("theme.js: serializeThemeToText / parseThemeFromText", () => {
     const text = serializeThemeToText({});
     assert.ok(text.startsWith("# AnEdiKit Theme Configuration File"));
     assert.ok(text.includes("primary=#0d6efd"));
-    assert.ok(text.includes("blur_enabled=false"));
-    assert.ok(text.includes("blur_radius=4"));
+    assert.ok(text.includes("blur_enabled=true"));
+    assert.ok(text.includes("blur_radius=16"));
     assert.ok(text.includes("blur_saturate=140"));
   });
 
@@ -60,7 +63,7 @@ describe("theme.js: serializeThemeToText / parseThemeFromText", () => {
   it("parses booleans and falls back for non-numeric blur values", () => {
     assert.equal(parseThemeFromText("blur_enabled=1").blur_enabled, true);
     assert.equal(parseThemeFromText("blur_enabled=false").blur_enabled, false);
-    assert.equal(parseThemeFromText("blur_radius=abc").blur_radius, 4);
+    assert.equal(parseThemeFromText("blur_radius=abc").blur_radius, 16);
     assert.equal(parseThemeFromText("blur_saturate=abc").blur_saturate, 140);
   });
 
@@ -85,15 +88,26 @@ describe("theme.js: applyTheme", () => {
     assert.equal(root().style.getPropertyValue("--bs-body-color-rgb"), "255, 255, 255");
   });
 
-  it("defaults blur OFF and disables the class", () => {
+  it("defaults blur ON on non-Windows 10 machines", () => {
     applyTheme({ primary: "#0d6efd" });
+    assert.equal(root().style.getPropertyValue("--anedikit-blur-enabled"), "1");
+    assert.equal(root().style.getPropertyValue("--anedikit-blur-radius"), "16px");
+    assert.equal(root().style.getPropertyValue("--anedikit-blur-saturate"), "140%");
+    assert.equal(root().classList.contains("blur-enabled"), true);
+    assert.equal(document.body.classList.contains("blur-enabled"), true);
+  });
+
+  it("disables blur effects on Windows 10 even if requested", () => {
+    setIsWindows10(true);
+    applyTheme({ blur_enabled: true, blur_radius: 20 });
     assert.equal(root().style.getPropertyValue("--anedikit-blur-enabled"), "0");
     assert.equal(root().style.getPropertyValue("--anedikit-blur-radius"), "0px");
     assert.equal(root().style.getPropertyValue("--anedikit-blur-saturate"), "100%");
     assert.equal(root().classList.contains("blur-enabled"), false);
+    assert.equal(document.body.classList.contains("blur-enabled"), false);
   });
 
-  it("enables blur with a clamped radius when opted in", () => {
+  it("enables blur with a clamped radius when opted in on non-Windows 10", () => {
     applyTheme({ blur_enabled: true, blur_radius: 20, blur_saturate: 150 });
     assert.equal(root().style.getPropertyValue("--anedikit-blur-enabled"), "1");
     assert.equal(root().style.getPropertyValue("--anedikit-blur-radius"), "20px");

@@ -3,6 +3,7 @@ import { formatSpeedValue } from "./format_sync.js";
 import { getCurrentInputFile } from "./media.js";
 import { getCurrentActiveTool } from "./navigation.js";
 import { loadSettings } from "./storage.js";
+import { getMergeFiles } from "./merge.js";
 
 let userHasCustomOutputName = false;
 let cachedPathCharsWidth = 0;
@@ -302,14 +303,24 @@ export function updateAutoOutputFilename(force = false) {
     return;
   }
 
+  let effectiveInput = currentInput;
+  if (activeTool === "merge") {
+    try {
+      const mFiles = getMergeFiles ? getMergeFiles() : [];
+      if (mFiles && mFiles.length > 0) {
+        effectiveInput = mFiles[0];
+      }
+    } catch (_) {}
+  }
+
   if (force || !userHasCustomOutputName || !getOutputFilePath().trim()) {
-    const smartName = getSmartOutputFileName(currentInput, activeTool);
+    const smartName = getSmartOutputFileName(effectiveInput, activeTool);
     const settings = loadSettings();
     let outDir = settings.outputDir || "C:\\Users\\User\\Videos";
-    if (currentInput) {
-      const lastSlash = Math.max(currentInput.lastIndexOf("\\"), currentInput.lastIndexOf("/"));
+    if (effectiveInput) {
+      const lastSlash = Math.max(effectiveInput.lastIndexOf("\\"), effectiveInput.lastIndexOf("/"));
       if (lastSlash > 0) {
-        outDir = currentInput.substring(0, lastSlash);
+        outDir = effectiveInput.substring(0, lastSlash);
       }
     }
     const isWindows = outDir.includes("\\") || /^[a-zA-Z]:/.test(outDir);

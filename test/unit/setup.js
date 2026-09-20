@@ -55,6 +55,7 @@ class MockElement {
     this.classList = new MockClassList();
     this.dataset = {};
     this.children = [];
+    this.parentElement = null;
     this._value = "";
     this.checked = false;
     this.textContent = "";
@@ -63,6 +64,15 @@ class MockElement {
     this.clientWidth = 200;
     this._attributes = {};
     this._listeners = new Map();
+  }
+  get isConnected() {
+    return true;
+  }
+  closest(sel) {
+    if (this.parentElement) {
+      return this.parentElement;
+    }
+    return null;
   }
   get value() {
     return this._value;
@@ -80,22 +90,27 @@ class MockElement {
     delete this._attributes[k];
   }
   querySelector(sel) {
-    return null;
+    return this.children.find((c) => c.tagName === sel.toUpperCase()) || null;
   }
   querySelectorAll(sel) {
-    return [];
+    return this.children.filter((c) => c.tagName === sel.toUpperCase());
   }
   appendChild(child) {
+    if (child) child.parentElement = this;
     this.children.push(child);
     return child;
   }
   insertBefore(child) {
+    if (child) child.parentElement = this;
     this.children.push(child);
     return child;
   }
   removeChild(child) {
     const i = this.children.indexOf(child);
-    if (i !== -1) this.children.splice(i, 1);
+    if (i !== -1) {
+      this.children.splice(i, 1);
+      if (child) child.parentElement = null;
+    }
     return child;
   }
   click() {

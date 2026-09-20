@@ -27,6 +27,7 @@ import {
   saveSettings,
   loadSavedAudioTagQueue,
   saveAudioTagQueue,
+  getLastImageAiOutDir,
 } from "../../src/js/storage.js";
 import { getAppSettings, setAppSettings } from "../../src/js/app_settings.js";
 
@@ -34,9 +35,14 @@ describe("Queue state: image_queue.js", () => {
   beforeEach(() => {
     localStorage.clear();
     clearImageAiQueue();
+    document.body.innerHTML = `
+      <input type="text" id="image-ai-output-dir" />
+      <div id="image-ai-queue-list"></div>
+      <span id="image-ai-queue-count"></span>
+    `;
   });
 
-  it("adds unique image paths and ignores duplicates", async () => {
+  it("adds unique image paths, ignores duplicates, and auto-sets output folder to first image folder", async () => {
     await addImageFilesToQueue(["C:/imgs/a.png", "C:/imgs/b.jpg", "C:/imgs/a.png"]);
     const queue = getImageAiQueue();
     assert.equal(queue.length, 2);
@@ -45,6 +51,17 @@ describe("Queue state: image_queue.js", () => {
       ["a.png", "b.jpg"],
     );
     assert.ok(queue.every((i) => i.status === "pending" && i.resultPath === null));
+
+    const outDirInput = document.getElementById("image-ai-output-dir");
+    assert.equal(outDirInput.value, "C:/imgs");
+    assert.equal(getLastImageAiOutDir(), "C:/imgs");
+  });
+
+  it("chooses the folder of the first image when multiple images from different folders are selected", async () => {
+    await addImageFilesToQueue(["D:/Folder1/first.png", "E:/Folder2/second.jpg"]);
+    const outDirInput = document.getElementById("image-ai-output-dir");
+    assert.equal(outDirInput.value, "D:/Folder1");
+    assert.equal(getLastImageAiOutDir(), "D:/Folder1");
   });
 
   it("skips empty input without touching the queue", async () => {

@@ -2,10 +2,17 @@
 import {
   loadSavedImageAiQueue,
   saveImageAiQueue,
+  saveLastImageAiOutDir,
 } from "./storage.js";
 import { selectMediaFiles } from "./media.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
 import { attachFluentRipple, animateQueueHeight, getCurrentActiveTool } from "./navigation.js";
+
+export function getDirectoryFromPath(filePath) {
+  if (!filePath || typeof filePath !== "string") return "";
+  const lastSlash = Math.max(filePath.lastIndexOf("\\"), filePath.lastIndexOf("/"));
+  return lastSlash > 0 ? filePath.substring(0, lastSlash) : "";
+}
 
 const IMAGE_AI_TOOL_IDS = new Set([
   "bg_remover",
@@ -95,6 +102,19 @@ export async function addImageFilesToQueue(paths) {
       });
     }
   }
+
+  const validPath = paths.find((p) => p && typeof p === "string");
+  if (validPath) {
+    const firstDir = getDirectoryFromPath(validPath);
+    if (firstDir) {
+      const imageAiOutDirInput = document.getElementById("image-ai-output-dir");
+      if (imageAiOutDirInput) {
+        imageAiOutDirInput.value = firstDir;
+      }
+      saveLastImageAiOutDir(firstDir);
+    }
+  }
+
   saveImageAiQueue(imageAiQueue);
   renderImageAiQueueUI();
 }

@@ -16,18 +16,22 @@ pub fn set_window_blur(app: tauri::AppHandle, mode: String) -> Result<(), String
         #[cfg(target_os = "windows")]
         {
             use window_vibrancy::{apply_acrylic, apply_mica, clear_blur};
-            match mode.as_str() {
-                "acrylic" => {
-                    let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
-                }
-                "mica" => {
-                    let _ = apply_mica(&window, None);
-                }
-                "off" => {
-                    let _ = clear_blur(&window);
-                }
-                _ => {
-                    let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
+            if crate::system::is_windows_10() {
+                let _ = clear_blur(&window);
+            } else {
+                match mode.as_str() {
+                    "acrylic" => {
+                        let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
+                    }
+                    "mica" => {
+                        let _ = apply_mica(&window, None);
+                    }
+                    "off" => {
+                        let _ = clear_blur(&window);
+                    }
+                    _ => {
+                        let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
+                    }
                 }
             }
         }

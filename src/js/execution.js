@@ -924,6 +924,7 @@ export function bindFormEvents() {
 
   // Initialize merge controls
   initMergeControls(() => {
+    updateAutoOutputFilename(true);
     updateCommandPreview();
   });
 

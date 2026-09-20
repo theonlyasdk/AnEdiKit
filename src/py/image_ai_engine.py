@@ -123,12 +123,19 @@ install_tqdm_hook()
 def download_model_file(url, dest_path, model_label="AI Model"):
     """
     Downloads model weights with high-accuracy chunk streaming, percentage, MB rate, and ETA feedback.
+    Supports Windows SSL certificate fallbacks and atomic file replacement.
     """
     import urllib.request
+    import ssl
     import time
 
     os.makedirs(os.path.dirname(os.path.abspath(dest_path)), exist_ok=True)
     temp_path = dest_path + ".tmp_download"
+    if os.path.exists(temp_path):
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
 
     log_progress(0, f"Connecting to download {model_label}...", speed="Connecting...", eta="--:--:--")
     
@@ -137,7 +144,27 @@ def download_model_file(url, dest_path, model_label="AI Model"):
         headers={"User-Agent": "AnEdiKit-AI-Engine/1.0 (Desktop)"}
     )
 
-    with urllib.request.urlopen(req, timeout=30) as response:
+    ctx = None
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        try:
+            ctx = ssl.create_default_context()
+        except Exception:
+            ctx = None
+
+    try:
+        response = urllib.request.urlopen(req, timeout=30, context=ctx)
+    except Exception:
+        # Fallback to unverified context if system certificate chain fails on Windows
+        try:
+            unverified_ctx = ssl._create_unverified_context()
+            response = urllib.request.urlopen(req, timeout=30, context=unverified_ctx)
+        except Exception:
+            response = urllib.request.urlopen(req, timeout=30)
+
+    with response:
         total_size = int(response.headers.get("content-length", 0))
         total_mb = total_size / (1024 * 1024) if total_size > 0 else 0
         
@@ -177,13 +204,17 @@ def download_model_file(url, dest_path, model_label="AI Model"):
                         msg = f"Downloading {model_label}: {cur_mb:.1f} MB"
                         log_progress(50, msg, speed=speed_str, eta="--:--:--", bitrate=f"{cur_mb:.1f} MB")
 
-    if os.path.exists(dest_path):
-        try:
-            os.remove(dest_path)
-        except Exception:
-            pass
-    os.rename(temp_path, dest_path)
-    log_progress(100, f"Downloaded {model_label} successfully", speed="", eta="00:00:00")
+    if os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
+        if os.path.exists(dest_path):
+            try:
+                os.remove(dest_path)
+            except Exception:
+                pass
+        os.replace(temp_path, dest_path)
+        log_progress(100, f"Downloaded {model_label} successfully", speed="", eta="00:00:00")
+        return dest_path
+    else:
+        raise IOError(f"Downloaded model file is empty or missing: {dest_path}")
 
 REMBG_MODEL_URLS = {
     "u2net": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx",
@@ -191,7 +222,9 @@ REMBG_MODEL_URLS = {
     "u2net_human_seg": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net_human_seg.onnx",
     "u2net_cloth_seg": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net_cloth_seg.onnx",
     "isnet-general-use": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
+    "dis_general_use": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
     "isnet-anime": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-anime.onnx",
+    "dis_anime": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-anime.onnx",
     "silueta": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/silueta.onnx",
     "birefnet-general": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx",
     "birefnet-general-lite": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-bb_swin_v1_tiny-epoch_232.onnx",
@@ -200,11 +233,14 @@ REMBG_MODEL_URLS = {
     "birefnet-hrsod": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-HRSOD_DHU-epoch_115.onnx",
     "birefnet-cod": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-COD-epoch_125.onnx",
     "birefnet-massive": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-massive-TR_DIS5K_TR_TEs-epoch_420.onnx",
+    "bria-rmbg": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/bria-rmbg-1.4.onnx",
+    "bria_rmbg": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/bria-rmbg-1.4.onnx",
 }
 
 def ensure_rembg_model(model_name):
     """
     Checks if rembg ONNX model exists locally; if not, downloads it with real-time UI progress.
+    Synchronizes between AnEdiKit model storage and ~/.u2net cache.
     """
     if model_name == "fake_transparency":
         return ensure_rembg_model("u2net")
@@ -216,9 +252,31 @@ def ensure_rembg_model(model_name):
     user_home_dest = os.path.join(os.path.expanduser("~"), ".u2net", onnx_name)
     
     if os.path.exists(dest_path) and os.path.getsize(dest_path) > 100000:
+        if not (os.path.exists(user_home_dest) and os.path.getsize(user_home_dest) > 100000):
+            try:
+                import shutil
+                os.makedirs(os.path.dirname(user_home_dest), exist_ok=True)
+                shutil.copyfile(dest_path, user_home_dest)
+            except Exception:
+                pass
         return dest_path
     if os.path.exists(user_home_dest) and os.path.getsize(user_home_dest) > 100000:
+        if not (os.path.exists(dest_path) and os.path.getsize(dest_path) > 100000):
+            try:
+                import shutil
+                os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                shutil.copyfile(user_home_dest, dest_path)
+            except Exception:
+                pass
         return user_home_dest
+
+    # If small corrupt file exists, remove it
+    for p in (dest_path, user_home_dest):
+        if os.path.exists(p) and os.path.getsize(p) <= 100000:
+            try:
+                os.remove(p)
+            except Exception:
+                pass
         
     url = REMBG_MODEL_URLS.get(model_key)
     if url:
@@ -1081,6 +1139,40 @@ def cmd_metadata_cleaner(args_json):
     log_progress(100, f"Cleaned {tag_count} EXIF/GPS tags successfully")
     return {"success": True, "output_path": output_path, "tags_removed": tag_count}
 
+def parse_params_arg(raw_str):
+    """
+    Robust JSON parser for CLI parameters handling quotes and shell-escape quirks across platforms.
+    """
+    s = (raw_str or "").strip()
+    try:
+        return json.loads(s)
+    except Exception:
+        pass
+
+    if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+        try:
+            return json.loads(s[1:-1])
+        except Exception:
+            pass
+
+    try:
+        import ast
+        val = ast.literal_eval(s)
+        if isinstance(val, dict):
+            return val
+    except Exception:
+        pass
+
+    # Try unescaping quotes if passed like '{\"input_path\":...}'
+    try:
+        unescaped = s.replace('\\"', '"')
+        return json.loads(unescaped)
+    except Exception:
+        pass
+
+    # Fallback default loads
+    return json.loads(s)
+
 def main():
     parser = argparse.ArgumentParser(description="AnEdiKit Image AI Engine")
     parser.add_argument("--task", required=True, help="Task type (bg_remover, ai_upscaler, vectorizer, restore_denoise, icon_generator, metadata_cleaner)")
@@ -1088,7 +1180,7 @@ def main():
     args = parser.parse_args()
 
     try:
-        params_json = json.loads(args.params)
+        params_json = parse_params_arg(args.params)
         if args.task == "bg_remover":
             res = cmd_bg_remover(params_json)
         elif args.task == "ai_upscaler":

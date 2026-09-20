@@ -24,6 +24,8 @@ import {
   isPlaylistFetching,
   getFetchedPlaylistUrl,
   setFetchedPlaylistUrl,
+  renderPlaylistEntries,
+  initPlaylistControls,
 } from "../../src/js/playlist.js";
 import { getMergeFiles, setMergeFiles, clearMergeFiles } from "../../src/js/merge.js";
 import { applyTitlebarMode } from "../../src/js/window_caption.js";
@@ -122,6 +124,22 @@ describe("Submodule: output_path.js", () => {
     assert.equal(getUserHasCustomOutputName(), true);
     setUserHasCustomOutputName(false);
     assert.equal(getUserHasCustomOutputName(), false);
+  });
+
+  it("should auto-set output path to the folder and name of the first file when in merge mode", () => {
+    document.body.innerHTML = `
+      <input type="text" id="output-file-name" />
+      <span id="output-file-exists-warning" class="d-none"></span>
+    `;
+    document.body.dataset.activeTool = "merge";
+    setMergeFiles([
+      "D:\\Videos\\Clips\\intro.mp4",
+      "E:\\Other\\outro.mp4",
+    ]);
+    updateAutoOutputFilename(true);
+
+    const outPath = getOutputFilePath();
+    assert.equal(outPath, "D:\\Videos\\Clips\\intro_merged.mp4");
   });
 });
 

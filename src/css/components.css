@@ -301,7 +301,9 @@
 /* Execution Log Copy Button */
 .log-copy-btn {
   opacity: 0.35;
-  transition: opacity 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  transition: opacity var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+              color var(--duration-fast, 250ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1)),
+              transform var(--duration-quick, 150ms) var(--ease-smooth-out, cubic-bezier(0.22, 1, 0.36, 1));
   line-height: 1;
   padding: 0.25rem 0.4rem;
   color: var(--bs-secondary-color);

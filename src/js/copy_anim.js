@@ -1,11 +1,11 @@
-// iOS/macOS-style copy confirmation for icon buttons: the current icon zooms and
-// blurs out, the checkmark bounces in, holds, then zooms and blurs back out
-// as the original icon returns. Compositor-only (opacity/transform/filter on
-// the tiny glyph) so it never stutters.
-import { morph } from "./cube_motion.js";
+// transitions-polish — copy confirmation animation for icon buttons.
+// The current icon zooms and blurs out (--duration-quick: 150ms, --ease-smooth-out),
+// the checkmark pops in (--duration-fast: 250ms, --ease-bounce), holds, then
+// smoothly transitions back to the original icon in-place.
+// Compositor-only (opacity, transform, filter) with DOM node preservation.
 
 const FALLBACK_BOUNCE = "cubic-bezier(0.34, 1.36, 0.64, 1)";
-const FALLBACK_INOUT = "ease-in-out";
+const FALLBACK_SMOOTH = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 function token(name, fallback) {
   try {
@@ -18,7 +18,7 @@ function token(name, fallback) {
 
 export async function animateCopyConfirm(iconEl, opts = {}) {
   const confirmIcon = opts.confirmIcon || "checkmark-outline";
-  const holdMs = opts.holdMs ?? 650;
+  const holdMs = opts.holdMs ?? 800;
   if (!iconEl) return;
 
   const reduceMotion =
@@ -34,26 +34,34 @@ export async function animateCopyConfirm(iconEl, opts = {}) {
 
   // No WAAPI or motion off: instant swap with the same hold timing.
   if (typeof iconEl.animate !== "function" || reduceMotion) {
-    const original = iconEl.getAttribute("name");
+    const original = iconEl.getAttribute("name") || "copy-outline";
     iconEl.setAttribute("name", confirmIcon);
     const activeCheckClass = getCheckClass();
     iconEl.classList.add(activeCheckClass);
-    setTimeout(() => {
-      if (iconEl.isConnected) {
-        iconEl.setAttribute("name", original);
-        iconEl.classList.remove(activeCheckClass);
-      }
-    }, holdMs);
-    return;
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        if (iconEl.isConnected) {
+          iconEl.setAttribute("name", original);
+          iconEl.classList.remove(activeCheckClass, "text-success", "text-white");
+        }
+        resolve();
+      }, holdMs);
+    });
   }
 
   // One performance at a time per icon
   if (iconEl._copyBusy) return;
   iconEl._copyBusy = true;
 
-  const original = iconEl.getAttribute("name");
+  const original = iconEl.getAttribute("name") || "copy-outline";
   const bounce = token("--ease-bounce", FALLBACK_BOUNCE);
-  const inout = token("--ease-in-out", FALLBACK_INOUT);
+  const smooth = token("--ease-smooth-out", FALLBACK_SMOOTH);
+
+  // Transitions-polish scale: --blur-small (2px), scale 0.75 -> 1
+  const BLUR_PX = 2;
+  const SCALE_NON_RESTING = 0.75;
+  let appliedCheckClass = getCheckClass();
+
   const phase = (from, to, duration, easing) =>
     iconEl.animate(
       [
@@ -63,37 +71,32 @@ export async function animateCopyConfirm(iconEl, opts = {}) {
       { duration, easing, fill: "forwards" },
     ).finished;
 
-  // Prominent 10px blur for a distinct, high-impact motion-blur morph effect
-  const BLUR_PX = 10;
-  let appliedCheckClass = "text-success";
-
   try {
-    // 1. Old icon zooms + blurs out.
-    await phase({ o: 1, s: 1, b: 0 }, { o: 0, s: 0.3, b: BLUR_PX }, 120, inout);
+    // 1. Old icon exits: --duration-quick (150ms) + --ease-smooth-out
+    await phase({ o: 1, s: 1, b: 0 }, { o: 0, s: SCALE_NON_RESTING, b: BLUR_PX }, 150, smooth);
 
-    // 2. Cube Motion morphs the old glyph into the confirmation glyph.
-    const incomingIcon = iconEl.cloneNode(true);
-    incomingIcon.setAttribute("name", confirmIcon);
-    iconEl.parentElement?.insertBefore(incomingIcon, iconEl.nextSibling);
-    const morphAnimations = morph(iconEl, incomingIcon);
-    await Promise.all(morphAnimations.map((animation) => animation.finished.catch(() => {})));
-    iconEl.remove();
-    iconEl = incomingIcon;
+    // 2. In-place glyph swap to confirmation icon + checkmark color
+    iconEl.setAttribute("name", confirmIcon);
     appliedCheckClass = getCheckClass();
     iconEl.classList.add(appliedCheckClass);
 
-    await phase({ o: 0, s: 0.3, b: BLUR_PX }, { o: 1, s: 1, b: 0 }, 220, bounce);
+    // 3. Checkmark pops in: --duration-fast (250ms) + --ease-bounce
+    await phase({ o: 0, s: SCALE_NON_RESTING, b: BLUR_PX }, { o: 1, s: 1, b: 0 }, 250, bounce);
+
+    // 4. Hold
     await new Promise((resolve) => setTimeout(resolve, holdMs));
 
-    // 3. Checkmark zooms + blurs out.
-    await phase({ o: 1, s: 1, b: 0 }, { o: 0, s: 0.35, b: BLUR_PX }, 130, inout);
+    // 5. Checkmark exits: --duration-quick (150ms) + --ease-smooth-out
+    await phase({ o: 1, s: 1, b: 0 }, { o: 0, s: SCALE_NON_RESTING, b: BLUR_PX }, 150, smooth);
 
-    // 4. Original icon returns.
+    // 6. In-place restore to original icon
     iconEl.setAttribute("name", original);
     iconEl.classList.remove(appliedCheckClass, "text-success", "text-white");
-    await phase({ o: 0, s: 0.35, b: BLUR_PX }, { o: 1, s: 1, b: 0 }, 180, inout);
+
+    // 7. Original icon returns: --duration-fast (250ms) + --ease-smooth-out
+    await phase({ o: 0, s: SCALE_NON_RESTING, b: BLUR_PX }, { o: 1, s: 1, b: 0 }, 250, smooth);
   } catch {
-    // WAAPI aborted mid-flight — fall through to restore.
+    // WAAPI aborted mid-flight — fall through to finally restore.
   } finally {
     try {
       iconEl.getAnimations().forEach((a) => a.cancel());
@@ -102,7 +105,7 @@ export async function animateCopyConfirm(iconEl, opts = {}) {
     }
     if (iconEl.isConnected) {
       iconEl.setAttribute("name", original);
-      iconEl.classList.remove("text-success", "text-white");
+      iconEl.classList.remove(appliedCheckClass, "text-success", "text-white");
     }
     iconEl._copyBusy = false;
   }

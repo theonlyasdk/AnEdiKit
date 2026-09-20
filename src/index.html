@@ -2456,13 +2456,13 @@ style="width: var(--sidebar-width, 280px);">
 
                   <!-- Currently Processing Item Header -->
                   <div id="current-item-wrapper" class="d-none px-3 py-2 bg-body border-top">
-                    <h3 class="h3 fw-semibold mb-1 text-body lh-1" id="current-processing-heading">Currently processing: (1 of 1)</h3>
-                    <div class="text-body-secondary small text-truncate" id="current-item-name">Processing...</div>
+                    <h3 class="h3 fw-semibold mb-0 text-body lh-1 text-truncate" id="current-processing-heading">Processing: ...</h3>
                   </div>
 
                   <!-- Status text in middle -->
                   <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-body small text-body-secondary border-top">
-                    <div class="d-flex flex-wrap gap-3">
+                    <div class="d-flex flex-wrap gap-3 align-items-center">
+                      <span id="stat-item-count" class="d-none fw-medium text-body">1 of 1</span>
                       <span id="stat-time">Time: 00:00:00</span>
                       <span id="stat-eta">ETA: --:--:--</span>
                       <span id="stat-fps">FPS: 0</span>
@@ -2472,7 +2472,7 @@ style="width: var(--sidebar-width, 280px);">
                     <span class="fw-semibold text-body" id="progress-pct">0%</span>
                   </div>
                   <!-- Progress Bar at absolute bottom (full width, no gap) -->
-                  <div class="progress rounded-0" style="height: 4px; background-color: var(--bs-border-color);" id="exec-progress-container">
+                  <div class="progress rounded-0 d-none" style="height: 4px; background-color: var(--bs-border-color);" id="exec-progress-container">
                     <div class="progress-bar progress-bar-material-indeterminate" id="job-progress-bar" role="progressbar" style="width: 100%"></div>
                   </div>
                 </div>
