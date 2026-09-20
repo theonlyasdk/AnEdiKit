@@ -164,7 +164,11 @@
 .comp-header {
   height: 54px;
   border-bottom: 1px solid var(--bs-border-color);
-  background-color: var(--bs-body-bg);
+  background-color: rgba(var(--bs-body-bg-rgb), 0.85);
+  backdrop-filter: blur(6px);
+  position: absolute;
+  z-index: 30;
+  width: 100%;
 }
 
 .comp-stage-wrapper {
@@ -235,7 +239,13 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
   cursor: ew-resize;
 }
-
+.comp-split-divider-handle:active {
+  background-color: var(--bs-primary);
+  color: var(--bs-body-bg);
+}
+.comp-badge {
+  padding: 5px 10px;
+}
 .comp-floating-toolbar {
   position: absolute;
   bottom: 28px;
@@ -248,7 +258,10 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   border-radius: 10px;
   padding: 0.6rem 1.25rem;
-  min-width: 240px;
+}
+
+#comp-fade-slider {
+  height: 100%;
 }
 
 /* Crisp, subtle scanning pulse for image preview generation */

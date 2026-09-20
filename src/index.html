@@ -3260,12 +3260,12 @@ style="width: var(--sidebar-width, 280px);">
             <!-- Before Layer (Original - Clipped to Left Side of Slider) -->
             <div class="comp-split-image-layer" id="comp-split-before-wrapper" style="clip-path: polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%);">
               <img id="comp-split-before-img" src="" alt="Original Image" draggable="false" />
-              <div class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 start-0 m-3 py-1 px-2 border" style="z-index: 5;">Before</div>
+              <div class="badge bg-dark bg-opacity-75 text-white position-absolute start-0 m-3 border comp-badge" style="z-index: 15; top: 5em;">Before</div>
             </div>
             <!-- After Layer (Processed - Clipped to Right Side of Slider) -->
             <div class="comp-split-image-layer" id="comp-split-after-wrapper" style="clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);">
               <img id="comp-split-after-img" src="" alt="Enhanced Result" draggable="false" />
-              <div class="badge bg-primary text-white position-absolute top-0 end-0 m-3 py-1 px-2" style="z-index: 15;">After</div>
+              <div class="badge bg-primary text-white position-absolute end-0 m-3 comp-badge" style="z-index: 15; top: 5em;">After</div>
             </div>
             <!-- Sliding Divider Line & Handle -->
             <div class="comp-split-divider-line" id="comp-split-divider" style="left: 50%;">
@@ -3317,8 +3317,7 @@ style="width: var(--sidebar-width, 280px);">
 
           <!-- Onion Skin Slider (Conditional) -->
           <div class="d-none align-items-center gap-2" id="comp-fade-ctrl-wrapper">
-            <span class="small text-body-secondary">Opacity:</span>
-            <input type="range" class="form-range" id="comp-fade-slider" min="0" max="100" value="50" style="width: 100px;" />
+            <input type="range" class="form-range" id="comp-fade-slider" min="0" max="100" value="50" />
           </div>
 
           <div class="vr my-1"></div>
@@ -3326,10 +3325,10 @@ style="width: var(--sidebar-width, 280px);">
           <!-- Action Buttons -->
           <div class="d-flex align-items-center gap-2">
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-copy" title="Copy result to clipboard">
-              <ion-icon name="copy-outline" class="me-1"></ion-icon> Copy Result
+              <ion-icon name="copy-outline"></ion-icon>
             </button>
             <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-show-folder" title="Show output file in File Explorer">
-              <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Open Folder
+              <ion-icon name="folder-open-outline"></ion-icon>
             </button>
           </div>
         </div>
