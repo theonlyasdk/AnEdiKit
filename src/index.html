@@ -65,7 +65,7 @@ style="width: var(--sidebar-width, 280px);">
             <div class="sidebar-indicator" id="sidebar-indicator"></div>
 
             <!-- Unified tool browser -->
-            <div class="sidebar-section pt-3" id="sidebar-all-tools-section">
+            <div class="sidebar-section" id="sidebar-all-tools-section">
               <nav class="nav nav-pills flex-column gap-1" id="all-tools-nav">
                 <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="all_tools" type="button" title="Browse every tool by category">
                   <ion-icon name="apps-outline" class="text-body-secondary"></ion-icon>
@@ -346,6 +346,7 @@ style="width: var(--sidebar-width, 280px);">
                       <div class="input-group mb-0">
                         <button class="btn btn-outline-secondary" type="button" id="btn-browse-output-dir" title="Choose output folder"><ion-icon name="folder-open-outline"></ion-icon></button>
                         <input type="text" class="form-control small" id="output-file-name" placeholder="Auto-generated full output path..." spellcheck="false" autocomplete="off" />
+                        <button class="btn btn-outline-secondary" type="button" id="btn-open-output-dir" title="Open output folder in File Explorer"><ion-icon name="open-outline"></ion-icon></button>
                       </div>
                       <!-- File Exists Warning Under Output File -->
                       <div class="form-text text-warning small d-none ui-zoom-in mt-1" id="output-file-exists-warning">
@@ -436,6 +437,7 @@ style="width: var(--sidebar-width, 280px);">
                 <div class="input-group mb-0">
                   <button class="btn btn-outline-secondary" type="button" id="btn-browse-image-outdir" title="Choose output folder for AI images"><ion-icon name="folder-open-outline"></ion-icon></button>
                   <input type="text" class="form-control small" id="image-ai-output-dir" placeholder="Default Pictures folder..." readonly />
+                  <button class="btn btn-outline-secondary" type="button" id="btn-open-image-outdir" title="Open output folder in File Explorer"><ion-icon name="open-outline"></ion-icon></button>
                 </div>
                 <div class="form-text text-body-secondary small mt-1">
                   Generated images are saved to this folder unless "Replace Source" is toggled ON.
@@ -457,6 +459,7 @@ style="width: var(--sidebar-width, 280px);">
                 <div class="input-group mb-2">
                   <button class="btn btn-outline-secondary" type="button" id="btn-browse-ytdlp-outdir" title="Choose download destination folder"><ion-icon name="folder-open-outline"></ion-icon></button>
                   <input type="text" class="form-control small" id="ytdlp-output-dir" placeholder="Default downloads folder..." readonly />
+                  <button class="btn btn-outline-secondary" type="button" id="btn-open-ytdlp-outdir" title="Open download folder in File Explorer"><ion-icon name="open-outline"></ion-icon></button>
                 </div>
               </div>
               <div class="mt-3">
@@ -2155,6 +2158,7 @@ style="width: var(--sidebar-width, 280px);">
                         <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Browse
                       </button>
                       <input type="text" class="form-control font-monospace" id="set-output-dir" value="C:\Users\User\Videos" readonly />
+                      <button class="btn btn-outline-secondary" type="button" id="btn-open-settings-outdir" title="Open output folder in File Explorer"><ion-icon name="open-outline"></ion-icon></button>
                     </div>
 
                   </div>
@@ -2455,8 +2459,8 @@ style="width: var(--sidebar-width, 280px);">
                   </div>
 
                   <!-- Currently Processing Item Header -->
-                  <div id="current-item-wrapper" class="d-none px-3 py-2 bg-body border-top">
-                    <h3 class="h3 fw-semibold mb-0 text-body lh-1 text-truncate" id="current-processing-heading">Processing: ...</h3>
+                  <div id="current-item-wrapper" class="d-none px-3 py-2 bg-body border-top position-relative overflow-hidden">
+                    <h3 class="h3 fw-semibold mb-0 text-body text-nowrap" id="current-processing-heading">Processing: ...</h3>
                   </div>
 
                   <!-- Status text in middle -->
@@ -2608,9 +2612,6 @@ style="width: var(--sidebar-width, 280px);">
             <div class="d-flex align-items-center gap-2">
               <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-check-all-updates">
                 <ion-icon name="refresh-outline"></ion-icon> Check for Updates
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-clear-tools-cache" title="Clear cached GitHub release status and force refetch">
-                <ion-icon name="trash-outline" class="me-1"></ion-icon>Clear Update Cache
               </button>
             </div>
             <div class="text-body-secondary small d-none align-items-center gap-2" id="tool-download-speed-badge">
@@ -3188,11 +3189,11 @@ style="width: var(--sidebar-width, 280px);">
     <!-- Fullscreen Sliding Window Image Comparison Modal -->
     <div class="image-comp-modal-overlay d-none" id="image-comparison-modal">
       <!-- Top Control Bar -->
-      <div class="comp-header px-3 d-flex justify-content-between align-items-center flex-shrink-0">
-        <div class="d-flex align-items-center gap-3">
-          <div>
-            <h6 class="mb-0 fw-semibold text-body text-truncate" id="comp-modal-title">Comparison View</h6>
-            <div class="small text-body-secondary" id="comp-modal-subtitle" style="font-size: 0.72rem;">Review enhancement result</div>
+      <div class="comp-header px-3 d-flex justify-content-between align-items-center flex-shrink-0" data-tauri-drag-region>
+        <div class="d-flex align-items-center gap-3" data-tauri-drag-region>
+          <div data-tauri-drag-region>
+            <h6 class="mb-0 fw-semibold text-body text-truncate" id="comp-modal-title" data-tauri-drag-region>Comparison View</h6>
+            <div class="small text-body-secondary" id="comp-modal-subtitle" style="font-size: 0.72rem;" data-tauri-drag-region>Review enhancement result</div>
           </div>
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -3256,16 +3257,16 @@ style="width: var(--sidebar-width, 280px);">
         
         <!-- Mode 1: Split Slider (Sliding Window) -->
         <div class="comp-split-container w-100 h-100" id="comp-view-split">
-          <div class="position-relative w-100 h-100 comp-zoomable" id="comp-split-wrapper" style="transition: transform 0.05s ease-out;">
+          <div class="position-relative w-100 h-100 comp-zoomable" id="comp-split-wrapper">
             <!-- Before Layer (Original - Clipped to Left Side of Slider) -->
             <div class="comp-split-image-layer" id="comp-split-before-wrapper" style="clip-path: polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%);">
               <img id="comp-split-before-img" src="" alt="Original Image" draggable="false" />
-              <div class="badge bg-dark bg-opacity-75 text-white position-absolute start-0 m-3 border comp-badge" style="z-index: 15; top: 5em;">Before</div>
+              <div class="badge bg-dark bg-opacity-75 text-white position-absolute start-0 m-3 border comp-badge" style="z-index: 15;">Before</div>
             </div>
             <!-- After Layer (Processed - Clipped to Right Side of Slider) -->
             <div class="comp-split-image-layer" id="comp-split-after-wrapper" style="clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%);">
               <img id="comp-split-after-img" src="" alt="Enhanced Result" draggable="false" />
-              <div class="badge bg-primary text-white position-absolute end-0 m-3 comp-badge" style="z-index: 15; top: 5em;">After</div>
+              <div class="badge bg-primary text-white position-absolute end-0 m-3 comp-badge" style="z-index: 15;">After</div>
             </div>
             <!-- Sliding Divider Line & Handle -->
             <div class="comp-split-divider-line" id="comp-split-divider" style="left: 50%;">
@@ -3280,13 +3281,13 @@ style="width: var(--sidebar-width, 280px);">
         <div class="d-none w-100 h-100 p-3" id="comp-view-side">
           <div class="row g-3 w-100 h-100 m-0">
             <div class="col-6 h-100 position-relative d-flex flex-column align-items-center justify-content-center overflow-hidden transparency-grid">
-              <div class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 start-0 m-2 py-1 px-2 border z-2">Before</div>
+              <div class="badge bg-dark bg-opacity-75 text-white position-absolute start-0 m-2 border z-2 comp-badge">Before</div>
               <div class="w-100 h-100 d-flex align-items-center justify-content-center comp-zoomable">
                 <img id="comp-side-before-img" class="w-100 h-100 object-fit-contain" src="" alt="Original" draggable="false" />
               </div>
             </div>
             <div class="col-6 h-100 position-relative d-flex flex-column align-items-center justify-content-center overflow-hidden transparency-grid">
-              <div class="badge bg-primary text-white position-absolute top-0 start-0 m-2 py-1 px-2 z-2">After</div>
+              <div class="badge bg-primary text-white position-absolute start-0 m-2 z-2 comp-badge">After</div>
               <div class="w-100 h-100 d-flex align-items-center justify-content-center comp-zoomable">
                 <img id="comp-side-after-img" class="w-100 h-100 object-fit-contain" src="" alt="Processed" draggable="false" />
               </div>

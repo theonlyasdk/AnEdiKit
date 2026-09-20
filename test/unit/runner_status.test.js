@@ -5,6 +5,8 @@ import assert from "node:assert/strict";
 import {
   updateProgress,
   onJobFinished,
+  showBatchFinishedNotification,
+  setProcessingHeading,
 } from "../../src/js/runner.js";
 
 describe("runner.js: Execution status and progress bar management", () => {
@@ -29,6 +31,14 @@ describe("runner.js: Execution status and progress bar management", () => {
       </div>
       <div id="status-message" class="d-none"></div>
       <button id="btn-execute">Execute</button>
+      <div id="finished-toast" class="toast">
+        <strong id="toast-title">Task Finished</strong>
+        <span id="toast-filename"></span>
+        <span id="toast-meta-details"></span>
+        <small id="toast-timestamp"></small>
+        <button id="toast-btn-open-file"></button>
+        <button id="toast-btn-open-folder"></button>
+      </div>
     `;
   });
 
@@ -78,5 +88,61 @@ describe("runner.js: Execution status and progress bar management", () => {
     onJobFinished(true, "Job completed successfully");
 
     assert.equal(progressContainer.classList.contains("d-none"), true);
+  });
+
+  it("formats combined batch notification with all successful items", async () => {
+    await showBatchFinishedNotification({
+      destination: "C:\\Output\\folder",
+      toolName: "Media Conversion",
+      total: 5,
+      successCount: 5,
+      failCount: 0,
+      elapsedSeconds: "12.4",
+    });
+
+    const toastTitle = document.getElementById("toast-title");
+    const toastFileName = document.getElementById("toast-filename");
+    const toastMetaDetails = document.getElementById("toast-meta-details");
+
+    assert.equal(toastTitle.textContent, "Media Conversion Completed");
+    assert.equal(toastFileName.textContent, "5 items processed");
+    assert.ok(toastMetaDetails.innerHTML.includes("12.4s"));
+    assert.ok(toastMetaDetails.innerHTML.includes("All items succeeded"));
+  });
+
+  it("formats combined batch notification with partial failures", async () => {
+    await showBatchFinishedNotification({
+      destination: "C:\\Output\\folder",
+      toolName: "Batch Queue",
+      total: 4,
+      successCount: 3,
+      failCount: 1,
+      elapsedSeconds: "8.5",
+    });
+
+    const toastTitle = document.getElementById("toast-title");
+    const toastFileName = document.getElementById("toast-filename");
+    const toastMetaDetails = document.getElementById("toast-meta-details");
+
+    assert.equal(toastTitle.textContent, "Batch Queue Completed");
+    assert.equal(toastFileName.textContent, "3 items processed");
+    assert.ok(toastMetaDetails.innerHTML.includes("8.5s"));
+    assert.ok(toastMetaDetails.innerHTML.includes("1 failed"));
+  });
+
+  it("activates marquee scrolling and fade mask when processing text overflows", () => {
+    const wrapper = document.getElementById("current-item-wrapper");
+    const heading = document.getElementById("current-processing-heading");
+
+    // Mock dimensions so scrollWidth exceeds wrapper clientWidth
+    wrapper.clientWidth = 200;
+    heading.scrollWidth = 450;
+
+    setProcessingHeading("Processing: extremely_long_video_file_name_with_extra_tags_and_descriptors_2026.mkv");
+
+    assert.equal(heading.textContent, "Processing: extremely_long_video_file_name_with_extra_tags_and_descriptors_2026.mkv");
+    assert.ok(heading.classList.contains("is-marquee"));
+    assert.ok(wrapper.classList.contains("has-marquee-fade"));
+    assert.ok(heading.style.getPropertyValue("--marquee-overflow-dist"));
   });
 });

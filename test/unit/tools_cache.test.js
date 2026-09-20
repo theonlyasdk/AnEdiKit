@@ -195,14 +195,14 @@ describe("Tools Update Cache & 24h Expiration", () => {
   });
 });
 
-describe("Clear Update Cache button in-progress state", () => {
+describe("Check for Updates button in-progress state", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
   it("shimmers, disables, and restores around the forced refetch", async () => {
     const { initToolsCacheControls } = await import("../../src/js/app_settings.js");
-    const btn = document.getElementById("btn-clear-tools-cache");
+    const btn = document.getElementById("btn-check-all-updates");
 
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async () => ({
@@ -212,7 +212,7 @@ describe("Clear Update Cache button in-progress state", () => {
 
     btn.disabled = false;
     btn.innerHTML =
-      '<ion-icon name="trash-outline"></ion-icon>Clear Update Cache';
+      '<ion-icon name="refresh-outline"></ion-icon> Check for Updates';
     btn.classList.remove("btn-secondary", "btn-shimmer");
     btn.classList.add("btn-outline-secondary");
 
@@ -221,10 +221,10 @@ describe("Clear Update Cache button in-progress state", () => {
       btn.click();
 
       // Busy state is applied synchronously so it paints before the refetch.
-      assert.equal(btn.disabled, true, "expected the button disabled while clearing");
+      assert.equal(btn.disabled, true, "expected the button disabled while checking");
       assert.ok(
         btn.classList.contains("btn-shimmer"),
-        "expected the shimmer sweep while clearing",
+        "expected the shimmer sweep while checking",
       );
       assert.ok(
         btn.classList.contains("btn-secondary"),
@@ -233,9 +233,9 @@ describe("Clear Update Cache button in-progress state", () => {
       assert.equal(
         btn.classList.contains("btn-outline-secondary"),
         false,
-        "the transparent outline variant should be dropped while clearing",
+        "the transparent outline variant should be dropped while checking",
       );
-      assert.match(btn.innerHTML, /Clearing\.\.\./);
+      assert.match(btn.innerHTML, /Checking\.\.\./);
 
       // Wait for the forced refetch (and its internal timers) to settle.
       const deadline = Date.now() + 2000;
@@ -246,7 +246,7 @@ describe("Clear Update Cache button in-progress state", () => {
       assert.equal(btn.disabled, false, "expected the button re-enabled afterward");
       assert.equal(btn.classList.contains("btn-shimmer"), false);
       assert.ok(btn.classList.contains("btn-outline-secondary"));
-      assert.match(btn.innerHTML, /Clear Update Cache/);
+      assert.match(btn.innerHTML, /Check for Updates/);
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -7,27 +7,11 @@ import {
   saveToolsUpdateCache,
   clearToolsUpdateCache,
 } from "./storage.js";
+import { initToolsCacheControls } from "./app_settings.js";
 
 export { toolsManifest, clearToolsUpdateCache };
 
 export const TOOLS_UPDATE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-// The Clear Update Cache action now lives in the Manage Tools footer alongside
-// the update/delete actions, so it has to be locked for the duration of any
-// tool operation. Returns a restore callback (null when the control isn't
-// mounted) that preserves the pre-existing disabled state, so an in-flight
-// cache clear is never re-enabled by an unrelated update or delete.
-function lockToolsCacheButton() {
-  const btn = document.getElementById("btn-clear-tools-cache");
-  if (!btn) return null;
-  const wasDisabled = btn.disabled;
-  btn.disabled = true;
-  btn.classList.add("opacity-50", "pe-none");
-  return () => {
-    btn.disabled = wasDisabled;
-    if (!wasDisabled) btn.classList.remove("opacity-50", "pe-none");
-  };
-}
 
 export async function checkLocalToolVersions() {
   if (window.__TAURI__?.core?.invoke) {
@@ -214,7 +198,6 @@ export async function deleteToolBinary(toolName, btnDelete, callback) {
     btnCheckAll.disabled = true;
     btnCheckAll.classList.add("opacity-50", "pe-none");
   }
-  const unlockCacheButton = lockToolsCacheButton();
 
   const restoreAllButtons = () => {
     otherBtnsToRestore.forEach(({ el, wasDisabled }) => {
@@ -258,7 +241,6 @@ export async function deleteToolBinary(toolName, btnDelete, callback) {
   }
 
   restoreAllButtons();
-  if (unlockCacheButton) unlockCacheButton();
   if (callback) callback();
 }
 
@@ -552,7 +534,6 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     btnCheckAll.disabled = true;
     btnCheckAll.classList.add("opacity-50", "pe-none");
   }
-  const unlockCacheButton = lockToolsCacheButton();
 
   const btnDone = document.getElementById("btn-manage-tools-done");
   let updateCancelled = false;
@@ -716,7 +697,6 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
       showToolAlert(`Failed to update ${toolName}: ${updateError}`, "danger");
     }
     restoreOtherButtons();
-    if (unlockCacheButton) unlockCacheButton();
 
     setTimeout(() => {
       delete activeToolUpdates[toolId];
@@ -736,7 +716,6 @@ export async function simulateToolUpdate(toolName, btnElementOrId, callback) {
     setTimeout(() => {
       delete activeToolUpdates[toolId];
       restoreOtherButtons();
-      if (unlockCacheButton) unlockCacheButton();
       refreshToolsUI();
       if (callback) callback();
     }, 1200);
@@ -964,12 +943,7 @@ export function initToolsManager() {
     btnCloseAlert.addEventListener("click", hideToolAlert);
   }
 
-  const btnCheckAll = document.getElementById("btn-check-all-updates");
-  if (btnCheckAll) {
-    btnCheckAll.addEventListener("click", () => {
-      refreshToolsUI({ force: true });
-    });
-  }
+  initToolsCacheControls();
 
   const handleOpenBinFolder = async (e) => {
     if (e) e.preventDefault();

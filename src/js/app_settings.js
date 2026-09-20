@@ -332,7 +332,7 @@ export function renderToolsCacheStatus() {
 }
 
 export function initToolsCacheControls() {
-  const btnClear = document.getElementById("btn-clear-tools-cache");
+  const btnCheckAll = document.getElementById("btn-check-all-updates");
 
   // The status label now lives inside the Manage Tools dialog, so re-render its
   // relative age each time the dialog opens instead of only when a background
@@ -349,21 +349,21 @@ export function initToolsCacheControls() {
       renderToolsCacheStatus();
     });
   }
-  if (!btnClear || btnClear.dataset.cacheBound === "true") return;
-  btnClear.dataset.cacheBound = "true";
+  if (!btnCheckAll || btnCheckAll.dataset.cacheBound === "true") return;
+  btnCheckAll.dataset.cacheBound = "true";
 
-  btnClear.addEventListener("click", () => {
+  btnCheckAll.addEventListener("click", () => {
     clearToolsUpdateCache();
     renderToolsCacheStatus();
     
-    // Shimmer sweep while the cache clears and refetches. The outline variant
+    // Shimmer sweep while checking for updates and refetching. The outline variant
     // is transparent, so the sheen only reads on a filled button; mirror the
     // Manage Tools in-progress treatment (btn-secondary + btn-shimmer).
-    const origHtml = btnClear.innerHTML;
-    btnClear.disabled = true;
-    btnClear.classList.remove("btn-outline-secondary");
-    btnClear.classList.add("btn-secondary", "btn-shimmer");
-    btnClear.innerHTML = `<ion-icon name="trash-outline" class="me-1"></ion-icon>Clearing...`;
+    const origHtml = btnCheckAll.innerHTML;
+    btnCheckAll.disabled = true;
+    btnCheckAll.classList.remove("btn-outline-secondary");
+    btnCheckAll.classList.add("btn-secondary", "btn-shimmer");
+    btnCheckAll.innerHTML = `<ion-icon name="refresh-outline" class="me-1"></ion-icon>Checking...`;
 
     // Refresh tools status in UI with forced fresh re-fetch
     refreshToolsUI({ force: true })
@@ -374,10 +374,10 @@ export function initToolsCacheControls() {
         renderToolsCacheStatus();
       })
       .finally(() => {
-        btnClear.disabled = false;
-        btnClear.classList.remove("btn-secondary", "btn-shimmer");
-        btnClear.classList.add("btn-outline-secondary");
-        btnClear.innerHTML = origHtml;
+        btnCheckAll.disabled = false;
+        btnCheckAll.classList.remove("btn-secondary", "btn-shimmer");
+        btnCheckAll.classList.add("btn-outline-secondary");
+        btnCheckAll.innerHTML = origHtml;
       });
   });
 }

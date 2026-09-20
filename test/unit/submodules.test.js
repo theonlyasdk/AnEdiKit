@@ -15,6 +15,7 @@ import {
   setUserHasCustomOutputName,
   updateAutoOutputFilename,
 } from "../../src/js/output_path.js";
+import { getLastOutputDir, saveLastOutputDir } from "../../src/js/storage.js";
 import {
   escapeHtml,
   playlistRowHtml,
@@ -141,6 +142,20 @@ describe("Submodule: output_path.js", () => {
     const outPath = getOutputFilePath();
     assert.equal(outPath, "D:\\Videos\\Clips\\intro_merged.mp4");
   });
+
+  it("should remember and persist output folder across filename computations", () => {
+    document.body.innerHTML = `
+      <input type="text" id="output-file-name" />
+      <span id="output-file-exists-warning" class="d-none"></span>
+    `;
+    saveLastOutputDir("E:\\CustomExports");
+    document.body.dataset.activeTool = "convert";
+    updateAutoOutputFilename(true);
+
+    const outPath = getOutputFilePath();
+    assert.ok(outPath.startsWith("E:\\CustomExports"));
+    assert.equal(getLastOutputDir(), "E:\\CustomExports");
+  });
 });
 
 describe("Submodule: playlist.js", () => {
@@ -263,6 +278,69 @@ describe("Submodule: module_state.js", () => {
       restoreModuleState("convert");
       restoreAllModulesState();
     });
+  });
+
+  it("should remember and restore values when switching between image and ai tools", () => {
+    // 1. Simulate user on bg_remover changing values
+    const bgModel = document.getElementById("bg-model") || document.createElement("select");
+    bgModel.id = "bg-model";
+    bgModel.value = "fake_transparency";
+
+    const bgOutputMode = document.getElementById("bg-output-mode") || document.createElement("select");
+    bgOutputMode.id = "bg-output-mode";
+    bgOutputMode.value = "solid_color";
+
+    const bgColor = document.getElementById("bg-color") || document.createElement("input");
+    bgColor.id = "bg-color";
+    bgColor.value = "#ff0000";
+
+    const fakeTol = document.getElementById("fake-grid-tolerance") || document.createElement("input");
+    fakeTol.id = "fake-grid-tolerance";
+    fakeTol.value = "22";
+
+    const viewBg = document.getElementById("view-bg_remover");
+    if (viewBg) {
+      viewBg.querySelectorAll = () => [bgModel, bgOutputMode, bgColor, fakeTol];
+    }
+
+    saveActiveModuleState("bg_remover");
+
+    // 2. Simulate user on ai_upscaler changing values
+    const upscaleFactor = document.getElementById("upscale-factor") || document.createElement("select");
+    upscaleFactor.id = "upscale-factor";
+    upscaleFactor.value = "4";
+
+    const upscaleModel = document.getElementById("upscale-model") || document.createElement("select");
+    upscaleModel.id = "upscale-model";
+    upscaleModel.value = "clarity_hdr";
+
+    const viewUpscale = document.getElementById("view-ai_upscaler");
+    if (viewUpscale) {
+      viewUpscale.querySelectorAll = () => [upscaleFactor, upscaleModel];
+    }
+
+    saveActiveModuleState("ai_upscaler");
+
+    // 3. Mutate DOM to arbitrary other values
+    bgModel.value = "u2net";
+    bgOutputMode.value = "transparent";
+    bgColor.value = "#ffffff";
+    fakeTol.value = "14";
+
+    upscaleFactor.value = "2";
+    upscaleModel.value = "realesrgan-x4plus";
+
+    // 4. Restore bg_remover and verify values are remembered
+    restoreModuleState("bg_remover");
+    assert.equal(bgModel.value, "fake_transparency");
+    assert.equal(bgOutputMode.value, "solid_color");
+    assert.equal(bgColor.value, "#ff0000");
+    assert.equal(fakeTol.value, "22");
+
+    // 5. Restore ai_upscaler and verify values are remembered
+    restoreModuleState("ai_upscaler");
+    assert.equal(upscaleFactor.value, "4");
+    assert.equal(upscaleModel.value, "clarity_hdr");
   });
 });
 

@@ -245,6 +245,7 @@
 }
 .comp-badge {
   padding: 5px 10px;
+  top: 5em;
 }
 .comp-floating-toolbar {
   position: absolute;

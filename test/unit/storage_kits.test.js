@@ -20,6 +20,8 @@ import {
   saveScriptTheme,
   getSavedAiReplaceSource,
   saveAiReplaceSource,
+  getLastOutputDir,
+  saveLastOutputDir,
   isFirstStart,
   markFirstStartChecked,
 } from "../../src/js/storage.js";
@@ -141,5 +143,12 @@ describe("storage.js: misc getters", () => {
     assert.equal(isFirstStart(), true);
     markFirstStartChecked();
     assert.equal(isFirstStart(), false);
+  });
+
+  it("persists and retrieves last output directory", () => {
+    assert.equal(getLastOutputDir(), "C:\\Users\\User\\Videos");
+    saveLastOutputDir("D:\\MyProjects\\Rendered");
+    assert.equal(getLastOutputDir(), "D:\\MyProjects\\Rendered");
+    assert.equal(localStorage.getItem(STORAGE_KEYS.LAST_OUTPUT_DIR), "D:\\MyProjects\\Rendered");
   });
 });

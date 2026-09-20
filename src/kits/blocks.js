@@ -228,6 +228,9 @@ export function renderBlockHTML(block, currentValue, _kitId) {
               <ion-icon name="folder-open-outline"></ion-icon> Choose Folder...
             </button>
             <input type="text" class="form-control small font-sans kit-block-input" id="kit-block-${block.id}" data-block-id="${block.id}" placeholder="${block.placeholder || "Select destination directory..."}" value="${escapeHtml(displayVal)}" readonly />
+            <button class="btn btn-outline-secondary btn-open-block-folder" type="button" data-block-id="${block.id}" title="Open output folder in File Explorer">
+              <ion-icon name="open-outline"></ion-icon>
+            </button>
           </div>
           ${helpHtml}
         </div>

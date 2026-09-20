@@ -1,0 +1,211 @@
+/* ==========================================================================
+   Pixel-Accurate Material 3 Sliders (Specification: Continuous & Discrete)
+   - Track: 16px height, rounded capsule/pill ends (border-radius: 9999px)
+   - Active Track: Solid primary color fill
+   - Inactive Track: Tinted container color with stop dot indicator
+   - Thumb: Vertical rounded pill bar (4px x 28px) with M3 state layer halo
+   - Gap: 3.5px separation around the handle bar
+   ========================================================================== */
+
+:root {
+  --m3-slider-active-color: var(--bs-primary, #6750a4);
+  --m3-slider-inactive-color: rgba(var(--bs-primary-rgb, 103, 80, 164), 0.16);
+  --m3-slider-stop-dot-color: rgba(var(--bs-primary-rgb, 103, 80, 164), 0.45);
+  --m3-slider-thumb-color: var(--bs-primary, #6750a4);
+  --m3-slider-halo-color: rgba(var(--bs-primary-rgb, 103, 80, 164), 0.14);
+  --m3-slider-halo-active: rgba(var(--bs-primary-rgb, 103, 80, 164), 0.24);
+}
+
+[data-bs-theme="dark"] {
+  --m3-slider-active-color: var(--bs-primary, #d0bcff);
+  --m3-slider-inactive-color: rgba(var(--bs-primary-rgb, 208, 188, 255), 0.2);
+  --m3-slider-stop-dot-color: rgba(var(--bs-primary-rgb, 208, 188, 255), 0.55);
+  --m3-slider-thumb-color: var(--bs-primary, #d0bcff);
+  --m3-slider-halo-color: rgba(var(--bs-primary-rgb, 208, 188, 255), 0.16);
+  --m3-slider-halo-active: rgba(var(--bs-primary-rgb, 208, 188, 255), 0.28);
+}
+
+/* Material 3 Range Slider Base */
+.form-range:not(.trim-range-slider),
+input[type="range"].form-range:not(.trim-range-slider),
+input[type="range"]:not(.trim-range-slider) {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 36px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+  vertical-align: middle;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  box-sizing: border-box;
+}
+
+.form-range:not(.trim-range-slider):focus,
+.form-range:not(.trim-range-slider):focus-visible,
+input[type="range"]:not(.trim-range-slider):focus,
+input[type="range"]:not(.trim-range-slider):focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* WebKit / Blink Track */
+.form-range:not(.trim-range-slider)::-webkit-slider-runnable-track,
+input[type="range"].form-range:not(.trim-range-slider)::-webkit-slider-runnable-track,
+input[type="range"]:not(.trim-range-slider)::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 16px;
+  border-radius: 9999px;
+  border: none;
+  box-sizing: border-box;
+  background-color: var(--m3-slider-inactive-color);
+  background-image:
+    radial-gradient(circle 2px at calc(100% - 8px) center, var(--m3-slider-stop-dot-color) 99%, transparent 100%),
+    linear-gradient(
+      to right,
+      var(--m3-slider-active-color) 0%,
+      var(--m3-slider-active-color) max(0%, calc(var(--range-progress, 50%) - 3.5px)),
+      transparent max(0%, calc(var(--range-progress, 50%) - 3.5px)),
+      transparent min(100%, calc(var(--range-progress, 50%) + 3.5px)),
+      var(--m3-slider-inactive-color) min(100%, calc(var(--range-progress, 50%) + 3.5px)),
+      var(--m3-slider-inactive-color) 100%
+    );
+  transition: background 0.08s ease;
+}
+
+/* WebKit / Blink Thumb (Material 3 Vertical Pill Handle) */
+.form-range:not(.trim-range-slider)::-webkit-slider-thumb,
+input[type="range"].form-range:not(.trim-range-slider)::-webkit-slider-thumb,
+input[type="range"]:not(.trim-range-slider)::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 4px;
+  height: 28px;
+  margin-top: -6px; /* (16px track - 28px thumb) / 2 = -6px centering */
+  border-radius: 9999px;
+  background-color: var(--m3-slider-thumb-color);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1),
+              box-shadow 0.15s cubic-bezier(0.2, 0, 0, 1),
+              width 0.15s cubic-bezier(0.2, 0, 0, 1),
+              height 0.15s cubic-bezier(0.2, 0, 0, 1),
+              margin-top 0.15s cubic-bezier(0.2, 0, 0, 1),
+              background-color 0.15s ease;
+  cursor: pointer;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* WebKit Hover State Layer */
+.form-range:not(.trim-range-slider):hover::-webkit-slider-thumb,
+input[type="range"].form-range:not(.trim-range-slider):hover::-webkit-slider-thumb,
+input[type="range"]:not(.trim-range-slider):hover::-webkit-slider-thumb {
+  box-shadow: 0 0 0 8px var(--m3-slider-halo-color), 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* WebKit Active / Dragging State Layer */
+.form-range:not(.trim-range-slider):active::-webkit-slider-thumb,
+input[type="range"].form-range:not(.trim-range-slider):active::-webkit-slider-thumb,
+input[type="range"]:not(.trim-range-slider):active::-webkit-slider-thumb {
+  width: 5px;
+  height: 30px;
+  margin-top: -7px;
+  box-shadow: 0 0 0 12px var(--m3-slider-halo-active), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* WebKit Focus-Visible State Layer */
+.form-range:not(.trim-range-slider):focus-visible::-webkit-slider-thumb,
+input[type="range"].form-range:not(.trim-range-slider):focus-visible::-webkit-slider-thumb,
+input[type="range"]:not(.trim-range-slider):focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 10px var(--m3-slider-halo-active), 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Firefox Track */
+.form-range:not(.trim-range-slider)::-moz-range-track,
+input[type="range"].form-range:not(.trim-range-slider)::-moz-range-track,
+input[type="range"]:not(.trim-range-slider)::-moz-range-track {
+  width: 100%;
+  height: 16px;
+  border-radius: 9999px;
+  border: none;
+  box-sizing: border-box;
+  background-color: var(--m3-slider-inactive-color);
+  background-image:
+    radial-gradient(circle 2px at calc(100% - 8px) center, var(--m3-slider-stop-dot-color) 99%, transparent 100%),
+    linear-gradient(
+      to right,
+      var(--m3-slider-active-color) 0%,
+      var(--m3-slider-active-color) max(0%, calc(var(--range-progress, 50%) - 3.5px)),
+      transparent max(0%, calc(var(--range-progress, 50%) - 3.5px)),
+      transparent min(100%, calc(var(--range-progress, 50%) + 3.5px)),
+      var(--m3-slider-inactive-color) min(100%, calc(var(--range-progress, 50%) + 3.5px)),
+      var(--m3-slider-inactive-color) 100%
+    );
+}
+
+/* Firefox Thumb */
+.form-range:not(.trim-range-slider)::-moz-range-thumb,
+input[type="range"].form-range:not(.trim-range-slider)::-moz-range-thumb,
+input[type="range"]:not(.trim-range-slider)::-moz-range-thumb {
+  width: 4px;
+  height: 28px;
+  border-radius: 9999px;
+  background-color: var(--m3-slider-thumb-color);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1),
+              box-shadow 0.15s cubic-bezier(0.2, 0, 0, 1),
+              width 0.15s cubic-bezier(0.2, 0, 0, 1),
+              height 0.15s cubic-bezier(0.2, 0, 0, 1),
+              background-color 0.15s ease;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+/* Firefox Hover */
+.form-range:not(.trim-range-slider):hover::-moz-range-thumb,
+input[type="range"].form-range:not(.trim-range-slider):hover::-moz-range-thumb,
+input[type="range"]:not(.trim-range-slider):hover::-moz-range-thumb {
+  box-shadow: 0 0 0 8px var(--m3-slider-halo-color), 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Firefox Active / Dragging */
+.form-range:not(.trim-range-slider):active::-moz-range-thumb,
+input[type="range"].form-range:not(.trim-range-slider):active::-moz-range-thumb,
+input[type="range"]:not(.trim-range-slider):active::-moz-range-thumb {
+  width: 5px;
+  height: 30px;
+  box-shadow: 0 0 0 12px var(--m3-slider-halo-active), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* Firefox Focus-Visible */
+.form-range:not(.trim-range-slider):focus-visible::-moz-range-thumb,
+input[type="range"].form-range:not(.trim-range-slider):focus-visible::-moz-range-thumb,
+input[type="range"]:not(.trim-range-slider):focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 10px var(--m3-slider-halo-active), 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Disabled State */
+.form-range:not(.trim-range-slider):disabled,
+input[type="range"].form-range:not(.trim-range-slider):disabled,
+input[type="range"]:not(.trim-range-slider):disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-range:not(.trim-range-slider):disabled::-webkit-slider-thumb,
+input[type="range"].form-range:not(.trim-range-slider):disabled::-webkit-slider-thumb,
+input[type="range"]:not(.trim-range-slider):disabled::-webkit-slider-thumb {
+  box-shadow: none;
+}
+
+.form-range:not(.trim-range-slider):disabled::-moz-range-thumb,
+input[type="range"].form-range:not(.trim-range-slider):disabled::-moz-range-thumb,
+input[type="range"]:not(.trim-range-slider):disabled::-moz-range-thumb {
+  box-shadow: none;
+}

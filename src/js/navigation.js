@@ -3,6 +3,7 @@ import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings, g
 import { isJobRunning } from "./runner.js";
 import { cancelAudioMetadataLoading } from "./audio_tags.js";
 import { PDF_CATEGORIES, renderTool, getCategoryToolIdForPdfTool } from "./pdf_tools.js";
+import { saveActiveModuleState } from "./module_state.js";
 
 export const TOOL_METADATA = {
   all_tools: {
@@ -401,6 +402,10 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
 
   if (toolId === currentActiveTool) return;
   if (isJobRunning() && toolId !== "settings") return;
+
+  if (currentActiveTool) {
+    saveActiveModuleState(currentActiveTool);
+  }
 
   if (currentActiveTool === "audio_tags" && toolId !== "audio_tags") {
     cancelAudioMetadataLoading();

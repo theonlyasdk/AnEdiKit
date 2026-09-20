@@ -1,4 +1,5 @@
 // AnEdiKit - Tool Format and Controls Synchronization Module
+import { syncM3Slider } from "./m3_slider.js";
 
 // Display formatting for speed values: integers keep one decimal ("2.0")
 // to match the historic preset labels, others stay compact ("0.25").
@@ -28,6 +29,7 @@ export function syncSpeedSliderUI() {
   } else if (num) {
     num.value = slider.value;
   }
+  syncM3Slider(slider);
   if (sel) {
     const key = String(parseFloat(slider.value) || 2);
     let customOpt = sel.querySelector("option[data-custom]");

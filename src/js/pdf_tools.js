@@ -3,6 +3,7 @@
 // rest of AnEdiKit without introducing a parallel style system.
 import { setupListDragAndDrop } from "./drag_reorder.js";
 import { rise } from "./cube_motion.js";
+import { saveLastOutputDir, getLastOutputDir } from "./storage.js";
 
 const PDF_CATEGORIES = [
   {
@@ -601,7 +602,9 @@ async function selectPdfFiles(tool, acceptsMany) {
         const firstFile = selectedFiles[0];
         const lastSlash = Math.max(firstFile.lastIndexOf("\\"), firstFile.lastIndexOf("/"));
         if (lastSlash > 0) {
-          outInput.value = firstFile.substring(0, lastSlash);
+          const dir = firstFile.substring(0, lastSlash);
+          outInput.value = dir;
+          saveLastOutputDir(dir);
         }
       }
     }

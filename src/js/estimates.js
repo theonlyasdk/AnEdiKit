@@ -419,4 +419,65 @@ export function updateEstimatesUI(targetTool = null) {
       customDurEl.textContent = mediaInfo?.duration_string || "00:02:15";
     }
   }
+
+  // 8. Image AI Tools Estimates
+  if (!targetTool || activeTool === "bg_remover") {
+    const bgEstModel = document.getElementById("bg-est-model");
+    const bgEstMode = document.getElementById("bg-est-mode");
+    if (bgEstModel && bgEstMode) {
+      const bgModel = document.getElementById("bg-model");
+      const bgOutputMode = document.getElementById("bg-output-mode");
+      if (bgModel) bgEstModel.textContent = bgModel.options[bgModel.selectedIndex]?.text.split("(")[0].trim() || bgModel.value;
+      if (bgOutputMode) bgEstMode.textContent = bgOutputMode.options[bgOutputMode.selectedIndex]?.text.split("(")[0].trim() || bgOutputMode.value;
+    }
+  }
+
+  if (!targetTool || activeTool === "ai_upscaler") {
+    const upscaleEstScale = document.getElementById("upscale-est-scale");
+    const upscaleEstModel = document.getElementById("upscale-est-model");
+    if (upscaleEstScale && upscaleEstModel) {
+      const factor = document.getElementById("upscale-factor")?.value || "2";
+      const model = document.getElementById("upscale-model");
+      upscaleEstScale.textContent = `${factor}x`;
+      if (model) upscaleEstModel.textContent = model.options[model.selectedIndex]?.text.split("(")[0].trim() || model.value;
+    }
+  }
+
+  if (!targetTool || activeTool === "vectorizer") {
+    const vecEstOutput = document.getElementById("vec-est-output");
+    const vecEstLayers = document.getElementById("vec-est-layers");
+    if (vecEstOutput && vecEstLayers) {
+      const mode = document.getElementById("vec-mode");
+      const colors = document.getElementById("vec-colors")?.value || "8";
+      if (mode) vecEstOutput.textContent = mode.options[mode.selectedIndex]?.text.split("(")[0].trim() || "Scalable SVG";
+      vecEstLayers.textContent = `${colors} Colors`;
+    }
+  }
+
+  if (!targetTool || activeTool === "restore_denoise") {
+    const restEstMethod = document.getElementById("rest-est-method");
+    const restEstStrength = document.getElementById("rest-est-strength");
+    if (restEstMethod && restEstStrength) {
+      const method = document.getElementById("rest-method");
+      const strength = document.getElementById("rest-strength");
+      if (method) restEstMethod.textContent = method.options[method.selectedIndex]?.text.split("(")[0].trim() || method.value;
+      if (strength) restEstStrength.textContent = strength.options[strength.selectedIndex]?.text || `${strength.value}`;
+    }
+  }
+
+  if (!targetTool || activeTool === "icon_generator") {
+    const iconEstTarget = document.getElementById("icon-est-target");
+    if (iconEstTarget) {
+      const platform = document.getElementById("icon-platform");
+      if (platform) iconEstTarget.textContent = platform.options[platform.selectedIndex]?.text || "All Platforms";
+    }
+  }
+
+  if (!targetTool || activeTool === "metadata_cleaner") {
+    const metaEstPrivacy = document.getElementById("meta-est-privacy");
+    if (metaEstPrivacy) {
+      const action = document.getElementById("meta-action");
+      if (action) metaEstPrivacy.textContent = action.options[action.selectedIndex]?.text.split("(")[0].trim() || "All Metadata Removed";
+    }
+  }
 }

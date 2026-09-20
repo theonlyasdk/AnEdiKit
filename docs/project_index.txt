@@ -1,0 +1,81 @@
+ANEDIKIT CODEBASE MAP & SYMBOL INDEX
+
+=== STYLES & ANIMATIONS (src/css/) ===
+animations.css: .btn-shimmer (linear sweep sheen on buttons), .item-dropped-highlight (drop flash), .input-drop-pulsing (glow border), .preview-slide-in, dropdown & dropup curtain keyframes
+app.css: base layout vars, root font/colors, app-root container styles
+components.css: button variants, cards, input-groups, tool form controls, badge styles
+layout.css: .sidebar (#main-sidebar transitions), #top-header-bar, #top-titlebar-col, .tool-view-container
+media_preview.css: #media-preview-card (.video-mode, .audio-mode 16:9<->1:1 morpher), .text-shimmer, waveform container, .trim-range-slider
+modals.css: .sheet-header, .image-comp-modal-overlay (#image-comparison-modal), .comp-header, .comp-split-divider, .image-lightbox-overlay
+motion-tokens.css: --duration-*, --ease-smooth-out, --ease-linear (shimmer/spinner), spacing & radius tokens
+palette.css: color palette definitions and rgb variable companions
+theme.css: theme engine rules, dark/light overrides, backdrop-filter blur handlers
+m3_switches.css: Material 3 toggle switch animations & track/thumb specs
+m3_sliders.css: Material 3 expressive slider styles (16px track, vertical pill handle, stop dot, gap)
+titlebar.css: window controls, titlebar modes (system/custom), drag regions
+queues.css: batch and image processing queue card styles
+
+=== JAVASCRIPT MODULES (src/js/) ===
+main.js: app bootstrap, DOMContentLoaded, re-exports public API, binds auto-state/auto-import
+ui_state.js: persistent UI state library (get, set, update, remove, has, getAll, clear, subscribe, bind, bindContainer, initAutoState, createUIStore)
+execution.js: handleExecuteClick (immediate disable + .btn-shimmer), updateExecuteButtonState, bindFormEvents, #btn-open-*-outdir folder openers, buildActiveToolCommand
+runner.js: executeFfmpegJob, executeBatchQueue, onJobFinished, updateProgress, isJobRunning, cancelFfmpegJob, showInFolder, openFile, attachTauriListeners
+comparison.js: initComparisonModal, openComparisonModal, split slider EW-drag, middle-mouse panning (translate3d+RAF), draggable comp-header, tuning drawer
+navigation.js: initNavigation, switchActiveTool, getCurrentActiveTool, TOOL_METADATA, sidebar indicator, ripple effect
+storage.js: STORAGE_KEYS, DEFAULT_SETTINGS, loadSettings/saveSettings, getSavedToolParams/saveToolParams, loadSavedBatchQueue, loadSavedImageAiQueue
+media.js: selectMediaFile/selectMediaFiles, selectOutputFolder, probeMedia, onMediaChange, syncMediaDurationToTools, syncVideoPreviewForActiveTool
+tools_manager.js: checkToolsBeforeExecution, manageToolsModal, downloadToolBinary, 24h expiration toolsUpdateCache
+theme.js: initThemeManager, applyTheme, serializeThemeToText, parseThemeFromText, Windows 10 blur auto-disable
+output_path.js: getSmartOutputFileName, getOutputFilePath, setOutputFilePath, truncateMiddlePath, checkOutputTargetFileExists, debouncedCheckOutputTargetFileExists
+module_state.js: saveActiveModuleState, restoreModuleState, restoreAllModulesState (per-tool input persistence)
+commands.js: buildCommandForTool (ffmpeg CLI args generator for convert, compress, trim, speed_motion, mute_replace, aspect_crop, normalize, gif_frames, etc.)
+image_commands.js: buildImageAiCommand, parameter serialization for image_ai_engine.py
+image_queue.js: imageAiQueue state & list UI, drag-and-drop reordering, thumbnail renderer, openImageLightbox
+audio_tags.js: audioTagQueue, ID3 tag reader/writer UI, cover art extractor, batch tag application
+format_sync.js: formatSpeedValue, syncSpeedSliderUI, syncFormatSpecificUI
+estimates.js: updateEstimatesUI, output filesize/bitrate/duration estimation
+window_caption.js: initCaptionControls, applyTitlebarMode, getTauriWindow (startDragging, minimize, toggleMaximize, close)
+shortcuts.js: initKeyboardShortcuts, handleGlobalKeyDown (Space=play/pause, Ctrl+Enter=execute, Esc=close modals)
+playback.js: initPlaybackControls, togglePlayPause, seek, time update
+playlist.js: renderPlaylistEntries, fetchPlaylistVideosHandler, ytdlp playlist video selection
+trimmer.js: initTrimmerControls, updateTrimmerUI, waveform sync, timecode inputs
+waveform.js: extractPeaksFromAudioBuffer, renderWaveformCanvas, generateSyntheticWaveform
+ytdlp_url.js: fixYoutubeUrl, tracking param cleaner, URL normalizer
+ytdlp_format.js: initYtDlpFormatEditor, parseFormatStringToItems, compileItemsToFormatString, previewFormatString
+copy_anim.js: animateCopyConfirm (smooth icon morphing to checkmark on copy)
+m3_switch.js: initM3Switches (Material 3 toggle switch animations)
+m3_slider.js: initM3Sliders, syncM3Slider (Material 3 range slider fill & progress sync)
+drag_reorder.js: setupListDragAndDrop (pointer-driven vertical reorder with live CSS translateY shift)
+pdf_tools.js: initPdfTools, showPdfToolsHome, renderCategory, PDF category hub
+
+=== USER KITS (src/kits/) ===
+blocks.js: renderBlockHTML (file_picker, folder_picker, range, select, text, toggle, alert_box)
+executor.js: executeActiveKit, evaluateKitCommand, live preview generator
+runner.js: renderKitRunnerTab, block event listeners, .btn-open-block-folder handlers
+state.js: getActiveKit, getKitRuntimeValues, setKitRuntimeValue, setActiveKitTab
+workspace.js: renderKitIdeWorkspace, block builder editor, script editor
+storage.js: loadUserKits, saveUserKit, loadKitParams, saveKitParams
+index.js: initKitsManager, applyUserKitsVisibility
+
+=== PYTHON BACKENDS (src/py/) ===
+image_ai_engine.py: bg_remover (u2net/bria/fake_transparency), ai_upscaler (clarity_hdr/realesrgan), vectorizer (potrace/vtracer), restore_denoise, icon_generator, metadata_cleaner
+pdf_tools.py: PyMuPDF / pdfplumber engine for security, merge, split, summarize, OCR, repair
+
+=== TAURI RUST BACKEND (src-tauri/src/) ===
+main.rs: Tauri entry point
+lib.rs: Tauri builder, plugin setup, command invocation handlers
+commands.rs: execute_ffmpeg, execute_ytdlp, execute_image_ai, cancel_job, is_job_active
+system.rs: pick_file, pick_files, pick_folder, show_in_folder, open_file, read_image_data, send_system_notification, get_hardware_info
+tools.rs: tool binary verification, download & extraction manager (ffmpeg, ffprobe, ytdlp, python, AI models)
+models.rs: serde data models, HardwareInfo, ProcessStatus
+
+=== MAIN HTML DOM SHELL (src/index.html) ===
+#main-sidebar: tool navigation menu, yt-dlp section at top, settings at bottom
+#top-header-bar: window caption (#win-minimize, #win-maximize, #win-close) & data-tauri-drag-region
+#output-file-section: single media output path (#output-file-name, #btn-browse-output-dir, #btn-open-output-dir)
+#image-ai-outdir-section: #image-ai-output-dir, #btn-browse-image-outdir, #btn-open-image-outdir
+#shared-url-card: #ytdlp-url-input, #ytdlp-output-dir, #btn-browse-ytdlp-outdir, #btn-open-ytdlp-outdir
+#execution-status-panel: #current-processing-heading, #job-progress-bar, #progress-pct, #stat-item-count, #status-message, #log-console
+#btn-execute: primary action button (turns to Cancel when running; shows .btn-shimmer immediately on click)
+#image-comparison-modal: .comp-header (draggable), #comp-stage-container, #comp-split-wrapper, #comp-split-divider
+#image-lightbox-modal: hero zoom lightbox overlay

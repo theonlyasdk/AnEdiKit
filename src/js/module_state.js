@@ -1,7 +1,7 @@
 // AnEdiKit - Module State Persistence and Restoration Submodule
 import { getSavedToolParams, saveToolParams } from "./storage.js";
 import { TOOL_METADATA } from "./navigation.js";
-import { syncSpeedSliderUI } from "./format_sync.js";
+import { syncSpeedSliderUI, syncFormatSpecificUI } from "./format_sync.js";
 
 export function saveActiveModuleState(toolId) {
   if (!toolId || toolId === "settings" || toolId.startsWith("kit_")) return;
@@ -101,6 +101,7 @@ export function restoreModuleState(toolId) {
 
   // Sync speed slider badge/number (restoring .value fires no events)
   syncSpeedSliderUI();
+  syncFormatSpecificUI(toolId);
 }
 
 export function restoreAllModulesState() {
@@ -133,4 +134,5 @@ export function restoreAllModulesState() {
   for (const toolId of tools) {
     restoreModuleState(toolId);
   }
+  syncFormatSpecificUI();
 }

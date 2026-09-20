@@ -1,6 +1,6 @@
 // AnEdiKit - Command Building, Execution Orchestration, and Form Events Submodule
 import { getAppSettings, saveSettingsFromUI } from "./app_settings.js";
-import { saveSettings, getLastImageAiOutDir, saveLastImageAiOutDir, saveAiReplaceSource } from "./storage.js";
+import { saveSettings, getLastOutputDir, saveLastOutputDir, getLastImageAiOutDir, saveLastImageAiOutDir, saveAiReplaceSource } from "./storage.js";
 import { saveActiveModuleState } from "./module_state.js";
 import {
   selectMediaFile,
@@ -25,6 +25,7 @@ import {
   isJobRunning,
   isCancelRequested,
   resetCancelFlag,
+  showBatchFinishedNotification,
 } from "./runner.js";
 import { getCurrentActiveTool, TOOL_METADATA } from "./navigation.js";
 import { animateCopyConfirm } from "./copy_anim.js";
@@ -78,8 +79,11 @@ export function updateExecuteButtonState() {
     btnExecute.disabled = false;
     btnExecute.textContent = "Cancel";
     btnExecute.className = "btn btn-danger btn-sm px-4";
+    btnExecute.classList.remove("btn-shimmer");
     return;
   }
+
+  btnExecute.classList.remove("btn-shimmer");
 
   const queue = getBatchQueue();
   let canExecute = false;
@@ -231,9 +235,17 @@ export async function handleExecuteClick() {
     return;
   }
 
+  // Immediately disable button and show shimmer effect on click
+  const btnExecute = document.getElementById("btn-execute");
+  if (btnExecute && btnExecute.textContent !== "Cancel") {
+    btnExecute.disabled = true;
+    btnExecute.classList.add("btn-shimmer");
+  }
+
   // Verify required tools are installed before running any task
   const toolsReady = await checkToolsBeforeExecution();
   if (!toolsReady) {
+    updateExecuteButtonState();
     return;
   }
 
@@ -279,6 +291,7 @@ export async function handleExecuteClick() {
         await addImageFilesToQueue(picked);
         imgQueue = getImageAiQueue();
       } else {
+        updateExecuteButtonState();
         return;
       }
     }
@@ -286,6 +299,12 @@ export async function handleExecuteClick() {
     // Clear any stale cancellation from a previous run so the
     // isCancelRequested() checks below only fire for this batch.
     resetCancelFlag();
+
+    const isBatch = imgQueue.length > 1;
+    const batchStartTime = Date.now();
+    let successCount = 0;
+    let failCount = 0;
+    let lastDestination = "";
 
     for (let i = 0; i < imgQueue.length; i++) {
       const item = imgQueue[i];
@@ -314,6 +333,9 @@ export async function handleExecuteClick() {
         if (isCancelRequested()) break;
         continue;
       }
+      if (isBatch) {
+        cmdObj.suppressNotification = true;
+      }
       const success = await executeFfmpegJob(cmdObj, 1.0);
       if (isCancelRequested()) {
         // Leave the interrupted item re-runnable instead of failed.
@@ -321,6 +343,8 @@ export async function handleExecuteClick() {
         break;
       }
       if (success) {
+        successCount++;
+        lastDestination = cmdObj.destination || lastDestination;
         updateImageAiItemStatus(i, "done", cmdObj.destination);
         // Only pop the comparison modal for single-item runs. In
         // multi-item batches the modals would stack and freeze the UI.
@@ -328,8 +352,21 @@ export async function handleExecuteClick() {
           openComparisonModal(item.path, cmdObj.destination, TOOL_METADATA[activeTool]?.title || "Enhanced Image");
         }
       } else {
+        failCount++;
         updateImageAiItemStatus(i, "error");
       }
+    }
+
+    if (isBatch && !isCancelRequested() && successCount > 0) {
+      const batchElapsedSeconds = batchStartTime > 0 ? ((Date.now() - batchStartTime) / 1000).toFixed(1) : "0.0";
+      showBatchFinishedNotification({
+        destination: lastDestination || appSettings.outputDir,
+        toolName: TOOL_METADATA[activeTool]?.title || "Image AI",
+        total: imgQueue.length,
+        successCount,
+        failCount,
+        elapsedSeconds: batchElapsedSeconds,
+      });
     }
     return;
   }
@@ -791,6 +828,7 @@ export function bindFormEvents() {
         const setOutDirInput = document.getElementById("set-output-dir");
         if (setOutDirInput) setOutDirInput.value = folder;
         saveSettings(appSettings);
+        saveLastOutputDir(folder);
 
         const curFullPath = getOutputFilePath();
         const curFileName = curFullPath
@@ -807,12 +845,33 @@ export function bindFormEvents() {
     });
   }
 
+  // Open Output Folder on Output Name Row in File Explorer
+  const btnOpenOutputRow = document.getElementById("btn-open-output-dir");
+  if (btnOpenOutputRow) {
+    btnOpenOutputRow.addEventListener("click", async () => {
+      const fullPath = getOutputFilePath() || document.getElementById("output-file-name")?.value;
+      const appSettings = getAppSettings();
+      let targetDir = getLastOutputDir() || appSettings.outputDir || "";
+      if (fullPath) {
+        const lastSlash = Math.max(fullPath.lastIndexOf("\\"), fullPath.lastIndexOf("/"));
+        targetDir = lastSlash > 0 ? fullPath.substring(0, lastSlash) : fullPath;
+      }
+      if (targetDir && window.__TAURI__?.core?.invoke) {
+        try {
+          await window.__TAURI__.core.invoke("show_in_folder", { filePath: targetDir });
+        } catch (e) {
+          console.warn("Open output folder error:", e);
+        }
+      }
+    });
+  }
+
   // Browse Output Folder for Image & AI Tools
   const btnBrowseImageOutDir = document.getElementById("btn-browse-image-outdir");
   const imageAiOutDirInput = document.getElementById("image-ai-output-dir");
   if (imageAiOutDirInput) {
     const appSettings = getAppSettings();
-    const savedImageDir = getLastImageAiOutDir() || appSettings.outputDir || "C:\\Users\\User\\Pictures";
+    const savedImageDir = getLastImageAiOutDir() || getLastOutputDir() || appSettings.outputDir || "C:\\Users\\User\\Pictures";
     imageAiOutDirInput.value = savedImageDir;
   }
   if (btnBrowseImageOutDir) {
@@ -822,8 +881,39 @@ export function bindFormEvents() {
       if (folder) {
         if (imageAiOutDirInput) imageAiOutDirInput.value = folder;
         saveLastImageAiOutDir(folder);
+        saveLastOutputDir(folder);
         saveActiveModuleState(getCurrentActiveTool());
         updateCommandPreview();
+      }
+    });
+  }
+
+  // Open Image & AI Output Folder in File Explorer
+  const btnOpenImageOutDir = document.getElementById("btn-open-image-outdir");
+  if (btnOpenImageOutDir) {
+    btnOpenImageOutDir.addEventListener("click", async () => {
+      const dir = document.getElementById("image-ai-output-dir")?.value || getLastImageAiOutDir() || getLastOutputDir() || getAppSettings().outputDir;
+      if (dir && window.__TAURI__?.core?.invoke) {
+        try {
+          await window.__TAURI__.core.invoke("show_in_folder", { filePath: dir });
+        } catch (e) {
+          console.warn("Open image output folder error:", e);
+        }
+      }
+    });
+  }
+
+  // Open YT-DLP Download Folder in File Explorer
+  const btnOpenYtdlpOut = document.getElementById("btn-open-ytdlp-outdir");
+  if (btnOpenYtdlpOut) {
+    btnOpenYtdlpOut.addEventListener("click", async () => {
+      const dir = document.getElementById("ytdlp-output-dir")?.value || getLastYtDlpOutDir() || getLastOutputDir() || getAppSettings().outputDir;
+      if (dir && window.__TAURI__?.core?.invoke) {
+        try {
+          await window.__TAURI__.core.invoke("show_in_folder", { filePath: dir });
+        } catch (e) {
+          console.warn("Open ytdlp output folder error:", e);
+        }
       }
     });
   }
@@ -839,7 +929,23 @@ export function bindFormEvents() {
         appSettings.outputDir = folder;
         if (setOutDirInput) setOutDirInput.value = folder;
         saveSettings(appSettings);
+        saveLastOutputDir(folder);
         updateCommandPreview();
+      }
+    });
+  }
+
+  // Open Settings Output Folder in File Explorer
+  const btnOpenSettingsOutDir = document.getElementById("btn-open-settings-outdir");
+  if (btnOpenSettingsOutDir) {
+    btnOpenSettingsOutDir.addEventListener("click", async () => {
+      const dir = document.getElementById("set-output-dir")?.value || getAppSettings().outputDir;
+      if (dir && window.__TAURI__?.core?.invoke) {
+        try {
+          await window.__TAURI__.core.invoke("show_in_folder", { filePath: dir });
+        } catch (e) {
+          console.warn("Open settings output folder error:", e);
+        }
       }
     });
   }

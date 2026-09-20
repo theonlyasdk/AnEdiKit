@@ -140,5 +140,10 @@ describe("CSS Modularization: File Structure & Integrity", () => {
     const baseContent = fs.readFileSync(path.join(cssDir, "base.css"), "utf8");
     assert.ok(baseContent.includes("ion-icon"));
     assert.ok(baseContent.includes("flex-shrink: 0"));
+
+    // Check module parameter responsive auto-stretch in components.css
+    const compContent = fs.readFileSync(path.join(cssDir, "components.css"), "utf8");
+    assert.ok(compContent.includes(".tool-view"));
+    assert.ok(compContent.includes("flex: 1 1 28%"));
   });
 });

@@ -93,7 +93,8 @@ class MockElement {
     return this.children.find((c) => c.tagName === sel.toUpperCase()) || null;
   }
   querySelectorAll(sel) {
-    return this.children.filter((c) => c.tagName === sel.toUpperCase());
+    const parts = sel.split(",").map((s) => s.trim().toUpperCase());
+    return this.children.filter((c) => parts.includes(c.tagName) || (c.classList && parts.some((s) => s.startsWith(".") && c.classList.contains(s.slice(1).toLowerCase()))));
   }
   appendChild(child) {
     if (child) child.parentElement = this;
@@ -152,6 +153,7 @@ class MockDocument {
     this.elements = new Map();
     this.body = new MockElement("body", "body");
     this.documentElement = new MockElement("html", "html");
+    this._listeners = new Map();
   }
   getElementById(id) {
     if (!this.elements.has(id)) {
@@ -169,7 +171,27 @@ class MockDocument {
   createElement(tag) {
     return new MockElement(tag);
   }
-  addEventListener(evt, fn) {}
+  addEventListener(evt, fn) {
+    if (!this._listeners.has(evt)) this._listeners.set(evt, []);
+    this._listeners.get(evt).push(fn);
+  }
+  removeEventListener(evt, fn) {
+    if (!this._listeners.has(evt)) return;
+    this._listeners.set(
+      evt,
+      this._listeners.get(evt).filter((cb) => cb !== fn)
+    );
+  }
+  dispatchEvent(evt) {
+    const type = typeof evt === "string" ? evt : evt?.type;
+    if (type && this._listeners.has(type)) {
+      const listeners = [...this._listeners.get(type)];
+      for (const fn of listeners) {
+        fn(evt);
+      }
+    }
+    return true;
+  }
 }
 
 const mockDoc = new MockDocument();

@@ -1,5 +1,6 @@
 // Comparison Dialog Module for Image & AI Tools
 // Supports Interactive Split Slider (Sliding Window), Side-by-Side, and Onion Skin
+import { uiState } from "./ui_state.js";
 
 let currentOrigSrc = "";
 let currentResultSrc = "";
@@ -15,6 +16,27 @@ let startPanY = 0;
 let splitPositionPct = 50; // 0 to 100
 let isDraggingSlider = false;
 let activeMode = "split"; // "split", "side", "fade"
+
+function persistComparisonState(debounceMs = 0) {
+  const modalEl = document.getElementById("image-comparison-modal");
+  const isOpen = modalEl ? !modalEl.classList.contains("d-none") : false;
+  if (!isOpen) {
+    uiState.remove("comparison_modal");
+    return;
+  }
+  uiState.set(
+    "comparison_modal",
+    {
+      isOpen: true,
+      origPath: currentOrigPath,
+      resultPath: currentResultPath,
+      taskName: currentTaskName,
+      activeMode,
+      splitPositionPct,
+    },
+    { debounceMs }
+  );
+}
 
 function showComparisonToast(message, isError = false) {
   // Local notification helper (no global showToast exists in the app).
@@ -68,6 +90,7 @@ export function initComparisonModal() {
 
   // Close handlers
   const closeModal = () => {
+    uiState.remove("comparison_modal");
     // Restore background app view
     const appMain = document.getElementById("app-root");
     if (appMain) {
@@ -94,6 +117,25 @@ export function initComparisonModal() {
     }
   });
 
+  const compHeader = modalEl.querySelector(".comp-header");
+  if (compHeader) {
+    compHeader.setAttribute("data-tauri-drag-region", "");
+    compHeader.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      if (e.target.closest("button, a, input, select, textarea, [role=\"button\"]")) return;
+      try {
+        const win = window.__TAURI__?.window?.getCurrentWindow
+          ? window.__TAURI__.window.getCurrentWindow()
+          : (window.__TAURI__?.window?.appWindow || null);
+        if (win && typeof win.startDragging === "function") {
+          win.startDragging().catch((err) => {
+            console.warn("Window dragging failed:", err);
+          });
+        }
+      } catch (_) {}
+    });
+  }
+
   // Mode Switchers
   const setMode = (mode) => {
     activeMode = mode;
@@ -112,6 +154,7 @@ export function initComparisonModal() {
     if (fadeCtrl) fadeCtrl.classList.toggle("d-none", mode !== "fade");
 
     resetTransform();
+    persistComparisonState();
   };
 
   if (btnModeSplit) btnModeSplit.addEventListener("click", () => setMode("split"));
@@ -152,10 +195,12 @@ export function initComparisonModal() {
     if (divider) {
       divider.style.left = `${splitPositionPct}%`;
     }
+    persistComparisonState(80);
   };
 
   if (splitDivider) {
     splitDivider.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
       isDraggingSlider = true;
@@ -165,22 +210,12 @@ export function initComparisonModal() {
   const splitWrapper = document.getElementById("comp-split-wrapper");
   if (splitWrapper) {
     splitWrapper.addEventListener("mousedown", (e) => {
-      if (activeMode === "split") {
+      if (e.button === 0 && activeMode === "split") {
         isDraggingSlider = true;
         updateSplit(e.clientX);
       }
     });
   }
-
-  window.addEventListener("mousemove", (e) => {
-    if (isDraggingSlider) {
-      updateSplit(e.clientX);
-    }
-  });
-
-  window.addEventListener("mouseup", () => {
-    isDraggingSlider = false;
-  });
 
   // Touch support for split slider
   if (splitWrapper) {
@@ -203,10 +238,28 @@ export function initComparisonModal() {
   }
 
   // Zoom and Pan Controls
-  const applyTransform = () => {
+  let panRafId = null;
+  const scheduleApplyTransform = () => {
+    if (panRafId) return;
+    panRafId = requestAnimationFrame(() => {
+      panRafId = null;
+      applyTransform();
+    });
+  };
+
+  const setZoomableWillChange = (active) => {
     const targets = document.querySelectorAll(".comp-zoomable");
     targets.forEach((el) => {
-      el.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+      el.style.willChange = active ? "transform" : "";
+      el.style.transition = "none";
+    });
+  };
+
+  const applyTransform = () => {
+    const targets = document.querySelectorAll(".comp-zoomable");
+    const transformVal = `translate3d(${panX}px, ${panY}px, 0px) scale(${zoomLevel})`;
+    targets.forEach((el) => {
+      el.style.transform = transformVal;
     });
     const zoomText = document.getElementById("comp-zoom-text");
     if (zoomText) zoomText.textContent = `${Math.round(zoomLevel * 100)}%`;
@@ -243,7 +296,7 @@ export function initComparisonModal() {
     });
   }
 
-  // Mouse wheel zoom on stage
+  // Mouse wheel zoom on stage and panning
   if (stage) {
     stage.addEventListener("wheel", (e) => {
       e.preventDefault();
@@ -253,25 +306,46 @@ export function initComparisonModal() {
     }, { passive: false });
 
     stage.addEventListener("mousedown", (e) => {
-      // Prevent panning when clicking on the tuning drawer, sliders, floating toolbar, or split divider
-      if (
-        e.target.closest("#comp-tuning-drawer") ||
-        e.target.closest(".comp-floating-toolbar") ||
-        e.target.closest("#comp-split-divider") ||
-        e.target.closest("input") ||
-        e.target.closest("button") ||
-        e.target.closest(".form-range")
-      ) {
-        return;
-      }
-
-      // Allow panning with left mouse (button 0) when clicking canvas background or middle mouse (button 1) anywhere
-      if (e.button === 1 || (e.button === 0 && !isDraggingSlider)) {
-        if (e.button === 1) e.preventDefault();
+      // Middle mouse button (button 1): pan stage from anywhere without modifying split slider
+      if (e.button === 1) {
+        e.preventDefault();
+        e.stopPropagation();
         isPanning = true;
+        setZoomableWillChange(true);
         startPanX = e.clientX - panX;
         startPanY = e.clientY - panY;
         stage.style.cursor = "grabbing";
+        return;
+      }
+
+      // Left mouse button (button 0):
+      if (e.button === 0) {
+        // Prevent panning when clicking on the tuning drawer, floating toolbar, split divider, inputs/buttons, or split wrapper
+        if (
+          e.target.closest("#comp-tuning-drawer") ||
+          e.target.closest(".comp-floating-toolbar") ||
+          e.target.closest("#comp-split-divider") ||
+          e.target.closest("input") ||
+          e.target.closest("button") ||
+          e.target.closest(".form-range") ||
+          (activeMode === "split" && e.target.closest("#comp-split-wrapper"))
+        ) {
+          return;
+        }
+
+        if (!isDraggingSlider) {
+          isPanning = true;
+          setZoomableWillChange(true);
+          startPanX = e.clientX - panX;
+          startPanY = e.clientY - panY;
+          stage.style.cursor = "grabbing";
+        }
+      }
+    });
+
+    stage.addEventListener("auxclick", (e) => {
+      if (e.button === 1) {
+        e.preventDefault();
       }
     });
 
@@ -279,16 +353,21 @@ export function initComparisonModal() {
       if (isPanning) {
         panX = e.clientX - startPanX;
         panY = e.clientY - startPanY;
-        applyTransform();
+        scheduleApplyTransform();
+      }
+      if (isDraggingSlider) {
+        updateSplit(e.clientX);
       }
     });
 
-    window.addEventListener("mouseup", (e) => {
+    window.addEventListener("mouseup", () => {
       if (isPanning) {
-        if (e.button === 0 || e.button === 1) {
-          isPanning = false;
-          if (stage) stage.style.cursor = "default";
-        }
+        isPanning = false;
+        setZoomableWillChange(false);
+        if (stage) stage.style.cursor = "default";
+      }
+      if (isDraggingSlider) {
+        isDraggingSlider = false;
       }
     });
   }
@@ -457,6 +536,31 @@ export function initComparisonModal() {
       }
     });
   }
+
+  // Restore saved comparison modal state across refreshes
+  const saved = uiState.get("comparison_modal");
+  if (saved && saved.isOpen && saved.origPath && saved.resultPath) {
+    openComparisonModal(saved.origPath, saved.resultPath, saved.taskName || "Enhanced Image");
+    if (saved.activeMode) {
+      setMode(saved.activeMode);
+    }
+    if (typeof saved.splitPositionPct === "number") {
+      splitPositionPct = saved.splitPositionPct;
+      const beforeWrapper = document.getElementById("comp-split-before-wrapper");
+      const afterWrapper = document.getElementById("comp-split-after-wrapper");
+      const divider = document.getElementById("comp-split-divider");
+      if (beforeWrapper) {
+        beforeWrapper.style.clipPath = `polygon(0% 0%, ${splitPositionPct}% 0%, ${splitPositionPct}% 100%, 0% 100%)`;
+      }
+      if (afterWrapper) {
+        afterWrapper.style.clipPath = `polygon(${splitPositionPct}% 0%, 100% 0%, 100% 100%, ${splitPositionPct}% 100%)`;
+      }
+      if (divider) {
+        divider.style.left = `${splitPositionPct}%`;
+      }
+      persistComparisonState();
+    }
+  }
 }
 
 export function openComparisonModal(origPath, resultPath, taskName = "Enhanced Image") {
@@ -465,6 +569,7 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
 
   currentOrigPath = origPath;
   currentResultPath = resultPath;
+  currentTaskName = taskName;
 
   const toSrc = (p, isResult = false) => {
     if (!p) return "";
@@ -586,6 +691,7 @@ export function openComparisonModal(origPath, resultPath, taskName = "Enhanced I
   }
   modal.classList.remove("d-none", "comp-closing");
   document.body.classList.add("overflow-hidden");
+  persistComparisonState();
 }
 
 export function setComparisonShimmer(isGenerating) {

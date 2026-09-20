@@ -1,5 +1,5 @@
 // AnEdiKit - Modular Application Entry Point
-import { getLastYtDlpOutDir } from "./js/storage.js";
+import { getLastYtDlpOutDir, getLastOutputDir } from "./js/storage.js";
 import {
   initDragAndDrop,
   getCurrentInputFile,
@@ -22,6 +22,7 @@ import { initYtDlpFormatEditor } from "./js/ytdlp_format.js";
 import { initYtDlpUrlFixer } from "./js/ytdlp_url.js";
 import { initKitsManager, applyUserKitsVisibility } from "./kits/index.js";
 import { initM3Switches } from "./js/m3_switch.js";
+import { initM3Sliders } from "./js/m3_slider.js";
 import {
   initAudioTagsModule,
   initSavedAudioTagQueue,
@@ -56,6 +57,7 @@ import {
 import { updateExecuteButtonState, updateCommandPreview, bindFormEvents } from "./js/execution.js";
 import { initKeyboardShortcuts } from "./js/shortcuts.js";
 import { initPdfTools, showPdfToolsHome, renderCategory, PDF_ID_TO_CATEGORY } from "./js/pdf_tools.js";
+import { uiState, UIStateManager, createUIStore } from "./js/ui_state.js";
 
 // Re-export public module APIs for backward compatibility
 export {
@@ -63,6 +65,9 @@ export {
   saveActiveModuleState,
   restoreModuleState,
   restoreAllModulesState,
+  uiState,
+  UIStateManager,
+  createUIStore,
   renderPlaylistEntries,
   getSmartOutputFileName,
   truncateMiddlePath,
@@ -111,10 +116,11 @@ document.addEventListener("DOMContentLoaded", () => {
   applyTitlebarMode(appSettings.useSystemTitlebar);
   applyUserKitsVisibility(appSettings.enableUserKits === true);
   restoreAllModulesState();
+  uiState.initAutoState();
 
   const ytdlpOutInput = document.getElementById("ytdlp-output-dir");
   if (ytdlpOutInput) {
-    ytdlpOutInput.value = getLastYtDlpOutDir() || appSettings.outputDir || "C:\\Users\\User\\Downloads";
+    ytdlpOutInput.value = getLastYtDlpOutDir() || getLastOutputDir() || appSettings.outputDir || "C:\\Users\\User\\Downloads";
   }
 
   initYtDlpFormatEditor();
@@ -259,6 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initToolsManager();
   initKitsManager();
   initM3Switches();
+  initM3Sliders();
   initPdfTools();
   initKeyboardShortcuts();
   // NOTE: empty-state click/ripple wiring lives in renderBatchQueueUI()
@@ -269,4 +276,30 @@ document.addEventListener("DOMContentLoaded", () => {
   syncFormatSpecificUI();
   updateAutoOutputFilename(true);
   updateCommandPreview();
+  initDialogPersistence();
 });
+
+function initDialogPersistence() {
+  document.addEventListener("show.bs.modal", (e) => {
+    const id = e.target?.id;
+    if (id && id !== "confirm-exit-modal") {
+      uiState.set("active_bootstrap_modal", id);
+    }
+  });
+
+  document.addEventListener("hidden.bs.modal", (e) => {
+    const id = e.target?.id;
+    if (id && uiState.get("active_bootstrap_modal") === id) {
+      uiState.remove("active_bootstrap_modal");
+    }
+  });
+
+  const activeModalId = uiState.get("active_bootstrap_modal");
+  if (activeModalId && activeModalId !== "confirm-exit-modal") {
+    const modalEl = document.getElementById(activeModalId);
+    if (modalEl && window.bootstrap?.Modal) {
+      const modalInstance = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+      modalInstance.show();
+    }
+  }
+}

@@ -3,6 +3,7 @@ export const STORAGE_KEYS = {
   ACTIVE_TOOL: "anedikit:settings:active_tool",
   SETTINGS: "anedikit:settings",
   LAST_INPUT_FILE: "anedikit:settings:last_input_file",
+  LAST_OUTPUT_DIR: "anedikit:settings:last_output_dir",
   YTDLP_LAST_DOWNLOAD_DIR: "anedikit:settings:last_ytdlp_out_dir",
   IMAGE_AI_LAST_OUT_DIR: "anedikit:settings:last_image_ai_out_dir",
   BATCH_QUEUE: "anedikit:tools:batch:queue",
@@ -123,6 +124,24 @@ export function saveInputFile(path) {
     localStorage.setItem(STORAGE_KEYS.LAST_INPUT_FILE, clean);
   } catch (err) {
     console.warn("Failed to save input file:", err);
+  }
+}
+
+export function getLastOutputDir() {
+  return localStorage.getItem(STORAGE_KEYS.LAST_OUTPUT_DIR) || loadSettings().outputDir || "C:\\Users\\User\\Videos";
+}
+
+export function saveLastOutputDir(path) {
+  if (!path) return;
+  try {
+    localStorage.setItem(STORAGE_KEYS.LAST_OUTPUT_DIR, path);
+    const settings = loadSettings();
+    if (settings.outputDir !== path) {
+      settings.outputDir = path;
+      saveSettings(settings);
+    }
+  } catch (err) {
+    console.warn("Failed to save last output dir:", err);
   }
 }
 

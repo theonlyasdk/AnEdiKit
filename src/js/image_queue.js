@@ -3,10 +3,12 @@ import {
   loadSavedImageAiQueue,
   saveImageAiQueue,
   saveLastImageAiOutDir,
+  saveLastOutputDir,
 } from "./storage.js";
 import { selectMediaFiles } from "./media.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
 import { attachFluentRipple, animateQueueHeight, getCurrentActiveTool } from "./navigation.js";
+import { uiState } from "./ui_state.js";
 
 export function getDirectoryFromPath(filePath) {
   if (!filePath || typeof filePath !== "string") return "";
@@ -112,6 +114,7 @@ export async function addImageFilesToQueue(paths) {
         imageAiOutDirInput.value = firstDir;
       }
       saveLastImageAiOutDir(firstDir);
+      saveLastOutputDir(firstDir);
     }
   }
 
@@ -206,7 +209,7 @@ function renderImageAiQueueUIInner() {
       } else if (item.status === "skipped") {
         statusBadge = `<span class="badge bg-warning-subtle text-warning-emphasis"><ion-icon name="warning-outline"></ion-icon> Skipped (Missing)</span>`;
       } else if (item.status === "done") {
-        statusBadge = `<span class="badge bg-success-subtle text-success-emphasis"><ion-icon name="checkmark-outline"></ion-icon> Done</span>`;
+        statusBadge = "";
         if (item.resultPath) {
           compareBtn = `<button class="btn btn-primary btn-sm py-0 px-2 btn-image-compare me-1" data-comp-idx="${idx}" type="button" title="View sliding comparison"><ion-icon name="grid-outline" class="me-1"></ion-icon> Compare</button>`;
         }
@@ -226,6 +229,7 @@ function renderImageAiQueueUIInner() {
                 <div class="image-queue-thumb-fallback d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark">
                   <ion-icon name="alert-circle-outline" class="text-danger fs-5"></ion-icon>
                 </div>
+                ${item.status === "done" ? `<div class="image-queue-thumb-done"><ion-icon name="checkmark-circle"></ion-icon></div>` : ""}
                 <div class="image-queue-thumb-overlay">
                   <ion-icon name="scan-outline"></ion-icon>
                 </div>
@@ -420,6 +424,7 @@ export function initImageLightbox() {
       modal.classList.add("d-none");
       modal.classList.remove("lightbox-closing");
     }
+    uiState.remove("lightbox_modal");
   };
 
   if (btnClose) {
@@ -441,6 +446,11 @@ export function initImageLightbox() {
       closeModal();
     }
   });
+
+  const savedLb = uiState.get("lightbox_modal");
+  if (savedLb && savedLb.isOpen && savedLb.filePath) {
+    openImageLightbox(savedLb.filePath, savedLb.fileName || "Image Preview");
+  }
 }
 
 export function openImageLightbox(filePath, fileName = "Image Preview", sourceElement = null) {
@@ -459,6 +469,7 @@ export function openImageLightbox(filePath, fileName = "Image Preview", sourceEl
     lightboxOpenTimestamp = Date.now();
     isLightboxActive = true;
     lastHeroSourceEl = sourceElement;
+    uiState.set("lightbox_modal", { isOpen: true, filePath, fileName });
 
     // Cancel any previous animations and clear inline transform/opacity
     card.getAnimations().forEach((a) => a.cancel());

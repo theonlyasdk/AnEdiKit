@@ -4,6 +4,7 @@ import { buildAudioTagsCommand } from "./commands.js";
 import { animateQueueHeight } from "./navigation.js";
 import { loadSavedAudioTagQueue, saveAudioTagQueue } from "./storage.js";
 import { morphContent } from "./cube_motion.js";
+import { showBatchFinishedNotification } from "./runner.js";
 
 let audioTagQueue = [];
 let selectedTrackIndex = -1;
@@ -1018,9 +1019,9 @@ function renderAudioQueueUIInner() {
 
     let statusBadge = "";
     if (item.status === "processing") {
-      statusBadge = `<span class="badge bg-primary">Updating...</span>`;
+      statusBadge = `<span class="badge bg-primary">Applying...</span>`;
     } else if (item.status === "done") {
-      statusBadge = `<span class="badge bg-success">Updated</span>`;
+      statusBadge = `<span class="badge bg-success">Applied</span>`;
     } else if (item.status === "error") {
       statusBadge = `<span class="badge bg-danger">Error</span>`;
     }
@@ -1367,11 +1368,11 @@ function updateQueueRowText(idx, track) {
 
   if (badgeEl) {
     if (track.status === "done") {
-      badgeEl.innerHTML = `<span class="badge bg-success">Updated</span>`;
+      badgeEl.innerHTML = `<span class="badge bg-success">Applied</span>`;
     } else if (track.status === "error") {
       badgeEl.innerHTML = `<span class="badge bg-danger">Error</span>`;
     } else if (track.status === "processing") {
-      badgeEl.innerHTML = `<span class="badge bg-primary">Updating...</span>`;
+      badgeEl.innerHTML = `<span class="badge bg-primary">Applying...</span>`;
     } else {
       badgeEl.innerHTML = "";
     }
@@ -1423,6 +1424,12 @@ export async function executeAudioTagsQueue(executeFfmpegJob, isCancelRequested,
   syncActiveTrackFromForm();
   resetCancelFlag();
 
+  const isBatch = audioTagQueue.length > 1;
+  const batchStartTime = Date.now();
+  let successCount = 0;
+  let failCount = 0;
+  let lastDestination = "";
+
   for (let i = 0; i < audioTagQueue.length; i++) {
     if (isCancelRequested()) break;
 
@@ -1463,6 +1470,10 @@ export async function executeAudioTagsQueue(executeFfmpegJob, isCancelRequested,
       customOutPath: tempOutPath,
     });
 
+    if (isBatch) {
+      cmdObj.suppressNotification = true;
+    }
+
     const success = await executeFfmpegJob(cmdObj, 1.0);
 
     if (isCancelRequested()) {
@@ -1479,6 +1490,8 @@ export async function executeAudioTagsQueue(executeFfmpegJob, isCancelRequested,
             targetDest: track.filePath,
           });
           track.status = "done";
+          successCount++;
+          lastDestination = track.filePath;
           track.originalMeta = {
             title: track.title,
             artist: track.artist,
@@ -1496,15 +1509,31 @@ export async function executeAudioTagsQueue(executeFfmpegJob, isCancelRequested,
         } catch (err) {
           console.error("replace_file error:", err);
           track.status = "error";
+          failCount++;
         }
       } else {
         track.status = "done";
+        successCount++;
+        lastDestination = track.filePath;
       }
     } else {
       track.status = "error";
+      failCount++;
     }
 
     updateQueueRowText(i, track);
+  }
+
+  if (isBatch && !isCancelRequested() && successCount > 0) {
+    const batchElapsedSeconds = batchStartTime > 0 ? ((Date.now() - batchStartTime) / 1000).toFixed(1) : "0.0";
+    showBatchFinishedNotification({
+      destination: lastDestination,
+      toolName: "Audio Tagging",
+      total: audioTagQueue.length,
+      successCount,
+      failCount,
+      elapsedSeconds: batchElapsedSeconds,
+    });
   }
 
   notifyChange();

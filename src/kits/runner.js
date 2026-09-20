@@ -182,6 +182,22 @@ export function bindKitRunnerInputs(container) {
     });
   });
 
+  // Folder open in File Explorer buttons
+  container.querySelectorAll(".btn-open-block-folder").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const blockId = btn.dataset.blockId;
+      const inputEl = container.querySelector(`#kit-block-${blockId}`);
+      const folderPath = inputEl?.value || getKitRuntimeValues()[blockId] || "";
+      if (folderPath && window.__TAURI__?.core?.invoke) {
+        try {
+          await window.__TAURI__.core.invoke("show_in_folder", { filePath: folderPath });
+        } catch (e) {
+          console.warn("Failed to open folder:", e);
+        }
+      }
+    });
+  });
+
   // Generic inputs (text, number, select, checkbox, textarea)
   container.querySelectorAll(".kit-block-input").forEach((el) => {
     const blockId = el.dataset.blockId;

@@ -2,7 +2,7 @@
 import { formatSpeedValue } from "./format_sync.js";
 import { getCurrentInputFile } from "./media.js";
 import { getCurrentActiveTool } from "./navigation.js";
-import { loadSettings } from "./storage.js";
+import { loadSettings, getLastOutputDir, saveLastOutputDir } from "./storage.js";
 import { getMergeFiles } from "./merge.js";
 
 let userHasCustomOutputName = false;
@@ -251,6 +251,14 @@ export function setOutputFilePath(fullPath) {
   outputInput.dataset.fullPath = fullPath;
   outputInput.title = fullPath;
 
+  if (fullPath) {
+    const lastSlash = Math.max(fullPath.lastIndexOf("\\"), fullPath.lastIndexOf("/"));
+    if (lastSlash > 0) {
+      const dir = fullPath.substring(0, lastSlash);
+      if (dir) saveLastOutputDir(dir);
+    }
+  }
+
   if (document.activeElement === outputInput) {
     outputInput.value = fullPath;
   } else {
@@ -316,13 +324,14 @@ export function updateAutoOutputFilename(force = false) {
   if (force || !userHasCustomOutputName || !getOutputFilePath().trim()) {
     const smartName = getSmartOutputFileName(effectiveInput, activeTool);
     const settings = loadSettings();
-    let outDir = settings.outputDir || "C:\\Users\\User\\Videos";
+    let outDir = getLastOutputDir() || settings.outputDir || "C:\\Users\\User\\Videos";
     if (effectiveInput) {
       const lastSlash = Math.max(effectiveInput.lastIndexOf("\\"), effectiveInput.lastIndexOf("/"));
       if (lastSlash > 0) {
         outDir = effectiveInput.substring(0, lastSlash);
       }
     }
+    saveLastOutputDir(outDir);
     const isWindows = outDir.includes("\\") || /^[a-zA-Z]:/.test(outDir);
     const sep = isWindows ? "\\" : "/";
     const fullPath = `${outDir.replace(/[/\\]+$/, "")}${sep}${smartName}`;

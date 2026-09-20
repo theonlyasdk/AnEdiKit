@@ -259,7 +259,7 @@ describe("Contract: Manage Tools cache controls placement", () => {
     );
   });
 
-  for (const id of ["btn-clear-tools-cache", "tools-cache-status-text"]) {
+  for (const id of ["btn-check-all-updates", "tools-cache-status-text"]) {
     it(`mounts #${id} exactly once, inside the Manage Tools dialog`, () => {
       const occurrences = html.split(`id="${id}"`).length - 1;
       assert.equal(
@@ -281,7 +281,7 @@ describe("Contract: Manage Tools cache controls placement", () => {
     );
     for (const id of [
       "manage-tools-modal",
-      "btn-clear-tools-cache",
+      "btn-check-all-updates",
       "tools-cache-status-text",
     ]) {
       assert.ok(

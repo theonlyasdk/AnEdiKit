@@ -1,7 +1,7 @@
-// Task Execution Runner Module
 import { updateBatchItemStatus, updateActiveImageAiProgress } from "./media.js";
 import { loadSettings } from "./storage.js";
 import { animateCopyConfirm } from "./copy_anim.js";
+import { TOOL_METADATA } from "./navigation.js";
 
 let isRunning = false;
 let isBatchRunning = false;
@@ -97,6 +97,33 @@ export function clearLogs() {
   }
 }
 
+export function setProcessingHeading(text) {
+  const currentHeading = document.getElementById("current-processing-heading");
+  const currentItemWrapper = document.getElementById("current-item-wrapper");
+  if (!currentHeading) return;
+
+  currentHeading.textContent = text;
+  if (currentItemWrapper) {
+    currentItemWrapper.classList.remove("d-none");
+    currentHeading.classList.remove("is-marquee");
+    currentItemWrapper.classList.remove("has-marquee-fade");
+    currentHeading.style.removeProperty("--marquee-overflow-dist");
+    currentHeading.style.removeProperty("--marquee-duration");
+
+    const containerWidth = currentItemWrapper.clientWidth;
+    const textWidth = currentHeading.scrollWidth;
+
+    if (containerWidth > 0 && textWidth > containerWidth - 32) {
+      const overflowDist = textWidth - (containerWidth - 32) + 16;
+      const duration = Math.max(6, Math.round(overflowDist / 30)) + "s";
+      currentHeading.style.setProperty("--marquee-overflow-dist", `-${overflowDist}px`);
+      currentHeading.style.setProperty("--marquee-duration", duration);
+      currentHeading.classList.add("is-marquee");
+      currentItemWrapper.classList.add("has-marquee-fade");
+    }
+  }
+}
+
 export function updateProgress(data) {
   const { time, eta, fps, speed, bitrate, pct, playlist_item, playlist_total, current_item_title } = data;
   const bar = document.getElementById("job-progress-bar");
@@ -109,7 +136,6 @@ export function updateProgress(data) {
   const statusMsg = document.getElementById("status-message");
 
   // Currently processing item and heading
-  const currentItemWrapper = document.getElementById("current-item-wrapper");
   const currentHeading = document.getElementById("current-processing-heading");
   const statItemCount = document.getElementById("stat-item-count");
   const progressContainer = document.getElementById("exec-progress-container");
@@ -119,15 +145,10 @@ export function updateProgress(data) {
   }
 
   const displayName = current_item_title || (data.fileName ? data.fileName : "");
-  if (currentHeading) {
-    if (displayName) {
-      currentHeading.textContent = `Processing: ${displayName}`;
-    } else if (!currentHeading.textContent || currentHeading.textContent === "Processing: ...") {
-      currentHeading.textContent = "Processing...";
-    }
-  }
-  if (currentItemWrapper) {
-    currentItemWrapper.classList.remove("d-none");
+  if (displayName) {
+    setProcessingHeading(`Processing: ${displayName}`);
+  } else if (!currentHeading?.textContent || currentHeading.textContent === "Processing: ...") {
+    setProcessingHeading("Processing...");
   }
 
   // Item count readout in status strip (e.g. 1 of 5)
@@ -324,6 +345,7 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
     activeJobInfo = {
       destination: commandObj.destination || "",
       toolName: commandObj.executable === "yt-dlp" ? "Download" : "Conversion",
+      suppressNotification: !!commandObj.suppressNotification,
     };
     // Capture kit (or other caller) event sinks so live logs/progress reach
     // dedicated UI panels instead of only the shared job console.
@@ -342,8 +364,7 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
 
   const srcFile = commandObj.args ? commandObj.args[commandObj.args.indexOf("-i") + 1] : "";
   const displayName = srcFile ? srcFile.split(/[/\\]/).pop() : (commandObj.destination ? commandObj.destination.split(/[/\\]/).pop() : "media file");
-  if (currentHeading) currentHeading.textContent = `Processing: ${displayName}`;
-  if (currentItemWrapper) currentItemWrapper.classList.remove("d-none");
+  setProcessingHeading(`Processing: ${displayName}`);
   if (statItemCount) statItemCount.classList.add("d-none");
   if (progressContainer) progressContainer.classList.remove("d-none");
 
@@ -381,6 +402,7 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
     btnExecute.disabled = false;
     btnExecute.textContent = "Cancel";
     btnExecute.className = "btn btn-danger btn-sm px-4";
+    btnExecute.classList.remove("btn-shimmer");
     btnExecute.title = "Cancel active task";
   }
 
@@ -524,6 +546,11 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
   clearLogs();
   appendLog(`[Starting Batch Queue: ${queue.length} items]`);
 
+  const batchStartTime = Date.now();
+  let successCount = 0;
+  let failCount = 0;
+  let lastDestination = "";
+
   for (let i = 0; i < queue.length; i++) {
     if (batchCancelRequested) {
       appendLog(`[Batch queue stopped by user at item ${i + 1}]`, true);
@@ -550,7 +577,7 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
     item.status = "processing";
     updateBatchItemStatus(i, "processing");
 
-    if (currentHeading) currentHeading.textContent = `Processing: ${item.name}`;
+    setProcessingHeading(`Processing: ${item.name}`);
     if (statItemCount) {
       statItemCount.textContent = `${i + 1} of ${queue.length}`;
       statItemCount.classList.remove("d-none");
@@ -628,10 +655,13 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
       item.status = "done";
       updateBatchItemStatus(i, "done");
       appendLog(`[Item ${i + 1}/${queue.length}: Done ${item.name}]`);
+      successCount++;
+      lastDestination = commandObj.destination || lastDestination;
     } else {
       item.status = "error";
       updateBatchItemStatus(i, "error");
       appendLog(`[Item ${i + 1}/${queue.length}: Failed ${item.name}]`, true);
+      failCount++;
     }
   }
 
@@ -656,11 +686,23 @@ export async function executeBatchQueue(queue, toolId, settings, buildCommandFn)
       if (statEta) statEta.textContent = "ETA: 00:00:00";
       if (statTime) statTime.textContent = "Time: Completed";
     }
+
+    if (successCount > 0) {
+      const batchElapsedSeconds = batchStartTime > 0 ? ((Date.now() - batchStartTime) / 1000).toFixed(1) : "0.0";
+      showBatchFinishedNotification({
+        destination: lastDestination || settings.outputDir,
+        toolName: TOOL_METADATA[toolId]?.title || "Batch Processing",
+        total: queue.length,
+        successCount,
+        failCount,
+        elapsedSeconds: batchElapsedSeconds,
+      });
+    }
   }
 
   if (btnExecute) {
     btnExecute.textContent = `Execute Batch (${queue.length} items)`;
-    btnExecute.classList.remove("btn-danger");
+    btnExecute.classList.remove("btn-danger", "btn-shimmer");
     btnExecute.classList.add("btn-primary");
   }
   if (statusMsg) statusMsg.textContent = batchCancelRequested ? "Batch cancelled" : "Batch completed successfully";
@@ -717,7 +759,7 @@ export function onJobFinished(success, message) {
   if (statusMsg) statusMsg.textContent = message;
   if (btnExecute) {
     btnExecute.textContent = "Execute";
-    btnExecute.classList.remove("btn-danger");
+    btnExecute.classList.remove("btn-danger", "btn-shimmer");
     btnExecute.classList.add("btn-primary");
   }
   window.dispatchEvent(new CustomEvent("anedikit:job_finished"));
@@ -731,8 +773,116 @@ export function onJobFinished(success, message) {
   appendLog(`[${message}]`, !success);
   if (success) {
     const elapsedSeconds = jobStartTime > 0 ? ((Date.now() - jobStartTime) / 1000).toFixed(1) : "0.0";
-    if (activeJobInfo && activeJobInfo.destination) {
+    if (activeJobInfo && activeJobInfo.destination && !activeJobInfo.suppressNotification && !isBatchRunning) {
       showFinishedNotification(activeJobInfo.destination, activeJobInfo.toolName, elapsedSeconds);
+    }
+  }
+}
+
+export async function showBatchFinishedNotification({
+  destination = "",
+  toolName = "Batch Processing",
+  total = 0,
+  successCount = 0,
+  failCount = 0,
+  elapsedSeconds = "0.0",
+} = {}) {
+  const currentSettings = loadSettings();
+  if (currentSettings.enableNotifications === false) {
+    return;
+  }
+
+  const destFolder = destination
+    ? (destination.includes(".") && (destination.includes("\\") || destination.includes("/"))
+        ? destination.substring(0, Math.max(destination.lastIndexOf("\\"), destination.lastIndexOf("/")))
+        : destination)
+    : "";
+
+  const title = `${toolName} Completed`;
+  const summary = failCount > 0
+    ? `Completed ${successCount} of ${total} items (${failCount} failed) in ${elapsedSeconds}s`
+    : `Successfully processed ${successCount} item${successCount === 1 ? "" : "s"} in ${elapsedSeconds}s`;
+
+  // 1. Send native Windows system notification
+  if (window.__TAURI__?.core?.invoke) {
+    window.__TAURI__.core.invoke("send_system_notification", {
+      title,
+      body: summary,
+    }).catch((err) => console.warn("System notification error:", err));
+  }
+
+  // 2. Also try HTML5 Notification if supported
+  try {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(title, {
+        body: summary,
+      });
+    }
+  } catch (err) {
+    console.warn("Web Notification error:", err);
+  }
+
+  // 3. Show actionable UI Toast in the application
+  const toastEl = document.getElementById("finished-toast");
+  const toastTitle = document.getElementById("toast-title");
+  const toastFileName = document.getElementById("toast-filename");
+  const toastMetaDetails = document.getElementById("toast-meta-details");
+  const toastTimestamp = document.getElementById("toast-timestamp");
+  const btnOpenFile = document.getElementById("toast-btn-open-file");
+  const btnOpenFolder = document.getElementById("toast-btn-open-folder");
+
+  if (toastTitle) toastTitle.textContent = title;
+  if (toastFileName) {
+    toastFileName.textContent = `${successCount} item${successCount === 1 ? "" : "s"} processed`;
+    toastFileName.title = destFolder || destination;
+  }
+
+  if (toastMetaDetails) {
+    const statusText = failCount > 0 ? `${failCount} failed` : "All items succeeded";
+    toastMetaDetails.innerHTML = `Time taken: <strong class="text-body fw-medium">${elapsedSeconds}s</strong> &bull; <span class="${failCount > 0 ? 'text-warning' : 'text-success'}">${statusText}</span>`;
+  }
+
+  if (toastTimestamp) {
+    toastTimestamp.textContent = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  }
+
+  if (btnOpenFile) {
+    btnOpenFile.onclick = () => {
+      if (destination && destination.includes(".")) {
+        openFile(destination);
+      } else if (destFolder) {
+        showInFolder(destFolder);
+      }
+    };
+  }
+
+  if (btnOpenFolder) {
+    btnOpenFolder.onclick = () => {
+      showInFolder(destFolder || destination);
+    };
+  }
+
+  if (toastEl && window.bootstrap?.Toast) {
+    const toast = window.bootstrap.Toast.getOrCreateInstance(toastEl);
+    toastEl.classList.remove("toast-sliding-out");
+    toast.show();
+
+    const closeBtn = toastEl.querySelector(".btn-close");
+    if (closeBtn && !closeBtn.dataset.slideBound) {
+      closeBtn.dataset.slideBound = "true";
+      closeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toastEl.classList.add("toast-sliding-out");
+        setTimeout(() => {
+          toastEl.classList.remove("toast-sliding-out");
+          toast.hide();
+        }, 350);
+      });
     }
   }
 }
