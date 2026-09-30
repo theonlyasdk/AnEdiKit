@@ -5,7 +5,7 @@
 
 export const TOOL_METADATA = {
   all_tools: {
-    title: "All Tools",
+    title: "Dashboard",
     desc: "Browse every AnEdiKit tool, grouped by section.",
     viewId: "all-tools-browser",
   },

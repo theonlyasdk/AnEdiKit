@@ -2,6 +2,8 @@
 import { runnerState } from "./state.js";
 import { classifyLogLine, logKindToCssClass } from "../log_classify.js";
 import { showFinishedNotification } from "./notify.js";
+import { updateActiveImageAiProgress } from "../image_queue.js";
+
 
 export function setControlsDisabledState(disabled) {
   const elements = document.querySelectorAll(

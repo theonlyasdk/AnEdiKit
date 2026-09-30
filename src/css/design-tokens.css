@@ -117,8 +117,8 @@
 .aek-lightbox-meta { max-width: var(--aek-lightbox-meta-max) !important; }
 .aek-image-fallback { max-width: var(--aek-image-fallback-size) !important; }
 
-.aek-gap-14
 /* Param column widths — previously inline min/max-width combos */
+
 .aek-col-220-320 { min-width: 220px !important; max-width: 320px !important; }
 .aek-col-160-200 { min-width: 160px !important; max-width: 200px !important; }
 .aek-col-240-340 { min-width: 240px !important; max-width: 340px !important; }

@@ -11,7 +11,7 @@
                       <option value="" selected>Choose a preset to load parameters...</option>
                       <option value="-vf transpose=1 -c:a copy">Rotate 90° Clockwise (-vf transpose=1)</option>
                       <option value="-vf transpose=2 -c:a copy">Rotate 90° Counter-Clockwise (-vf transpose=2)</option>
-                      <option value="-vf hflip -c:a copy">Horizontal Flip / Mirror (-vf hflip)</option>
+                      <option value="-vf hflip -c:a copy">Horizontal Flip (-vf hflip)</option>
                       <option value='-filter_complex "[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]" -map "[v]" -map "[a]" -c:v libx264 -c:a aac'>Speed Up 2.0x Fast Forward (Video + Audio)</option>
                       <option value='-filter_complex "[0:v]setpts=2.0*PTS[v];[0:a]atempo=0.5[a]" -map "[v]" -map "[a]" -c:v libx264 -c:a aac'>Slow Down 0.5x Slow Motion (Video + Audio)</option>
                       <option value="-vf reverse -af areverse">Reverse Playback (Video + Audio)</option>

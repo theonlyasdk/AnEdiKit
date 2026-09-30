@@ -3,6 +3,8 @@ import { getAudioTagQueue, getSelectedTrackIndex, addAudioFilesToQueue, removeTr
 import { animateQueueHeight } from "../anim.js";
 import { morphContent } from "../cube_motion.js";
 import { registerAudioUi } from "./audio_ui_bridge.js";
+import { pickFiles } from "../file_picker.js";
+
 
 let queueDragCounter = 0;
 let duplicateNoticeTimer = null;

@@ -20,7 +20,10 @@ export function setMediaSrc(el, src) {
   }
 }
 
+import { mediaState } from "./media_store.js";
+
 export class MediaPreviewProvider {
+
   constructor(name) {
     this.name = name;
   }
@@ -93,7 +96,9 @@ export class ImagePreviewProvider extends MediaPreviewProvider {
       videoEl,
       audioEl,
       waveformCanvas,
+      currentInputFile = mediaState.currentInputFile,
     } = context;
+
 
     if (previewCard) {
       previewCard.classList.remove("video-mode", "audio-mode");

@@ -5,12 +5,12 @@
               <div class="mb-4">
                 <div class="section-divider-header">Speed &amp; Motion Parameters</div>
                 <div class="row g-3">
-                  <div class="col-md-4">
+                  <div class="col-md-8">
                     <label class="form-label small fw-medium mb-1" for="speed-preset">Speed Multiplier</label>
                     <div class="d-flex align-items-center gap-2">
                       <input type="range" class="form-range flex-grow-1 m-0 aek-range-reset" id="speed-preset" min="0.25" max="16" step="0.25" value="2.0" title="Speed multiplier (0.25x to 16x)" />
-                      <div class="input-group input-group-sm flex-shrink-0 w-auto">
-                        <button class="btn btn-outline-secondary border-end-0 px-2" type="button" id="speed-step-down" title="Decrease speed multiplier">&#8722;</button>
+                      <div class="input-group input-group-sm flex-shrink-0" style="width: 148px;" id="speed-custom-wrapper">
+                        <input type="number" class="form-control form-control-sm font-sans" id="speed-custom-val" value="2.0" min="0.1" max="100" step="0.1" title="Exact speed multiplier (0.1x to 100x)" />
                         <select class="form-select" id="speed-preset-select" title="Quick speed presets">
                           <option value="0.25">0.25x</option>
                           <option value="0.5">0.5x</option>
@@ -23,30 +23,10 @@
                           <option value="8">8x</option>
                           <option value="16">16x</option>
                         </select>
-                        <button class="btn btn-outline-secondary border-start-0 px-2" type="button" id="speed-step-up" title="Increase speed multiplier">+</button>
                       </div>
                     </div>
                   </div>
-                  <div class="col-md-4 ui-zoom-in" id="speed-custom-wrapper">
-                    <label class="form-label small fw-medium" for="speed-custom-val">Exact Value (0.1x to 100x)</label>
-                    <input type="number" class="form-control form-control-sm font-sans" id="speed-custom-val" value="2.0" min="0.1" max="100" step="0.1" />
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label small fw-medium" for="speed-audio-mode">Audio Retiming</label>
-                    <select class="form-select form-select-sm" id="speed-audio-mode">
-                      <option value="atempo" selected>Pitch-Corrected Audio (atempo)</option>
-                      <option value="strip">Mute / Strip Audio Track</option>
-                      <option value="drop">Drop Audio Sync</option>
-                    </select>
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label small fw-medium" for="speed-interp">Frame Smoothing / Interpolation</label>
-                    <select class="form-select form-select-sm" id="speed-interp">
-                      <option value="none" selected>None (Frame Drop / Duplicate - Instant)</option>
-                      <option value="blend">Frame Blending (Smooth Motion Blur - Fast)</option>
-                      <option value="minterpolate">Optical Flow Motion Interpolation (Optimized 60 FPS)</option>
-                    </select>
-                  </div>
+
                   <div class="col-md-4">
                     <label class="form-label small fw-medium" for="speed-container">Output Format</label>
                     <select class="form-select form-select-sm" id="speed-container">
@@ -54,6 +34,24 @@
                       <option value="mkv">MKV (.mkv)</option>
                       <option value="mov">MOV (.mov)</option>
                       <option value="webm">WebM (.webm)</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="speed-audio-mode">Audio Retiming</label>
+                    <select class="form-select form-select-sm" id="speed-audio-mode">
+                      <option value="atempo" selected>Pitch-Corrected Audio (atempo)</option>
+                      <option value="strip">Mute Audio Track</option>
+                      <option value="drop">Drop Audio Sync</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="speed-interp">Frame Interpolation</label>
+                    <select class="form-select form-select-sm" id="speed-interp">
+                      <option value="none" selected>None (Instant)</option>
+                      <option value="blend">Frame Blending (Fast)</option>
+                      <option value="minterpolate">Optical Flow Motion Interpolation (60 FPS)</option>
                     </select>
                   </div>
                 </div>

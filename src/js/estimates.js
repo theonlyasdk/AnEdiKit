@@ -366,7 +366,7 @@ export function updateEstimatesUI(targetTool = null) {
     const muteSizeEl = document.getElementById("mute-est-size");
     if (muteActionEl && muteVideoEl && muteSizeEl) {
       const action = document.getElementById("mute-action")?.value || "strip";
-      muteActionEl.textContent = action === "strip" ? "Mute / Strip Audio" : action === "replace" ? "Replace Audio Track" : "Mix Background Track";
+      muteActionEl.textContent = action === "strip" ? "Mute Audio" : action === "replace" ? "Replace Audio Track" : "Mix Background Track";
       muteVideoEl.textContent = "Stream Copy (Lossless)";
       const audioStreamSizeMb = ((Math.min(320, Math.max(128, srcBitrateKbps * 0.08)) * 1000 / 8) * durSec) / (1024 * 1024);
       const estMb = action === "strip" ? Math.max(0.1, srcSizeMb - audioStreamSizeMb) : srcSizeMb;

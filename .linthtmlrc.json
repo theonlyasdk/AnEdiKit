@@ -1,0 +1,13 @@
+{
+  "rules": {
+    "tag-close": true,
+    "tag-name-match": true,
+    "attr-no-dup": true,
+    "attr-quote-style": false,
+    "id-no-dup": true,
+    "doctype-first": false,
+    "doctype-html5": false,
+    "html-req-lang": false,
+    "title-no-dup": false
+  }
+}

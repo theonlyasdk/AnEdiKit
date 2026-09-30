@@ -4,7 +4,8 @@
 // bindFormEvents(root) hydrates only the new fragment.
 
 import { getAppSettings, saveSettingsFromUI } from "../app_settings.js";
-import { saveSettings, getLastOutputDir, saveLastOutputDir, getLastImageAiOutDir, saveLastImageAiOutDir, saveAiReplaceSource } from "../storage.js";
+import { saveSettings, getLastOutputDir, saveLastOutputDir, getLastImageAiOutDir, saveLastImageAiOutDir, getLastYtDlpOutDir, saveAiReplaceSource } from "../storage.js";
+
 import { saveActiveModuleState } from "../module_state.js";
 import {
   selectMediaFile,
@@ -187,24 +188,6 @@ export function bindFormEvents() {
     el.addEventListener("change", handleFormEvent);
   });
 
-  // Speed multiplier stepper buttons (conjoined -/preset/+ group): nudge
-  // the slider by one step and fire input so the generic form pipeline
-  // (sync, preview, save, filename) runs exactly as if slid by hand.
-  const speedStep = (dir) => {
-    const sl = document.getElementById("speed-preset");
-    if (!sl) return;
-    const step = parseFloat(sl.step) || 0.25;
-    let v = (parseFloat(sl.value) || 2) + dir * step;
-    v = Math.round(v * 100) / 100;
-    const min = parseFloat(sl.min);
-    const max = parseFloat(sl.max);
-    if (Number.isFinite(min)) v = Math.max(min, v);
-    if (Number.isFinite(max)) v = Math.min(max, v);
-    sl.value = String(v);
-    sl.dispatchEvent(new Event("input", { bubbles: true }));
-  };
-  document.getElementById("speed-step-down")?.addEventListener("click", () => speedStep(-1));
-  document.getElementById("speed-step-up")?.addEventListener("click", () => speedStep(1));
 
   function syncLoopPresetActiveButtons() {
     const inH = parseInt(document.getElementById("loop-target-hh")?.value, 10) || 0;

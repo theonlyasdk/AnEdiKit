@@ -46,4 +46,21 @@ describe("HTML assembly: partials are the source of truth", () => {
       assert.equal(occurrences, 1, `${file} should declare id="${id}" exactly once`);
     }
   });
+
+  it("passes Linthtml check with no unclosed tags or syntax errors", async () => {
+    const { default: linthtml } = await import("@linthtml/linthtml");
+    const configPath = path.join(projectRoot, ".linthtmlrc.json");
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+
+    const indexPath = path.join(projectRoot, "src", "index.html");
+    const indexContent = fs.readFileSync(indexPath, "utf8");
+    const issues = await linthtml(indexContent, config.rules);
+
+    assert.equal(
+      issues.length,
+      0,
+      `Linthtml found ${issues.length} issues in src/index.html: ${JSON.stringify(issues)}`
+    );
+  });
 });
+

@@ -6,9 +6,9 @@
                 <div class="section-divider-header">Audio Compression Parameters</div>
                 <div class="row g-3">
                   <div class="col-md-4">
-                    <label class="form-label small fw-medium" for="comp-aud-preset">Preset / Target</label>
+                    <label class="form-label small fw-medium" for="comp-aud-preset">Target Preset</label>
                     <select class="form-select form-select-sm" id="comp-aud-preset">
-                      <option value="discord" selected>Discord Voice / Message (64 kbps Opus)</option>
+                      <option value="discord" selected>Discord Voice (64 kbps Opus)</option>
                       <option value="whatsapp">WhatsApp Audio Note (32 kbps Mono)</option>
                       <option value="email">Email Attachment (5 MB Target)</option>
                       <option value="reduce_50">50% Size Reduction</option>
@@ -22,7 +22,7 @@
                     <input type="number" class="form-control form-control-sm" id="comp-aud-custom-mb" value="5" min="0.1" step="0.5" max="500" />
                   </div>
                   <div class="col-md-4" id="comp-aud-format-wrapper">
-                    <label class="form-label small fw-medium" for="comp-aud-format">Output Format / Codec</label>
+                    <label class="form-label small fw-medium" for="comp-aud-format">Output Format</label>
                     <select class="form-select form-select-sm" id="comp-aud-format">
                       <option value="opus" selected>Opus (.opus - Supreme efficiency at low bitrates)</option>
                       <option value="mp3">MP3 (.mp3 - Universal compatibility)</option>
