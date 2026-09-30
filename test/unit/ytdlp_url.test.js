@@ -3,7 +3,7 @@ import "./setup.js";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { fixYoutubeUrl } from "../../src/js/ytdlp_url.js";
+import { fixYoutubeUrl, isPlaylistOrAlbumUrl } from "../../src/js/ytdlp_url.js";
 
 describe("ytdlp_url.js: fixYoutubeUrl", () => {
   it("normalizes youtu.be short links and drops tracking params", () => {
@@ -78,3 +78,65 @@ describe("ytdlp_url.js: fixYoutubeUrl", () => {
     );
   });
 });
+
+describe("ytdlp_url.js: isPlaylistOrAlbumUrl", () => {
+  it("detects YouTube Music playlist and album URLs", () => {
+    assert.equal(
+      isPlaylistOrAlbumUrl("https://music.youtube.com/playlist?list=OLAK5uy_ku2cdWECBFs9PQfSOnwp1XZQDggzoKMqM&si=F2r5G58w4LsRn7_3"),
+      true,
+    );
+    assert.equal(
+      isPlaylistOrAlbumUrl("https://music.youtube.com/playlist?list=PL12345"),
+      true,
+    );
+    assert.equal(
+      isPlaylistOrAlbumUrl("music.youtube.com/playlist?list=OLAK5uy_abc"),
+      true,
+    );
+  });
+
+  it("detects standard YouTube playlist URLs", () => {
+    assert.equal(
+      isPlaylistOrAlbumUrl("https://www.youtube.com/playlist?list=PLrAXtmErZgOdP_8GztsuKi9nrraNbKKp4"),
+      true,
+    );
+    assert.equal(
+      isPlaylistOrAlbumUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PL12345"),
+      true,
+    );
+  });
+
+  it("detects URLs with album or playlist paths", () => {
+    assert.equal(
+      isPlaylistOrAlbumUrl("https://youtube.com/playlist?list=RDCLAK5uy"),
+      true,
+    );
+    assert.equal(
+      isPlaylistOrAlbumUrl("https://music.youtube.com/album/OLAK5uy_ku2cdWECBFs9PQfSOnwp1XZQDggzoKMqM"),
+      true,
+    );
+  });
+
+  it("returns false for single video or track URLs", () => {
+    assert.equal(
+      isPlaylistOrAlbumUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ"),
+      false,
+    );
+    assert.equal(
+      isPlaylistOrAlbumUrl("https://music.youtube.com/watch?v=MTXXdP9DH4Y"),
+      false,
+    );
+    assert.equal(
+      isPlaylistOrAlbumUrl("https://youtu.be/86DvZHUgqms"),
+      false,
+    );
+  });
+
+  it("returns false for non-playlist non-album inputs", () => {
+    assert.equal(isPlaylistOrAlbumUrl(""), false);
+    assert.equal(isPlaylistOrAlbumUrl(null), false);
+    assert.equal(isPlaylistOrAlbumUrl(undefined), false);
+    assert.equal(isPlaylistOrAlbumUrl("https://vimeo.com/12345"), false);
+  });
+});
+

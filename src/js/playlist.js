@@ -61,7 +61,7 @@ export function playlistRowHtml(item) {
       <div class="flex-grow-1 text-truncate">
         <div class="d-flex align-items-center justify-content-between gap-2">
           <div class="fw-medium text-body text-truncate mb-0" title="${title}">${item.index}. ${title}</div>
-          ${item.duration_string ? `<span class="badge text-bg-secondary flex-shrink-0 font-monospace">${duration}</span>` : ""}
+          ${item.duration_string ? `<span class="badge rounded-pill playlist-duration-badge flex-shrink-0 align-self-center px-2 py-1 text-center">${duration}</span>` : ""}
         </div>
         <div class="text-body-secondary small text-truncate" style="font-size: 0.75rem;">${url}</div>
       </div>
@@ -212,6 +212,50 @@ export function initPlaylistControls(onUpdated = null) {
     bindKeyed(toggleAllBtn, "playlist:toggle-all", "click", () => {
       const allChecked = playlistVideos.length > 0 && playlistVideos.every((v) => v.checked);
       playlistVideos.forEach((v) => (v.checked = !allChecked));
+      renderPlaylistEntries();
+      notifyUpdate();
+    });
+  }
+
+  const selectAllBtn = document.getElementById("btn-playlist-select-all");
+  if (selectAllBtn) {
+    bindKeyed(selectAllBtn, "playlist:select-all", "click", () => {
+      playlistVideos.forEach((v) => (v.checked = true));
+      renderPlaylistEntries();
+      notifyUpdate();
+    });
+  }
+
+  const deselectAllBtn = document.getElementById("btn-playlist-deselect-all");
+  if (deselectAllBtn) {
+    bindKeyed(deselectAllBtn, "playlist:deselect-all", "click", () => {
+      playlistVideos.forEach((v) => (v.checked = false));
+      renderPlaylistEntries();
+      notifyUpdate();
+    });
+  }
+
+  const selectOddBtn = document.getElementById("btn-playlist-select-odd");
+  if (selectOddBtn) {
+    bindKeyed(selectOddBtn, "playlist:select-odd", "click", () => {
+      playlistVideos.forEach((v, idx) => {
+        // Human/list indexing (1st item is odd, 2nd is even, etc.): based on (v.index % 2 !== 0) or 1-based position (idx + 1) % 2 !== 0
+        const itemNumber = typeof v.index === "number" ? v.index : idx + 1;
+        v.checked = itemNumber % 2 !== 0;
+      });
+      renderPlaylistEntries();
+      notifyUpdate();
+    });
+  }
+
+  const selectEvenBtn = document.getElementById("btn-playlist-select-even");
+  if (selectEvenBtn) {
+    bindKeyed(selectEvenBtn, "playlist:select-even", "click", () => {
+      playlistVideos.forEach((v, idx) => {
+        // Human/list indexing (2nd item is even, 4th is even, etc.)
+        const itemNumber = typeof v.index === "number" ? v.index : idx + 1;
+        v.checked = itemNumber % 2 === 0;
+      });
       renderPlaylistEntries();
       notifyUpdate();
     });

@@ -273,8 +273,14 @@ export async function attachTauriListeners() {
         // toast at the file instead of the output folder so "Open file" works.
         if (event.payload.line.startsWith("filepath:")) {
           const fp = event.payload.line.slice(9).trim();
-          if (fp && fp !== "NA" && runnerState.activeJobInfo) {
-            runnerState.activeJobInfo.destination = fp;
+          if (fp && fp !== "NA") {
+            if (runnerState.activeJobInfo) {
+              runnerState.activeJobInfo.destination = fp;
+            }
+            const fname = fp.split(/[/\\]/).pop();
+            if (fname) {
+              setProcessingHeading(`Processing: ${fname}`);
+            }
           }
           appendLog(`[Saved: ${fp}]`);
           return;

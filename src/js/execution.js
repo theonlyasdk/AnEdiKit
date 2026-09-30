@@ -35,7 +35,7 @@ import { resolveExecuteButtonState } from "./execute_state.js";
 import { animateCopyConfirm } from "./copy_anim.js";
 import { checkToolsBeforeExecution } from "./tools_manager.js";
 import { openComparisonModal, setComparisonShimmer } from "./comparison.js";
-import { fixYoutubeUrl } from "./ytdlp_url.js";
+import { fixYoutubeUrl, isPlaylistOrAlbumUrl } from "./ytdlp_url.js";
 import { executeActiveKit, resetActiveKit } from "../kits/index.js";
 import {
   getAudioTagQueue,
@@ -197,6 +197,32 @@ export async function handleExecuteClick() {
   const currentUrl = document.getElementById("ytdlp-url-input")?.value?.trim() || "";
   const playlistVideos = getPlaylistVideos();
   const fetchedPlaylistUrl = getFetchedPlaylistUrl();
+
+  if (activeTool === "ytdlp_audio" && isPlaylistOrAlbumUrl(currentUrl)) {
+    updateExecuteButtonState();
+    const modalEl = document.getElementById("playlist-album-warning-modal");
+    if (modalEl && window.bootstrap?.Modal) {
+      const modal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+      const btnConfirmSwitch = document.getElementById("btn-confirm-playlist-switch");
+      if (btnConfirmSwitch) {
+        btnConfirmSwitch.onclick = () => {
+          modal.hide();
+          const playlistNavBtn = document.querySelector("#ytdlp-nav [data-tool='ytdlp_playlist'], [data-tool='ytdlp_playlist']");
+          if (playlistNavBtn) {
+            playlistNavBtn.click();
+          }
+        };
+      }
+      modal.show();
+      return;
+    }
+    // Fallback if modal is unavailable:
+    const warningEl = document.getElementById("ytdlp-playlist-detected-warning");
+    if (warningEl) {
+      warningEl.classList.remove("d-none");
+    }
+    return;
+  }
 
   if (activeTool === "ytdlp_playlist") {
     const isUrlChanged = currentUrl !== fetchedPlaylistUrl;

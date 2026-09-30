@@ -195,6 +195,18 @@
                 <button class="btn btn-outline-secondary" type="button" id="btn-fix-url" title="Fix link format to standard YouTube watch URL (converts youtu.be, music.youtube.com, etc.)"><ion-icon name="link-outline"></ion-icon></button>
                 <button class="btn btn-outline-secondary" type="button" id="btn-clear-url" title="Clear URL input"><ion-icon name="close-outline"></ion-icon></button>
               </div>
+              <!-- Playlist / Album Detection Alert in Audio Download Mode -->
+              <div class="alert alert-info py-2 px-3 small d-none ui-zoom-in mb-2 d-flex align-items-center justify-content-between gap-2" id="ytdlp-playlist-detected-warning" role="alert">
+                <div class="d-flex align-items-center gap-2 text-start">
+                  <ion-icon name="information-circle-outline" class="fs-5 flex-shrink-0 text-info"></ion-icon>
+                  <div>
+                    <strong class="text-body">Album / Playlist detected:</strong> An album is basically a playlist on YouTube Music. Switch to <strong>Download Playlist</strong> mode to download all tracks.
+                  </div>
+                </div>
+                <button class="btn btn-info btn-sm flex-shrink-0 fw-medium" type="button" id="btn-switch-to-playlist-tool">
+                  <ion-icon name="arrow-forward-outline" class="me-1"></ion-icon>Switch to Playlist
+                </button>
+              </div>
               <div class="mt-3">
                 <div class="section-divider-header">Download Output Folder</div>
                 <div class="input-group mb-2">

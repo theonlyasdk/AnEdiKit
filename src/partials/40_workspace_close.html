@@ -27,7 +27,19 @@
                       <option value="dur_asc">Duration (Shortest first)</option>
                       <option value="dur_desc">Duration (Longest first)</option>
                     </select>
-                    <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-playlist-toggle-all" title="Toggle all video selections">Deselect All</button>
+                    <div class="btn-group btn-group-sm" id="playlist-selection-group">
+                      <button class="btn btn-outline-secondary" type="button" id="btn-playlist-toggle-all" title="Toggle all video selections">Deselect All</button>
+                      <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" title="More selection options">
+                        <span class="visually-hidden">Toggle Dropdown</span>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><button class="dropdown-item small" type="button" id="btn-playlist-select-all">Select All</button></li>
+                        <li><button class="dropdown-item small" type="button" id="btn-playlist-deselect-all">Deselect All</button></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><button class="dropdown-item small" type="button" id="btn-playlist-select-odd">Select Odd Items</button></li>
+                        <li><button class="dropdown-item small" type="button" id="btn-playlist-select-even">Select Even Items</button></li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
                 <div class="list-group list-group-flush border rounded mb-2 overflow-y-auto aek-legacy-3278a3" id="playlist-entries-list">

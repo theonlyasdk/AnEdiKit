@@ -445,6 +445,18 @@
                 <button class="btn btn-outline-secondary" type="button" id="btn-fix-url" title="Fix link format to standard YouTube watch URL (converts youtu.be, music.youtube.com, etc.)"><ion-icon name="link-outline"></ion-icon></button>
                 <button class="btn btn-outline-secondary" type="button" id="btn-clear-url" title="Clear URL input"><ion-icon name="close-outline"></ion-icon></button>
               </div>
+              <!-- Playlist / Album Detection Alert in Audio Download Mode -->
+              <div class="alert alert-info py-2 px-3 small d-none ui-zoom-in mb-2 d-flex align-items-center justify-content-between gap-2" id="ytdlp-playlist-detected-warning" role="alert">
+                <div class="d-flex align-items-center gap-2 text-start">
+                  <ion-icon name="information-circle-outline" class="fs-5 flex-shrink-0 text-info"></ion-icon>
+                  <div>
+                    <strong class="text-body">Album / Playlist detected:</strong> An album is basically a playlist on YouTube Music. Switch to <strong>Download Playlist</strong> mode to download all tracks.
+                  </div>
+                </div>
+                <button class="btn btn-info btn-sm flex-shrink-0 fw-medium" type="button" id="btn-switch-to-playlist-tool">
+                  <ion-icon name="arrow-forward-outline" class="me-1"></ion-icon>Switch to Playlist
+                </button>
+              </div>
               <div class="mt-3">
                 <div class="section-divider-header">Download Output Folder</div>
                 <div class="input-group mb-2">
@@ -2426,7 +2438,19 @@
                       <option value="dur_asc">Duration (Shortest first)</option>
                       <option value="dur_desc">Duration (Longest first)</option>
                     </select>
-                    <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-playlist-toggle-all" title="Toggle all video selections">Deselect All</button>
+                    <div class="btn-group btn-group-sm" id="playlist-selection-group">
+                      <button class="btn btn-outline-secondary" type="button" id="btn-playlist-toggle-all" title="Toggle all video selections">Deselect All</button>
+                      <button type="button" class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false" title="More selection options">
+                        <span class="visually-hidden">Toggle Dropdown</span>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><button class="dropdown-item small" type="button" id="btn-playlist-select-all">Select All</button></li>
+                        <li><button class="dropdown-item small" type="button" id="btn-playlist-deselect-all">Deselect All</button></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><button class="dropdown-item small" type="button" id="btn-playlist-select-odd">Select Odd Items</button></li>
+                        <li><button class="dropdown-item small" type="button" id="btn-playlist-select-even">Select Even Items</button></li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
                 <div class="list-group list-group-flush border rounded mb-2 overflow-y-auto aek-legacy-3278a3" id="playlist-entries-list">
@@ -2518,6 +2542,36 @@
             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal" id="btn-user-kits-cancel-warning">Cancel</button>
             <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-user-kits-confirm-warning">
               <span>Enable User Kits</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Playlist / Album Detected in Audio Download Modal -->
+    <div class="modal fade" id="playlist-album-warning-modal" tabindex="-1" aria-labelledby="playlistAlbumWarningModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered aek-legacy-10768a">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-5 fw-light text-body d-flex align-items-center gap-2" id="playlistAlbumWarningModalLabel">
+              <ion-icon name="musical-notes-outline" class="text-primary fs-4 lh-1"></ion-icon>
+              <span>Playlist / Album Detected</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            <p class="text-body small mb-2">
+              The pasted link is an album or playlist. An album is essentially a playlist on YouTube Music.
+            </p>
+            <p class="text-body-secondary small mb-0">
+              The Audio Download tool only downloads a single audio track with <code class="font-monospace">--no-playlist</code>. Switch to the <strong>Download Playlist</strong> tool to fetch and download all tracks in this album or playlist.
+            </p>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal" id="btn-cancel-playlist-switch">Stay Here</button>
+            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-confirm-playlist-switch">
+              <ion-icon name="arrow-forward-outline"></ion-icon>
+              <span>Switch to Playlist Download</span>
             </button>
           </div>
         </div>

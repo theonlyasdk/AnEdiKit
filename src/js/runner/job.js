@@ -34,7 +34,17 @@ export function executeFfmpegJob(commandObj, totalDuration = 0.0) {
   const progressContainer = document.getElementById("exec-progress-container");
 
   const srcFile = commandObj.args ? commandObj.args[commandObj.args.indexOf("-i") + 1] : "";
-  const displayName = srcFile ? srcFile.split(/[/\\]/).pop() : (commandObj.destination ? commandObj.destination.split(/[/\\]/).pop() : "media file");
+  let displayName = srcFile ? srcFile.split(/[/\\]/).pop() : "";
+  if (!displayName && commandObj.destination) {
+    const destName = commandObj.destination.split(/[/\\]/).pop();
+    // If destination is a directory (no file extension) and executable is yt-dlp, show a clean indicator
+    if (commandObj.executable === "yt-dlp") {
+      displayName = "media stream / download";
+    } else {
+      displayName = destName || "media file";
+    }
+  }
+  if (!displayName) displayName = "media file";
   setProcessingHeading(`Processing: ${displayName}`);
   if (statItemCount) statItemCount.classList.add("d-none");
   if (progressContainer) progressContainer.classList.remove("d-none");

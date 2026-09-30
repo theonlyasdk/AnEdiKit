@@ -79,7 +79,7 @@ export function compileItemsToFormatString(items) {
   return items
     .map((item) => {
       if (item.type === "token") {
-        return item.raw || `%(item.key)s`;
+        return item.raw || `%(${item.key})s`;
       }
       return item.value || "";
     })

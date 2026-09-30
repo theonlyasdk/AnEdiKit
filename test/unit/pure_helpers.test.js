@@ -157,6 +157,8 @@ describe("commands.js: normalizeYtDlpTemplate", () => {
     assert.equal(normalizeYtDlpTemplate("%(title)s.%(ext)s"), "%(title)s.%(ext)s");
     assert.equal(normalizeYtDlpTemplate("%(title)s.%(ext)s.%(ext)s"), "%(title)s.%(ext)s");
     assert.equal(normalizeYtDlpTemplate("%(title)s"), "%(title)s.%(ext)s");
+    assert.equal(normalizeYtDlpTemplate("%(title)s%(ext)s"), "%(title)s.%(ext)s");
+    assert.equal(normalizeYtDlpTemplate("%(title)s%(ext)s%(ext)s"), "%(title)s.%(ext)s");
   });
 
   it("should fall back to the default template when blank", () => {

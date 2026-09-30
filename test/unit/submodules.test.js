@@ -177,7 +177,9 @@ describe("Submodule: playlist.js", () => {
     assert.ok(html.includes('data-index="1"'));
     assert.ok(html.includes("checked"));
     assert.ok(html.includes("Sample Video"));
-    assert.ok(html.includes("03:45"));
+    assert.ok(html.includes("playlist-duration-badge"));
+    assert.ok(html.includes("rounded-pill"));
+    assert.ok(!html.includes("font-monospace"));
   });
 
   it("should manage playlist videos state", () => {
@@ -190,6 +192,54 @@ describe("Submodule: playlist.js", () => {
     clearPlaylist();
     assert.equal(getPlaylistVideos().length, 0);
     assert.equal(getFetchedPlaylistUrl(), "");
+  });
+
+  it("should support selecting odd and even items via playlist controls", () => {
+    document.body.innerHTML = `
+      <div id="playlist-entries-panel">
+        <span id="playlist-selected-count">0</span>
+        <span id="playlist-total-count">0</span>
+        <button id="btn-playlist-toggle-all"></button>
+        <button id="btn-playlist-select-all"></button>
+        <button id="btn-playlist-deselect-all"></button>
+        <button id="btn-playlist-select-odd"></button>
+        <button id="btn-playlist-select-even"></button>
+        <div id="playlist-entries-list"></div>
+      </div>
+    `;
+
+    setPlaylistVideos([
+      { index: 1, title: "Track 1", checked: true },
+      { index: 2, title: "Track 2", checked: true },
+      { index: 3, title: "Track 3", checked: true },
+      { index: 4, title: "Track 4", checked: true },
+    ]);
+
+    initPlaylistControls();
+
+    // Select odd items (1, 3)
+    document.getElementById("btn-playlist-select-odd").click();
+    const oddVids = getPlaylistVideos();
+    assert.equal(oddVids[0].checked, true);
+    assert.equal(oddVids[1].checked, false);
+    assert.equal(oddVids[2].checked, true);
+    assert.equal(oddVids[3].checked, false);
+
+    // Select even items (2, 4)
+    document.getElementById("btn-playlist-select-even").click();
+    const evenVids = getPlaylistVideos();
+    assert.equal(evenVids[0].checked, false);
+    assert.equal(evenVids[1].checked, true);
+    assert.equal(evenVids[2].checked, false);
+    assert.equal(evenVids[3].checked, true);
+
+    // Deselect all
+    document.getElementById("btn-playlist-deselect-all").click();
+    assert.ok(getPlaylistVideos().every((v) => !v.checked));
+
+    // Select all
+    document.getElementById("btn-playlist-select-all").click();
+    assert.ok(getPlaylistVideos().every((v) => v.checked));
   });
 });
 

@@ -648,7 +648,7 @@ pub fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), Str
                         return;
                     }
 
-                    // Parse downloading item tag e.g. [download] Downloading item 1 of 5
+                    // 1. Parse downloading item tag e.g. [download] Downloading item 1 of 5
                     if line.contains("Downloading item ") {
                         if let Some(idx) = line.find("Downloading item ") {
                             let sub = &line[idx + 17..];
@@ -664,7 +664,7 @@ pub fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), Str
                         }
                     }
 
-                    // Parse destination filename e.g. [download] Destination: ...
+                    // 2. Parse destination filename from Destination: or ExtractAudio Destination:
                     if line.contains("Destination:") {
                         if let Some(idx) = line.find("Destination:") {
                             let path_str = line[idx + 12..].trim();
@@ -675,10 +675,21 @@ pub fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), Str
                         }
                     }
 
-                    // Parse yt-dlp progress: [download]  45.2% of 120.5MiB at 4.5MiB/s ETA 00:15
+                    // 3. Parse title / destination from filepath: printed after_move
+                    if line.starts_with("filepath:") {
+                        let path_str = line[9..].trim();
+                        if path_str != "NA" && !path_str.is_empty() {
+                            if let Some(fname) = std::path::Path::new(path_str).file_name() {
+                                *ct_clone.lock().unwrap() =
+                                    Some(fname.to_string_lossy().to_string());
+                            }
+                        }
+                    }
+
+                    // 4. Parse yt-dlp progress: [download]  45.2% of 120.5MiB at 4.5MiB/s ETA 00:15
                     if line.contains("[download]") && line.contains('%') {
                         let parts: Vec<&str> = line.split_whitespace().collect();
-                        let mut pct: u32 = 0;
+                        let mut item_pct: u32 = 0;
                         let mut speed = "0x".to_string();
                         let mut eta: Option<String> = None;
                         let mut size_str = "0 MB".to_string();
@@ -686,7 +697,7 @@ pub fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), Str
                         for (i, &p) in parts.iter().enumerate() {
                             if p.ends_with('%') {
                                 if let Ok(val) = p.trim_end_matches('%').parse::<f32>() {
-                                    pct = val.clamp(0.0, 100.0) as u32;
+                                    item_pct = val.clamp(0.0, 100.0) as u32;
                                 }
                             } else if p == "of" && i + 1 < parts.len() {
                                 size_str = parts[i + 1].to_string();
@@ -701,6 +712,20 @@ pub fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), Str
                         let tot_items = *pt_clone.lock().unwrap();
                         let title = ct_clone.lock().unwrap().clone();
 
+                        // Compute overall progress across entire playlist when item/total are known
+                        let display_pct = if let (Some(cur), Some(tot)) = (cur_item, tot_items) {
+                            if tot > 0 {
+                                let c = cur.max(1).min(tot);
+                                let base = ((c - 1) as f32 / tot as f32) * 100.0;
+                                let slice = item_pct as f32 / tot as f32;
+                                (base + slice).clamp(0.0, 100.0) as u32
+                            } else {
+                                item_pct
+                            }
+                        } else {
+                            item_pct
+                        };
+
                         let _ = app_out.emit(
                             "ffmpeg-progress",
                             ProgressPayload {
@@ -709,7 +734,7 @@ pub fn execute_ytdlp(app: tauri::AppHandle, args: Vec<String>) -> Result<(), Str
                                 fps: "--".into(),
                                 speed,
                                 bitrate: "--".into(),
-                                pct,
+                                pct: display_pct,
                                 playlist_item: cur_item,
                                 playlist_total: tot_items,
                                 current_item_title: title,

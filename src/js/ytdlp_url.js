@@ -1,7 +1,7 @@
 // Module for fixing and formatting yt-dlp URLs
 import { animateCopyConfirm } from "./copy_anim.js";
-
 import { reportError } from "./errors.js";
+import { getCurrentActiveTool } from "./active_tool.js";
 // Whitelisted search parameters for clean YouTube URLs (preserves video ID, playlist, timestamp, index)
 const ALLOWED_YT_PARAMS = new Set(["v", "list", "t", "start", "index"]);
 
@@ -148,11 +148,77 @@ export function initYtDlpUrlFixer(updateCommandPreviewFn, getAppSettingsFn) {
     btnFixUrl.addEventListener("click", () => runFix(true));
   }
 
+  const checkPlaylistUrlWarning = () => {
+    const warningEl = document.getElementById("ytdlp-playlist-detected-warning");
+    if (!warningEl) return;
+    const currentVal = ytdlpUrlInput ? ytdlpUrlInput.value : "";
+    const activeTool = getCurrentActiveTool();
+    if (activeTool === "ytdlp_audio" && isPlaylistOrAlbumUrl(currentVal)) {
+      warningEl.classList.remove("d-none");
+    } else {
+      warningEl.classList.add("d-none");
+    }
+  };
+
   if (ytdlpUrlInput) {
+    ytdlpUrlInput.addEventListener("input", checkPlaylistUrlWarning);
+    ytdlpUrlInput.addEventListener("change", checkPlaylistUrlWarning);
     ytdlpUrlInput.addEventListener("blur", () => {
       const settings = typeof getAppSettingsFn === "function" ? getAppSettingsFn() : null;
-      if (settings && settings.ytdlpAutoFixUrl === false) return;
+      if (settings && settings.ytdlpAutoFixUrl === false) {
+        checkPlaylistUrlWarning();
+        return;
+      }
       runFix(false);
+      checkPlaylistUrlWarning();
+    });
+  }
+
+  const btnSwitchPlaylist = document.getElementById("btn-switch-to-playlist-tool");
+  if (btnSwitchPlaylist) {
+    btnSwitchPlaylist.addEventListener("click", () => {
+      // Trigger navigation click on ytdlp_playlist
+      const playlistNavBtn = document.querySelector("#ytdlp-nav [data-tool='ytdlp_playlist'], [data-tool='ytdlp_playlist']");
+      if (playlistNavBtn) {
+        playlistNavBtn.click();
+      }
+      checkPlaylistUrlWarning();
     });
   }
 }
+
+/**
+ * Checks if a given input URL represents a playlist or an album.
+ * Matches YouTube and YouTube Music playlists/albums:
+ * - list= parameter (e.g. list=OLAK5uy_..., list=PL..., etc.)
+ * - /playlist or /album/ in pathname
+ * - OLAK5uy_ YouTube Music album IDs
+ * @param {string} inputUrl
+ * @returns {boolean}
+ */
+export function isPlaylistOrAlbumUrl(inputUrl) {
+  if (!inputUrl || typeof inputUrl !== "string") return false;
+  const trimmed = inputUrl.trim();
+  if (!trimmed) return false;
+
+  // Direct regex checks for common forms
+  if (/[?&]list=([a-zA-Z0-9_-]+)/i.test(trimmed)) return true;
+  if (/OLAK5uy_[a-zA-Z0-9_-]+/i.test(trimmed)) return true;
+  if (/(?:youtube\.com|youtu\.be)\/(?:playlist|album)\b/i.test(trimmed)) return true;
+
+  try {
+    let testUrl = trimmed;
+    if (!/^https?:\/\//i.test(testUrl)) {
+      testUrl = "https://" + testUrl;
+    }
+    const parsed = new URL(testUrl);
+    if (parsed.searchParams.has("list")) return true;
+    const path = parsed.pathname.toLowerCase();
+    if (path.includes("/playlist") || path.includes("/album/")) return true;
+  } catch (_) {
+    // Ignore URL parse failures and rely on regex
+  }
+
+  return false;
+}
+

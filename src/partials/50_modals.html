@@ -26,6 +26,36 @@
       </div>
     </div>
 
+    <!-- Playlist / Album Detected in Audio Download Modal -->
+    <div class="modal fade" id="playlist-album-warning-modal" tabindex="-1" aria-labelledby="playlistAlbumWarningModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered aek-legacy-10768a">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-5 fw-light text-body d-flex align-items-center gap-2" id="playlistAlbumWarningModalLabel">
+              <ion-icon name="musical-notes-outline" class="text-primary fs-4 lh-1"></ion-icon>
+              <span>Playlist / Album Detected</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            <p class="text-body small mb-2">
+              The pasted link is an album or playlist. An album is essentially a playlist on YouTube Music.
+            </p>
+            <p class="text-body-secondary small mb-0">
+              The Audio Download tool only downloads a single audio track with <code class="font-monospace">--no-playlist</code>. Switch to the <strong>Download Playlist</strong> tool to fetch and download all tracks in this album or playlist.
+            </p>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal" id="btn-cancel-playlist-switch">Stay Here</button>
+            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-confirm-playlist-switch">
+              <ion-icon name="arrow-forward-outline"></ion-icon>
+              <span>Switch to Playlist Download</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Required Tools Missing Dialog -->
     <div class="modal fade" id="missing-tools-modal" tabindex="-1" aria-labelledby="missingToolsModalLabel" aria-hidden="true" data-bs-backdrop="static">
       <div class="modal-dialog modal-dialog-centered aek-legacy-10768a">

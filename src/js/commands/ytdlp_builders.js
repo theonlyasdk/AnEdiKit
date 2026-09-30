@@ -68,11 +68,13 @@ export function appendGlobalYtDlpArgs(args, settings = {}, targetUrl = "") {
 
 
 // Ensure output template ends with exactly one .%(ext)s (ytdlnis: removeSuffix + re-add).
+// The dot is optional in the strip pattern so a bare trailing %(ext)s is
+// also collapsed (otherwise "%(title)s%(ext)s" would gain a duplicate ext).
 export function normalizeYtDlpTemplate(fmt) {
   const fallback = "%(title)s [%(id)s].%(ext)s";
   let t = (fmt || "").trim() || fallback;
   // Strip any trailing .%(ext)s occurrences, then re-add one.
-  t = t.replace(/(\.\%\(ext\)s)+$/g, "");
+  t = t.replace(/(\.?\%\(ext\)s)+$/g, "");
   return `${t}.%(ext)s`;
 }
 
@@ -264,7 +266,8 @@ export function buildYtDlpPlaylistCommand(url, outputDir, settings = {}, selecte
   args.push("-P", outDir);
 
   // ytdlnis-style: single .%(ext)s, playlist folder prefix, optional index numbering.
-  const base = fmt.replace(/(\.\%\(ext\)s)+$/g, "");
+  // Strip trailing ext with optional dot so a bare %(ext)s also collapses.
+  const base = fmt.replace(/(\.?\%\(ext\)s)+$/g, "");
   if (autonumber) {
     if (!base.includes("%(playlist_index)s")) {
       args.push("-o", `%(playlist_title)s/%(playlist_index)s - ${base}.%(ext)s`);
