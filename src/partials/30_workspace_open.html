@@ -1,0 +1,216 @@
+<!-- Tool Workspace Panel -->
+        <main class="flex-grow-1 overflow-y-auto px-4" id="tool-workspace">
+          <section class="tool-view mb-4 d-none" id="all-tools-browser" aria-labelledby="all-tools-title">
+            <h1 class="visually-hidden" id="all-tools-title">All tools</h1>
+            <div id="all-tools-results" class="vstack gap-4"></div>
+            <div id="all-tools-empty" class="text-center text-body-secondary py-5 d-none">
+              <ion-icon name="search-outline" class="fs-1 text-secondary opacity-50 mb-2 d-block mx-auto"></ion-icon>
+              <div class="fw-medium text-body mb-1">No tools match your search</div>
+              <div class="small">Try searching with different keywords or check spelling.</div>
+            </div>
+          </section>
+          <div id="tool-view-container">
+            
+            <!-- Shared File Selection Section for FFmpeg Tools -->
+            <div class="mb-4" id="shared-input-card">
+              <div class="row g-3 align-items-stretch">
+                <!-- Left Column: Input File, Metadata & Output File -->
+                <div class="col-12" id="media-inputs-col">
+                  <!-- Single Input Media (for Convert, Trim, Compress, etc.) -->
+                  <div id="single-input-file-wrapper">
+                    <div class="section-divider-header">Input Media</div>
+                    <div class="input-group mb-2">
+                      <button class="btn btn-outline-secondary" type="button" id="btn-browse-input" title="Select single media file"><ion-icon name="folder-open-outline"></ion-icon></button>
+                      <input type="text" class="form-control small" id="input-file-path" placeholder="Select or drop a source media file (or add to queue below)..." readonly />
+                      <button class="btn btn-outline-secondary" type="button" id="btn-clear-input" title="Clear selection"><ion-icon name="close-outline"></ion-icon></button>
+                    </div>
+                  </div>
+
+                  <!-- Media Files to Concatenate (for Merge & Concat tool) -->
+                  <div id="merge-files-container" class="mb-3 d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <div class="section-divider-header flex-grow-1 mb-0 me-3">Media Files to Concatenate</div>
+                      <div class="btn-group btn-group-sm flex-shrink-0">
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-add" title="Add files to merge list"><ion-icon name="folder-outline"></ion-icon></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-up" title="Move selected item up"><ion-icon name="chevron-up-outline"></ion-icon></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-down" title="Move selected item down"><ion-icon name="chevron-down-outline"></ion-icon></button>
+                        <button class="btn btn-outline-secondary" type="button" id="btn-merge-clear" title="Clear all files"><ion-icon name="close-outline"></ion-icon></button>
+                      </div>
+                    </div>
+                    <div class="mb-2 small" id="merge-file-list">
+                      <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary aek-legacy-88ad3a" id="merge-empty-msg">
+                        <ion-icon name="library-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
+                        <span class="fw-medium text-body" id="merge-drop-label">Drop media files here or click to select</span>
+                        <span class="small text-body-secondary" id="merge-drop-sublabel">Supports MP4, MKV, WebM, MOV, AVI, MP3, WAV, FLAC</span>
+                        <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-merge-add-empty" title="Add files to merge list">
+                          <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Files
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Batch Queue Container -->
+                  <div id="batch-queue-container" class="mb-3 mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <div class="section-divider-header flex-grow-1 mb-0 me-3">
+                        Batch Queue (<span id="batch-queue-count">0</span>&nbsp;items)
+                      </div>
+                      <div class="btn-group btn-group-sm flex-shrink-0 d-none" id="batch-header-actions">
+                        <button class="btn btn-outline-secondary" type="button" id="btn-batch-add" title="Add files to batch queue"><ion-icon name="folder-outline"></ion-icon></button>
+                        <button class="btn btn-outline-danger" type="button" id="btn-batch-clear" title="Clear batch queue"><ion-icon name="trash-outline"></ion-icon></button>
+                      </div>
+                    </div>
+                    <div class="mb-2" id="batch-queue-list">
+                      <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary aek-legacy-88ad3a" id="batch-empty-msg">
+                        <ion-icon name="film-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
+                        <span class="fw-medium text-body" id="batch-drop-label">Drop files here or click to select</span>
+                        <span class="small text-body-secondary" id="batch-drop-sublabel">Supports MP4, MKV, WebM, MOV, AVI, MP3, WAV, FLAC</span>
+                        <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-batch-add-empty" title="Add files to batch queue">
+                          <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Files
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Conditional metadata info readout -->
+                  <div class="d-none flex-wrap gap-3 small text-body-secondary ui-zoom-in mb-3" id="input-meta-info">
+                    <span>Duration: <strong class="text-body" id="meta-duration">--:--:--</strong></span>
+                    <span>Resolution: <strong class="text-body" id="meta-resolution">--</strong></span>
+                    <span>Video Codec: <strong class="text-body" id="meta-vcodec">--</strong></span>
+                    <span>Audio Codec: <strong class="text-body" id="meta-acodec">--</strong></span>
+                    <span>Size: <strong class="text-body" id="meta-size">-- MB</strong></span>
+                  </div>
+
+                    <!-- Output Filename & Directory Section -->
+                    <div class="mt-3" id="output-file-section">
+                      <div class="section-divider-header">Output File</div>
+                      <div class="input-group mb-0">
+                        <button class="btn btn-outline-secondary" type="button" id="btn-browse-output-dir" title="Choose output folder"><ion-icon name="folder-open-outline"></ion-icon></button>
+                        <input type="text" class="form-control small" id="output-file-name" placeholder="Auto-generated full output path..." spellcheck="false" autocomplete="off" />
+                        <button class="btn btn-outline-secondary" type="button" id="btn-open-output-dir" title="Open output folder in File Explorer"><ion-icon name="open-outline"></ion-icon></button>
+                      </div>
+                      <!-- File Exists Warning Under Output File -->
+                      <div class="form-text text-warning small d-none ui-zoom-in mt-1" id="output-file-exists-warning">
+                        <ion-icon name="warning-outline" class="me-1"></ion-icon> A file with this name already exists in the target folder and will be overwritten.
+                      </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Media Preview (16:9 Video Card or 1:1 Audio Card) -->
+                <div class="col-12 col-lg-5 col-xl-5 col-xxl-4 d-none flex-column align-self-stretch" id="media-preview-col">
+                  <div class="section-divider-header text-center w-100 mb-2">Media Preview</div>
+                  <div class="d-flex flex-column align-items-center justify-content-center w-100 flex-grow-1 my-auto" id="media-preview-container">
+                    <!-- Unified Morphing Media Preview Card (16:9 for Video <-> 1:1 for Audio) -->
+                    <div class="card border mx-auto rounded-0 position-relative overflow-hidden media-preview-morpher video-mode d-none" id="media-preview-card">
+                      <!-- Video Layer (16:9 content) -->
+                      <div class="w-100 h-100 position-absolute top-0 start-0 d-flex align-items-center justify-content-center bg-black media-preview-layer" id="video-preview-layer">
+                        <img id="video-action-frame-prev" class="d-none w-100 h-100 object-fit-contain position-absolute top-0 start-0 z-0" alt="Previous Video Action Frame" />
+                        <img id="video-action-frame-img" class="d-none w-100 h-100 object-fit-contain position-absolute top-0 start-0 z-1 media-thumb-fade" alt="Video Action Frame" />
+                        <div class="position-absolute bottom-0 start-0 w-100 p-2 d-none d-flex flex-column z-2 text-start aek-legacy-c9eb5a" id="video-overlay-info">
+                          <span class="aek-text-xs small fw-medium text-white text-truncate w-100" id="video-overlay-title">Video Track</span>
+                          <span class="aek-text-xs small text-white-50" id="video-overlay-format">Video Preview</span>
+                        </div>
+                        <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-dark text-secondary p-2 text-center rounded-0" id="video-preview-fallback">
+                          <ion-icon name="film-outline" class="fs-1 text-secondary mb-1" id="video-fallback-icon"></ion-icon>
+                          <span class="aek-text-sm small text-body-secondary text-truncate w-100">Video Preview</span>
+                        </div>
+                        <video id="media-video-preview" class="d-none w-100 h-100 object-fit-contain position-absolute top-0 start-0 z-0" preload="metadata" playsinline></video>
+                      </div>
+
+                      <!-- Audio Layer (1:1 content) -->
+                      <div class="w-100 h-100 position-absolute top-0 start-0 d-flex flex-column align-items-center justify-content-center p-3 text-center bg-body-tertiary media-preview-layer" id="audio-preview-layer">
+                        <img id="audio-art-prev" class="d-none w-100 h-100 object-fit-cover rounded-0 position-absolute top-0 start-0 z-0" alt="Previous Album Art" />
+                        <img id="audio-art-img" class="d-none w-100 h-100 object-fit-cover rounded-0 position-absolute top-0 start-0 z-1 media-thumb-fade" alt="Album Art" />
+                        <ion-icon name="disc-outline" class="fs-1 mb-2 cd-loading-spin text-secondary" id="audio-cd-spinner"></ion-icon>
+                        <ion-icon name="musical-notes-outline" class="text-secondary fs-1 mb-2 d-none" id="audio-fallback-icon"></ion-icon>
+                        <div class="marquee-container my-1 z-1" id="audio-title-container">
+                          <div class="small fw-medium text-body aek-legacy-e7992d" id="audio-art-title">Audio Track</div>
+                        </div>
+                        <div class="aek-text-xs small text-body-secondary z-1" id="audio-art-format">Audio Preview</div>
+                        <audio id="media-audio-preview" class="d-none" preload="metadata"></audio>
+                      </div>
+
+                      <!-- Image Layer (16:9 / Responsive with Transparency Grid) -->
+                      <div class="w-100 h-100 position-absolute top-0 start-0 d-flex align-items-center justify-content-center transparency-grid media-preview-layer" id="image-preview-layer">
+                        <img id="media-image-preview" class="w-100 h-100 object-fit-contain position-absolute top-0 start-0 z-1" alt="Image Preview" />
+                        <div class="w-100 h-100 d-none d-flex flex-column align-items-center justify-content-center bg-dark p-2 text-center rounded-0 z-0" id="image-preview-fallback">
+                          <div class="spinner-border spinner-border-sm text-secondary mb-2 aek-legacy-9176d9" id="image-fallback-spinner" role="status"></div>
+                          <ion-icon name="alert-circle-outline" class="fs-1 text-danger mb-1 d-none" id="image-fallback-icon"></ion-icon>
+                          <span class="aek-text-xs badge bg-danger text-white mb-1 d-none" id="image-fallback-badge">Image was deleted</span>
+                          <span class="aek-text-sm small text-truncate w-100" id="image-fallback-filename">Loading image...</span>
+                        </div>
+                        <div class="position-absolute bottom-0 start-0 w-100 p-2 d-none flex-column z-2 text-start aek-legacy-5bd251" id="image-overlay-info">
+                          <span class="aek-text-sm-plus small fw-medium text-white text-truncate w-100 mb-0 lh-sm" id="image-overlay-title">Image Preview</span>
+                          <span class="aek-text-xs small text-white-50 text-truncate w-100 lh-sm my-0" id="image-overlay-format">PNG Image</span>
+                          <span class="aek-text-xs small text-white-50 text-truncate w-100 lh-sm aek-legacy-23e780" id="image-overlay-path"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dedicated Image & AI Tools Workspace (Batch List View without single file/output path noise) -->
+            <div class="mb-4 d-none" id="image-ai-workspace-card">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="section-divider-header flex-grow-1 mb-0 me-3">
+                  Image Queue (<span id="image-ai-queue-count">0</span>&nbsp;images)
+                </div>
+                <div class="btn-group btn-group-sm flex-shrink-0" id="image-ai-header-actions">
+                  <button class="btn btn-outline-primary d-none" type="button" id="btn-image-add" title="Add images to queue"><ion-icon name="add-outline" class="me-1"></ion-icon>Add Images...</button>
+                  <button class="btn btn-outline-danger d-none" type="button" id="btn-image-clear" title="Clear image queue"><ion-icon name="trash-outline"></ion-icon></button>
+                </div>
+              </div>
+              <div id="image-ai-queue-list" class="mb-3">
+                <div class="list-group-item text-body-secondary text-center py-5 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary aek-legacy-88ad3a" id="image-ai-empty-msg">
+                  <ion-icon name="images-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
+                  <span class="fw-medium text-body" id="image-drop-label">Drop images here or click to select</span>
+                  <span class="small text-body-secondary" id="image-drop-sublabel">Supports PNG, JPG, WebP, BMP, TIFF, SVG</span>
+                  <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-image-add-empty" title="Add images to queue">
+                    <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Images
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-3" id="image-ai-outdir-section">
+                <div class="section-divider-header">Output Folder</div>
+                <div class="input-group mb-0">
+                  <button class="btn btn-outline-secondary" type="button" id="btn-browse-image-outdir" title="Choose output folder for AI images"><ion-icon name="folder-open-outline"></ion-icon></button>
+                  <input type="text" class="form-control small" id="image-ai-output-dir" placeholder="Default Pictures folder..." readonly />
+                  <button class="btn btn-outline-secondary" type="button" id="btn-open-image-outdir" title="Open output folder in File Explorer"><ion-icon name="open-outline"></ion-icon></button>
+                </div>
+                <div class="form-text text-body-secondary small mt-1">
+                  Generated images are saved to this folder unless "Replace Source" is toggled ON.
+                </div>
+              </div>
+            </div>
+
+            <!-- Shared URL Input Section for yt-dlp Tools -->
+            <div class="mb-4 d-none" id="shared-url-card">
+              <div class="section-divider-header">Media Link / URL</div>
+              <div class="input-group mb-2">
+                <button class="btn btn-outline-secondary" type="button" id="btn-paste-url" title="Paste URL from clipboard"><ion-icon name="copy-outline"></ion-icon></button>
+                <input type="text" class="form-control small font-sans" id="ytdlp-url-input" placeholder="https://www.youtube.com/watch?v=... or Twitch, X, TikTok link" />
+                <button class="btn btn-outline-secondary" type="button" id="btn-fix-url" title="Fix link format to standard YouTube watch URL (converts youtu.be, music.youtube.com, etc.)"><ion-icon name="link-outline"></ion-icon></button>
+                <button class="btn btn-outline-secondary" type="button" id="btn-clear-url" title="Clear URL input"><ion-icon name="close-outline"></ion-icon></button>
+              </div>
+              <div class="mt-3">
+                <div class="section-divider-header">Download Output Folder</div>
+                <div class="input-group mb-2">
+                  <button class="btn btn-outline-secondary" type="button" id="btn-browse-ytdlp-outdir" title="Choose download destination folder"><ion-icon name="folder-open-outline"></ion-icon></button>
+                  <input type="text" class="form-control small" id="ytdlp-output-dir" placeholder="Default downloads folder..." readonly />
+                  <button class="btn btn-outline-secondary" type="button" id="btn-open-ytdlp-outdir" title="Open download folder in File Explorer"><ion-icon name="open-outline"></ion-icon></button>
+                </div>
+              </div>
+              <div class="mt-3">
+                <div class="section-divider-header">Filename Format</div>
+                <div class="input-group mb-2">
+                  <input type="text" class="form-control small font-monospace bg-body-tertiary" id="ytdlp-filename-format" placeholder="%(title)s [%(id)s].%(ext)s" value="%(title)s [%(id)s].%(ext)s" readonly />
+                  <button class="btn btn-outline-secondary d-flex align-items-center gap-1" type="button" id="btn-edit-ytdlp-filename-format" data-bs-toggle="modal" data-bs-target="#modal-filename-format-editor" title="Edit output filename format template"><ion-icon name="create-outline"></ion-icon> Edit</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TOOL 1: Convert Video -->
+            

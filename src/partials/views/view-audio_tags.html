@@ -1,0 +1,156 @@
+
+
+            <!-- TOOL: Audio Tag & Metadata ID3 Editor -->
+            <div class="tool-view d-none" id="view-audio_tags">
+              <div class="mb-4">
+                <!-- Audio Queue Section -->
+                <div class="mb-2" id="audio-tag-queue-section">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="section-divider-header flex-grow-1 mb-0 me-3">
+                      Audio Queue (<span id="audio-tag-queue-count">0</span>&nbsp;tracks)
+                    </div>
+                    <div class="btn-group btn-group-sm flex-shrink-0" id="audio-tag-header-actions">
+                      <button class="btn btn-outline-primary d-none" type="button" id="btn-audio-tag-add" title="Add audio files to queue">
+                        <ion-icon name="add-outline" class="me-1"></ion-icon>Add Files...
+                      </button>
+                      <button class="btn btn-outline-danger d-none" type="button" id="btn-audio-tag-clear" title="Clear audio queue">
+                        <ion-icon name="trash-outline"></ion-icon>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="audio-tag-queue-list" class="mb-3">
+                    <div class="list-group-item text-body-secondary text-center py-4 d-flex flex-column align-items-center justify-content-center gap-2 rounded bg-body-tertiary aek-legacy-88ad3a" id="audio-tag-empty-msg">
+                      <ion-icon name="musical-notes-outline" class="fs-2 text-secondary opacity-50 mb-1"></ion-icon>
+                      <span class="fw-medium text-body" id="audio-tag-drop-label">Drop audio files here or click to select</span>
+                      <span class="small text-body-secondary" id="audio-tag-drop-sublabel">Supports MP3, M4A, FLAC, OGG</span>
+                      <button class="btn btn-outline-primary btn-sm mt-2" type="button" id="btn-audio-tag-add-empty" title="Add audio files to queue">
+                        <ion-icon name="folder-open-outline" class="me-1"></ion-icon> Select Audio Files
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Metadata Editor Section (Shown when track selected) -->
+                <div id="audio-tag-editor-section" class="d-none">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="section-divider-header flex-grow-1 mb-0 me-3">Audio Metadata &amp; ID3 Tags</div>
+                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                      <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" type="button" id="btn-tag-autofill" title="Auto-fill Title and Artist from filename (e.g. 'Artist - Title')">
+                        <ion-icon name="sparkles-outline"></ion-icon> Auto-fill from Name
+                      </button>
+                      <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" type="button" id="btn-tag-revert" title="Revert tags to original metadata from file">
+                        <ion-icon name="refresh-outline"></ion-icon> Revert
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" type="button" id="btn-tag-clear" title="Clear all metadata fields">
+                        <ion-icon name="trash-outline"></ion-icon> Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="d-none align-items-center gap-2 alert alert-secondary py-2 px-3 mb-3 small text-body" id="audio-tag-loading-feedback">
+                    <div class="spinner-border spinner-border-sm text-primary flex-shrink-0" role="status"></div>
+                    <span id="audio-tag-loading-text">Loading audio metadata and artwork...</span>
+                  </div>
+
+                  <div class="row g-3">
+                    <!-- Cover Artwork Column -->
+                    <div class="col-12 col-md-4 col-lg-3">
+                      <div class="card h-100 p-3 bg-body border rounded d-flex flex-column align-items-center justify-content-between text-center">
+                        <div class="tag-cover-wrap flex-grow-1 my-auto w-100 py-3 d-flex flex-column align-items-center justify-content-center" tabindex="0" role="group" aria-label="Album cover actions">
+                          <div class="tag-cover-frame">
+                            <div id="tag-cover-placeholder" class="d-flex flex-column align-items-center justify-content-center text-body-secondary py-3">
+                              <ion-icon name="image-outline" class="aek-hero-icon"></ion-icon>
+                              <span class="small text-body-secondary mt-1">No Artwork</span>
+                            </div>
+                            <img id="tag-cover-img" class="rounded border object-fit-cover d-none w-100 d-block aek-legacy-06f8e3" alt="Album Cover Preview" />
+                            <div class="tag-cover-actions">
+                              <button class="btn btn-primary btn-sm text-truncate d-flex align-items-center justify-content-center gap-1" type="button" id="btn-tag-choose-cover" title="Choose image file (JPG, PNG) for album cover">
+                                <ion-icon name="image-outline"></ion-icon> Choose...
+                              </button>
+                              <button class="btn btn-outline-danger btn-sm tag-btn-remove text-truncate d-none d-flex align-items-center justify-content-center gap-1" type="button" id="btn-tag-remove-cover" title="Remove embedded album cover">
+                                <ion-icon name="trash-outline"></ion-icon> Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <input type="file" id="tag-cover-input" class="d-none" accept="image/jpeg,image/png,image/webp" />
+                      </div>
+                    </div>
+
+                    <!-- Metadata Fields Column -->
+                    <div class="col-12 col-md-8 col-lg-9">
+                      <div class="row g-2">
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-title">Track Title</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-title" placeholder="e.g. Bohemian Rhapsody" />
+                        </div>
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-artist">Artist</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-artist" placeholder="e.g. Queen" />
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-album">Album</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-album" placeholder="e.g. A Night at the Opera" />
+                        </div>
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-album-artist">Album Artist</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-album-artist" placeholder="e.g. Queen" />
+                        </div>
+
+                        <div class="col-6 col-sm-3">
+                          <label class="form-label small fw-medium" for="tag-track">Track #</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-track" placeholder="e.g. 1" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <label class="form-label small fw-medium" for="tag-total-tracks">Total Tracks</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-total-tracks" placeholder="e.g. 12" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <label class="form-label small fw-medium" for="tag-disc">Disc #</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-disc" placeholder="e.g. 1" />
+                        </div>
+                        <div class="col-6 col-sm-3">
+                          <label class="form-label small fw-medium" for="tag-year">Year / Date</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-year" placeholder="e.g. 1975" />
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-genre">Genre</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-genre" list="tag-genre-list" placeholder="e.g. Rock" />
+                          <datalist id="tag-genre-list">
+                            <option value="Pop"></option>
+                            <option value="Rock"></option>
+                            <option value="Hip-Hop"></option>
+                            <option value="Electronic"></option>
+                            <option value="Classical"></option>
+                            <option value="Jazz"></option>
+                            <option value="Soundtrack"></option>
+                            <option value="R&amp;B"></option>
+                            <option value="Metal"></option>
+                            <option value="Ambient"></option>
+                            <option value="Acoustic"></option>
+                            <option value="Country"></option>
+                            <option value="Folk"></option>
+                            <option value="Blues"></option>
+                            <option value="Reggae"></option>
+                            <option value="Podcast"></option>
+                            <option value="Audiobook"></option>
+                          </datalist>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                          <label class="form-label small fw-medium" for="tag-composer">Composer</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-composer" placeholder="e.g. Freddie Mercury" />
+                        </div>
+
+                        <div class="col-12">
+                          <label class="form-label small fw-medium" for="tag-comment">Comment / Notes</label>
+                          <input type="text" class="form-control form-control-sm" id="tag-comment" placeholder="Optional comments, descriptions, or notes" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>

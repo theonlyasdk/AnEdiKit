@@ -1,3 +1,4 @@
+import { reportError } from "./errors.js";
 // Universal Drag-and-Drop Vertical Reordering Engine
 // Provides 60fps vertical pointer dragging, midpoint threshold slot targeting,
 // sibling shift transforms, auto-scrolling at container edges, and seamless release animations.
@@ -51,7 +52,7 @@ export function setupListDragAndDrop({
     itemEl.classList.add("is-dragging");
     try {
       dragHandle.setPointerCapture(e.pointerId);
-    } catch (_) {}
+    } catch (caughtErr) { reportError("js/drag_reorder.js:setupListDragAndDrop", caughtErr); }
 
     const startScrollTop = listContainer.scrollTop;
     let autoScrollRaf = null;
@@ -149,7 +150,7 @@ export function setupListDragAndDrop({
       }
       try {
         dragHandle.releasePointerCapture(upEvt.pointerId);
-      } catch (_) {}
+      } catch (caughtErr) { reportError("js/drag_reorder.js:setupListDragAndDrop", caughtErr); }
       dragHandle.removeEventListener("pointermove", onPointerMove);
       dragHandle.removeEventListener("pointerup", onPointerUp);
       dragHandle.removeEventListener("pointercancel", onPointerUp);

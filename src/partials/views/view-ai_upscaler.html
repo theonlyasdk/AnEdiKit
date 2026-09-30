@@ -1,0 +1,42 @@
+
+
+            <!-- IMAGE AI TOOL 2: AI Image Upscaler -->
+            <div class="tool-view d-none" id="view-ai_upscaler">
+              <div class="mb-4">
+                <div class="section-divider-header">Super-Resolution &amp; Upscaling Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="upscale-factor">Scale Multiplier</label>
+                    <select class="form-select form-select-sm" id="upscale-factor">
+                      <option value="2" selected>2x Upscale (Double Resolution)</option>
+                      <option value="3">3x Upscale</option>
+                      <option value="4">4x Upscale (Quadruple Resolution / Ultra HD)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="upscale-model">Enhancement Engine</label>
+                    <select class="form-select form-select-sm" id="upscale-model">
+                      <option value="realesrgan-x4plus" selected>Real-ESRGAN+ (Photos &amp; Real World)</option>
+                      <option value="realesr-animevideov3">Real-ESRGAN Anime (Illustration &amp; Art)</option>
+                      <option value="realesrgan-x4plus-anime">Real-ESRGAN Anime 6B (High-Fidelity 2D)</option>
+                      <option value="bicubic_sharp">Lanczos Edge-Preserving Sharp</option>
+                      <option value="clarity_hdr">Local Contrast &amp; Clarity HDR</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="upscale-denoise">Denoise &amp; Artifact Smoothing</label>
+                    <select class="form-select form-select-sm" id="upscale-denoise">
+                      <option value="0" selected>None (Retain Original Grain)</option>
+                      <option value="15">Low Denoising</option>
+                      <option value="30">Medium Denoising</option>
+                      <option value="50">Heavy Smoothing (Compressed Source)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="upscale-estimate-box">
+                  <div>Scale: <strong class="text-body" id="upscale-est-scale">2x</strong> &bull; Model: <strong class="text-body" id="upscale-est-model">Real-ESRGAN+</strong></div>
+                  <div class="text-body-secondary small">Perceptual high-frequency detail enhancement</div>
+                </div>
+              </div>
+            </div>

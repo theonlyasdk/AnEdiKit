@@ -1,0 +1,47 @@
+
+
+            <!-- TOOL: Video Stabilization & Deshake -->
+            <div class="tool-view d-none" id="view-stabilize">
+              <div class="mb-4">
+                <div class="section-divider-header">Stabilization &amp; Deshake Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="stab-engine">Stabilization Engine</label>
+                    <select class="form-select form-select-sm" id="stab-engine">
+                      <option value="deshake" selected>Native FFmpeg Deshake (Fast Single-Pass)</option>
+                      <option value="vidstab">VidStab Motion Vector Transform (High Accuracy)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="stab-smooth">Smoothness / Shakiness Level</label>
+                    <select class="form-select form-select-sm" id="stab-smooth">
+                      <option value="low">Subtle Smoothing (Minimal crop)</option>
+                      <option value="medium" selected>Medium / Handheld Standard (12 frames)</option>
+                      <option value="high">Aggressive Smoothing (Heavy shake / Action cam)</option>
+                      <option value="tripod">Tripod Emulation (Fixed camera)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="stab-border">Edge / Border Handling</label>
+                    <select class="form-select form-select-sm" id="stab-border">
+                      <option value="crop" selected>Auto Zoom &amp; Crop (Hide border artifacts)</option>
+                      <option value="black">Keep Black Motion Borders</option>
+                      <option value="mirror">Mirror Edge Pixels</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="stab-container">Output Format</label>
+                    <select class="form-select form-select-sm" id="stab-container">
+                      <option value="mp4" selected>MP4 (.mp4)</option>
+                      <option value="mkv">MKV (.mkv)</option>
+                      <option value="mov">MOV (.mov)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="stab-estimate-box">
+                  <div>Engine: <strong class="text-body" id="stab-est-engine">FFmpeg Deshake</strong> &bull; Smoothness: <strong class="text-body" id="stab-est-smooth">Medium</strong> &bull; Est. Size: <strong class="text-body" id="stab-est-size">~42.5 MB</strong></div>
+                  <div class="text-body-secondary small">Lossless audio stream preserved</div>
+                </div>
+              </div>
+            </div>

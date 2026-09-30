@@ -1,6 +1,7 @@
 // Theme & Appearance Management Module for AnEdiKit
 import { loadSettings, saveSettings, STORAGE_KEYS } from "./storage.js";
 
+import { reportError } from "./errors.js";
 export const THEME_PRESETS = {
   bootstrap_dark: {
     name: "Bootstrap 5 Dark",
@@ -178,7 +179,7 @@ export async function checkIsWindows10() {
       const result = await window.__TAURI__.core.invoke("is_windows_10");
       _isWindows10 = !!result;
       return _isWindows10;
-    } catch (_) {}
+    } catch (caughtErr) { reportError("js/theme.js:checkIsWindows10", caughtErr); }
   }
   return _isWindows10;
 }

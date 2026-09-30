@@ -1,6 +1,6 @@
 // AnEdiKit - Tool Estimates Calculation and UI Synchronization Submodule
-import { getCurrentMediaInfo, getCurrentInputFile } from "./media.js";
-import { getCurrentActiveTool } from "./navigation.js";
+import { getCurrentMediaInfo, getCurrentInputFile } from "./media_store.js";
+import { getCurrentActiveTool } from "./active_tool.js";
 import { getMergeFiles } from "./merge.js";
 
 export function updateEstimatesUI(targetTool = null) {

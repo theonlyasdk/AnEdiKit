@@ -1,11 +1,17 @@
 // Navigation & View Transitions Module
 import { saveActiveTool, getSavedActiveTool, getLastYtDlpOutDir, loadSettings, getUserKitById, STORAGE_KEYS } from "./storage.js";
 import { isJobRunning } from "./runner.js";
-import { cancelAudioMetadataLoading } from "./audio_tags.js";
 import { PDF_CATEGORIES, renderTool, getCategoryToolIdForPdfTool } from "./pdf_tools.js";
 import { saveActiveModuleState } from "./module_state.js";
-import { TOOL_METADATA, TOOL_ORDER } from "./tool_metadata.js";
+import { attachMaterialRipple, attachFluentRipple, animateQueueHeight } from "./anim.js";
 
+// Re-exported for backward compatibility (queue modules imported these here).
+export { attachMaterialRipple, attachFluentRipple, animateQueueHeight };
+import { TOOL_METADATA, TOOL_ORDER } from "./tool_metadata.js";
+import { toolState, getCurrentActiveTool as getActiveToolFromStore } from "./active_tool.js";
+import { isLazyView, loadView } from "./view_loader.js";
+
+import { reportError } from "./errors.js";
 // Re-exported for backward compatibility (contract.test.js imports from here).
 export { TOOL_METADATA, TOOL_ORDER };
 
@@ -32,7 +38,7 @@ const ALL_TOOLS_GROUPS = [
   { title: "App", icon: "settings-outline", tools: ["settings"] },
 ];
 
-let currentActiveTool = "convert";
+// Active-tool value lives in active_tool.js (toolState.current, init "convert").
 let currentActiveViewEl = null;
 
 function initAllToolsBrowser(onToolChanged) {
@@ -118,7 +124,7 @@ function initAllToolsBrowser(onToolChanged) {
         button.addEventListener("click", () => {
           if (item.isPdf) {
             const catId = getCategoryToolIdForPdfTool(item.pdfToolName);
-            if (currentActiveTool !== catId) {
+            if (toolState.current !== catId) {
               switchTool(catId, onToolChanged, true);
             } else {
               const pdfBtn = document.querySelector(`#pdf-nav button[data-tool="${catId}"]`);
@@ -145,7 +151,7 @@ function initAllToolsBrowser(onToolChanged) {
 }
 
 export function getCurrentActiveTool() {
-  return document.body?.dataset?.activeTool || currentActiveTool;
+  return getActiveToolFromStore();
 }
 
 export function updateSidebarIndicator(activeBtn) {
@@ -197,15 +203,18 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
     return;
   }
 
-  if (toolId === currentActiveTool) return;
+  if (toolId === toolState.current) return;
   if (isJobRunning() && toolId !== "settings") return;
 
-  if (currentActiveTool) {
-    saveActiveModuleState(currentActiveTool);
+  if (toolState.current) {
+    saveActiveModuleState(toolState.current);
   }
 
-  if (currentActiveTool === "audio_tags" && toolId !== "audio_tags") {
-    cancelAudioMetadataLoading();
+  if (toolState.current === "audio_tags" && toolId !== "audio_tags") {
+    // Decoupled: audio_tags.js listens for this (was a direct import).
+    try {
+      document.dispatchEvent(new CustomEvent("anedikit:cancel-audio-load"));
+    } catch (caughtErr) { reportError("js/navigation.js:switchTool", caughtErr); }
   }
 
   const getToolIndex = (id) => {
@@ -214,11 +223,11 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
     const idx = TOOL_ORDER.indexOf(id);
     return idx !== -1 ? idx : 0;
   };
-  const prevIndex = getToolIndex(currentActiveTool);
+  const prevIndex = getToolIndex(toolState.current);
   const nextIndex = getToolIndex(toolId);
   const movingDown = prevIndex === -1 ? true : nextIndex > prevIndex;
 
-  currentActiveTool = toolId;
+  toolState.current = toolId;
   document.body.dataset.activeTool = toolId;
   saveActiveTool(toolId);
 
@@ -268,6 +277,16 @@ export function switchTool(toolId, onToolChanged, autoScroll = false, instantScr
     const animClass = movingDown ? "slide-from-bottom" : "slide-from-top";
     void headerContainer.offsetWidth;
     headerContainer.classList.add(animClass);
+  }
+
+  // Lazy views: inject placeholder + fetch on first open (shimmer skeleton
+  // shows until the partial arrives; no signature change — still sync).
+  if (isLazyView(targetViewId)) {
+    const pending = document.getElementById(targetViewId);
+    if (pending && pending.dataset.lazyState !== "loaded" && pending.dataset.lazyState !== "pending") {
+      // loadView() injects skeleton synchronously, then fetches.
+      loadView(targetViewId);
+    }
   }
 
   // Main workspace views: hide previous view directly, show target view
@@ -421,82 +440,7 @@ export function toggleMobileSidebar() {
   if (backdrop) backdrop.classList.toggle("d-none", !isShown);
 }
 
-// Material You soft ripple for settings items: a gentle primary wash
-// sized to just cover the item from the press point. Skipped entirely
-// under reduced motion / no-animations (CSS kills animations globally,
-// so a spawned span would otherwise stick around forever).
-export function attachMaterialRipple(element) {
-  if (!element) return;
-  element.addEventListener("mousedown", (e) => {
-    if (e.button !== undefined && e.button !== 0) return;
-    const reduceMotion =
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
-      document.documentElement.classList.contains("no-animations");
-    if (reduceMotion) return;
-    const rect = element.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const dx = Math.max(x, rect.width - x);
-    const dy = Math.max(y, rect.height - y);
-    const size = Math.ceil(Math.hypot(dx, dy) * 2);
-
-    const ripple = document.createElement("span");
-    ripple.className = "m3-ripple";
-    ripple.style.width = `${size}px`;
-    ripple.style.height = `${size}px`;
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
-
-    element.appendChild(ripple);
-    // animationend removes it at opacity 0; the timeout is a backstop so
-    // a missed event (hidden tab, toggled animations) can never leave a
-    // visible wash stuck on the row.
-    let gone = false;
-    const remove = () => {
-      if (gone) return;
-      gone = true;
-      ripple.remove();
-    };
-    ripple.addEventListener("animationend", remove);
-    setTimeout(remove, 700);
-  });
-}
-
-export function attachFluentRipple(element) {
-  if (!element) return;
-  element.addEventListener("mousedown", (e) => {
-    if (e.button !== undefined && e.button !== 0) return;
-    const reduceMotion =
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
-      document.documentElement.classList.contains("no-animations");
-    if (reduceMotion) return;
-    const rect = element.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const dx = Math.max(x, rect.width - x);
-    const dy = Math.max(y, rect.height - y);
-    const size = Math.ceil(Math.hypot(dx, dy) * 2);
-
-    const ripple = document.createElement("span");
-    ripple.className = "fluent-ripple";
-    ripple.style.width = `${size}px`;
-    ripple.style.height = `${size}px`;
-    ripple.style.left = `${x}px`;
-    ripple.style.top = `${y}px`;
-
-    element.appendChild(ripple);
-    let gone = false;
-    const remove = () => {
-      if (gone) return;
-      gone = true;
-      ripple.remove();
-    };
-    ripple.addEventListener("animationend", remove);
-    setTimeout(remove, 2100);
-  });
-}
+// Ripple + queue-morph animation lives in anim.js (re-exported below).
 
 // Collapsed-rail hover labels: an instantaneous Bootstrap tooltip (with
 // arrow) showing the tool title, removed the instant the pointer leaves.
@@ -557,7 +501,7 @@ function showCollapsedTooltip(btn) {
   } catch (_) {
     try {
       inst.dispose();
-    } catch (_) {}
+    } catch (caughtErr) { reportError("js/navigation.js:showCollapsedTooltip", caughtErr); }
     if (activeCollapsedTipBtn === btn) activeCollapsedTipBtn = null;
   }
 }
@@ -580,7 +524,7 @@ function hideCollapsedTooltip(btn) {
   lastTipHideAt = Date.now();
   try {
     inst.dispose();
-  } catch (_) {}
+  } catch (caughtErr) { reportError("js/navigation.js:hideCollapsedTooltip", caughtErr); }
 }
 
 function attachCollapsedTooltip(btn) {
@@ -592,250 +536,7 @@ function attachCollapsedTooltip(btn) {
   btn.addEventListener("click", () => hideCollapsedTooltip(btn));
 }
 
-// Smoothly morph a queue container across a re-render (empty drop card <->
-// populated list) instead of snapping, using compositor-only properties
-// (opacity, clip-path, transform) — never height/width, so no per-frame
-// page reflow and no stutter under the frosted overlays.
-// The old content fades out, swaps mid-flight, then the new content blooms
-// Real box morph: crossfades between start box and end box while interpolating
-// their size (width, height), position (x, y), and corner radius.
-// Same-state updates (row add/remove, status flips) render instantly.
-// Usage: animateQueueHeight(listEl, () => { ...existing render body... }).
-export function animateQueueHeight(container, renderFn) {
-  if (typeof renderFn !== "function") return;
-  if (!container) {
-    renderFn();
-    return;
-  }
-  // Snap-finish any in-flight morph so rapid updates never stack.
-  if (container._qhCleanup) {
-    const fin = container._qhCleanup;
-    container._qhCleanup = null;
-    fin();
-  }
-
-  const reduceMotion =
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ||
-    document.documentElement.classList.contains("no-animations");
-  if (reduceMotion || !container.offsetHeight) {
-    renderFn();
-    return;
-  }
-
-  const isEmptyCard = () => !!container.querySelector('[id$="-empty-msg"]');
-  const wasEmpty = isEmptyCard();
-
-  // Snapshot the starting visual box before renderFn runs
-  const startChild = container.firstElementChild;
-  const startTarget = startChild || container;
-  const startRect = startTarget.getBoundingClientRect();
-  const startStyle = window.getComputedStyle(startTarget);
-  const startRadius = startStyle.borderRadius || "6px";
-  const startW = startRect.width;
-  const startH = startRect.height;
-  const startLeft = startRect.left;
-  const startTop = startRect.top;
-
-  let cloneA = null;
-  if (startChild) {
-    cloneA = startChild.cloneNode(true);
-    cloneA.removeAttribute("id");
-    cloneA.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
-    cloneA.querySelectorAll(".audio-queue-drag-overlay").forEach((el) => el.remove());
-    if (startChild.scrollTop) {
-      cloneA.scrollTop = startChild.scrollTop;
-    }
-  }
-
-  // Execute the synchronous DOM render
-  renderFn();
-
-  const stillEmpty = isEmptyCard();
-  if (wasEmpty === stillEmpty || !cloneA) {
-    // Same-state refresh: render plainly, no box morph
-    return;
-  }
-
-  const endChild = container.firstElementChild;
-  if (!endChild) return;
-
-  const endRect = endChild.getBoundingClientRect();
-  const endStyle = window.getComputedStyle(endChild);
-  const endRadius = endStyle.borderRadius || "6px";
-  const endW = endRect.width;
-  const endH = endRect.height;
-  const endLeft = endRect.left;
-  const endTop = endRect.top;
-
-  if (startW <= 0 || startH <= 0 || endW <= 0 || endH <= 0) {
-    return;
-  }
-
-  const deltaX = startLeft - endLeft;
-  const deltaY = startTop - endTop;
-
-  // Retrieve motion tokens with safe fallbacks
-  const computedRoot = window.getComputedStyle(document.documentElement);
-  const durationStr = computedRoot.getPropertyValue("--duration-medium").trim();
-  const duration = durationStr.endsWith("ms")
-    ? parseFloat(durationStr)
-    : (durationStr.endsWith("s") ? parseFloat(durationStr) * 1000 : 350);
-  const easing =
-    computedRoot.getPropertyValue("--ease-smooth-out").trim() ||
-    "cubic-bezier(0.22, 1, 0.36, 1)";
-
-  // Morph shell wrapper handles bounding box size, position, radius and clipping
-  const morphShell = document.createElement("div");
-  morphShell.className = "queue-box-morph-shell";
-  morphShell.style.position = "relative";
-  morphShell.style.boxSizing = "border-box";
-  morphShell.style.overflow = "hidden";
-  morphShell.style.pointerEvents = "none";
-  morphShell.style.width = `${startW}px`;
-  morphShell.style.height = `${startH}px`;
-  morphShell.style.borderRadius = startRadius;
-  morphShell.style.transformOrigin = "top left";
-  morphShell.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-  morphShell.style.willChange = "width, height, transform, border-radius";
-  morphShell.style.backgroundColor =
-    endStyle.backgroundColor || startStyle.backgroundColor || "var(--bs-tertiary-bg)";
-
-  // Lock container height to interpolate smoothly so adjacent elements glide
-  container.style.position = "relative";
-  container.style.overflow = "hidden";
-  container.style.height = `${startH}px`;
-  container.style.willChange = "height";
-
-  // Configure start box clone (Layer A)
-  cloneA.style.position = "absolute";
-  cloneA.style.top = "0";
-  cloneA.style.left = "0";
-  cloneA.style.width = "100%";
-  cloneA.style.height = "100%";
-  cloneA.style.margin = "0";
-  cloneA.style.maxHeight = "none";
-  cloneA.style.overflow = "hidden";
-  cloneA.style.boxSizing = "border-box";
-  cloneA.style.pointerEvents = "none";
-  cloneA.style.willChange = "opacity";
-  cloneA.style.zIndex = "1";
-  cloneA.style.borderRadius = startRadius;
-
-  // Configure end box element (Layer B)
-  endChild.style.position = "absolute";
-  endChild.style.top = "0";
-  endChild.style.left = "0";
-  endChild.style.width = "100%";
-  endChild.style.height = "100%";
-  endChild.style.margin = "0";
-  endChild.style.maxHeight = "none";
-  endChild.style.overflow = "hidden";
-  endChild.style.boxSizing = "border-box";
-  endChild.style.pointerEvents = "none";
-  endChild.style.willChange = "opacity";
-  endChild.style.zIndex = "2";
-  endChild.style.opacity = "0";
-  endChild.style.borderRadius = endRadius;
-
-  // Assemble inside container
-  container.insertBefore(morphShell, endChild);
-  morphShell.appendChild(cloneA);
-  morphShell.appendChild(endChild);
-
-  let finished = false;
-  let safetyTimer = 0;
-
-  const finish = () => {
-    if (finished) return;
-    finished = true;
-    clearTimeout(safetyTimer);
-
-    try {
-      containerAnim?.cancel?.();
-      shellAnim?.cancel?.();
-      cloneAnim?.cancel?.();
-      endAnim?.cancel?.();
-    } catch (_) {}
-
-    if (morphShell.parentNode === container) {
-      container.insertBefore(endChild, morphShell);
-      morphShell.remove();
-    }
-    cloneA.remove();
-
-    endChild.style.position = "";
-    endChild.style.top = "";
-    endChild.style.left = "";
-    endChild.style.width = "";
-    endChild.style.height = "";
-    endChild.style.margin = "";
-    endChild.style.maxHeight = "";
-    endChild.style.overflow = "";
-    endChild.style.boxSizing = "";
-    endChild.style.pointerEvents = "";
-    endChild.style.willChange = "";
-    endChild.style.zIndex = "";
-    endChild.style.opacity = "";
-    endChild.style.borderRadius = "";
-
-    container.style.position = "";
-    container.style.overflow = "";
-    container.style.height = "";
-    container.style.willChange = "";
-
-    if (container._qhCleanup === finish) {
-      container._qhCleanup = null;
-    }
-  };
-
-  container._qhCleanup = finish;
-
-  // Animate bounding boxes, positions, corner radiuses, and crossfading opacities
-  const containerAnim = container.animate(
-    [
-      { height: `${startH}px` },
-      { height: `${endH}px` }
-    ],
-    { duration, easing, fill: "forwards" }
-  );
-
-  const shellAnim = morphShell.animate(
-    [
-      {
-        width: `${startW}px`,
-        height: `${startH}px`,
-        transform: `translate(${deltaX}px, ${deltaY}px)`,
-        borderRadius: startRadius
-      },
-      {
-        width: `${endW}px`,
-        height: `${endH}px`,
-        transform: "translate(0px, 0px)",
-        borderRadius: endRadius
-      }
-    ],
-    { duration, easing, fill: "forwards" }
-  );
-
-  const cloneAnim = cloneA.animate(
-    [
-      { opacity: 1 },
-      { opacity: 0 }
-    ],
-    { duration, easing, fill: "forwards" }
-  );
-
-  const endAnim = endChild.animate(
-    [
-      { opacity: 0 },
-      { opacity: 1 }
-    ],
-    { duration, easing, fill: "forwards" }
-  );
-
-  shellAnim.onfinish = finish;
-  safetyTimer = setTimeout(finish, duration + 100);
-}
+// Queue-morph animation lives in anim.js (re-exported below).
 
 // Bind edge hover proximity and ripple effects to any sidebar button
 export function setupSidebarButtonEffects(btn, onToolChanged) {
@@ -898,7 +599,7 @@ export function initNavigation(onToolChanged) {
         const isCollapsed = document.body.classList.toggle("sidebar-collapsed");
         try {
           localStorage.setItem(STORAGE_KEYS.SIDEBAR_COLLAPSED, isCollapsed ? "true" : "false");
-        } catch (_) {}
+        } catch (caughtErr) { reportError("js/navigation.js:initNavigation", caughtErr); }
         updateSidebarScrollShadows();
         // Rail geometry is mid-transition: re-measure once it lands.
         setTimeout(resyncSidebarGeometry, 260);
@@ -911,7 +612,7 @@ export function initNavigation(onToolChanged) {
     if (localStorage.getItem(STORAGE_KEYS.SIDEBAR_COLLAPSED) === "true" && !isSmallWidth()) {
       document.body.classList.add("sidebar-collapsed");
     }
-  } catch (_) {}
+  } catch (caughtErr) { reportError("js/navigation.js:initNavigation", caughtErr); }
 
   window.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
@@ -942,7 +643,7 @@ export function initNavigation(onToolChanged) {
     let wheelAccum = 0;
     let wheelIdleTimer = null;
     const stepTool = (dir) => {
-      const curIdx = TOOL_ORDER.indexOf(currentActiveTool);
+      const curIdx = TOOL_ORDER.indexOf(toolState.current);
       if (curIdx === -1) return;
       const nextIdx = (curIdx + dir + TOOL_ORDER.length) % TOOL_ORDER.length;
       switchTool(TOOL_ORDER[nextIdx], onToolChanged, true, true);
@@ -1090,7 +791,7 @@ export function initNavigation(onToolChanged) {
   // Restore saved active tool on startup
   let savedTool = getSavedActiveTool("convert");
   if (savedTool === "pdf") savedTool = "pdf_organize";
-  currentActiveTool = ""; // reset to trigger clean initial load
+  toolState.current = ""; // reset to trigger clean initial load
   switchTool(savedTool, onToolChanged);
   updateSidebarScrollShadows();
   // Reload with a restored collapsed rail: it is still animating from full

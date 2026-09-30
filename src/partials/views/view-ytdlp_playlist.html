@@ -1,0 +1,35 @@
+
+
+            <!-- YT-DLP TOOL 3: Download Playlist -->
+            <div class="tool-view d-none" id="view-ytdlp_playlist">
+              <div class="mb-4">
+                <div class="section-divider-header">Playlist Download Options</div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-playlist-mode">Download Mode</label>
+                    <select class="form-select form-select-sm" id="dl-playlist-mode">
+                      <option value="video" selected>Download Full Video Series (MP4 1080p/Best)</option>
+                      <option value="audio">Extract Audio Tracks / Full Album (MP3 320k)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-playlist-items">Playlist Items Range</label>
+                    <input type="text" class="form-control form-control-sm font-sans" id="dl-playlist-items" placeholder="all or e.g. 1-10, 15, 20-25" value="all" />
+                  </div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-playlist-autonumber" checked />
+                      <label class="form-check-label small" for="dl-playlist-autonumber">Include Playlist Index Numbering in Filenames</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-playlist-ignore-errors" checked />
+                      <label class="form-check-label small" for="dl-playlist-ignore-errors">Ignore Individual Item Errors (Continue Playlist)</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>

@@ -1,0 +1,139 @@
+/* AnEdiKit Design Tokens — semantic layer over Bootstrap
+ * -------------------------------------------------------
+ * Provides project-level colour, spacing, type, and icon tokens.
+ * All components should consume --aek-* tokens, never raw --bs-* or hardcoded px/rem.
+ * Tokens resolve to Bootstrap vars by default, so dark theme stays intact.
+ * Light / high-contrast overrides swap the underlying values without touching components.
+ */
+
+:root {
+  /* Surfaces — map to Bootstrap dark, override per theme */
+  --aek-surface-primary: var(--bs-body-bg);
+  --aek-surface-secondary: var(--bs-secondary-bg);
+  --aek-surface-tertiary: var(--bs-tertiary-bg);
+  --aek-surface-elevated: var(--bs-body-bg);
+  --aek-surface-overlay: rgba(0, 0, 0, 0.45);
+  --aek-border: var(--bs-border-color);
+  --aek-border-strong: var(--bs-border-color-translucent, var(--bs-border-color));
+
+  /* Text */
+  --aek-text-primary: var(--bs-body-color);
+  --aek-text-secondary: var(--bs-secondary-color);
+  --aek-text-muted: var(--bs-tertiary-color, var(--bs-secondary-color));
+  --aek-text-inverse: var(--bs-white, #fff);
+  --aek-text-accent: var(--bs-primary);
+
+  /* Accent / semantic */
+  --aek-accent-primary: var(--bs-primary);
+  --aek-accent-primary-rgb: var(--bs-primary-rgb);
+  --aek-accent-success: var(--bs-success);
+  --aek-accent-danger: var(--bs-danger);
+  --aek-accent-warning: var(--bs-warning);
+
+  /* Canvas for media previews — always dark for contrast */
+  --aek-canvas-bg: #0a0a0a;
+  --aek-canvas-fg: var(--bs-success);
+
+  /* Spacing scale — 4px base, Bootstrap utilities remain for layout but tokens drive rhythm */
+  --aek-space-1: 4px;   /* micro — icon gaps, tight inline */
+  --aek-space-2: 8px;   /* sm — card padding, small gaps */
+  --aek-space-3: 12px;  /* md — section gaps */
+  --aek-space-4: 16px;  /* base — panel padding */
+  --aek-space-5: 20px;
+  --aek-space-6: 24px;  /* lg — major section */
+  --aek-space-8: 32px;  /* xl — page gutters */
+  --aek-space-10: 40px;
+
+  /* Semantic spacing aliases */
+  --aek-gap-xs: var(--aek-space-1);
+  --aek-gap-sm: var(--aek-space-2);
+  --aek-gap-md: var(--aek-space-3);
+  --aek-gap-lg: var(--aek-space-4);
+  --aek-section-gap: var(--aek-space-6);
+
+  /* Type scale — replaces 8 ad-hoc font-sizes */
+  --aek-text-xs: 0.72rem;   /* path labels, debug, badge captions */
+  --aek-text-sm: 0.75rem;   /* metadata, fallback filenames */
+  --aek-text-sm-plus: 0.78rem; /* lightbox details */
+  --aek-text-base: 0.875rem; /* nav-link, body small */
+  --aek-text-md: 1rem;      /* section headers, major labels */
+  --aek-text-lg: 1.15rem;   /* icons baseline */
+  --aek-text-xl: 1.25rem;   /* hero / empty-state icons */
+
+  /* Icon sizing scale — replaces per-context overrides */
+  --aek-icon-xs: 14px;
+  --aek-icon-sm: 16px;
+  --aek-icon-md: 20px;   /* sidebar nav, standard */
+  --aek-icon-lg: 24px;   /* All-Tools grid, section headers */
+  --aek-icon-xl: 32px;   /* empty-state hero */
+
+  /* Radii & specific component tokens */
+  --aek-radius-sm: var(--bs-border-radius-sm);
+  --aek-radius-md: var(--bs-border-radius);
+  --aek-radius-lg: var(--bs-border-radius-lg);
+  --aek-trim-track-height: 68px;
+  --aek-log-height: 140px;
+  --aek-progress-height: 4px;
+  --aek-thumb-size: 36px;
+  --aek-lightbox-meta-max: 80vw;
+  --aek-image-fallback-size: 220px;
+}
+
+/* Light theme overrides — keeps semantic names, swaps underlying palette */
+[data-bs-theme="light"] {
+  --aek-surface-primary: var(--bs-body-bg);
+  --aek-surface-secondary: var(--bs-secondary-bg);
+  --aek-surface-tertiary: var(--bs-tertiary-bg);
+  --aek-surface-overlay: rgba(255, 255, 255, 0.5);
+  --aek-text-primary: var(--bs-body-color);
+  --aek-text-secondary: var(--bs-secondary-color);
+  --aek-canvas-bg: #111111;
+}
+
+/* High-contrast override hook — future: toggle via .aek-high-contrast */
+.aek-high-contrast {
+  --aek-border: var(--bs-body-color);
+  --aek-text-muted: var(--bs-body-color);
+}
+
+/* Utility classes that replace the 50+ inline styles
+ * Use these instead of style="font-size:…; height:…; width:…"
+ */
+.aek-text-xs { font-size: var(--aek-text-xs) !important; }
+.aek-text-sm { font-size: var(--aek-text-sm) !important; }
+.aek-text-sm-plus { font-size: var(--aek-text-sm-plus) !important; }
+.aek-text-base { font-size: var(--aek-text-base) !important; }
+
+.aek-icon-xs { font-size: var(--aek-icon-xs) !important; width: var(--aek-icon-xs); height: var(--aek-icon-xs); }
+.aek-icon-sm { font-size: var(--aek-icon-sm) !important; width: var(--aek-icon-sm); height: var(--aek-icon-sm); }
+.aek-icon-md { font-size: var(--aek-icon-md) !important; width: var(--aek-icon-md); height: var(--aek-icon-md); }
+.aek-icon-lg { font-size: var(--aek-icon-lg) !important; width: var(--aek-icon-lg); height: var(--aek-icon-lg); }
+.aek-icon-xl { font-size: var(--aek-icon-xl) !important; width: var(--aek-icon-xl); height: var(--aek-icon-xl); }
+
+.aek-trim-track { height: var(--aek-trim-track-height) !important; }
+.aek-log-panel { height: var(--aek-log-height) !important; font-size: var(--aek-text-xs) !important; }
+.aek-progress-bar { height: var(--aek-progress-height) !important; }
+.aek-thumb { width: var(--aek-thumb-size) !important; height: var(--aek-thumb-size) !important; }
+.aek-lightbox-meta { max-width: var(--aek-lightbox-meta-max) !important; }
+.aek-image-fallback { max-width: var(--aek-image-fallback-size) !important; }
+
+.aek-gap-14
+/* Param column widths — previously inline min/max-width combos */
+.aek-col-220-320 { min-width: 220px !important; max-width: 320px !important; }
+.aek-col-160-200 { min-width: 160px !important; max-width: 200px !important; }
+.aek-col-240-340 { min-width: 240px !important; max-width: 340px !important; }
+.aek-col-180-220 { min-width: 180px !important; max-width: 220px !important; }
+.aek-col-220-280 { min-width: 220px !important; max-width: 280px !important; }
+
+/* Hero empty-state icon */
+.aek-hero-icon { font-size: 3.5rem !important; opacity: 0.45 !important; }
+
+/* Small value badges next to sliders */
+.aek-val-badge { min-width: 26px !important; }
+
+/* Textarea vertical resize */
+.aek-resize-y { resize: vertical !important; }
+
+/* Range min-width reset */
+.aek-range-reset { min-width: 0 !important; }
+.aek-gap-14 { gap: 14px !important; } /* scroll-cards gap — tokenized but keeps explicit value for now */

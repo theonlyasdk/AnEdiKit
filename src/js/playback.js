@@ -1,8 +1,9 @@
 // Universal Reusable Media Playback & Scrubbing Controller
 // Usable across Trim, Audio Mastering, Video Cutters, Preview Players, etc.
 
-import { formatSecondsToTimestamp } from "./media.js";
+import { formatSecondsToTimestamp } from "./time_format.js";
 
+import { reportError } from "./errors.js";
 export class MediaPlaybackController {
   constructor(options = {}) {
     this.options = options;
@@ -77,7 +78,7 @@ export class MediaPlaybackController {
     if (media && !isNaN(media.duration) && media.duration > 0) {
       try {
         media.currentTime = this.fallbackCurrentTime;
-      } catch (_) {}
+      } catch (caughtErr) { reportError("js/playback.js:<top>", caughtErr); }
     }
 
     this._notifyTimeUpdate(this.fallbackCurrentTime);
@@ -113,7 +114,7 @@ export class MediaPlaybackController {
     if (media) {
       try {
         media.pause();
-      } catch (_) {}
+      } catch (caughtErr) { reportError("js/playback.js:<top>", caughtErr); }
     }
     this.stopSimulatedPlayback();
   }

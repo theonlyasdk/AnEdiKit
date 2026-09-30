@@ -1,4 +1,5 @@
 // AnEdiKit - Playlist Download Handling Submodule
+import { bindKeyed } from "./dom_bind.js";
 
 let playlistVideos = [];
 let isFetchingPlaylist = false;
@@ -43,12 +44,11 @@ function notifyUpdate() {
   }
 }
 
+import { escapeHtml as escapeHtmlLeaf } from "./escape.js";
+
+// Delegated to escape.js (single canonical implementation).
 export function escapeHtml(value) {
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return escapeHtmlLeaf(value);
 }
 
 export function playlistRowHtml(item) {
@@ -202,14 +202,14 @@ export function initPlaylistControls(onUpdated = null) {
 
   const sortSelect = document.getElementById("playlist-sort-select");
   if (sortSelect) {
-    sortSelect.addEventListener("change", () => {
+    bindKeyed(sortSelect, "playlist:sort", "change", () => {
       renderPlaylistEntries();
     });
   }
 
   const toggleAllBtn = document.getElementById("btn-playlist-toggle-all");
   if (toggleAllBtn) {
-    toggleAllBtn.addEventListener("click", () => {
+    bindKeyed(toggleAllBtn, "playlist:toggle-all", "click", () => {
       const allChecked = playlistVideos.length > 0 && playlistVideos.every((v) => v.checked);
       playlistVideos.forEach((v) => (v.checked = !allChecked));
       renderPlaylistEntries();
@@ -221,7 +221,7 @@ export function initPlaylistControls(onUpdated = null) {
   const ytdlpUrlInput = document.getElementById("ytdlp-url-input");
 
   if (btnClearUrl && ytdlpUrlInput) {
-    btnClearUrl.addEventListener("click", () => {
+    bindKeyed(btnClearUrl, "playlist:clear-url", "click", () => {
       ytdlpUrlInput.value = "";
       clearPlaylist();
       notifyUpdate();
@@ -229,7 +229,7 @@ export function initPlaylistControls(onUpdated = null) {
   }
 
   if (ytdlpUrlInput) {
-    ytdlpUrlInput.addEventListener("input", () => {
+    bindKeyed(ytdlpUrlInput, "playlist:url-input", "input", () => {
       const currentUrl = ytdlpUrlInput.value.trim();
       if (currentUrl !== fetchedPlaylistUrl) {
         clearPlaylist();

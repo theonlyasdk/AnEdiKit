@@ -947,7 +947,25 @@ pub fn execute_image_ai(app: tauri::AppHandle, task: String, params: String) -> 
 
     std::thread::spawn(move || {
         let py_script = if task == "pdf_tool" { find_pdf_tools_script(&app) } else { find_image_ai_script(&app) };
-        let py_bin = find_binary("python");
+        let mut py_bin = find_binary("python");
+        let mut py_pre_args: Vec<String> = vec!["-u".to_string()];
+        if py_bin == "python" {
+            let py_fallback = find_binary("py");
+            if py_fallback != "py" {
+                py_bin = py_fallback;
+                py_pre_args = vec!["-3".to_string(), "-u".to_string()];
+            }
+        }
+
+        if py_bin == "python" {
+            finish_job(job_id);
+            let _ = app.emit("ffmpeg-finished", FinishPayload {
+                success: false,
+                exit_code: -1,
+                message: "Python not found in PATH. Install Python 3.10+ from python.org or via `winget install Python.Python.3.11` and restart AnEdiKit.".to_string(),
+            });
+            return;
+        }
 
         if !py_script.is_file() {
             finish_job(job_id);
@@ -964,6 +982,8 @@ pub fn execute_image_ai(app: tauri::AppHandle, task: String, params: String) -> 
         if let Some(parent) = py_script.parent() {
             child_cmd.current_dir(parent);
         }
+        child_cmd.env("PYTHONUNBUFFERED", "1");
+        child_cmd.args(&py_pre_args);
         child_cmd.arg(py_script.to_string_lossy().as_ref());
         if task != "pdf_tool" {
             child_cmd.args(["--task", &task]);
@@ -1006,19 +1026,31 @@ pub fn execute_image_ai(app: tauri::AppHandle, task: String, params: String) -> 
                         return;
                     }
 
-                    // Parse JSON progress lines from python engine: {"type":"progress","pct":...,"msg":"..."}
-                    if line.starts_with('{') && line.contains("\"type\":\"progress\"") {
-                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&line) {
+                    // Parse JSON progress lines from python engine:
+                    // Python emits: ANEDIKIT_PROGRESS:{"type":"progress","pct":..,"msg":..,"speed":..,"eta":..,"bitrate":..}
+                    // Legacy fallback: bare JSON {"type":"progress",...}
+                    let progress_json: Option<&str> = if let Some(idx) = line.find("ANEDIKIT_PROGRESS:") {
+                        Some(line[idx + "ANEDIKIT_PROGRESS:".len()..].trim())
+                    } else if line.starts_with('{') && line.contains("\"type\":\"progress\"") {
+                        Some(line.trim())
+                    } else {
+                        None
+                    };
+                    if let Some(json_str) = progress_json {
+                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_str) {
                             let pct = parsed.get("pct").and_then(|p| p.as_u64()).unwrap_or(0) as u32;
                             let msg = parsed.get("msg").and_then(|m| m.as_str()).unwrap_or("");
+                            let speed = parsed.get("speed").and_then(|s| s.as_str()).unwrap_or("--");
+                            let eta = parsed.get("eta").and_then(|e| e.as_str()).map(|s| s.to_string());
+                            let bitrate = parsed.get("bitrate").and_then(|b| b.as_str()).unwrap_or("--");
                             let _ = app_out.emit(
                                 "ffmpeg-progress",
                                 ProgressPayload {
                                     time: msg.to_string(),
-                                    eta: None,
+                                    eta,
                                     fps: "--".into(),
-                                    speed: "--".into(),
-                                    bitrate: "--".into(),
+                                    speed: speed.to_string(),
+                                    bitrate: bitrate.to_string(),
                                     pct,
                                     playlist_item: None,
                                     playlist_total: None,
@@ -1043,7 +1075,38 @@ pub fn execute_image_ai(app: tauri::AppHandle, task: String, params: String) -> 
                     if cancel_line.load(Ordering::SeqCst) {
                         return;
                     }
-
+                    // Also handle progress on stderr (some envs route Python stdout there)
+                    let progress_json: Option<&str> = if let Some(idx) = line.find("ANEDIKIT_PROGRESS:") {
+                        Some(line[idx + "ANEDIKIT_PROGRESS:".len()..].trim())
+                    } else if line.starts_with('{') && line.contains("\"type\":\"progress\"") {
+                        Some(line.trim())
+                    } else {
+                        None
+                    };
+                    if let Some(json_str) = progress_json {
+                        if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(json_str) {
+                            let pct = parsed.get("pct").and_then(|p| p.as_u64()).unwrap_or(0) as u32;
+                            let msg = parsed.get("msg").and_then(|m| m.as_str()).unwrap_or("");
+                            let speed = parsed.get("speed").and_then(|s| s.as_str()).unwrap_or("--");
+                            let eta = parsed.get("eta").and_then(|e| e.as_str()).map(|s| s.to_string());
+                            let bitrate = parsed.get("bitrate").and_then(|b| b.as_str()).unwrap_or("--");
+                            let _ = app_err.emit(
+                                "ffmpeg-progress",
+                                ProgressPayload {
+                                    time: msg.to_string(),
+                                    eta,
+                                    fps: "--".into(),
+                                    speed: speed.to_string(),
+                                    bitrate: bitrate.to_string(),
+                                    pct,
+                                    playlist_item: None,
+                                    playlist_total: None,
+                                    current_item_title: None,
+                                },
+                            );
+                            return;
+                        }
+                    }
                     let _ = app_err.emit("ffmpeg-log", LogPayload { line });
                 });
             }

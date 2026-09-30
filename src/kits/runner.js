@@ -7,10 +7,11 @@ import {
 } from "./state.js";
 import { renderBlockHTML } from "./blocks.js";
 import { saveKitParams, saveUserKit } from "./storage.js";
-import { selectMediaFile, selectOutputFolder, probeMedia } from "../js/media.js";
+import { selectMediaFile, selectOutputFolder } from "../js/media.js";
+import { probeMedia } from "../js/media/probe.js";
 import { animateCopyConfirm } from "../js/copy_anim.js";
 import { updateKitLivePreview } from "./executor.js";
-import { renderKitIdeWorkspace } from "./workspace.js";
+import { notifyKitsChanged } from "./ops.js";
 
 // TAB 1: RUNNER / INTERACTIVE TOOL VIEW (No Kit Action Card)
 export function renderKitRunnerTab() {
@@ -35,7 +36,8 @@ export function renderKitRunnerTab() {
     if (btnGoto) {
       btnGoto.addEventListener("click", () => {
         setActiveKitTab("builder");
-        renderKitIdeWorkspace();
+        // Decoupled: workspace.js listens (was a direct import cycle).
+        notifyKitsChanged({ refreshIde: true });
       });
     }
     return;

@@ -50,6 +50,7 @@ def format_seconds_hms(sec):
 
 def log_progress(pct, msg="", speed="", eta="", bitrate=""):
     payload = {
+        "type": "progress",
         "pct": int(min(100, max(0, pct))),
         "msg": str(msg),
         "speed": str(speed),
@@ -726,6 +727,12 @@ def cmd_ai_upscaler(args_json):
         cv2.ocl.setUseOpenCL(device.lower() != "cpu")
 
     img = Image.open(input_path)
+    # Fix EXIF orientation: horizontal images with rotation tag (e.g. phone photos)
+    # would otherwise upscale with swapped dimensions and save as vertically rotated.
+    try:
+        img = ImageOps.exif_transpose(img)
+    except Exception:
+        pass
     w, h = img.size
     target_w, target_h = w * scale, h * scale
 

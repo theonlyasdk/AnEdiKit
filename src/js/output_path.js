@@ -1,10 +1,11 @@
 // AnEdiKit - Output Filename and Path Management Submodule
 import { formatSpeedValue } from "./format_sync.js";
-import { getCurrentInputFile } from "./media.js";
-import { getCurrentActiveTool } from "./navigation.js";
+import { getCurrentInputFile } from "./media_store.js";
+import { getCurrentActiveTool } from "./active_tool.js";
 import { loadSettings, getLastOutputDir, saveLastOutputDir } from "./storage.js";
 import { getMergeFiles } from "./merge.js";
 
+import { reportError } from "./errors.js";
 let userHasCustomOutputName = false;
 let cachedPathCharsWidth = 0;
 let cachedPathCharsResult = 50;
@@ -318,7 +319,7 @@ export function updateAutoOutputFilename(force = false) {
       if (mFiles && mFiles.length > 0) {
         effectiveInput = mFiles[0];
       }
-    } catch (_) {}
+    } catch (caughtErr) { reportError("js/output_path.js:updateAutoOutputFilename", caughtErr); }
   }
 
   if (force || !userHasCustomOutputName || !getOutputFilePath().trim()) {

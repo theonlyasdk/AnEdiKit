@@ -1,3 +1,4 @@
+import { reportError } from "./errors.js";
 // Audio Waveform Generation and Rendering Module
 // Reusable across trim, audio mastering, visual previews, and cutters
 
@@ -124,9 +125,9 @@ async function getRemoteFileSize(fetchUrl) {
     } finally {
       try {
         await res.body?.cancel();
-      } catch (_) {}
+      } catch (caughtErr) { reportError("js/waveform.js:getRemoteFileSize", caughtErr); }
     }
-  } catch (_) {}
+  } catch (caughtErr) { reportError("js/waveform.js:getRemoteFileSize", caughtErr); }
   return null;
 }
 
@@ -169,7 +170,7 @@ export async function generateWaveformFromSource(urlOrPath, numSamples = 240) {
         waveformCache.set(urlOrPath, peaks);
         return peaks;
       }
-    } catch (_) {}
+    } catch (caughtErr) { reportError("js/waveform.js:generateWaveformFromSource", caughtErr); }
 
     const response = await fetch(fetchUrl);
     if (!response.ok) throw new Error(`HTTP fetch error ${response.status}`);
@@ -180,7 +181,7 @@ export async function generateWaveformFromSource(urlOrPath, numSamples = 240) {
     if (Number.isFinite(total) && total > INLINE_DECODE_LIMIT_BYTES) {
       try {
         await response.body?.cancel();
-      } catch (_) {}
+      } catch (caughtErr) { reportError("js/waveform.js:generateWaveformFromSource", caughtErr); }
       const peaks = await getLargeFilePeaks(urlOrPath, numSamples);
       waveformCache.set(urlOrPath, peaks);
       return peaks;

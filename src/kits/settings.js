@@ -9,69 +9,9 @@ import {
   getSavedKitParams,
   saveKitParams,
 } from "./storage.js";
-import { getIonicIconName, renderUserKitsSidebar } from "./sidebar.js";
-import { selectAndOpenKit, renderKitIdeWorkspace } from "./workspace.js";
+import { getIonicIconName } from "./icons.js";
+import { notifyKitsChanged } from "./ops.js";
 import { showCustomKitAlert, showCustomKitConfirm } from "./modals.js";
-
-// Export kit configuration as downloadable JSON file
-export function exportKitAsJSON(kit) {
-  if (!kit) return;
-  const jsonStr = JSON.stringify(kit, null, 2);
-  const blob = new Blob([jsonStr], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${kit.id || "kit"}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// Duplicate existing kit by ID
-export function duplicateKitById(kitId) {
-  const kit = getUserKitById(kitId);
-  if (!kit) return;
-
-  const newId = `${kit.id}_copy_${Date.now().toString().slice(-4)}`;
-  const duplicated = {
-    ...JSON.parse(JSON.stringify(kit)),
-    id: newId,
-    name: `${kit.name} (Copy)`,
-  };
-
-  saveUserKit(duplicated);
-  renderUserKitsSidebar();
-  selectAndOpenKit(newId);
-}
-
-// Delete existing kit by ID with a Bootstrap confirmation dialog. The dialog
-// owns the deletion so its confirm button can show an in-progress state.
-export function deleteKitById(kitId) {
-  const kit = getUserKitById(kitId);
-  if (!kit) return;
-
-  showCustomKitConfirm(`Delete the kit "${kit.name}"? This cannot be undone.`, {
-    title: "Delete Kit",
-    confirmLabel: "Delete",
-    variant: "danger",
-    busyLabel: "Deleting…",
-    onConfirm: () => {
-      deleteUserKit(kitId);
-      renderUserKitsSidebar();
-
-      const remaining = loadUserKits();
-      if (remaining.length > 0) {
-        selectAndOpenKit(remaining[0].id);
-      } else {
-        setActiveKit(null);
-        if (window.switchAppTool) {
-          window.switchAppTool("convert");
-        }
-      }
-    },
-  });
-}
 
 // TAB 4: KIT SETTINGS (Properties, metadata, icon changer, save)
 export function renderKitSettingsTab() {
@@ -170,7 +110,7 @@ export function renderKitSettingsTab() {
   const iconPreview = container.querySelector("#meta-icon-preview");
   if (iconSelect && iconPreview) {
     iconSelect.addEventListener("change", () => {
-      iconPreview.innerHTML = `<ion-icon name="${getIonicIconName(iconSelect.value)}" class="fs-6"></ion-icon>`;
+      iconPreview.innerHTML = `<ion-icon name="${escapeHtml(getIonicIconName(iconSelect.value))}" class="fs-6"></ion-icon>`;
     });
   }
 
@@ -216,7 +156,7 @@ export function renderKitSettingsTab() {
       }
 
       saveUserKit(activeKit);
-      renderUserKitsSidebar();
+      notifyKitsChanged({});
 
       // Update top header title, description and tooltips immediately
       const titleEl = document.getElementById("current-tool-title");
@@ -239,9 +179,9 @@ export function renderKitSettingsTab() {
         if (window.switchAppTool) {
           window.switchAppTool(`kit_${newId}`);
         }
-        selectAndOpenKit(newId, false, "settings");
+        notifyKitsChanged({ openKitId: newId, switchTool: false, tab: "settings" });
       } else {
-        renderKitIdeWorkspace();
+        notifyKitsChanged({ refreshIde: true });
       }
     });
   }

@@ -1,0 +1,44 @@
+
+
+            <!-- YT-DLP TOOL 2: Download Audio -->
+            <div class="tool-view d-none" id="view-ytdlp_audio">
+              <div class="mb-4">
+                <div class="section-divider-header">Audio Extraction & Music Settings</div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-audio-fmt">Audio Format</label>
+                    <select class="form-select form-select-sm" id="dl-audio-fmt">
+                      <option value="mp3" selected>MP3 (.mp3 - Universal)</option>
+                      <option value="m4a">M4A (.m4a - High Efficiency AAC)</option>
+                      <option value="flac">FLAC (.flac - Lossless Studio Audio)</option>
+                      <option value="wav">WAV (.wav - Uncompressed PCM)</option>
+                      <option value="opus">OPUS (.opus - Modern Ultra Low Latency)</option>
+                      <option value="ogg">OGG (.ogg - Vorbis)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-audio-quality">Audio Bitrate / Quality</label>
+                    <select class="form-select form-select-sm" id="dl-audio-quality">
+                      <option value="0" selected>320 kbps / Best (Quality 0)</option>
+                      <option value="2">256 kbps / High (Quality 2)</option>
+                      <option value="4">192 kbps / Standard (Quality 4)</option>
+                      <option value="6">128 kbps / Compact (Quality 6)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-audio-embed-thumb" checked />
+                      <label class="form-check-label small" for="dl-audio-embed-thumb">Embed Album Art / Cover Thumbnail</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-audio-embed-meta" checked />
+                      <label class="form-check-label small" for="dl-audio-embed-meta">Embed ID3 Tags, Artist, and Track Info</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>

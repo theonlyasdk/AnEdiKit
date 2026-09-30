@@ -1,0 +1,133 @@
+<div class="tool-view" id="view-convert">
+              <div class="mb-4">
+                <div class="section-divider-header">Conversion Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="cvt-container">Output Format</label>
+                    <select class="form-select form-select-sm" id="cvt-container">
+                      <optgroup label="Common Video Formats">
+                        <option value="mp4" selected>MP4 (.mp4)</option>
+                        <option value="mkv">MKV (.mkv)</option>
+                        <option value="webm">WebM (.webm)</option>
+                        <option value="mov">QuickTime MOV (.mov)</option>
+                        <option value="avi">AVI (.avi)</option>
+                        <option value="flv">Flash Video (.flv)</option>
+                        <option value="ts">MPEG-TS (.ts)</option>
+                        <option value="wmv">Windows Media (.wmv)</option>
+                      </optgroup>
+                      <optgroup label="Extended & Animation Formats">
+                        <option value="gif">Animated GIF (.gif)</option>
+                        <option value="webp">Animated WebP (.webp)</option>
+                        <option value="m4v">Apple M4V (.m4v)</option>
+                        <option value="3gp">3GPP Mobile (.3gp)</option>
+                        <option value="mpg">MPEG-1/2 (.mpg)</option>
+                        <option value="vob">DVD Video (.vob)</option>
+                        <option value="ogv">Ogg Video (.ogv)</option>
+                      </optgroup>
+                    </select>
+                  </div>
+
+                  <!-- Standard Video Options -->
+                  <div class="col-md-4 ui-zoom-in" id="cvt-vcodec-wrapper">
+                    <label class="form-label small fw-medium" for="cvt-vcodec">Video Codec</label>
+                    <select class="form-select form-select-sm" id="cvt-vcodec">
+                      <option value="libx264" selected>H.264 (libx264 - Standard)</option>
+                      <option value="libx265">H.265 / HEVC (libx265)</option>
+                      <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
+                      <option value="libsvtav1">AV1 (libsvtav1)</option>
+                      <option value="copy">Stream Copy (Lossless)</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4 ui-zoom-in" id="cvt-acodec-wrapper">
+                    <label class="form-label small fw-medium" for="cvt-acodec">Audio Codec</label>
+                    <select class="form-select form-select-sm" id="cvt-acodec">
+                      <option value="aac" selected>AAC (Standard)</option>
+                      <option value="mp3">MP3</option>
+                      <option value="opus">Opus</option>
+                      <option value="flac">FLAC (Lossless)</option>
+                      <option value="copy">Stream Copy (Keep Original)</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4 ui-zoom-in" id="cvt-crf-wrapper">
+                    <label class="form-label small fw-medium" for="cvt-crf">Quality (CRF)</label>
+                    <select class="form-select form-select-sm" id="cvt-crf">
+                      <option value="18">High Quality (CRF 18)</option>
+                      <option value="23" selected>Balanced (CRF 23)</option>
+                      <option value="28">Low Size (CRF 28)</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4 ui-zoom-in" id="cvt-preset-wrapper">
+                    <label class="form-label small fw-medium" for="cvt-preset">Encoding Speed</label>
+                    <select class="form-select form-select-sm" id="cvt-preset">
+                      <option value="ultrafast">Ultrafast</option>
+                      <option value="veryfast">Very Fast</option>
+                      <option value="fast">Fast</option>
+                      <option value="medium" selected>Medium (Standard)</option>
+                      <option value="slow">Slow (Better compression)</option>
+                    </select>
+                  </div>
+
+                  <!-- GIF-Specific Options (When format is GIF) -->
+                  <div class="col-md-4 d-none ui-zoom-in" id="cvt-gif-fps-wrapper">
+                    <label class="form-label small fw-medium" for="cvt-gif-fps">Frame Rate (FPS)</label>
+                    <select class="form-select form-select-sm" id="cvt-gif-fps">
+                      <option value="10">10 FPS</option>
+                      <option value="15" selected>15 FPS (Standard)</option>
+                      <option value="20">20 FPS</option>
+                      <option value="24">24 FPS (Smooth)</option>
+                      <option value="30">30 FPS (High Motion)</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4 d-none ui-zoom-in" id="cvt-gif-quality-wrapper">
+                    <label class="form-label small fw-medium" for="cvt-gif-quality">Palette / Dither</label>
+                    <select class="form-select form-select-sm" id="cvt-gif-quality">
+                      <option value="palettegen" selected>High Quality (PaletteGen + Dither)</option>
+                      <option value="basic">Fast (Standard 256 Colors)</option>
+                    </select>
+                  </div>
+
+                  <!-- WebP-Specific Options (When format is WebP) -->
+                  <div class="col-md-4 d-none ui-zoom-in" id="cvt-webp-fps-wrapper">
+                    <label class="form-label small fw-medium" for="cvt-webp-fps">Frame Rate (FPS)</label>
+                    <select class="form-select form-select-sm" id="cvt-webp-fps">
+                      <option value="15">15 FPS</option>
+                      <option value="24" selected>24 FPS (Smooth)</option>
+                      <option value="30">30 FPS</option>
+                      <option value="60">60 FPS (Source Rate)</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4 d-none ui-zoom-in" id="cvt-webp-quality-wrapper">
+                    <label class="form-label small fw-medium" for="cvt-webp-quality">WebP Quality</label>
+                    <select class="form-select form-select-sm" id="cvt-webp-quality">
+                      <option value="75" selected>High Quality (Q 75)</option>
+                      <option value="90">Extreme Quality (Q 90)</option>
+                      <option value="50">Compact (Q 50)</option>
+                      <option value="lossless">Lossless</option>
+                    </select>
+                  </div>
+
+                  <!-- Resolution Scale -->
+                  <div class="col-md-4" id="cvt-scale-wrapper">
+                    <label class="form-label small fw-medium" for="cvt-scale">Resolution Scale</label>
+                    <select class="form-select form-select-sm" id="cvt-scale">
+                      <option value="original" selected>Original</option>
+                      <option value="1920:1080">1080p (1920x1080)</option>
+                      <option value="1280:720">720p (1280x720)</option>
+                      <option value="854:480">480p (854x480)</option>
+                      <option value="640:360">360p (640x360)</option>
+                      <option value="480:270">270p (Compact)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="cvt-estimate-box">
+                  <div>Target: <strong class="text-body" id="cvt-est-target">MP4 (H.264 / AAC)</strong> &bull; Est. Video Bitrate: <strong class="text-body" id="cvt-est-vbitrate">~2,500 kbps</strong> &bull; Est. Size: <strong class="text-body" id="cvt-est-size">~42.5 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from media duration</div>
+                </div>
+              </div>
+            </div>

@@ -1,0 +1,98 @@
+
+
+            <!-- Execution Footer Panel (Command Preview & Conditional Execution Status/Logs) -->
+            <div id="execution-footer-panel">
+              <!-- Command Preview -->
+              <div class="mb-4" id="command-preview-card">
+                <div class="section-divider-header">Command Preview</div>
+                <div class="input-group">
+                  <div class="aek-text-xs form-control small user-select-all text-body bg-body font-monospace overflow-x-auto d-flex align-items-center aek-legacy-c50600" id="cmd-preview">ffmpeg -i ...</div>
+                  <button class="btn btn-outline-secondary" type="button" id="btn-copy-cmd" title="Copy command string">
+                    <ion-icon name="copy-outline"></ion-icon>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Playlist Entries Selection Panel (Shown for Playlist & Batch Downloader) -->
+              <div class="mb-4 d-none ui-zoom-in" id="playlist-entries-panel">
+                <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                  <div class="section-divider-header flex-grow-1 mb-0 me-3">
+                    Playlist Videos (<span id="playlist-selected-count">0</span> of <span id="playlist-total-count">0</span> selected)
+                  </div>
+                  <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                    <select class="form-select form-select-sm aek-legacy-dc251b" id="playlist-sort-select" title="Sort playlist videos">
+                      <option value="original" selected>Original Order</option>
+                      <option value="title_asc">Title (A &rarr; Z)</option>
+                      <option value="title_desc">Title (Z &rarr; A)</option>
+                      <option value="dur_asc">Duration (Shortest first)</option>
+                      <option value="dur_desc">Duration (Longest first)</option>
+                    </select>
+                    <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-playlist-toggle-all" title="Toggle all video selections">Deselect All</button>
+                  </div>
+                </div>
+                <div class="list-group list-group-flush border rounded mb-2 overflow-y-auto aek-legacy-3278a3" id="playlist-entries-list">
+                  <!-- Dynamically populated list items -->
+                </div>
+              </div>
+
+              <!-- Conditional Progress & Execution Logs (Shown only after user clicks Execute) -->
+              <div class="mb-3 d-none ui-zoom-in" id="execution-status-panel">
+                <div class="section-divider-header">Execution Status & Log Output</div>
+                <div class="card border-secondary-subtle overflow-hidden position-relative">
+                  <!-- Copy Log Button at Top Right Corner (faint, no background, visible on hover) -->
+                  <button type="button" class="btn btn-sm text-secondary border-0 bg-transparent position-absolute top-0 end-0 m-1 log-copy-btn aek-legacy-154932" id="btn-copy-logs" title="Copy execution log to clipboard">
+                    <ion-icon name="copy-outline"></ion-icon>
+                  </button>
+
+                  <!-- Log Box at top (full width, no gap from top, user-selectable text) -->
+                  <div class="aek-text-xs bg-black text-success-emphasis p-3 pe-5 font-monospace small overflow-y-auto user-select-text aek-log-panel aek-legacy-745be3 text-secondary" id="log-console">
+                    <div class="log-line">[Ready to process tasks]</div>
+                  </div>
+
+                  <!-- Currently Processing Item Header -->
+                  <div id="current-item-wrapper" class="d-none px-3 py-2 bg-body border-top position-relative overflow-hidden">
+                    <h3 class="h3 fw-semibold mb-0 text-body text-nowrap" id="current-processing-heading">Processing: ...</h3>
+                  </div>
+
+                  <!-- Status text in middle -->
+                  <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-body small text-body-secondary border-top">
+                    <div class="d-flex flex-wrap gap-3 align-items-center">
+                      <span id="stat-item-count" class="d-none fw-medium text-body">1 of 1</span>
+                      <span id="stat-time">Time: 00:00:00</span>
+                      <span id="stat-eta">ETA: --:--:--</span>
+                      <span id="stat-fps">FPS: 0</span>
+                      <span id="stat-speed">Speed: 0x</span>
+                      <span id="stat-bitrate">Bitrate: 0 kbits/s</span>
+                    </div>
+                    <span class="fw-semibold text-body" id="progress-pct">0%</span>
+                  </div>
+                  <!-- Progress Bar at absolute bottom (full width, no gap) -->
+                  <div class="progress rounded-0 d-none aek-progress-bar aek-legacy-f2ace1" id="exec-progress-container">
+                    <div class="progress-bar progress-bar-material-indeterminate aek-legacy-be70d9" id="job-progress-bar" role="progressbar"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </main>
+      </div>
+
+      <!-- Unified Bottom Status & Control Bar Row -->
+      <footer class="d-flex flex-shrink-0 aek-legacy-db37fe" id="bottom-footer-bar">
+        <div class="d-flex align-items-center justify-content-between px-3 flex-grow-1 border-top" id="bottom-control-bar">
+          <div class="d-flex align-items-center">
+            <!-- Replace Source Toggle Switch (Visible in AI modes) -->
+            <div class="form-check form-switch mb-0 d-none d-flex align-items-center gap-2 me-1" id="ai-replace-source-wrapper" title="Overwrite and replace original source files with generated AI results">
+              <input class="form-check-input mt-0 aek-legacy-24b531" type="checkbox" role="switch" id="ai-replace-source" />
+              <label class="aek-text-xs form-check-label small text-body-secondary user-select-none aek-legacy-8102ab" for="ai-replace-source">Replace Source</label>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2" id="bottom-action-buttons">
+            <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-reset" title="Reset current tool settings and inputs">Reset</button>
+            <button class="btn btn-primary btn-sm px-4" type="button" id="btn-execute" title="Select a file to execute operation" disabled>Execute</button>
+          </div>
+        </div>
+      </footer>
+    <!-- User Kits Experimental Warning Dialog -->
+    

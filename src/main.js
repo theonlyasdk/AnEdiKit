@@ -4,17 +4,17 @@ import {
   initDragAndDrop,
   getCurrentInputFile,
   getCurrentMediaInfo,
-  onMediaChange,
   initTrimmerControls,
   initSavedBatchQueue,
-  initSavedImageAiQueue,
   syncMediaDurationToTools,
-  syncVideoPreviewForActiveTool,
-  initImageLightbox,
 } from "./js/media.js";
+import { onMediaChange } from "./js/media/probe.js";
+import { syncVideoPreviewForActiveTool } from "./js/media/metadata_ui.js";
+import { initSavedImageAiQueue, initImageLightbox } from "./js/image_queue.js";
 import { isAudioPath } from "./js/commands.js";
 import { initJobRunner } from "./js/runner.js";
-import { initNavigation, getCurrentActiveTool } from "./js/navigation.js";
+import { initNavigation } from "./js/navigation.js";
+import { getCurrentActiveTool } from "./js/active_tool.js";
 import { initToolsManager, refreshToolsUI } from "./js/tools_manager.js";
 import { initThemeManager } from "./js/theme.js";
 import { initComparisonModal, openComparisonModal } from "./js/comparison.js";
@@ -54,11 +54,13 @@ import {
   populateHardwareInfo,
   renderToolsCacheStatus,
 } from "./js/app_settings.js";
-import { updateExecuteButtonState, updateCommandPreview, bindFormEvents } from "./js/execution.js";
+import { updateExecuteButtonState, updateCommandPreview } from "./js/execution.js";
+import { bindFormEvents } from "./js/execution/bindings.js";
 import { initKeyboardShortcuts } from "./js/shortcuts.js";
 import { initPdfTools, showPdfToolsHome, renderCategory, PDF_ID_TO_CATEGORY } from "./js/pdf_tools.js";
 import { uiState, UIStateManager, createUIStore } from "./js/ui_state.js";
 
+import { reportError } from "./js/errors.js";
 // Re-export public module APIs for backward compatibility
 export {
   initKeyboardShortcuts,
@@ -120,7 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const ytdlpOutInput = document.getElementById("ytdlp-output-dir");
   if (ytdlpOutInput) {
-    ytdlpOutInput.value = getLastYtDlpOutDir() || getLastOutputDir() || appSettings.outputDir || "C:\\Users\\User\\Downloads";
+    ytdlpOutInput.value = getLastYtDlpOutDir() || getLastOutputDir() || appSettings.outputDir;
   }
 
   initYtDlpFormatEditor();
@@ -157,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (probed && probed === getCurrentInputFile()) {
         updateCommandPreview();
       }
-    } catch (_) {}
+    } catch (caughtErr) { reportError("main.js:armAudioAutoImport", caughtErr); }
   });
 
   async function tryAutoPasteYtDlpUrl() {
@@ -191,7 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
       }
-    } catch (_) {}
+    } catch (caughtErr) { reportError("main.js:armAudioAutoImport", caughtErr); }
   }
 
   window.addEventListener("focus", () => {

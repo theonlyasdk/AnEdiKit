@@ -10,6 +10,7 @@ import { getSavedScriptTheme, saveScriptTheme, saveUserKit } from "./storage.js"
 import { STARTER_TEMPLATES } from "./templates.js";
 import { bindUniversalDropdowns, showCustomKitAlert, showCustomKitConfirm } from "./modals.js";
 
+import { reportError } from "../js/errors.js";
 // 10 Common Monaco Themes configuration and color schemes
 export const MONACO_THEMES = [
   { id: "vs-dark", name: "VS Code Dark" },
@@ -186,9 +187,7 @@ export function registerMonacoThemes() {
     if (t.data) {
       try {
         window.monaco.editor.defineTheme(t.id, t.data);
-      } catch {
-        // Theme already registered
-      }
+      } catch (caughtErr) { reportError("kits/editor.js:registerMonacoThemes", caughtErr); }
     }
   }
 }
@@ -244,7 +243,7 @@ export function deobfuscateScriptCode(code) {
           bytes[i] = raw.charCodeAt(i);
         }
         return new TextDecoder().decode(bytes);
-      } catch (_) {}
+      } catch (caughtErr) { reportError("kits/editor.js:deobfuscateScriptCode", caughtErr); }
     }
   }
 
@@ -258,7 +257,7 @@ export function deobfuscateScriptCode(code) {
         bytes[i] = raw.charCodeAt(i);
       }
       return new TextDecoder().decode(bytes);
-    } catch (_) {}
+    } catch (caughtErr) { reportError("kits/editor.js:deobfuscateScriptCode", caughtErr); }
   }
 
   return null;

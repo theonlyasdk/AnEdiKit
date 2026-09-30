@@ -1,3 +1,4 @@
+import { reportError } from "./errors.js";
 // transitions-polish — copy confirmation animation for icon buttons.
 // The current icon zooms and blurs out (--duration-quick: 150ms, --ease-smooth-out),
 // the checkmark pops in (--duration-fast: 250ms, --ease-bounce), holds, then
@@ -95,14 +96,10 @@ export async function animateCopyConfirm(iconEl, opts = {}) {
 
     // 7. Original icon returns: --duration-fast (250ms) + --ease-smooth-out
     await phase({ o: 0, s: SCALE_NON_RESTING, b: BLUR_PX }, { o: 1, s: 1, b: 0 }, 250, smooth);
-  } catch {
-    // WAAPI aborted mid-flight — fall through to finally restore.
-  } finally {
+  } catch (caughtErr) { reportError("js/copy_anim.js:animateCopyConfirm", caughtErr); } finally {
     try {
       iconEl.getAnimations().forEach((a) => a.cancel());
-    } catch {
-      // Ignore
-    }
+    } catch (caughtErr) { reportError("js/copy_anim.js:animateCopyConfirm", caughtErr); }
     if (iconEl.isConnected) {
       iconEl.setAttribute("name", original);
       iconEl.classList.remove(appliedCheckClass, "text-success", "text-white");

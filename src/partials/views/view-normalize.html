@@ -1,0 +1,56 @@
+
+
+            <!-- TOOL: Volume Normalization & Loudness -->
+            <div class="tool-view d-none" id="view-normalize">
+              <div class="mb-4">
+                <div class="section-divider-header">Loudness &amp; Normalization Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="norm-target">Loudness Target Standard</label>
+                    <select class="form-select form-select-sm" id="norm-target">
+                      <option value="spotify_youtube" selected>YouTube &amp; Spotify (-14 LUFS, -1.0 dBTP)</option>
+                      <option value="apple_podcast">Apple Music &amp; Podcasts (-16 LUFS, -1.0 dBTP)</option>
+                      <option value="ebu_r128">Broadcast EBU R128 (-23 LUFS, -1.0 dBTP)</option>
+                      <option value="dynaudnorm">Dynamic Audio Normalizer (Continuous equalization)</option>
+                      <option value="peak">Peak Normalization (Boost to 0 dB)</option>
+                      <option value="custom">Custom Target LUFS</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 d-none ui-zoom-in" id="norm-custom-wrapper">
+                    <label class="form-label small fw-medium" for="norm-custom-lufs">Target Integrated Loudness (LUFS)</label>
+                    <input type="number" class="form-control form-control-sm font-sans" id="norm-custom-lufs" value="-14" min="-30" max="-6" step="1" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="norm-tp">Maximum True Peak (dBTP)</label>
+                    <select class="form-select form-select-sm" id="norm-tp">
+                      <option value="-1.0" selected>-1.0 dBTP (Streaming Standard)</option>
+                      <option value="-1.5">-1.5 dBTP (Broadcast Safe)</option>
+                      <option value="-2.0">-2.0 dBTP</option>
+                      <option value="0.0">0.0 dBTP (Maximum Headroom)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="norm-video-mode">Video Stream</label>
+                    <select class="form-select form-select-sm" id="norm-video-mode">
+                      <option value="copy" selected>Stream Copy (Lossless, ultra-fast)</option>
+                      <option value="strip">Audio Only (Extract normalized audio)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="norm-acodec">Audio Codec</label>
+                    <select class="form-select form-select-sm" id="norm-acodec">
+                      <option value="aac" selected>AAC (High Quality)</option>
+                      <option value="libmp3lame">MP3 (320 kbps)</option>
+                      <option value="libopus">OPUS (Ultra High Fidelity)</option>
+                      <option value="flac">FLAC (Lossless)</option>
+                      <option value="pcm_s16le">WAV (Uncompressed PCM)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="norm-estimate-box">
+                  <div>Standard: <strong class="text-body" id="norm-est-target">-14 LUFS (YouTube/Spotify)</strong> &bull; Video: <strong class="text-body" id="norm-est-video">Stream Copy</strong> &bull; Est. Size: <strong class="text-body" id="norm-est-size">~42.5 MB</strong></div>
+                  <div class="text-body-secondary small">EBU R128 integrated loudness filter</div>
+                </div>
+              </div>
+            </div>

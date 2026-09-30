@@ -1,0 +1,52 @@
+
+
+            <!-- TOOL: Aspect Ratio & Crop Framing -->
+            <div class="tool-view d-none" id="view-aspect_crop">
+              <div class="mb-4">
+                <div class="section-divider-header">Aspect Ratio &amp; Crop Framing Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="crop-ratio">Target Aspect Ratio</label>
+                    <select class="form-select form-select-sm" id="crop-ratio">
+                      <option value="9:16" selected>9:16 Vertical (TikTok, Reels, Shorts)</option>
+                      <option value="1:1">1:1 Square (Instagram Posts)</option>
+                      <option value="4:5">4:5 Portrait (Instagram Feeds)</option>
+                      <option value="16:9">16:9 Landscape (YouTube, TV)</option>
+                      <option value="21:9">21:9 Ultrawide (Cinematic)</option>
+                      <option value="4:3">4:3 Classic TV</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="crop-mode">Framing &amp; Background Mode</label>
+                    <select class="form-select form-select-sm" id="crop-mode">
+                      <option value="center_crop" selected>Center Crop &amp; Fill (Zoom to fill, no black bars)</option>
+                      <option value="pad_blur">Blurred Video Background (Keep full video + blur bars)</option>
+                      <option value="pad_black">Letterbox / Pillarbox (Black borders)</option>
+                      <option value="fit_scale">Stretch to Fit</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="crop-crf">Output Quality (CRF)</label>
+                    <select class="form-select form-select-sm" id="crop-crf">
+                      <option value="18">CRF 18 (High Quality Studio)</option>
+                      <option value="23" selected>CRF 23 (Balanced Standard)</option>
+                      <option value="28">CRF 28 (Small File Size)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="crop-container">Target Format</label>
+                    <select class="form-select form-select-sm" id="crop-container">
+                      <option value="mp4" selected>MP4 (.mp4)</option>
+                      <option value="mkv">MKV (.mkv)</option>
+                      <option value="mov">MOV (.mov)</option>
+                      <option value="webm">WebM (.webm)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="crop-estimate-box">
+                  <div>Aspect Ratio: <strong class="text-body" id="crop-est-ratio">9:16 (Vertical)</strong> &bull; Mode: <strong class="text-body" id="crop-est-mode">Center Crop</strong> &bull; Est. Size: <strong class="text-body" id="crop-est-size">~38.5 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from resolution &amp; CRF</div>
+                </div>
+              </div>
+            </div>

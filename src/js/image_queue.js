@@ -5,11 +5,14 @@ import {
   saveLastImageAiOutDir,
   saveLastOutputDir,
 } from "./storage.js";
-import { selectMediaFiles } from "./media.js";
+import { pickFiles } from "./file_picker.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
-import { attachFluentRipple, animateQueueHeight, getCurrentActiveTool } from "./navigation.js";
+import { attachFluentRipple, animateQueueHeight } from "./anim.js";
+import { getCurrentActiveTool } from "./active_tool.js";
 import { uiState } from "./ui_state.js";
+import { escapeHtml } from "./escape.js";
 
+import { reportError } from "./errors.js";
 export function getDirectoryFromPath(filePath) {
   if (!filePath || typeof filePath !== "string") return "";
   const lastSlash = Math.max(filePath.lastIndexOf("\\"), filePath.lastIndexOf("/"));
@@ -38,7 +41,7 @@ function syncExecuteButtonForImageQueue() {
       imageAiQueue.length === 0
         ? "Add images to the queue to execute operation"
         : `Run image processing queue (${imageAiQueue.length})`;
-  } catch (_) {}
+  } catch (caughtErr) { reportError("js/image_queue.js:syncExecuteButtonForImageQueue", caughtErr); }
 }
 
 let imageAiQueue = loadSavedImageAiQueue();
@@ -88,6 +91,19 @@ export function clearImageAiQueue() {
   imageAiQueue = [];
   saveImageAiQueue(imageAiQueue);
   renderImageAiQueueUI();
+}
+
+// Decoupled from media.js: drag-drop routing dispatches this event
+// (media.js no longer imports this module).
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("anedikit:add-image-files", (e) => {
+    const paths = e?.detail?.paths;
+    if (Array.isArray(paths) && paths.length > 0) {
+      (async () => {
+        try { await addImageFilesToQueue(paths); } catch (caughtErr) { reportError("js/image_queue.js:clearImageAiQueue", caughtErr); }
+      })();
+    }
+  });
 }
 
 export async function addImageFilesToQueue(paths) {
@@ -160,7 +176,7 @@ function renderImageAiQueueUIInner() {
         if (emptyMsg.dataset.picking === "1") return;
         emptyMsg.dataset.picking = "1";
         try {
-          const selected = await selectMediaFiles("image");
+          const selected = await pickFiles("image");
           if (selected && selected.length > 0) {
             await addImageFilesToQueue(selected);
           }
@@ -225,7 +241,7 @@ function renderImageAiQueueUIInner() {
             </span>
             <div class="d-flex align-items-center gap-3 text-truncate flex-grow-1 btn-image-preview-thumb" data-preview-idx="${idx}" style="cursor: pointer;" title="Click to expand preview">
               <div class="image-queue-thumb-wrapper transparency-grid border flex-shrink-0 position-relative${item.status === 'done' ? ' is-done' : ''}">
-                <img class="image-queue-thumb" src="${assetSrc}" alt="${item.name}" onerror="this.onerror=null; this.classList.add('d-none'); this.nextElementSibling?.classList.remove('d-none'); const qItem = this.closest('.image-queue-item'); if (qItem) { qItem.classList.add('image-item-deleted'); const title = qItem.querySelector('.image-queue-item-title'); if (title) { title.classList.remove('text-body'); title.classList.add('text-danger', 'text-decoration-line-through'); } const badge = qItem.querySelector('.image-queue-status-badge'); if (badge) { badge.className = 'badge bg-danger-subtle text-danger image-queue-status-badge'; badge.innerHTML = '<ion-icon name=\\'alert-circle-outline\\' class=\\'me-1\\'></ion-icon>Deleted'; } }" />
+                <img class="image-queue-thumb" src="${assetSrc}" alt="${escapeHtml(item.name)}" onerror="this.onerror=null; this.classList.add('d-none'); this.nextElementSibling?.classList.remove('d-none'); const qItem = this.closest('.image-queue-item'); if (qItem) { qItem.classList.add('image-item-deleted'); const title = qItem.querySelector('.image-queue-item-title'); if (title) { title.classList.remove('text-body'); title.classList.add('text-danger', 'text-decoration-line-through'); } const badge = qItem.querySelector('.image-queue-status-badge'); if (badge) { badge.className = 'badge bg-danger-subtle text-danger image-queue-status-badge'; badge.innerHTML = '<ion-icon name=\\'alert-circle-outline\\' class=\\'me-1\\'></ion-icon>Deleted'; } }" />
                 <div class="image-queue-thumb-fallback d-none position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark">
                   <ion-icon name="alert-circle-outline" class="text-danger fs-5"></ion-icon>
                 </div>
@@ -236,8 +252,8 @@ function renderImageAiQueueUIInner() {
                 </div>
               </div>
               <div class="d-flex flex-column text-truncate">
-                <span class="fw-medium text-body text-truncate image-queue-item-title" style="font-size: 0.88rem;">${item.name}</span>
-                <span class="small text-body-secondary text-truncate" style="font-size: 0.75rem;">${item.path}</span>
+                <span class="fw-medium text-body text-truncate image-queue-item-title" style="font-size: 0.88rem;">${escapeHtml(item.name)}</span>
+                <span class="small text-body-secondary text-truncate" style="font-size: 0.75rem;">${escapeHtml(item.path)}</span>
               </div>
             </div>
           </div>
@@ -265,7 +281,7 @@ function renderImageAiQueueUIInner() {
   const dropPlaceholder = document.getElementById("image-queue-drop-placeholder");
   if (dropPlaceholder) {
     dropPlaceholder.addEventListener("click", async () => {
-      const selected = await selectMediaFiles("image");
+      const selected = await pickFiles("image");
       if (selected && selected.length > 0) {
         await addImageFilesToQueue(selected);
       }

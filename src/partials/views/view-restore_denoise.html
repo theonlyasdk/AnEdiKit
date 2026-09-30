@@ -1,0 +1,34 @@
+
+
+            <!-- IMAGE AI TOOL 4: Restore & Denoise -->
+            <div class="tool-view d-none" id="view-restore_denoise">
+              <div class="mb-4">
+                <div class="section-divider-header">Image Restoration &amp; Enhancement Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="rest-method">Restoration Algorithm</label>
+                    <select class="form-select form-select-sm" id="rest-method">
+                      <option value="nlmeans" selected>Non-Local Means (Best for Low-Light &amp; High ISO Noise)</option>
+                      <option value="bilateral">Bilateral Filter (Fast Edge-Preserving Smoothing)</option>
+                      <option value="deblur_sharpen">Unsharp Mask (Deblur &amp; Edge Sharpening)</option>
+                      <option value="clahe_enhance">Adaptive Histogram Equalization (Shadow &amp; Highlight Recovery)</option>
+                      <option value="guided_filter">Guided Detail Filter (Scratch &amp; Compression Artifact Removal)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="rest-strength">Filter Strength</label>
+                    <select class="form-select form-select-sm" id="rest-strength">
+                      <option value="8">Subtle (Preserve micro-textures)</option>
+                      <option value="15" selected>Standard (Balanced noise reduction)</option>
+                      <option value="25">Strong (Heavy grain / ISO 6400+)</option>
+                      <option value="40">Maximum Smoothing</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="rest-estimate-box">
+                  <div>Algorithm: <strong class="text-body" id="rest-est-method">NLMeans Denoising</strong> &bull; Strength: <strong class="text-body" id="rest-est-strength">Standard (15)</strong></div>
+                  <div class="text-body-secondary small">Local texture-aware restoration</div>
+                </div>
+              </div>
+            </div>

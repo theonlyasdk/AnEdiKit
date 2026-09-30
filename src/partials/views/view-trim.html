@@ -1,0 +1,130 @@
+
+
+            <!-- TOOL 3: Trim & Cut -->
+            <div class="tool-view d-none" id="view-trim">
+              <div class="mb-4">
+                <div class="section-divider-header">Trim</div>
+
+                <!-- Interactive Trimmer Seekbar & Range Control Box -->
+                <div class="p-3 border bg-body-tertiary mb-3 trim-panel-card" id="trim-controls-card">
+                  <!-- Timeline Filmstrip & Visual Range Slider Track -->
+                  <div class="position-relative mt-2 mb-2 border bg-black aek-trim-track aek-legacy-89da9f" id="trim-timeline-track">
+                    <!-- Video Filmstrip Thumbnail Strip (Contiguous frames across duration) -->
+                    <div id="trim-filmstrip-container" class="d-flex w-100 h-100 position-absolute top-0 start-0 z-0 overflow-hidden rounded">
+                      <div class="w-100 h-100 d-flex align-items-center justify-content-center text-secondary small" id="trim-filmstrip-empty">
+                        <span><ion-icon name="film-outline" class="me-2"></ion-icon> Select a media file to preview the timeline</span>
+                      </div>
+                      <div class="w-100 h-100 d-none align-items-center justify-content-center text-warning small px-3 text-center" id="trim-filmstrip-unsupported">
+                        <ion-icon name="warning-outline" class="me-2 text-warning"></ion-icon>
+                        <span>Unsupported media type: Still images cannot be trimmed</span>
+                      </div>
+                    </div>
+
+                    <!-- Audio Waveform Canvas (For audio-only media or mixed) -->
+                    <canvas id="trim-waveform-canvas" class="w-100 position-absolute top-0 start-0 h-100 d-none aek-legacy-979153"></canvas>
+
+                    <!-- Shaded Dimmer Overlays for Unselected Regions (Left of Start, Right of End) -->
+                    <div id="trim-dimmer-left" class="position-absolute top-0 start-0 h-100 bg-black bg-opacity-75 z-1 aek-legacy-fa8f18"></div>
+                    <div id="trim-dimmer-right" class="position-absolute top-0 end-0 h-100 bg-black bg-opacity-75 z-1 aek-legacy-fa8f18"></div>
+
+                    <!-- Active Trim Selection Window with Border & Top/Bottom Highlight -->
+                    <div id="trim-selection-window" class="position-absolute top-0 h-100 border-start border-end border-primary z-2 aek-legacy-f7ccb2">
+                      <div class="position-absolute top-0 start-0 w-100 bg-primary aek-legacy-c1cc55"></div>
+                      <div class="position-absolute bottom-0 start-0 w-100 bg-primary aek-legacy-c1cc55"></div>
+                    </div>
+
+                    <!-- Current Playhead Position Indicator Line (Rendered on top of trim handles) -->
+                    <div id="trim-playhead" class="position-absolute top-0 h-100 aek-legacy-74e162">
+                      <div class="position-absolute top-0 start-50 translate-middle-x bg-danger aek-legacy-3a6eba"></div>
+                    </div>
+
+                    <!-- Dragging Floating Timestamp Tooltips -->
+                    <div id="trim-tooltip-start" class="trim-drag-tooltip position-absolute d-none aek-legacy-36792e">00:00:00.000</div>
+                    <div id="trim-tooltip-end" class="trim-drag-tooltip position-absolute d-none aek-legacy-192a91">00:00:00.000</div>
+                    <div id="trim-tooltip-playhead" class="trim-drag-tooltip position-absolute d-none aek-legacy-36792e">00:00:00.000</div>
+
+                    <!-- Range Sliders for Start & End Dragging -->
+                    <input type="range"class="form-range position-absolute top-0 start-0 w-100 h-100 trim-range-slider aek-legacy-ad59cb" id="trim-slider-start" min="0" max="100" step="0.01" value="0" />
+                    <input type="range"class="form-range position-absolute top-0 start-0 w-100 h-100 trim-range-slider aek-legacy-154932" id="trim-slider-end" min="0" max="100" step="0.01" value="100" />
+                  </div>
+
+                  <!-- Timeline Time Scale / Ticks (00:00:00 -> Duration) -->
+                  <div  class="aek-text-xs d-flex justify-content-between align-items-center text-body-secondary font-monospace small px-1 mt-1 mb-2"
+                    <span id="trim-scale-start">00:00:00.000</span>
+                    <span id="trim-scale-mid">00:00:30.000</span>
+                    <span id="trim-scale-end">00:01:00.000</span>
+                  </div>
+
+                  <!-- Trimmer Quick Control Buttons -->
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
+                    <!-- Playback controls -->
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-secondary" type="button" id="btn-trim-step-back-1" title="Step Back 1 Second">
+                        <ion-icon name="play-back-outline"></ion-icon> -1s
+                      </button>
+                      <button class="btn btn-outline-secondary" type="button" id="btn-trim-step-back-frame" title="Step Back 0.1s">
+                        <ion-icon name="chevron-back-outline"></ion-icon> -0.1s
+                      </button>
+                      <button class="btn btn-outline-primary" type="button" id="btn-trim-play-pause" title="Play / Pause Preview">
+                        <ion-icon name="play" id="trim-play-icon"></ion-icon> Play
+                      </button>
+                      <button class="btn btn-outline-secondary" type="button" id="btn-trim-step-fwd-frame" title="Step Forward 0.1s">
+                        +0.1s <ion-icon name="chevron-forward-outline"></ion-icon>
+                      </button>
+                      <button class="btn btn-outline-secondary" type="button" id="btn-trim-step-fwd-1" title="Step Forward 1 Second">
+                        +1s <ion-icon name="play-forward-outline"></ion-icon>
+                      </button>
+                    </div>
+
+                    <!-- Mark In / Out buttons -->
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-outline-success btn-sm d-flex align-items-center gap-1" type="button" id="btn-trim-mark-start" title="Set Start timestamp to current playhead position [">
+                        <ion-icon name="enter-outline"></ion-icon>
+                        <span>Mark Start [</span>
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" type="button" id="btn-trim-mark-end" title="Set End timestamp to current playhead position ]">
+                        <span>] Mark End</span>
+                        <ion-icon name="exit-outline"></ion-icon>
+                      </button>
+                      <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-trim-preview-segment" title="Play only the selected segment">
+                        <ion-icon name="play-circle-outline"></ion-icon> Preview Clip
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="section-divider-header">Timestamp Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label class="form-label small fw-medium mb-0" for="trim-start">Start Timestamp</label>
+                      <button class="btn btn-link btn-sm text-decoration-none p-0 small text-body-secondary" type="button" id="btn-trim-set-start-0" title="Reset start timestamp to 00:00:00">00:00:00</button>
+                    </div>
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control font-sans" id="trim-start" value="00:00:00.000" placeholder="00:00:00.000" />
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label class="form-label small fw-medium mb-0" for="trim-end">End Timestamp</label>
+                      <button class="btn btn-link btn-sm text-decoration-none p-0 small text-body-secondary" type="button" id="btn-trim-set-end-dur" title="Set end timestamp to full media duration">Set Duration</button>
+                    </div>
+                    <div class="input-group input-group-sm">
+                      <input type="text" class="form-control font-sans" id="trim-end" value="00:01:00.000" placeholder="00:01:00.000" />
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="trim-mode">Cut Mode</label>
+                    <select class="form-select form-select-sm" id="trim-mode">
+                      <option value="copy" selected>Fast Stream Copy (Lossless, cuts at nearest keyframe)</option>
+                      <option value="reencode">Accurate Cut (Frame-perfect re-encode with H.264/AAC)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="trim-estimate-box">
+                  <div>Clip Duration: <strong class="text-body" id="trim-est-duration">00:01:00</strong> &bull; Cut Mode: <strong class="text-body" id="trim-est-mode">Stream Copy (Lossless)</strong> &bull; Est. Size: <strong class="text-body" id="trim-est-size">~18.9 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from selected timestamps</div>
+                </div>
+              </div>
+            </div>

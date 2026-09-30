@@ -5,32 +5,9 @@ import { STARTER_TEMPLATES, generateKitId } from "./templates.js";
 import { showCustomKitAlert } from "./modals.js";
 import { setupSidebarButtonEffects, hideActiveCollapsedTooltip } from "../js/navigation.js";
 import { selectAndOpenKit } from "./workspace.js";
-import { exportKitAsJSON, duplicateKitById, deleteKitById } from "./settings.js";
+import { exportKitAsJSON, duplicateKitById, deleteKitById } from "./ops.js";
+import { getIonicIconName } from "./icons.js";
 
-export function getIonicIconName(rawIcon) {
-  if (!rawIcon) return "cube-outline";
-  const map = {
-    "bi-film": "film-outline",
-    "bi-music-note-beamed": "musical-notes-outline",
-    "bi-code-slash": "code-slash-outline",
-    "bi-box-seam": "cube-outline",
-    "bi-sliders": "options-outline",
-    "bi-lightning": "flash-outline",
-    "bi-terminal": "terminal-outline",
-    "bi-gear": "settings-outline",
-    "bi-cpu": "hardware-chip-outline",
-    "bi-camera-video": "videocam-outline",
-    "bi-soundwave": "pulse-outline",
-    "bi-palette": "color-palette-outline",
-    "bi-magic": "sparkles-outline",
-    "bi-scissors": "cut-outline",
-    "bi-file-earmark-code": "code-working-outline",
-  };
-  if (map[rawIcon]) return map[rawIcon];
-  const clean = rawIcon.replace(/^bi-/, "");
-  if (map[clean]) return map[clean];
-  return clean.includes("-") ? clean : `${clean}-outline`;
-}
 
 // Toggle visibility of User Kits section in the sidebar
 export function applyUserKitsVisibility(enabled) {
@@ -288,4 +265,12 @@ export function bindKitWizardEvents() {
       selectAndOpenKit(id);
     });
   }
+}
+
+// Decoupled: ops.js dispatches this after kit CRUD instead of
+// importing this module (was a static cycle).
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("anedikit:kits-changed", () => {
+    try { renderUserKitsSidebar(); } catch (_) {}
+  });
 }

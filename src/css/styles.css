@@ -1,4 +1,10 @@
-/* AnEdiKit - Modular CSS Barrel */
+/* AnEdiKit - Single CSS entry point.
+ * Load order mirrors the former per-file <link> sequence in index.html:
+ * tokens first (variables), then base -> layout -> components, with
+ * drag_reorder last so its affordances win over earlier rules.
+ * kits/kits.css stays a separate <link> (kits subsystem owns it). */
+@import "motion-tokens.css";
+@import "design-tokens.css";
 @import "base.css";
 @import "layout.css";
 @import "animations.css";
@@ -9,3 +15,5 @@
 @import "m3_sliders.css";
 @import "titlebar.css";
 @import "queues.css";
+@import "drag_reorder.css";
+@import "inline-legacy.css";

@@ -1,0 +1,905 @@
+<div class="modal fade" id="user-kits-warning-modal" tabindex="-1" aria-labelledby="userKitsWarningModalLabel" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered aek-legacy-10768a">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-5 fw-light text-body d-flex align-items-center gap-2" id="userKitsWarningModalLabel">
+              <ion-icon name="warning-outline" class="text-warning fs-4 lh-1"></ion-icon>
+              <span>Experimental Feature</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-user-kits-close-x"></button>
+          </div>
+          <div class="modal-body p-3">
+            <p class="text-body small mb-2">
+              User Kits and Custom Modules are an experimental feature.
+            </p>
+            <p class="text-body-secondary small mb-0">
+              Custom block pipelines and script definitions may change or break in future application updates. Custom scripts run directly on your system with local execution permissions.
+            </p>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal" id="btn-user-kits-cancel-warning">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-user-kits-confirm-warning">
+              <span>Enable User Kits</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Required Tools Missing Dialog -->
+    <div class="modal fade" id="missing-tools-modal" tabindex="-1" aria-labelledby="missingToolsModalLabel" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered aek-legacy-10768a">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-5 fw-light text-body d-flex align-items-center gap-2" id="missingToolsModalLabel">
+              <ion-icon name="warning-outline" class="text-warning fs-4 lh-1"></ion-icon>
+              <span>Required Tools Missing</span>
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            <p class="text-body small mb-3">
+              AnEdiKit requires core external tools to process media. One or more required tools are not installed or could not be found on your system:
+            </p>
+            <div id="missing-tools-list" class="settings-group-card mb-3">
+              <!-- Dynamically populated missing tools -->
+            </div>
+            <div class="text-body-secondary small">
+              Please install the missing tools to enable media conversion, downloads, and processing.
+            </div>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Later</button>
+            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1" id="btn-open-manage-tools-from-missing">
+              <ion-icon name="construct-outline"></ion-icon>
+              <span>Manage Tools</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manage Tools Dialog (Center Modal with Smooth Two-Way Zoom) -->
+    <div class="modal fade" id="manage-tools-modal" tabindex="-1" aria-labelledby="manageToolsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="sheet-header border-bottom py-2 px-3 position-relative" id="manage-tools-sheet-header">
+            <div class="manage-sheet-header-bg" aria-hidden="true"></div>
+            <h5 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="manageToolsModalLabel">
+              Manage Tools & Binaries
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            
+            <!-- Update Status Cache Label -->
+            <div class="mb-2 px-1 text-body-secondary small" id="tools-cache-status-container">
+              <span id="tools-cache-status-text">Update status cache: None (0 items cached)</span>
+            </div>
+
+            <!-- Update Error / Status Alert Banner -->
+            <div class="alert alert-danger alert-dismissible fade show py-2 px-3 small d-none" id="tool-update-alert" role="alert">
+              <div class="d-flex align-items-center gap-2">
+                <ion-icon name="alert-circle-outline" class="fs-5 flex-shrink-0 text-danger"></ion-icon>
+                <div class="flex-grow-1" id="tool-update-alert-msg"></div>
+                <button type="button" class="btn-close py-2" id="btn-close-tool-alert" aria-label="Close"></button>
+              </div>
+            </div>
+
+            <!-- Dynamic Tool Rows rendered by tools_manager.js from tools-manifest.json -->
+            <div id="manage-tools-list-container"></div>
+
+            <!-- About Tools Collapsible / Information Box -->
+            <div class="p-2 border rounded bg-body small text-body-secondary mb-0">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="fw-medium text-body">About Installed Binaries</div>
+                <button class="btn btn-link btn-sm p-0 text-decoration-none d-inline-flex align-items-center gap-1" type="button" id="btn-open-bin-folder" title="Open binaries folder in File Explorer">
+                  <ion-icon name="folder-open-outline"></ion-icon> Open Folder
+                </button>
+              </div>
+              <div>Binaries are stored in <a href="#" role="button" class="text-primary text-decoration-underline" id="link-open-bin-folder" title="Open %LOCALAPPDATA%\ASDK\Shared\bin in File Explorer"><code>%LOCALAPPDATA%\ASDK\Shared\bin</code></a> or system PATH. Updating downloads official verified release executables directly from GitHub releases.</div>
+            </div>
+
+          </div>
+          <div class="modal-footer border-top py-2 px-3 justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-check-all-updates">
+                <ion-icon name="refresh-outline"></ion-icon> Check for Updates
+              </button>
+            </div>
+            <div class="text-body-secondary small d-none align-items-center gap-2" id="tool-download-speed-badge">
+              <span class="d-inline-flex align-items-center gap-1">
+                <ion-icon name="speedometer-outline" class="text-primary"></ion-icon>
+                <span id="tool-download-speed-text">-- MB/s</span>
+              </span>
+              <span class="text-body-tertiary" id="tool-download-speed-sep">&bull;</span>
+              <span class="d-inline-flex align-items-center gap-1 text-body-secondary" id="tool-download-eta-container">
+                <ion-icon name="time-outline" class="text-secondary"></ion-icon>
+                <span id="tool-download-eta-text">-- left</span>
+              </span>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm px-3" id="btn-manage-tools-done" data-bs-dismiss="modal">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credits & About Dialog (Minimalist Creative Card with Morphing Keyboard Shortcuts View) -->
+    <div class="modal fade" id="credits-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered aek-legacy-e70246" id="credits-modal-dialog">
+        <div class="modal-content about-dialog-content border-0 shadow-lg p-0 overflow-hidden position-relative" id="about-modal-content">
+          <!-- View 1: About Info -->
+          <div class="about-pane about-pane-active p-4 text-center" id="about-pane-info">
+            <div class="d-flex align-items-center justify-content-end mb-2">
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Close Dialog"></button>
+            </div>
+            <h3 class="fw-light mb-1 text-body">AnEdiKit</h3>
+            <div class="text-body-secondary small mb-3">All-in-One Desktop Media Toolkit</div>
+
+            <!-- View Shortcuts Button -->
+            <div class="mb-3">
+              <button type="button" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 px-3 py-1" id="btn-toggle-shortcuts" title="View Keyboard Shortcuts">
+                <ion-icon name="keypad-outline"></ion-icon>
+                <span>Keyboard Shortcuts</span>
+              </button>
+            </div>
+
+            <div class="mt-4 text-center">
+              <span class="text-body-secondary aek-legacy-3f3985">&copy; 2026 <button type="button" class="btn btn-link btn-sm text-body-secondary text-decoration-none p-0 align-baseline aek-legacy-3f3985" id="btn-open-github" title="Open GitHub Profile in Browser">theonlyasdk</button>. All rights reserved.</span>
+            </div>
+          </div>
+
+          <!-- View 2: Keyboard Shortcuts (Morphed View) -->
+          <div class="about-pane d-none p-4 text-start" id="about-pane-shortcuts">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-link text-body p-0 text-decoration-none d-flex align-items-center" id="btn-back-to-about" title="Back to About">
+                  <ion-icon name="arrow-back-outline" class="fs-5"></ion-icon>
+                </button>
+                <h5 class="fw-medium mb-0 text-body fs-6 lh-1">Keyboard Shortcuts</h5>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" title="Close Dialog"></button>
+            </div>
+
+            <div class="shortcuts-table-wrapper border rounded overflow-hidden bg-body">
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <span class="small text-body">Open media file</span>
+                <kbd class="shortcut-key">Ctrl + O</kbd>
+              </div>
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <span class="small text-body">Execute operation</span>
+                <div class="d-flex gap-1">
+                  <kbd class="shortcut-key">Ctrl + Enter</kbd>
+                  <kbd class="shortcut-key">Ctrl + E</kbd>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <span class="small text-body">Play / Pause preview</span>
+                <kbd class="shortcut-key">Space</kbd>
+              </div>
+              <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <span class="small text-body">Navigate to Settings</span>
+                <kbd class="shortcut-key">Ctrl + ,</kbd>
+              </div>
+              <div class="d-flex justify-content-between align-items-center p-2">
+                <span class="small text-body">Dismiss dialogs & modals</span>
+                <kbd class="shortcut-key">Esc</kbd>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Exit Modal (Shows when closing window while background task is running) -->
+    <div class="modal fade" id="confirm-exit-modal" tabindex="-1" aria-labelledby="confirmExitModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-body border border-danger-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3 bg-danger-subtle text-danger-emphasis">
+            <h5 class="modal-title fs-4 fw-light d-flex align-items-center gap-2" id="confirmExitModalLabel">
+              Task in Progress
+            </h5>
+          </div>
+          <div class="modal-body p-4">
+            <p class="mb-2 text-body">A media processing or download operation is currently active in the background.</p>
+            <p class="mb-0 text-body-secondary small">Exiting will cancel and terminate all running child processes immediately. Are you sure you want to exit?</p>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 justify-content-between">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-cancel-exit" data-bs-dismiss="modal">
+              Continue Task
+            </button>
+            <button type="button" class="btn btn-danger btn-sm px-3" id="btn-confirm-force-exit">
+              Cancel Task & Exit
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme Customizer Modal -->
+    <div class="modal fade" id="theme-customizer-modal" tabindex="-1" aria-labelledby="themeCustomizerModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="themeCustomizerModalLabel">
+              Customize Theme & Colors
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4">
+            <!-- Grouped Settings Container (Palette, Font, & Blur) -->
+            <div class="settings-group-card mb-3">
+              <!-- Preset Palettes -->
+              <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                <div class="me-sm-3 flex-grow-1">
+                  <label class="fw-medium text-body mb-0" for="theme-preset-pick">Preset Color Palettes</label>
+                  <div class="text-body-secondary small">Choose from pre-configured color schemes</div>
+                </div>
+                <div class="flex-shrink-0 aek-legacy-629d0b">
+                  <div class="input-group input-group-sm">
+                    <select class="form-select" id="theme-preset-pick">
+                      <option value="bootstrap_dark" selected>Bootstrap 5 Dark</option>
+                      <option value="catppuccin_mocha">Catppuccin Mocha</option>
+                      <option value="tokyo_night">Tokyo Night</option>
+                      <option value="dracula">Dracula</option>
+                      <option value="nord">Nord</option>
+                      <option value="one_dark">One Dark Pro</option>
+                      <option value="gruvbox_dark">Gruvbox Dark</option>
+                      <option value="rose_pine">Rosé Pine</option>
+                      <option value="solarized_dark">Solarized Dark</option>
+                      <option value="synthwave_84">Synthwave '84</option>
+                      <option value="custom">Custom Theme</option>
+                    </select>
+                    <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-prev" title="Previous Preset">
+                      <ion-icon name="chevron-back-outline"></ion-icon>
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" id="btn-theme-preset-next" title="Next Preset">
+                      <ion-icon name="chevron-forward-outline"></ion-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- UI Font Family -->
+              <div class="settings-row flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+                <div class="me-sm-3 flex-grow-1">
+                  <label class="fw-medium text-body mb-0" for="theme-font-family">UI Font Family</label>
+                  <div class="text-body-secondary small">Custom font saved with your theme file</div>
+                </div>
+                <div class="flex-shrink-0 aek-col-220-320">
+                  <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" id="theme-font-family" placeholder='e.g. "Segoe UI", Inter, Roboto, "Fira Code", system-ui' />
+                    <button class="btn btn-outline-secondary" type="button" id="btn-theme-reset-font" title="Reset font to system default">Default</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Frosted Glass Blur Settings -->
+              <div class="settings-row-content">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <div>
+                    <label class="fw-medium text-body mb-0" for="theme-blur-enable">Frosted Glass Blur</label>
+                    <div class="text-body-secondary small">Enable translucent backdrop blur across top header, brand cell, and bottom status bar</div>
+                  </div>
+                  <div class="form-check form-switch mb-0 flex-shrink-0" title="Toggle frosted glass backdrop blur effect">
+                    <input class="form-check-input mt-0 aek-legacy-24b531" type="checkbox" role="switch" id="theme-blur-enable" checked />
+                  </div>
+                </div>
+                <div id="theme-blur-controls-wrapper" class="row g-3 pt-1">
+                  <div class="col-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label for="theme-blur-radius" class="form-label small text-body-secondary mb-0">Blur Radius</label>
+                      <span id="theme-blur-radius-val" class="small fw-semibold text-body">2px</span>
+                    </div>
+                    <input type="range" class="form-range" id="theme-blur-radius" min="0" max="24" step="1" value="2" />
+                  </div>
+                  <div class="col-6">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label for="theme-blur-saturate" class="form-label small text-body-secondary mb-0">Saturation</label>
+                      <span id="theme-blur-saturate-val" class="small fw-semibold text-body">140%</span>
+                    </div>
+                    <input type="range" class="form-range" id="theme-blur-saturate" min="100" max="250" step="5" value="140" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom Color Table View -->
+            <div class="table-responsive border rounded mb-2 aek-legacy-0f4cf0">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark small sticky-top">
+                  <tr>
+                    <th scope="col" class="aek-legacy-63b005">Color Property</th>
+                    <th scope="col" class="aek-legacy-c7ee80 text-center">Picker</th>
+                    <th scope="col" class="aek-legacy-5172a7">Hex Code</th>
+                  </tr>
+                </thead>
+                <tbody class="small">
+                  <!-- Bootstrap Semantic Colors -->
+                  <tr class="table-secondary">
+                    <td colspan="3" class="fw-semibold py-1 aek-legacy-1f0261">Bootstrap Semantic Palette</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Primary</div>
+                      <div class="aek-text-sm text-body-secondary">Main action buttons, active indicator, links</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-primary" value="#0d6efd" title="Primary" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-primary-hex" value="#0d6efd" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Secondary</div>
+                      <div class="aek-text-sm text-body-secondary">Secondary buttons, browse buttons, muted labels</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-secondary" value="#6c757d" title="Secondary" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-secondary-hex" value="#6c757d" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Success</div>
+                      <div class="aek-text-sm text-body-secondary">Success badges, checkmarks, completed toast</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-success" value="#198754" title="Success" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-success-hex" value="#198754" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Danger</div>
+                      <div class="aek-text-sm text-body-secondary">Cancel buttons, errors, reset actions</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-danger" value="#dc3545" title="Danger" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-danger-hex" value="#dc3545" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Warning</div>
+                      <div class="aek-text-sm text-body-secondary">Update buttons, caution alerts</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-warning" value="#ffc107" title="Warning" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-warning-hex" value="#ffc107" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Info</div>
+                      <div class="aek-text-sm text-body-secondary">Informational badges, tool status readouts</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-info" value="#0dcaf0" title="Info" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-info-hex" value="#0dcaf0" />
+                    </td>
+                  </tr>
+
+                  <!-- Canvas & Layout Surfaces -->
+                  <tr class="table-secondary">
+                    <td colspan="3" class="fw-semibold py-1 aek-legacy-1f0261">Canvas & Surface Layout</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Background Canvas</div>
+                      <div class="aek-text-sm text-body-secondary">Application background and base surface</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-body-bg" value="#121212" title="Background Canvas" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-body-bg-hex" value="#121212" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Sidebar & Cards (Tertiary)</div>
+                      <div class="aek-text-sm text-body-secondary">Left sidebar navigation, cards, and input panels</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-card-bg" value="#1e1e1e" title="Sidebar & Cards" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-card-bg-hex" value="#1e1e1e" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Main Workspace Pane</div>
+                      <div class="aek-text-sm text-body-secondary">Main tool scrollable workspace background</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-pane-bg" value="#181818" title="Main Workspace Pane" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-pane-bg-hex" value="#181818" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Text Color</div>
+                      <div class="aek-text-sm text-body-secondary">Standard typography and form labels</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-text-color" value="#f8f9fa" title="Text Color" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-text-color-hex" value="#f8f9fa" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="fw-medium text-body">Border & Dividers</div>
+                      <div class="aek-text-sm text-body-secondary">Panel outlines, input borders, and dividers</div>
+                    </td>
+                    <td class="text-center">
+                      <input type="color" class="form-control form-control-color mx-auto" id="theme-border-color" value="#343a40" title="Border & Dividers" />
+                    </td>
+                    <td>
+                      <input type="text" class="form-control form-control-sm font-monospace" id="theme-border-color-hex" value="#343a40" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-import-theme-file" title="Load theme from .txt file">
+                <ion-icon name="document-attach-outline"></ion-icon> Import Theme...
+              </button>
+              <button class="btn btn-outline-primary btn-sm" type="button" id="btn-export-theme-file" title="Create and save theme .txt file">
+                <ion-icon name="document-text-outline"></ion-icon> Export Theme...
+              </button>
+              <button class="btn btn-outline-danger btn-sm" type="button" id="btn-reset-theme" title="Reset colors to default">
+                <ion-icon name="reload-outline"></ion-icon> Reset
+              </button>
+              <input type="file" id="theme-file-input" class="d-none" accept=".txt" />
+            </div>
+            <button type="button" class="btn btn-primary btn-sm px-4" data-bs-dismiss="modal">Done</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actionable Notification Toast Container (Top-Right) -->
+    <div class="toast-container position-fixed top-0 end-0 p-3 aek-legacy-217a18" id="notification-toast-container">
+      <div class="toast border shadow-lg bg-body toast-slide-in" role="alert" aria-live="assertive" aria-atomic="true" id="finished-toast" data-bs-autohide="false">
+        <div class="toast-header border-bottom py-2 px-3">
+          <ion-icon name="checkmark-circle-outline" class="text-success me-2 fs-6"></ion-icon>
+          <strong class="me-auto text-body" id="toast-title">Operation Completed</strong>
+          <small class="text-body-secondary" id="toast-timestamp">Just now</small>
+          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body p-3">
+          <h5 class="fw-light mb-1 text-body text-truncate" id="toast-filename">output_converted.mp4</h5>
+          <div class="small text-body-secondary mb-3" id="toast-meta-details">Time taken: -- &bull; Final size: --</div>
+          <div class="row g-2">
+            <div class="col-6">
+              <button class="btn btn-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" id="toast-btn-open-file" type="button" title="Open output file directly">
+                <ion-icon name="play-circle-outline"></ion-icon> Open File
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" id="toast-btn-open-folder" type="button" title="Show and select in folder">
+                <ion-icon name="folder-open-outline"></ion-icon> Open Folder
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- yt-dlp Filename Format Editor Modal -->
+    <div class="modal fade" id="modal-filename-format-editor" tabindex="-1" aria-labelledby="filenameFormatModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <div class="modal-header border-bottom py-2 px-3">
+            <h5 class="modal-title fs-4 fw-light text-body" id="filenameFormatModalLabel">Filename Format Editor</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <!-- Top Live Preview (Full-width, 0 gap from edges) -->
+          <div class="bg-body-tertiary border-bottom px-4 py-3">
+            <div class="fs-5 fw-light text-body mb-1 text-truncate" id="format-preview-filename">Never Gonna Give You Up [dQw4w9WgXcQ].mp4</div>
+            <div class="small font-monospace text-body-secondary text-truncate" id="format-preview-template">%(title)s [%(id)s].%(ext)s</div>
+          </div>
+          <div class="modal-body p-4">
+            <!-- Toolbar / Add Field Controls -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <div class="dropdown">
+                  <button class="btn btn-primary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" id="btn-add-format-field" data-bs-toggle="dropdown" aria-expanded="false">
+                    <ion-icon name="add-outline"></ion-icon> Add Field
+                  </button>
+                  <ul class="dropdown-menu shadow aek-legacy-685329" id="dropdown-format-tokens" aria-labelledby="btn-add-format-field">
+                    <!-- Populated dynamically with tokens -->
+                  </ul>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" type="button" id="btn-add-format-text">
+                  <ion-icon name="add-outline"></ion-icon> Add Text / Separator
+                </button>
+              </div>
+
+              <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" id="btn-format-presets" data-bs-toggle="dropdown" aria-expanded="false">
+                  <ion-icon name="bookmark-outline"></ion-icon> Presets
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow aek-legacy-bb26f1" aria-labelledby="btn-format-presets">
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(title)s [%(id)s].%(ext)s">Never Gonna Give You Up [dQw4w9WgXcQ].mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(title)s.%(ext)s">Never Gonna Give You Up.mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(uploader)s - %(title)s.%(ext)s">Rick Astley - Never Gonna Give You Up.mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(playlist_index)s - %(title)s.%(ext)s">01 - Never Gonna Give You Up.mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(artist)s - %(track)s [%(release_year)s].%(ext)s">Rick Astley - Never Gonna Give You Up [1987].mp3</a></li>
+                  <li><a class="dropdown-item small btn-preset-format" href="#" data-format="%(upload_date)s - %(title)s.%(ext)s">20091025 - Never Gonna Give You Up.mp3</a></li>
+                  <!-- User Custom Presets Section -->
+                  <li id="user-presets-divider" class="d-none"><hr class="dropdown-divider my-1"></li>
+                  <li id="user-presets-container"></li>
+                  <li id="save-preset-divider"><hr class="dropdown-divider my-1"></li>
+                  <li class="px-2 pt-1 pb-0">
+                    <div class="preset-save-wrapper" id="preset-save-wrapper">
+                      <!-- View 1: Save Preset Button -->
+                      <div class="preset-save-slide preset-save-btn-slide d-flex align-items-center">
+                        <button class="dropdown-item small text-body d-flex align-items-center gap-2 py-1 px-2 rounded-1 border-0" type="button" id="btn-show-save-preset">
+                          <ion-icon name="bookmark-outline" class="text-secondary"></ion-icon> Save Current Preset
+                        </button>
+                      </div>
+                      <!-- View 2: Combined Inline Text Box + Confirm Button -->
+                      <div class="preset-save-slide preset-save-form-slide d-flex align-items-center">
+                        <div class="input-group input-group-sm w-100">
+                          <input type="text" class="form-control form-control-sm font-sans" id="input-save-preset-name" placeholder="Preset Name..." autocomplete="off" />
+                          <button class="btn btn-primary btn-sm px-2 d-flex align-items-center justify-content-center" type="button" id="btn-confirm-save-preset" title="Save Preset">
+                            <ion-icon name="checkmark-outline" class="fs-6"></ion-icon>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- List View of Format Fields (Flush without gaps) -->
+            <div class="border rounded bg-body p-0 overflow-y-auto aek-legacy-33c8b7">
+              <div id="format-fields-list" class="d-flex flex-column">
+                <!-- Populated with draggable items -->
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top py-2 px-3 justify-content-between">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-reset-format-default">
+              Reset to Default
+            </button>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                Cancel
+              </button>
+              <button type="button" class="btn btn-primary btn-sm px-3" id="btn-save-format-editor">
+                Save Format
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kit Creation Wizard Modal -->
+    <div class="modal fade" id="modal-create-kit" tabindex="-1" aria-labelledby="createKitModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg">
+          <form id="form-create-kit">
+          <div class="modal-header border-bottom py-2 px-3">
+              <h5 class="modal-title fs-4 fw-light text-body d-flex align-items-center gap-2" id="createKitModalLabel">
+                Create New User Kit
+              </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label small fw-medium text-body" for="kit-wizard-name">Kit Name *</label>
+                  <input type="text" class="form-control small font-sans" id="kit-wizard-name" placeholder="e.g. Fast WebM to MP4 Converter" required />
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-medium text-body" for="kit-wizard-id">Kit ID (Unique Identifier) *</label>
+                  <input type="text" class="form-control small font-monospace" id="kit-wizard-id" value="user.new_kit" placeholder="user.kit_name" required />
+                  <div class="form-text small text-body-secondary">Auto-generated identifier. Use lowercase letters, digits, and underscores.</div>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-medium text-body" for="kit-wizard-version">Kit Version *</label>
+                  <input type="text" class="form-control small font-monospace" id="kit-wizard-version" value="1.0.0" required />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-medium text-body" for="kit-wizard-author">Kit Author *</label>
+                  <input type="text" class="form-control small font-sans" id="kit-wizard-author" value="User" required />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label small fw-medium text-body" for="kit-wizard-license">Kit License</label>
+                  <select class="form-select small" id="kit-wizard-license">
+                    <option value="MIT" selected>MIT License</option>
+                    <option value="Apache-2.0">Apache 2.0</option>
+                    <option value="GPL-3.0">GPL 3.0</option>
+                    <option value="BSD-3-Clause">BSD 3-Clause</option>
+                    <option value="Unlicense">The Unlicense (Public Domain)</option>
+                    <option value="Proprietary">Proprietary / Custom</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium text-body" for="kit-wizard-icon">Kit Icon</label>
+                  <select class="form-select small" id="kit-wizard-icon">
+                    <option value="cube-outline" selected>Cube (Default)</option>
+                    <option value="code-slash-outline">Code Slash (&lt;/&gt;)</option>
+                    <option value="film-outline">Film / Video</option>
+                    <option value="musical-notes-outline">Music / Audio</option>
+                    <option value="options-outline">Sliders / Parameters</option>
+                    <option value="flash-outline">Lightning / Fast</option>
+                    <option value="terminal-outline">Terminal / CLI</option>
+                    <option value="settings-outline">Gear / Engine</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-medium text-body" for="kit-wizard-template">Starter Template</label>
+                  <select class="form-select small" id="kit-wizard-template">
+                    <option value="converter" selected>Video Format Converter (Inputs, Codecs, CRF, Quality)</option>
+                    <option value="audio_filter">Audio Extractor & Normalizer (Audio Inputs, Gain Slider, Bitrate)</option>
+                    <option value="blank">Blank Scriptable Canvas (Empty Blocks + Custom Script)</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-medium text-body" for="kit-wizard-desc">Kit Description (Optional)</label>
+                  <input type="text" class="form-control small font-sans" id="kit-wizard-desc" placeholder="Brief summary of what this kit does..." />
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer border-top py-2 px-3 justify-content-between">
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary btn-sm px-4" id="btn-submit-create-kit">
+                <ion-icon name="add-outline" class="me-1"></ion-icon> Create Kit &amp; Open IDE
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fullscreen Sliding Window Image Comparison Modal -->
+    <div class="image-comp-modal-overlay d-none" id="image-comparison-modal">
+      <!-- Top Control Bar -->
+      <div class="comp-header px-3 d-flex justify-content-between align-items-center flex-shrink-0" data-tauri-drag-region>
+        <div class="d-flex align-items-center gap-3" data-tauri-drag-region>
+          <div data-tauri-drag-region>
+            <h6 class="mb-0 fw-semibold text-body text-truncate" id="comp-modal-title" data-tauri-drag-region>Comparison View</h6>
+            <div class="aek-text-xs small text-body-secondary" id="comp-modal-subtitle">Review enhancement result</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <!-- View Modes -->
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary active" id="btn-comp-mode-split" title="Interactive Sliding Window Comparison">
+              <ion-icon name="grid-outline" class="me-1"></ion-icon> Split Slider
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="btn-comp-mode-side" title="Side-by-Side Comparison">
+              <ion-icon name="apps-outline" class="me-1"></ion-icon> Side-by-Side
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="btn-comp-mode-fade" title="Opacity Crossfade / Onion Skin">
+              <ion-icon name="layers-outline" class="me-1"></ion-icon> Onion Skin
+            </button>
+          </div>
+          <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="btn-comp-toggle-tuning" title="Toggle Grid Parameters Panel">
+            <ion-icon name="options-outline" class="me-1"></ion-icon> Parameters
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-close-x" title="Close comparison"><ion-icon name="close-outline"></ion-icon></button>
+        </div>
+      </div>
+
+      <!-- Main Interactive Comparison Stage Area -->
+      <div class="comp-stage-wrapper transparency-grid flex-grow-1 position-relative" id="comp-stage-container">
+        <!-- Scanning Shimmer Overlay (Active during generation) -->
+        <div class="comp-shimmer-overlay" id="comp-shimmer-sweep"></div>
+
+        <!-- Floating Quick Tuning Drawer for Fake Transparency -->
+        <div class="comp-tuning-drawer p-3 d-none ui-zoom-in" id="comp-tuning-drawer">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="small fw-semibold text-body"><ion-icon name="options-outline" class="me-1 text-primary"></ion-icon> Grid Parameters</span>
+            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 border-0" id="btn-comp-tuning-close" title="Hide tuning panel"><ion-icon name="close-outline"></ion-icon></button>
+          </div>
+          <div class="d-flex flex-column gap-2">
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="small text-body-secondary mb-0" for="comp-fake-tile-size">Tile Size</label>
+                <span class="small font-sans text-body fw-medium" id="comp-fake-tile-size-val">Auto</span>
+              </div>
+              <input type="number" class="form-control form-control-sm font-sans" id="comp-fake-tile-size" value="0" min="0" max="64" title="0 = Auto-detect" />
+            </div>
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="small text-body-secondary mb-0" for="comp-fake-grid-tolerance">Color Tolerance</label>
+                <span class="small font-sans text-body fw-medium" id="comp-fake-grid-tolerance-val">14</span>
+              </div>
+              <input type="range" class="form-range" id="comp-fake-grid-tolerance" min="2" max="30" step="1" value="14" />
+            </div>
+            <div>
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="small text-body-secondary mb-0" for="comp-fake-gap-threshold">Gap Aggressiveness</label>
+                <span class="small font-sans text-body fw-medium" id="comp-fake-gap-threshold-val">15</span>
+              </div>
+              <input type="range" class="form-range" id="comp-fake-gap-threshold" min="5" max="30" step="1" value="15" />
+            </div>
+            <button type="button" class="btn btn-primary btn-sm mt-1 w-100 d-flex align-items-center justify-content-center gap-1" id="btn-comp-reapply">
+              <ion-icon name="refresh-outline"></ion-icon> Re-apply &amp; Update
+            </button>
+          </div>
+        </div>
+        
+        <!-- Mode 1: Split Slider (Sliding Window) -->
+        <div class="comp-split-container w-100 h-100" id="comp-view-split">
+          <div class="position-relative w-100 h-100 comp-zoomable" id="comp-split-wrapper">
+            <!-- Before Layer (Original - Clipped to Left Side of Slider) -->
+            <div class="comp-split-image-layer aek-legacy-d303e2" id="comp-split-before-wrapper">
+              <img id="comp-split-before-img" src="" alt="Original Image" draggable="false" />
+              <div class="badge bg-dark bg-opacity-75 text-white position-absolute start-0 m-3 border comp-badge aek-legacy-a79aae">Before</div>
+            </div>
+            <!-- After Layer (Processed - Clipped to Right Side of Slider) -->
+            <div class="comp-split-image-layer aek-legacy-12c03f" id="comp-split-after-wrapper">
+              <img id="comp-split-after-img" src="" alt="Enhanced Result" draggable="false" />
+              <div class="badge bg-primary text-white position-absolute end-0 m-3 comp-badge aek-legacy-a79aae">After</div>
+            </div>
+            <!-- Sliding Divider Line & Handle -->
+            <div class="comp-split-divider-line aek-legacy-120e88" id="comp-split-divider">
+              <div class="comp-split-divider-handle">
+                <ion-icon name="chevron-back-outline"></ion-icon><ion-icon name="chevron-forward-outline"></ion-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 2: Side-by-Side Dual View -->
+        <div class="d-none w-100 h-100 p-3" id="comp-view-side">
+          <div class="row g-3 w-100 h-100 m-0">
+            <div class="col-6 h-100 position-relative d-flex flex-column align-items-center justify-content-center overflow-hidden transparency-grid">
+              <div class="badge bg-dark bg-opacity-75 text-white position-absolute start-0 m-2 border z-2 comp-badge">Before</div>
+              <div class="w-100 h-100 d-flex align-items-center justify-content-center comp-zoomable">
+                <img id="comp-side-before-img" class="w-100 h-100 object-fit-contain" src="" alt="Original" draggable="false" />
+              </div>
+            </div>
+            <div class="col-6 h-100 position-relative d-flex flex-column align-items-center justify-content-center overflow-hidden transparency-grid">
+              <div class="badge bg-primary text-white position-absolute start-0 m-2 z-2 comp-badge">After</div>
+              <div class="w-100 h-100 d-flex align-items-center justify-content-center comp-zoomable">
+                <img id="comp-side-after-img" class="w-100 h-100 object-fit-contain" src="" alt="Processed" draggable="false" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 3: Onion Skin (Fade Layer) -->
+        <div class="d-none w-100 h-100 position-relative d-flex align-items-center justify-content-center" id="comp-view-fade">
+          <div class="position-relative w-100 h-100 comp-zoomable d-flex align-items-center justify-content-center">
+            <img id="comp-fade-before-img" class="position-absolute max-w-90 max-h-90 object-fit-contain" src="" alt="Original" draggable="false" />
+            <img id="comp-fade-after-img" class="position-absolute max-w-90 max-h-90 object-fit-contain aek-legacy-0dbc0f" src="" alt="Processed" draggable="false" />
+          </div>
+        </div>
+
+        <!-- Floating Stage Toolbar (Zoom, Actions & Opacity) -->
+        <div class="comp-floating-toolbar p-2 d-flex align-items-center gap-3">
+          <!-- Zoom Controls -->
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-out" title="Zoom Out"><ion-icon name="remove-outline"></ion-icon></button>
+            <span class="btn btn-outline-secondary py-1 px-2 disabled small font-monospace" id="comp-zoom-text">100%</span>
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-in" title="Zoom In"><ion-icon name="add-outline"></ion-icon></button>
+          </div>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-fit" title="Fit Image">Fit</button>
+            <button type="button" class="btn btn-outline-secondary py-1 px-2" id="btn-comp-zoom-100" title="1:1 Pixel Scale">100%</button>
+          </div>
+
+          <!-- Onion Skin Slider (Conditional) -->
+          <div class="d-none align-items-center gap-2" id="comp-fade-ctrl-wrapper">
+            <input type="range" class="form-range" id="comp-fade-slider" min="0" max="100" value="50" />
+          </div>
+
+          <div class="vr my-1"></div>
+
+          <!-- Action Buttons -->
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-copy" title="Copy result to clipboard">
+              <ion-icon name="copy-outline"></ion-icon>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-comp-show-folder" title="Show output file in File Explorer">
+              <ion-icon name="folder-open-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Hero Zoom Lightbox Modal -->
+    <div class="image-lightbox-overlay d-none" id="image-lightbox-modal">
+      <div class="image-lightbox-backdrop" id="image-lightbox-backdrop"></div>
+      <div class="image-lightbox-close-wrapper">
+        <button type="button" class="btn btn-outline-light btn-sm rounded-circle d-flex align-items-center justify-content-center shadow aek-thumb" id="btn-lightbox-close" title="Close preview (Esc)">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+      </div>
+      <div class="image-lightbox-card" id="image-lightbox-card">
+        <div class="transparency-grid rounded border shadow-lg d-flex align-items-center justify-content-center overflow-hidden" id="image-lightbox-wrapper">
+          <img id="image-lightbox-img" class="image-lightbox-img" src="" alt="Full Preview" />
+        </div>
+        <div class="mt-3 text-center text-white d-flex flex-column align-items-center" id="image-lightbox-meta">
+          <h6 class="mb-0 fw-medium text-truncate w-100 aek-lightbox-meta" id="image-lightbox-title">photo.png</h6>
+          <span class="aek-text-sm-plus small text-white-50 text-truncate w-100 my-0 aek-legacy-9e8535" id="image-lightbox-details">PNG Image • 1920x1080</span>
+          <span class="aek-text-xs small text-white-50 text-truncate w-100 aek-legacy-411fd0" id="image-lightbox-path">C:\path\to\photo.png</span>
+        </div>
+      </div>
+    </div>
+    <!-- Special Debug Dialog (Shift + Click on AnEdiKit Title) -->
+    <div class="modal fade" id="modal-debug-dialog" tabindex="-1" aria-labelledby="debugDialogModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-sm">
+        <div class="modal-content bg-body border border-secondary-subtle shadow-lg p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="modal-title fs-4 fw-light text-body mb-0" id="debugDialogModalLabel">Debug</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <button type="button" class="btn btn-outline-danger btn-sm w-100 py-2" id="btn-clear-preview-cache">
+            Clear Preview Cache
+          </button>
+          <div class="aek-text-xs mt-3 pt-2 border-top small text-body-secondary font-monospace aek-legacy-2f5bc7" id="debug-render-info">render info…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Script Editor Kit Alert Modal -->
+    <div class="modal fade" id="modal-kit-alert" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-sm">
+        <div class="modal-content bg-body border shadow-lg">
+          <div class="modal-header py-2 px-3">
+            <h6 class="modal-title fs-4 fw-light text-body mb-0" id="kit-alert-title">Alert</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            <p class="mb-0 small text-body aek-legacy-2f5bc7" id="kit-alert-message"></p>
+          </div>
+          <div class="modal-footer py-2 px-3">
+            <button type="button" class="btn btn-primary btn-sm px-3" id="btn-kit-alert-ok" data-bs-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Script Editor Kit Prompt Modal -->
+    <div class="modal fade" id="modal-kit-prompt" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-body border shadow-lg">
+          <div class="modal-header py-2 px-3">
+            <h6 class="modal-title fs-4 fw-light text-body mb-0" id="kit-prompt-title">Prompt</h6>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-3">
+            <label class="form-label small text-body fw-medium" id="kit-prompt-message" for="kit-prompt-input"></label>
+            <input type="text" class="form-control form-control-sm" id="kit-prompt-input" autocomplete="off" />
+          </div>
+          <div class="modal-footer py-2 px-3 gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="btn-kit-prompt-cancel" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary btn-sm px-3" id="btn-kit-prompt-ok">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

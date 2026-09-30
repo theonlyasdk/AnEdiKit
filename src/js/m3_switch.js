@@ -1,3 +1,4 @@
+import { reportError } from "./errors.js";
 // Material 3 Switch Draggable Handle Interaction Module
 // Enables fluid horizontal dragging and snapping of .form-check-input[role="switch"] toggles
 
@@ -51,7 +52,7 @@ function onPointerUp(e) {
 
   try {
     target.releasePointerCapture(e.pointerId);
-  } catch (_) {}
+  } catch (caughtErr) { reportError("js/m3_switch.js:onPointerUp", caughtErr); }
 
   target.classList.remove("m3-switch-dragging");
   target.classList.remove("m3-switch-active");
@@ -82,7 +83,7 @@ function onPointerCancel(e) {
 
   try {
     target.releasePointerCapture(e.pointerId);
-  } catch (_) {}
+  } catch (caughtErr) { reportError("js/m3_switch.js:onPointerCancel", caughtErr); }
 
   target.classList.remove("m3-switch-dragging");
   target.classList.remove("m3-switch-active");

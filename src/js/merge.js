@@ -1,7 +1,11 @@
 // AnEdiKit - Merge Video Files Submodule
 import { getCachedMediaProbe, setCachedMediaProbe } from "./commands.js";
-import { getCurrentActiveTool, animateQueueHeight, attachFluentRipple } from "./navigation.js";
+import { getCurrentActiveTool } from "./active_tool.js";
+import { bindKeyed } from "./dom_bind.js";
+import { animateQueueHeight, attachFluentRipple } from "./anim.js";
 
+import { reportError } from "./errors.js";
+import { escapeHtml } from "./escape.js";
 let mergeFiles = [];
 let selectedMergeIdx = -1;
 let mergeProbeRun = 0;
@@ -43,7 +47,7 @@ export async function probeMergeFilesAudio(onChanged = null) {
         setCachedMediaProbe(f, info);
         changed = true;
       }
-    } catch (_) {}
+    } catch (caughtErr) { reportError("js/merge.js:probeMergeFilesAudio", caughtErr); }
   }
   if (changed && run === mergeProbeRun && getCurrentActiveTool() === "merge") {
     if (typeof onChanged === "function") {
@@ -100,7 +104,7 @@ function renderMergeListInner() {
               console.warn("pick_files error:", e);
             }
           } else {
-            const mockFile = `C:\\Users\\User\\Videos\\clip_${mergeFiles.length + 1}.mp4`;
+            const mockFile = `sample_clip_${mergeFiles.length + 1}.mp4`;
             mergeFiles.push(mockFile);
             renderMergeList();
             notifyUpdate();
@@ -121,7 +125,7 @@ function renderMergeListInner() {
     .map(
       (f, idx) => `
       <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 ${idx === selectedMergeIdx ? "active" : ""}" data-item-idx="${idx}" style="cursor: pointer;">
-        <span class="text-truncate small"><strong class="me-2">${idx + 1}.</strong>${f}</span>
+        <span class="text-truncate small"><strong class="me-2">${idx + 1}.</strong>${escapeHtml(f)}</span>
         <button class="btn btn-outline-danger btn-sm py-0 px-2 btn-merge-del ${idx === selectedMergeIdx ? "btn-outline-light" : ""}" data-idx="${idx}" type="button"><ion-icon name="close-outline"></ion-icon></button>
       </div>
     `,
@@ -158,7 +162,7 @@ export function initMergeControls(onUpdated = null) {
   const btnMergeClear = document.getElementById("btn-merge-clear");
 
   if (btnMergeAdd) {
-    btnMergeAdd.addEventListener("click", async () => {
+    bindKeyed(btnMergeAdd, "merge:add", "click", async () => {
       if (window.__TAURI__?.core?.invoke) {
         try {
           const picked = await window.__TAURI__.core.invoke("pick_files", { filter_mode: "all" });
@@ -171,7 +175,7 @@ export function initMergeControls(onUpdated = null) {
           console.warn("pick_files error:", e);
         }
       } else {
-        const mockFile = `C:\\Users\\User\\Videos\\clip_${mergeFiles.length + 1}.mp4`;
+        const mockFile = `sample_clip_${mergeFiles.length + 1}.mp4`;
         mergeFiles.push(mockFile);
         renderMergeList();
         notifyUpdate();
@@ -180,7 +184,7 @@ export function initMergeControls(onUpdated = null) {
   }
 
   if (btnMergeUp) {
-    btnMergeUp.addEventListener("click", () => {
+    bindKeyed(btnMergeUp, "merge:up", "click", () => {
       if (selectedMergeIdx > 0 && selectedMergeIdx < mergeFiles.length) {
         const temp = mergeFiles[selectedMergeIdx];
         mergeFiles[selectedMergeIdx] = mergeFiles[selectedMergeIdx - 1];
@@ -193,7 +197,7 @@ export function initMergeControls(onUpdated = null) {
   }
 
   if (btnMergeDown) {
-    btnMergeDown.addEventListener("click", () => {
+    bindKeyed(btnMergeDown, "merge:down", "click", () => {
       if (selectedMergeIdx >= 0 && selectedMergeIdx < mergeFiles.length - 1) {
         const temp = mergeFiles[selectedMergeIdx];
         mergeFiles[selectedMergeIdx] = mergeFiles[selectedMergeIdx + 1];
@@ -206,7 +210,7 @@ export function initMergeControls(onUpdated = null) {
   }
 
   if (btnMergeClear) {
-    btnMergeClear.addEventListener("click", () => {
+    bindKeyed(btnMergeClear, "merge:clear", "click", () => {
       mergeFiles = [];
       selectedMergeIdx = -1;
       renderMergeList();

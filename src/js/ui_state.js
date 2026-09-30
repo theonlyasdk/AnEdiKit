@@ -1,3 +1,4 @@
+import { reportError } from "./errors.js";
 // AnEdiKit - Lightweight UI State Management & Persistence Library
 // Manages reactive, persistent UI state across page reloads and view changes.
 
@@ -36,9 +37,7 @@ function resolveStorageBackend(storageOption) {
       window.localStorage.removeItem(testKey);
       return window.localStorage;
     }
-  } catch (_) {
-    // LocalStorage not available or blocked
-  }
+  } catch (caughtErr) { reportError("js/ui_state.js:resolveStorageBackend", caughtErr); }
   return new MemoryStorageAdapter();
 }
 
@@ -187,7 +186,7 @@ export class UIStateManager {
       const oldValue = this.get(cleanKey);
       try {
         this.storage.removeItem(k);
-      } catch (_) {}
+      } catch (caughtErr) { reportError("js/ui_state.js:resolveStorageBackend", caughtErr); }
       this._notify(cleanKey, undefined, oldValue);
     }
   }

@@ -3,20 +3,27 @@
   "private": true,
   "version": "0.5.0",
   "description": "All-in-one media toolkit for video, audio and image processing",
-  "author": "AnEdiKit",
+  "author": "theonlyasdk",
   "type": "module",
   "scripts": {
     "tauri": "tauri",
     "build:release": "node tools/Scripts/build_release.js",
     "release:run": "node tools/Scripts/run_release.js",
     "new-cert": "node tools/Scripts/new_signing_cert.js",
-    "test": "node --import ./test/unit/setup.js --test test/unit/submodules.test.js test/unit/pure_helpers.test.js test/unit/pure_modules.test.js test/unit/command_builders.test.js test/unit/css_modules.test.js test/unit/contract.test.js test/unit/tools_cache.test.js test/unit/queue_state.test.js test/unit/image_commands.test.js test/unit/ytdlp_url.test.js test/unit/ytdlp_format.test.js test/unit/commands_options.test.js test/unit/storage_kits.test.js test/unit/theme_io.test.js test/unit/waveform.test.js test/unit/media_batch.test.js test/unit/shortcuts.test.js test/unit/trimmer_display.test.js test/unit/copy_anim.test.js test/unit/ui_state.test.js",
+    "test": "node --import ./test/unit/setup.js --test test/unit/submodules.test.js test/unit/pure_helpers.test.js test/unit/pure_modules.test.js test/unit/decoupling.test.js test/unit/command_builders.test.js test/unit/css_modules.test.js test/unit/contract.test.js test/unit/tools_cache.test.js test/unit/queue_state.test.js test/unit/image_commands.test.js test/unit/ytdlp_url.test.js test/unit/ytdlp_format.test.js test/unit/commands_options.test.js test/unit/storage_kits.test.js test/unit/theme_io.test.js test/unit/waveform.test.js test/unit/media_batch.test.js test/unit/shortcuts.test.js test/unit/trimmer_display.test.js test/unit/copy_anim.test.js test/unit/ui_state.test.js test/unit/html_assembly.test.js test/unit/hygiene.test.js test/unit/xss.test.js test/unit/runner_audio.test.js test/unit/kits_ops.test.js test/unit/lazy_views.test.js",
+    "build:web": "node tools/Scripts/build_web.js",
+    "build:check": "node tools/Scripts/build_web.js --check",
+    "assemble": "python tools/Scripts/assemble_html.py",
+    "versions:check": "python tools/Scripts/check_versions.py",
+    "vendor:check": "python tools/Scripts/sync_vendor.py",
+    "vendor:sync": "python tools/Scripts/sync_vendor.py --sync",
     "test:py": "python -m unittest test/unit/test_image_ai_engine.py",
     "test:all": "npm test && npm run test:py",
     "screenshots": "node tools/Scripts/capture_screenshots.js"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2"
+    "@tauri-apps/cli": "^2",
+    "esbuild": "^0.28.2"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",

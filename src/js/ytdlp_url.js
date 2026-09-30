@@ -1,6 +1,7 @@
 // Module for fixing and formatting yt-dlp URLs
 import { animateCopyConfirm } from "./copy_anim.js";
 
+import { reportError } from "./errors.js";
 // Whitelisted search parameters for clean YouTube URLs (preserves video ID, playlist, timestamp, index)
 const ALLOWED_YT_PARAMS = new Set(["v", "list", "t", "start", "index"]);
 
@@ -94,9 +95,7 @@ export function fixYoutubeUrl(inputUrl) {
         return `https://www.youtube.com${url.pathname}${qs ? "?" + qs : ""}`;
       }
     }
-  } catch (e) {
-    // Fallback if URL parsing fails
-  }
+  } catch (caughtErr) { reportError("js/ytdlp_url.js:fixYoutubeUrl", caughtErr); }
 
   // Regex fallback for youtu.be/VIDEO_ID
   const shortMatch = urlStr.match(/(?:https?:\/\/)?(?:www\.)?youtu\.be\/([a-zA-Z0-9_-]+)/i);

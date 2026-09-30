@@ -2,6 +2,7 @@
 // Supports Interactive Split Slider (Sliding Window), Side-by-Side, and Onion Skin
 import { uiState } from "./ui_state.js";
 
+import { reportError } from "./errors.js";
 let currentOrigSrc = "";
 let currentResultSrc = "";
 let currentOrigPath = "";
@@ -58,11 +59,11 @@ function showComparisonToast(message, isError = false) {
       toast.show();
       return;
     }
-  } catch (_) {}
+  } catch (caughtErr) { reportError("js/comparison.js:showComparisonToast", caughtErr); }
   try {
     const statusMsg = document.getElementById("status-message");
     if (statusMsg) statusMsg.textContent = message;
-  } catch (_) {}
+  } catch (caughtErr) { reportError("js/comparison.js:showComparisonToast", caughtErr); }
   if (isError) console.warn(message);
   else console.log(message);
 }
@@ -132,7 +133,7 @@ export function initComparisonModal() {
             console.warn("Window dragging failed:", err);
           });
         }
-      } catch (_) {}
+      } catch (caughtErr) { reportError("js/comparison.js:initComparisonModal", caughtErr); }
     });
   }
 
@@ -495,7 +496,7 @@ export function initComparisonModal() {
         if (window.__TAURI__?.core?.convertFileSrc && currentResultPath) {
           try {
             candidates.push(window.__TAURI__.core.convertFileSrc(currentResultPath));
-          } catch (_) {}
+          } catch (caughtErr) { reportError("js/comparison.js:initComparisonModal", caughtErr); }
         }
         if (currentResultSrc) candidates.push(currentResultSrc);
         for (const url of candidates) {
@@ -508,7 +509,7 @@ export function initComparisonModal() {
                 blob = b;
                 break;
               }
-            } catch (_) {}
+            } catch (caughtErr) { reportError("js/comparison.js:initComparisonModal", caughtErr); }
           }
           if (blob) break;
         }

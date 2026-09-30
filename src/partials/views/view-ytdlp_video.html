@@ -1,0 +1,50 @@
+
+
+            <!-- YT-DLP TOOL 1: Download Video -->
+            <div class="tool-view d-none" id="view-ytdlp_video">
+              <div class="mb-4">
+                <div class="section-divider-header">Video Download Settings</div>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-video-res">Max Resolution</label>
+                    <select class="form-select form-select-sm" id="dl-video-res">
+                      <option value="best" selected>Best Available (Highest Quality)</option>
+                      <option value="2160">4K Ultra HD (2160p)</option>
+                      <option value="1440">2K Quad HD (1440p)</option>
+                      <option value="1080">Full HD (1080p)</option>
+                      <option value="720">HD Ready (720p)</option>
+                      <option value="480">Standard (480p)</option>
+                      <option value="360">Low Data (360p)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-medium" for="dl-video-container">Target Container</label>
+                    <select class="form-select form-select-sm" id="dl-video-container">
+                      <option value="mp4" selected>MP4 (.mp4 - Universal compatibility)</option>
+                      <option value="mkv">MKV (.mkv - Matroska)</option>
+                      <option value="webm">WebM (.webm)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-video-embed-subs" checked />
+                      <label class="form-check-label small" for="dl-video-embed-subs">Embed Subtitles</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-video-embed-thumb" checked />
+                      <label class="form-check-label small" for="dl-video-embed-thumb">Embed Thumbnail Cover</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input class="form-check-input" type="checkbox" role="switch" id="dl-video-embed-meta" checked />
+                      <label class="form-check-label small" for="dl-video-embed-meta">Embed Metadata & Chapters</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>

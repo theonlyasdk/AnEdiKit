@@ -8,6 +8,8 @@ import { updateKitTabIndicator } from "./workspace.js";
 // Re-export all submodules for complete API surface
 export * from "./state.js";
 export * from "./storage.js";
+export * from "./ops.js";
+export * from "./icons.js";
 export * from "./blocks.js";
 export * from "./templates.js";
 export * from "./modals.js";

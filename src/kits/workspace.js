@@ -19,18 +19,19 @@ import {
   saveUserKit,
 } from "./storage.js";
 import { sanitizeKitBlocks } from "./blocks.js";
-import { getIonicIconName } from "./sidebar.js";
+import { getIonicIconName } from "./icons.js";
 import { bindUniversalDropdowns } from "./modals.js";
 import {
   exportKitAsJSON,
   duplicateKitById,
   deleteKitById,
-  renderKitSettingsTab,
-} from "./settings.js";
+} from "./ops.js";
+import { renderKitSettingsTab } from "./settings.js";
 import { renderKitRunnerTab } from "./runner.js";
 import { renderKitBuilderTab } from "./builder.js";
 import { renderKitScriptTab } from "./editor.js";
 
+import { reportError } from "../js/errors.js";
 let _kitTabsResizeObserver = null;
 let _lastNavWidth = 0;
 
@@ -112,7 +113,7 @@ export function switchKitTab(tabName) {
         saveUserKit(activeKit);
       }
       monacoEditorInstance.dispose();
-    } catch (_) {}
+    } catch (caughtErr) { reportError("kits/workspace.js:switchKitTab", caughtErr); }
     setMonacoEditorInstance(null);
   }
 
@@ -194,7 +195,7 @@ export function renderKitIdeWorkspace() {
   if (monacoEditorInstance) {
     try {
       monacoEditorInstance.dispose();
-    } catch (_) {}
+    } catch (caughtErr) { reportError("kits/workspace.js:renderKitIdeWorkspace", caughtErr); }
     setMonacoEditorInstance(null);
   }
 
@@ -310,4 +311,23 @@ export function renderKitIdeWorkspace() {
       updateKitTabIndicator(true);
     });
   }
+}
+
+// Decoupled kit coordination (was static import cycles):
+//  - ops.js dispatches `anedikit:kits-changed` after kit CRUD instead of
+//    importing sidebar/workspace renderers.
+//  - runner.js dispatches `anedikit:kits-changed` with refreshIde after runs.
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("anedikit:kits-changed", (e) => {
+    try {
+      const detail = e?.detail || {};
+      if (detail.openKitId) {
+        selectAndOpenKit(detail.openKitId, detail.switchTool !== false, detail.tab ?? null);
+      } else if (detail.kitsEmpty) {
+        if (window.switchAppTool) window.switchAppTool("convert");
+      } else if (detail.refreshIde) {
+        renderKitIdeWorkspace();
+      }
+    } catch (_) {}
+  });
 }

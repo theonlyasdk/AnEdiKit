@@ -1,0 +1,85 @@
+
+
+            <!-- TOOL 2: Extract & Convert Audio -->
+            <div class="tool-view d-none" id="view-extract_audio">
+              <div class="mb-4">
+                <div class="section-divider-header">Audio Extraction Parameters</div>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="aud-format">Target Audio Format</label>
+                    <select class="form-select form-select-sm" id="aud-format">
+                      <optgroup label="Common Audio Formats">
+                        <option value="mp3" selected>MP3 (.mp3)</option>
+                        <option value="m4a">M4A / AAC (.m4a)</option>
+                        <option value="flac">FLAC Lossless (.flac)</option>
+                        <option value="wav">WAV Uncompressed (.wav)</option>
+                        <option value="opus">Opus (.opus)</option>
+                        <option value="ogg">Ogg Vorbis (.ogg)</option>
+                      </optgroup>
+                      <optgroup label="Additional Audio Formats">
+                        <option value="wma">Windows Media Audio (.wma)</option>
+                        <option value="aiff">AIFF (.aiff)</option>
+                        <option value="ac3">Dolby Digital AC-3 (.ac3)</option>
+                        <option value="dts">DTS Audio (.dts)</option>
+                        <option value="amr">AMR Speech (.amr)</option>
+                        <option value="mka">Matroska Audio (.mka)</option>
+                        <option value="mp2">MPEG Layer 2 (.mp2)</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div class="col-md-4 ui-zoom-in" id="aud-bitrate-wrapper">
+                    <label class="form-label small fw-medium" for="aud-bitrate">Audio Bitrate / Quality</label>
+                    <select class="form-select form-select-sm" id="aud-bitrate">
+                      <option value="320k">320 kbps (Max Quality)</option>
+                      <option value="256k" selected>256 kbps (High Quality)</option>
+                      <option value="192k">192 kbps (Standard Quality)</option>
+                      <option value="128k">128 kbps (Good / Compact)</option>
+                      <option value="96k">96 kbps (Speech)</option>
+                      <option value="64k">64 kbps (Low Bitrate)</option>
+                      <option value="copy">Direct Copy (Stream Copy - Lossless)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 d-none ui-zoom-in" id="aud-bitdepth-wrapper">
+                    <label class="form-label small fw-medium" for="aud-bitdepth">PCM Bit Depth</label>
+                    <select class="form-select form-select-sm" id="aud-bitdepth">
+                      <option value="16" selected>16-bit (CD Quality - Standard)</option>
+                      <option value="24">24-bit (Studio Master)</option>
+                      <option value="32">32-bit Float</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="aud-channels">Audio Channels</label>
+                    <select class="form-select form-select-sm" id="aud-channels">
+                      <option value="original" selected>Keep Original</option>
+                      <option value="2">Stereo (2 Channels)</option>
+                      <option value="1">Mono (1 Channel)</option>
+                      <option value="6">5.1 Surround (6 Channels)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="aud-samplerate">Sample Rate</label>
+                    <select class="form-select form-select-sm" id="aud-samplerate">
+                      <option value="original" selected>Keep Original</option>
+                      <option value="48000">48 kHz (48000 Hz - Video Standard)</option>
+                      <option value="44100">44.1 kHz (44100 Hz - CD Standard)</option>
+                      <option value="96000">96 kHz (96000 Hz - High Res)</option>
+                      <option value="22050">22.05 kHz (22050 Hz)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-medium" for="aud-volume">Volume and Normalization</label>
+                    <select class="form-select form-select-sm" id="aud-volume">
+                      <option value="none" selected>Original Volume</option>
+                      <option value="vol_3db">Boost Volume (+3 dB)</option>
+                      <option value="vol_6db">Boost Volume (+6 dB)</option>
+                      <option value="loudnorm">Normalize Volume (EBU R128 loudnorm)</option>
+                    </select>
+                  </div>
+                </div>
+                <!-- Live Bitrate Estimation Readout -->
+                <div class="mt-3 p-2 px-3 border rounded bg-body small text-body-secondary d-flex justify-content-between align-items-center flex-wrap gap-2" id="aud-estimate-box">
+                  <div>Target: <strong class="text-body" id="aud-est-target">MP3 (256 kbps)</strong> &bull; Est. Audio Bitrate: <strong class="text-body" id="aud-est-bitrate">256 kbps</strong> &bull; Est. Size: <strong class="text-body" id="aud-est-size">~4.3 MB</strong></div>
+                  <div class="text-body-secondary small">Calculated from media duration</div>
+                </div>
+              </div>
+            </div>

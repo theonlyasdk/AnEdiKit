@@ -1,3 +1,4 @@
+import { reportError } from "./errors.js";
 // LocalStorage Key System & Persistence Module
 export const STORAGE_KEYS = {
   ACTIVE_TOOL: "anedikit:settings:active_tool",
@@ -182,7 +183,7 @@ export function loadSavedBatchQueue() {
         let p = item.path;
         try {
           p = decodeFileUrlOnly(p);
-        } catch (_) {}
+        } catch (caughtErr) { reportError("js/storage.js:loadSavedBatchQueue", caughtErr); }
         return {
           ...item,
           path: p,

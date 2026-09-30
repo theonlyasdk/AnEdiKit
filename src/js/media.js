@@ -7,6 +7,8 @@ import {
 } from "./storage.js";
 import { generateWaveformFromSource, clearWaveformCache } from "./waveform.js";
 import { setCachedMediaProbe } from "./commands.js";
+import { mediaState } from "./media_store.js";
+import { pickFiles, pickFolder } from "./file_picker.js";
 import { mediaPreviewManager, setMediaSrc } from "./preview_providers.js";
 import {
   refreshWaveformDisplay,
@@ -19,22 +21,45 @@ import {
   extractTimelineThumbnailsAsync,
   initTrimmerControls,
 } from "./trimmer.js";
-import { addImageFilesToQueue } from "./image_queue.js";
 import { setupListDragAndDrop } from "./drag_reorder.js";
-import { attachFluentRipple, animateQueueHeight } from "./navigation.js";
+import {
+  renderMarqueeSongTitle,
+  actionFrameCache,
+  albumArtCache,
+  extractAlbumArtAsync,
+  extractActionFrameAsync,
+  crossfadeVideoThumbnail,
+  crossfadeAudioThumbnail,
+} from "./media/artwork.js";
+import {
+  applyMediaPreviewVisibility,
+  showMetadataLoading,
+  updateMetadataDisplay,
+  syncVideoPreviewForActiveTool,
+} from "./media/metadata_ui.js";
+import { probeMedia } from "./media/probe.js";
+import { attachFluentRipple, animateQueueHeight } from "./anim.js";
 
-let currentInputFile = "";
-let currentMediaInfo = null;
-let currentWaveformPeaks = null;
-const mediaInfoCache = new Map();
-let activeProbeToken = 0;
+import { reportError } from "./errors.js";
+import { escapeHtml } from "./escape.js";
+// Selection state lives in media_store.js (mediaState); trimmer and other
+// readers import the store directly instead of this module (was a cycle).
+// mediaState.mediaInfoCache is the shared probe-result cache.
 
 export function getCurrentInputFile() {
-  return currentInputFile;
+  return mediaState.currentInputFile;
+}
+
+export function setCurrentInputFile(filePath) {
+  mediaState.currentInputFile = filePath || "";
 }
 
 export function getCurrentMediaInfo() {
-  return currentMediaInfo;
+  return mediaState.currentMediaInfo;
+}
+
+export function setCurrentMediaInfo(info) {
+  mediaState.currentMediaInfo = info || null;
 }
 
 /**
@@ -43,759 +68,6 @@ export function getCurrentMediaInfo() {
  * paused), no matter which path refreshes the UI (toggle, probe, tool
  * switch). Re-enabling re-renders the current media.
  */
-export function applyMediaPreviewVisibility() {
-  const show = loadSettings().showMediaPreview !== false;
-  if (show) {
-    updateMetadataDisplay(getCurrentMediaInfo());
-    return;
-  }
-  const previewCol = document.getElementById("media-preview-col");
-  const previewCard = document.getElementById("media-preview-card");
-  const inputsCol = document.getElementById("media-inputs-col");
-  const videoEl = document.getElementById("media-video-preview");
-  const audioEl = document.getElementById("media-audio-preview");
-  if (videoEl) {
-    try {
-      videoEl.pause();
-    } catch (_) {}
-    setMediaSrc(videoEl, null);
-  }
-  if (audioEl) {
-    try {
-      audioEl.pause();
-    } catch (_) {}
-    setMediaSrc(audioEl, null);
-  }
-  if (inputsCol) inputsCol.className = "col-12";
-  if (previewCol) {
-    previewCol.classList.remove("d-flex", "preview-slide-in");
-    previewCol.classList.add("d-none");
-  }
-  if (previewCard) previewCard.classList.add("d-none");
-}
-
-export function showMetadataLoading(filePath) {
-  const metaInfo = document.getElementById("input-meta-info");
-  const pathInput = document.getElementById("input-file-path");
-  const previewCol = document.getElementById("media-preview-col");
-  const inputsCol = document.getElementById("media-inputs-col");
-  const previewCard = document.getElementById("media-preview-card");
-  const cdSpinner = document.getElementById("audio-cd-spinner");
-  const audioFallbackIcon = document.getElementById("audio-fallback-icon");
-  const audioArtImg = document.getElementById("audio-art-img");
-  const audioTitle = document.getElementById("audio-art-title");
-  const audioFormat = document.getElementById("audio-art-format");
-
-  if (pathInput) {
-    pathInput.value = filePath || "";
-  }
-
-  const showPreview = loadSettings().showMediaPreview !== false;
-
-  if (filePath && showPreview) {
-    const ext = filePath.split(".").pop().toLowerCase();
-    const isImage = ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif", "svg", "ico", "avif", "heic"].includes(ext);
-    const isAudio = !isImage && ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac", "alac", "aiff"].includes(ext);
-
-    if (inputsCol) inputsCol.className = "col-12 col-lg-7 col-xl-7 col-xxl-8";
-    if (previewCol) {
-      previewCol.classList.remove("d-none", "preview-slide-in");
-      previewCol.classList.add("d-flex");
-      void previewCol.offsetWidth;
-      previewCol.classList.add("preview-slide-in");
-    }
-
-    if (previewCard) {
-      previewCard.classList.remove("d-none");
-      if (isImage) {
-        previewCard.classList.remove("video-mode", "audio-mode");
-        previewCard.classList.add("image-mode");
-      } else if (isAudio) {
-        previewCard.classList.remove("video-mode", "image-mode");
-        previewCard.classList.add("audio-mode");
-        if (cdSpinner) cdSpinner.classList.remove("d-none");
-        if (audioFallbackIcon) audioFallbackIcon.classList.add("d-none");
-        if (audioArtImg) audioArtImg.classList.add("d-none");
-        renderMarqueeSongTitle(filePath.split(/[/\\]/).pop() || "Audio Track");
-        if (audioFormat) audioFormat.textContent = "Loading album art...";
-      } else {
-        previewCard.classList.remove("audio-mode", "image-mode");
-        previewCard.classList.add("video-mode");
-      }
-    }
-  } else {
-    if (inputsCol) inputsCol.className = "col-12";
-    if (previewCol) {
-      previewCol.classList.remove("d-flex", "preview-slide-in");
-      previewCol.classList.add("d-none");
-    }
-    if (previewCard) previewCard.classList.add("d-none");
-  }
-
-  if (metaInfo) {
-    document.getElementById("meta-duration").innerHTML =
-      '<span class="meta-loading-pulse">...</span>';
-    document.getElementById("meta-resolution").innerHTML =
-      '<span class="meta-loading-pulse">...</span>';
-    document.getElementById("meta-vcodec").innerHTML =
-      '<span class="meta-loading-pulse">...</span>';
-    document.getElementById("meta-acodec").innerHTML =
-      '<span class="meta-loading-pulse">...</span>';
-    document.getElementById("meta-size").innerHTML =
-      '<span class="meta-loading-pulse">...</span>';
-
-    if (metaInfo.classList.contains("d-none")) {
-      metaInfo.classList.remove("d-none");
-      metaInfo.classList.add("d-flex", "ui-zoom-in");
-    }
-  }
-}
-
-const mediaChangeListeners = new Set();
-
-export function onMediaChange(callback) {
-  if (typeof callback === "function") {
-    mediaChangeListeners.add(callback);
-  }
-  return () => mediaChangeListeners.delete(callback);
-}
-
-function notifyMediaChanged(info, filePath) {
-  for (const listener of mediaChangeListeners) {
-    try {
-      listener(info, filePath);
-    } catch (e) {
-      console.warn("mediaChange listener error:", e);
-    }
-  }
-}
-
-export async function probeMedia(filePath, fileObject = null) {
-  if (!filePath) {
-    currentInputFile = "";
-    currentMediaInfo = null;
-    saveInputFile("");
-    updateMetadataDisplay(null);
-    notifyMediaChanged(null, "");
-    return null;
-  }
-
-  // Normalize file:// URLs only. Plain filesystem paths (which may contain
-  // literal '%' e.g. `Promo_100%_Final.mp4`) must never be URL-decoded.
-  let normalizedPath = filePath;
-  try {
-    if (typeof normalizedPath === "string" && normalizedPath.trim().startsWith("file://")) {
-      let p = normalizedPath.trim().slice("file://".length);
-      if (p.startsWith("localhost/")) p = p.slice("localhost/".length);
-      else if (p.startsWith("localhost")) p = p.slice("localhost".length);
-      // Normalize Windows drive: "/C:/..." -> "C:/...", "/C|/..." -> "C:/..."
-      if (/^\/[A-Za-z][:|]/.test(p)) {
-        p = p.slice(1).replace(/^([A-Za-z])\|/, "$1:");
-      }
-      normalizedPath = decodeURIComponent(p);
-    }
-  } catch (_) {}
-
-  // Normalize windows forward/back slashes
-  if (typeof normalizedPath === "string") {
-    normalizedPath = normalizedPath.trim();
-  }
-
-  filePath = normalizedPath;
-  currentInputFile = filePath;
-  saveInputFile(filePath);
-
-  // Instant response if already cached
-  if (mediaInfoCache.has(filePath)) {
-    const cached = mediaInfoCache.get(filePath);
-    currentMediaInfo = cached;
-    updateMetadataDisplay(cached);
-    syncMediaDurationToTools(cached);
-    notifyMediaChanged(cached, filePath);
-    return cached;
-  }
-
-  showMetadataLoading(filePath);
-  const thisToken = ++activeProbeToken;
-
-  // Try Tauri IPC if available
-  if (window.__TAURI__?.core?.invoke) {
-    try {
-      const info = await window.__TAURI__.core.invoke("get_media_info", {
-        filePath,
-      });
-      if (thisToken !== activeProbeToken) return null;
-      if (info && (info.duration_seconds > 0 || info.file_path || info.file_name)) {
-        mediaInfoCache.set(filePath, info);
-        currentMediaInfo = info;
-        updateMetadataDisplay(info);
-        syncMediaDurationToTools(info);
-        notifyMediaChanged(info, filePath);
-        // Feed command builders (silent-input / audio-only adaptation) and
-        // refresh the preview, which may have been built before probing done.
-        try {
-          setCachedMediaProbe(filePath, info);
-        } catch (_) {}
-        try {
-          window.dispatchEvent(new CustomEvent("anedikit:media_probed", { detail: { filePath } }));
-        } catch (_) {}
-        return info;
-      }
-    } catch (err) {
-      console.warn("Tauri get_media_info error:", err);
-      // File could not be probed or is missing on disk: show placeholder preview card but hide bottom metadata
-      if (thisToken === activeProbeToken) {
-        const fileName = filePath.split(/[/\\]/).pop() || filePath;
-        const missingInfo = {
-          file_path: filePath,
-          file_name: fileName,
-          duration_seconds: 0.0,
-          duration_string: "--:--:--",
-          resolution: "--",
-          video_codec: "--",
-          audio_codec: "--",
-          file_size_mb: 0.0,
-          file_size_formatted: "-- MB",
-          bitrate_kbps: 0,
-        };
-        currentMediaInfo = missingInfo;
-        updateMetadataDisplay(missingInfo);
-        syncMediaDurationToTools(missingInfo);
-        notifyMediaChanged(missingInfo, filePath);
-      }
-      return null;
-    }
-  }
-
-  // Browser video/audio element fallback when running with file object
-  if (fileObject instanceof Blob || fileObject instanceof File) {
-    try {
-      const mediaInfo = await probeInBrowser(fileObject, filePath);
-      if (thisToken !== activeProbeToken) return null;
-      mediaInfoCache.set(filePath, mediaInfo);
-      currentMediaInfo = mediaInfo;
-      updateMetadataDisplay(mediaInfo);
-      syncMediaDurationToTools(mediaInfo);
-      notifyMediaChanged(mediaInfo, filePath);
-      try {
-        setCachedMediaProbe(filePath, mediaInfo);
-      } catch (_) {}
-      try {
-        window.dispatchEvent(new CustomEvent("anedikit:media_probed", { detail: { filePath } }));
-      } catch (_) {}
-      return mediaInfo;
-    } catch (e) {
-      console.warn("Browser media probe error:", e);
-      if (thisToken === activeProbeToken) {
-        currentMediaInfo = null;
-        updateMetadataDisplay(null);
-      }
-      return null;
-    }
-  }
-
-  if (thisToken === activeProbeToken) {
-    const fileName = filePath.split(/[/\\]/).pop() || filePath;
-    const placeholderInfo = {
-      file_path: filePath,
-      file_name: fileName,
-      duration_seconds: 0.0,
-      duration_string: "--:--:--",
-      resolution: "--",
-      video_codec: "--",
-      audio_codec: "--",
-      file_size_mb: 0.0,
-      file_size_formatted: "-- MB",
-      bitrate_kbps: 0,
-    };
-    currentMediaInfo = placeholderInfo;
-    updateMetadataDisplay(placeholderInfo);
-    notifyMediaChanged(placeholderInfo, filePath);
-  }
-  return null;
-}
-
-function probeInBrowser(file, filePath) {
-  return new Promise((resolve) => {
-    const ext = (file.name || filePath).split(".").pop().toLowerCase();
-    const isImage = file.type.startsWith("image") || ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "tif", "gif", "svg", "ico", "avif", "heic"].includes(ext);
-
-    if (isImage) {
-      const img = new Image();
-      const objectUrl = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        const sizeMb = file.size ? (file.size / (1024 * 1024)).toFixed(2) : "2.5";
-        resolve({
-          file_path: filePath,
-          file_name: file.name,
-          duration_seconds: 0.0,
-          duration_string: "--:--:--",
-          resolution: `${img.naturalWidth}x${img.naturalHeight}`,
-          video_codec: ext.toUpperCase(),
-          audio_codec: "None",
-          file_size_mb: parseFloat(sizeMb),
-          file_size_formatted: `${sizeMb} MB`,
-          bitrate_kbps: 0,
-        });
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        const sizeMb = file.size ? (file.size / (1024 * 1024)).toFixed(2) : "2.5";
-        resolve({
-          file_path: filePath,
-          file_name: file.name,
-          duration_seconds: 0.0,
-          duration_string: "--:--:--",
-          resolution: "1920x1080",
-          video_codec: ext.toUpperCase(),
-          audio_codec: "None",
-          file_size_mb: parseFloat(sizeMb),
-          file_size_formatted: `${sizeMb} MB`,
-          bitrate_kbps: 0,
-        });
-      };
-      img.src = objectUrl;
-      return;
-    }
-
-    const isVideo = file.type.startsWith("video");
-    const mediaEl = document.createElement(isVideo ? "video" : "audio");
-    const objectUrl = URL.createObjectURL(file);
-    const browserAudioCodec = ext === "mp3" ? "mp3" : ext === "flac" ? "flac" : ext === "wav" ? "pcm" : ext === "ogg" ? "vorbis" : ext === "opus" ? "opus" : ext === "wma" ? "wma" : "aac";
-
-    mediaEl.preload = "metadata";
-    mediaEl.src = objectUrl;
-
-    mediaEl.onloadedmetadata = () => {
-      URL.revokeObjectURL(objectUrl);
-      const durSec = mediaEl.duration || 0;
-      const h = Math.floor(durSec / 3600);
-      const m = Math.floor((durSec % 3600) / 60);
-      const s = Math.floor(durSec % 60);
-      const durStr = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-      const sizeMb = file.size
-        ? (file.size / (1024 * 1024)).toFixed(2)
-        : "42.5";
-
-      resolve({
-        file_path: filePath,
-        file_name: file.name,
-        duration_seconds: durSec,
-        duration_string: durStr,
-        resolution: isVideo
-          ? `${mediaEl.videoWidth}x${mediaEl.videoHeight}`
-          : "N/A",
-        video_codec: isVideo ? "h264" : "None",
-        audio_codec: browserAudioCodec,
-        file_size_mb: parseFloat(sizeMb),
-        file_size_formatted: `${sizeMb} MB`,
-        bitrate_kbps: 0,
-      });
-    };
-
-    mediaEl.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      const sizeMb = file.size
-        ? (file.size / (1024 * 1024)).toFixed(2)
-        : "42.5";
-      resolve({
-        file_path: filePath,
-        file_name: file.name,
-        duration_seconds: 0.0,
-        duration_string: "--:--:--",
-        resolution: "--",
-        video_codec: "--",
-        audio_codec: "--",
-        file_size_mb: parseFloat(sizeMb),
-        file_size_formatted: `${sizeMb} MB`,
-        bitrate_kbps: 0,
-      });
-    };
-  });
-}
-
-function renderMarqueeSongTitle(titleText) {
-  const audioTitle = document.getElementById("audio-art-title");
-  if (!audioTitle) return;
-  const safeText = titleText || "Audio Track";
-  if (safeText.length > 20) {
-    audioTitle.innerHTML = `
-      <div class="marquee-scroll-wrap">
-        <span class="me-4">${safeText}</span>
-        <span class="me-4">${safeText}</span>
-      </div>
-    `;
-  } else {
-    audioTitle.textContent = safeText;
-  }
-}
-
-const actionFrameCache = new Map();
-const albumArtCache = new Map();
-
-export async function extractAlbumArtAsync(filePath) {
-  if (!filePath) return null;
-  if (albumArtCache.has(filePath)) {
-    return albumArtCache.get(filePath);
-  }
-  if (window.__TAURI__?.core?.invoke) {
-    try {
-      const dataUri = await window.__TAURI__.core.invoke("extract_album_art", {
-        filePath,
-      });
-      if (dataUri) {
-        albumArtCache.set(filePath, dataUri);
-        return dataUri;
-      }
-    } catch (err) {
-      console.warn("extract_album_art failed:", err);
-    }
-  }
-  return null;
-}
-
-export async function extractActionFrameAsync(filePath, durationSec = 10) {
-  if (!filePath) return null;
-  if (actionFrameCache.has(filePath)) {
-    return actionFrameCache.get(filePath);
-  }
-  if (window.__TAURI__?.core?.invoke) {
-    try {
-      const dataUri = await window.__TAURI__.core.invoke("extract_action_frame", {
-        filePath,
-        durationSeconds: durationSec || 10.0,
-      });
-      if (dataUri) {
-        actionFrameCache.set(filePath, dataUri);
-        return dataUri;
-      }
-    } catch (err) {
-      console.warn("extract_action_frame failed:", err);
-    }
-  }
-  return null;
-}
-
-export function crossfadeVideoThumbnail(newSrc) {
-  const currentImg = document.getElementById("video-action-frame-img");
-  const prevImg = document.getElementById("video-action-frame-prev");
-  const fallback = document.getElementById("video-preview-fallback");
-  const overlay = document.getElementById("video-overlay-info");
-
-  if (!currentImg) return;
-
-  if (!newSrc) {
-    currentImg.classList.add("d-none");
-    currentImg.classList.remove("thumb-visible");
-    if (prevImg) prevImg.classList.add("d-none");
-    if (fallback) fallback.classList.remove("d-none");
-    return;
-  }
-
-  if (fallback) fallback.classList.add("d-none");
-  if (overlay) overlay.classList.remove("d-none");
-
-  const oldSrc = currentImg.getAttribute("src");
-  if (oldSrc && oldSrc !== newSrc && prevImg) {
-    prevImg.src = oldSrc;
-    prevImg.classList.remove("d-none");
-  }
-
-  currentImg.classList.remove("thumb-visible");
-  currentImg.classList.remove("d-none");
-  currentImg.src = newSrc;
-
-  requestAnimationFrame(() => {
-    currentImg.classList.add("thumb-visible");
-    setTimeout(() => {
-      if (prevImg) prevImg.classList.add("d-none");
-    }, 400);
-  });
-}
-
-export function crossfadeAudioThumbnail(newSrc) {
-  const currentImg = document.getElementById("audio-art-img");
-  const prevImg = document.getElementById("audio-art-prev");
-  const cdSpinner = document.getElementById("audio-cd-spinner");
-  const fallbackIcon = document.getElementById("audio-fallback-icon");
-
-  if (cdSpinner) cdSpinner.classList.add("d-none");
-
-  if (!currentImg) return;
-
-  if (!newSrc) {
-    currentImg.classList.add("d-none");
-    currentImg.classList.remove("thumb-visible");
-    if (prevImg) prevImg.classList.add("d-none");
-    if (fallbackIcon) fallbackIcon.classList.remove("d-none");
-    return;
-  }
-
-  if (fallbackIcon) fallbackIcon.classList.add("d-none");
-
-  const oldSrc = currentImg.getAttribute("src");
-  if (oldSrc && oldSrc !== newSrc && prevImg) {
-    prevImg.src = oldSrc;
-    prevImg.classList.remove("d-none");
-  }
-
-  currentImg.classList.remove("thumb-visible");
-  currentImg.classList.remove("d-none");
-  currentImg.src = newSrc;
-
-  requestAnimationFrame(() => {
-    currentImg.classList.add("thumb-visible");
-    setTimeout(() => {
-      if (prevImg) prevImg.classList.add("d-none");
-    }, 400);
-  });
-}
-
-export function updateMetadataDisplay(info) {
-  const metaInfo = document.getElementById("input-meta-info");
-  const pathInput = document.getElementById("input-file-path");
-
-  // Media preview container elements
-  const inputsCol = document.getElementById("media-inputs-col");
-  const previewCol = document.getElementById("media-preview-col");
-  const previewCard = document.getElementById("media-preview-card");
-  const videoEl = document.getElementById("media-video-preview");
-  const actionFrameImg = document.getElementById("video-action-frame-img");
-  const actionFramePrev = document.getElementById("video-action-frame-prev");
-  const audioEl = document.getElementById("media-audio-preview");
-
-  if (pathInput) {
-    pathInput.value = info ? info.file_path || currentInputFile : "";
-  }
-
-  const showPreview = loadSettings().showMediaPreview !== false;
-
-  if (info && info.file_path && showPreview) {
-    const ext = (info.file_name || info.file_path).split(".").pop().toLowerCase();
-    const isImage = ["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "svg", "ico"].includes(ext);
-    const isAudio =
-      !isImage &&
-      (info.resolution === "N/A" ||
-      info.video_codec === "None" ||
-      ["mp3", "wav", "flac", "m4a", "ogg", "opus", "wma", "aac"].includes(ext));
-
-    let cleanPath = info.file_path;
-    try {
-      if (typeof cleanPath === "string" && cleanPath.trim().startsWith("file://")) {
-        let p = cleanPath.trim().slice("file://".length);
-        if (p.startsWith("localhost/")) p = p.slice("localhost/".length);
-        else if (p.startsWith("localhost")) p = p.slice("localhost".length);
-        if (/^\/[A-Za-z][:|]/.test(p)) {
-          p = p.slice(1).replace(/^([A-Za-z])\|/, "$1:");
-        }
-        cleanPath = decodeURIComponent(p);
-      }
-    } catch (_) {}
-
-    const assetSrc =
-      window.__TAURI__?.core?.convertFileSrc && cleanPath
-        ? window.__TAURI__.core.convertFileSrc(cleanPath)
-        : cleanPath || "";
-
-    const videoFallback = document.getElementById("video-preview-fallback");
-    const videoFallbackName = document.getElementById("video-fallback-filename");
-    const audioFormat = document.getElementById("audio-art-format");
-    const cdSpinner = document.getElementById("audio-cd-spinner");
-    const audioFallbackIcon = document.getElementById("audio-fallback-icon");
-    const audioArtImg = document.getElementById("audio-art-img");
-    const imageLayer = document.getElementById("image-preview-layer");
-    const imageEl = document.getElementById("media-image-preview");
-    const imageOverlayTitle = document.getElementById("image-overlay-title");
-    const imageOverlayFormat = document.getElementById("image-overlay-format");
-    const videoLayer = document.getElementById("video-preview-layer");
-    const audioLayer = document.getElementById("audio-preview-layer");
-
-    if (inputsCol) {
-      inputsCol.className = "col-12 col-lg-7 col-xl-7 col-xxl-8";
-    }
-
-    if (previewCol) {
-      previewCol.className = "col-12 col-lg-5 col-xl-5 col-xxl-4 d-flex flex-column align-self-stretch preview-slide-in";
-    }
-
-    if (previewCard) {
-      previewCard.classList.remove("d-none");
-    }
-
-    // Render preview via Media Preview Provider System
-    mediaPreviewManager.renderPreview({
-      info,
-      ext,
-      assetSrc,
-      previewCard,
-      imageLayer,
-      videoLayer,
-      audioLayer,
-      imageEl,
-      imageOverlayTitle,
-      imageOverlayFormat,
-      videoEl,
-      audioEl,
-      actionFrameImg,
-      actionFramePrev,
-      cdSpinner,
-      audioFallbackIcon,
-      audioArtImg,
-      audioFormat,
-      videoFallback,
-      videoFallbackName,
-      videoOverlay: document.getElementById("video-overlay-info"),
-      videoOverlayTitle: document.getElementById("video-overlay-title"),
-      videoOverlayFormat: document.getElementById("video-overlay-format"),
-      fallbackIcon: document.getElementById("video-fallback-icon"),
-      waveformCanvas: document.getElementById("trim-waveform-canvas"),
-      currentInputFile,
-      getCurrentFile: () => currentInputFile,
-      actionFrameCache,
-      albumArtCache,
-      crossfadeAudioThumbnail,
-      crossfadeVideoThumbnail,
-      renderMarqueeSongTitle,
-      extractAlbumArtAsync,
-      extractActionFrameAsync,
-      generateWaveformFromSource,
-      refreshWaveformDisplay,
-    });
-  } else {
-    // If no media loaded, keep the layout clean:
-    if (inputsCol) {
-      inputsCol.className = "col-12";
-    }
-    if (previewCol) {
-      previewCol.classList.remove("d-flex", "preview-slide-in");
-      previewCol.classList.add("d-none");
-    }
-    if (previewCard) {
-      previewCard.classList.add("d-none");
-    }
-    if (videoEl) {
-      videoEl.pause();
-      setMediaSrc(videoEl, null);
-    }
-    if (audioEl) {
-      audioEl.pause();
-      setMediaSrc(audioEl, null);
-    }
-  }
-
-  if (!metaInfo) return;
-
-  if (info && (info.duration_seconds > 0 || info.video_codec !== "--" || info.audio_codec !== "--" || info.file_size_mb > 0)) {
-    document.getElementById("meta-duration").textContent =
-      info.duration_string || "--:--:--";
-    document.getElementById("meta-resolution").textContent =
-      info.resolution || "--";
-    document.getElementById("meta-vcodec").textContent =
-      info.video_codec || "--";
-    document.getElementById("meta-acodec").textContent =
-      info.audio_codec || "--";
-    document.getElementById("meta-size").textContent =
-      info.file_size_formatted || `${info.file_size_mb || 0} MB`;
-
-    if (metaInfo.classList.contains("d-none")) {
-      metaInfo.classList.remove("d-none");
-      metaInfo.classList.add("d-flex", "ui-zoom-in");
-    }
-  } else {
-    document.getElementById("meta-duration").textContent = "--:--:--";
-    document.getElementById("meta-resolution").textContent = "--";
-    document.getElementById("meta-vcodec").textContent = "--";
-    document.getElementById("meta-acodec").textContent = "--";
-    document.getElementById("meta-size").textContent = "-- MB";
-    metaInfo.classList.remove("d-flex", "ui-zoom-in");
-    metaInfo.classList.add("d-none");
-  }
-}
-
-export function syncVideoPreviewForActiveTool(toolId) {
-  if (!currentMediaInfo) return;
-  // Disabled previews stay hidden across tool switches: layer toggles below
-  // would otherwise resurface the card without its column.
-  if (loadSettings().showMediaPreview === false) {
-    applyMediaPreviewVisibility();
-    return;
-  }
-  const previewCard = document.getElementById("media-preview-card");
-  const videoEl = document.getElementById("media-video-preview");
-  const actionFrameImg = document.getElementById("video-action-frame-img");
-  const videoFallback = document.getElementById("video-preview-fallback");
-  const videoOverlay = document.getElementById("video-overlay-info");
-  const audioLayer = document.getElementById("audio-preview-layer");
-  const imageLayer = document.getElementById("image-preview-layer");
-  const videoLayer = document.getElementById("video-preview-layer");
-
-  const filePath = currentMediaInfo.file_path || currentInputFile;
-  const isAudio = isAudioFile(filePath) || currentMediaInfo.video_codec === "None" || currentMediaInfo.resolution === "N/A";
-  const isImage = isImageFile(filePath);
-
-  if (isImage) {
-    if (previewCard) {
-      previewCard.classList.remove("d-none", "video-mode", "audio-mode");
-      previewCard.classList.add("image-mode");
-    }
-    if (imageLayer) imageLayer.classList.remove("d-none");
-    if (videoLayer) videoLayer.classList.add("d-none");
-    if (audioLayer) audioLayer.classList.add("d-none");
-    return;
-  }
-
-  if (isAudio) {
-    if (previewCard) {
-      previewCard.classList.remove("d-none", "video-mode", "image-mode");
-      previewCard.classList.add("audio-mode");
-    }
-    if (audioLayer) audioLayer.classList.remove("d-none");
-    if (videoLayer) videoLayer.classList.add("d-none");
-    if (imageLayer) imageLayer.classList.add("d-none");
-    if (videoEl) {
-      videoEl.pause();
-      videoEl.classList.add("d-none");
-    }
-    return;
-  }
-
-  // Video media
-  if (previewCard) {
-    previewCard.classList.remove("d-none", "audio-mode", "image-mode");
-    previewCard.classList.add("video-mode");
-  }
-  if (videoLayer) videoLayer.classList.remove("d-none");
-  if (audioLayer) audioLayer.classList.add("d-none");
-  if (imageLayer) imageLayer.classList.add("d-none");
-
-  if (toolId === "trim") {
-    if (actionFrameImg) actionFrameImg.classList.add("d-none");
-    if (videoFallback) videoFallback.classList.add("d-none");
-    if (videoOverlay) videoOverlay.classList.remove("d-none");
-    if (videoEl) {
-      videoEl.classList.remove("d-none");
-      const assetSrc =
-        window.__TAURI__?.core?.convertFileSrc && currentMediaInfo.file_path
-          ? window.__TAURI__.core.convertFileSrc(currentMediaInfo.file_path)
-          : "";
-      if (assetSrc && videoEl.src !== assetSrc) {
-        videoEl.src = assetSrc;
-      }
-    }
-  } else {
-    if (actionFrameImg && actionFrameImg.getAttribute("src")) {
-      actionFrameImg.classList.remove("d-none");
-      if (videoFallback) videoFallback.classList.add("d-none");
-      if (videoOverlay) videoOverlay.classList.remove("d-none");
-      if (videoEl) {
-        videoEl.pause();
-        videoEl.classList.add("d-none");
-      }
-    }
-  }
-}
-
 export async function selectMediaFile(filterMode = "all") {
   if (window.__TAURI__?.core?.invoke) {
     try {
@@ -804,7 +76,7 @@ export async function selectMediaFile(filterMode = "all") {
       });
       if (selected && selected.length > 0) {
         await addFilesToBatch(selected);
-        return currentMediaInfo;
+        return mediaState.currentMediaInfo;
       }
       return null;
     } catch (err) {
@@ -815,39 +87,21 @@ export async function selectMediaFile(filterMode = "all") {
   // Web fallback simulation
   const mockPath = `C:\\Users\\User\\Videos\\sample_media_${Date.now().toString().slice(-4)}.mp4`;
   await addFilesToBatch([mockPath]);
-  return currentMediaInfo;
+  return mediaState.currentMediaInfo;
 }
 
 export async function selectMediaFiles(filterMode = "all") {
-  if (window.__TAURI__?.core?.invoke) {
-    try {
-      const selected = await window.__TAURI__.core.invoke("pick_files", {
-        filterMode,
-      });
-      if (selected && selected.length > 0) {
-        await addFilesToBatch(selected);
-        return selected;
-      }
-      return [];
-    } catch (err) {
-      console.warn("Tauri pick_files error:", err);
-    }
+  // Thin wrapper: pure pick (file_picker.js) + batch-queue side effect.
+  const selected = await pickFiles(filterMode);
+  if (selected && selected.length > 0) {
+    await addFilesToBatch(selected);
+    return selected;
   }
   return [];
 }
 
 export async function selectOutputFolder(defaultPath = null) {
-  if (window.__TAURI__?.core?.invoke) {
-    try {
-      const selected = await window.__TAURI__.core.invoke("pick_folder", {
-        defaultPath: defaultPath || null,
-      });
-      return selected || null;
-    } catch (err) {
-      console.warn("Tauri pick_folder error:", err);
-    }
-  }
-  return null;
+  return pickFolder(defaultPath);
 }
 
 // Batch Queue State & Management
@@ -903,7 +157,7 @@ export async function initSavedBatchQueue() {
       const validQueue = checkResults.filter(Boolean);
       batchQueue = validQueue;
       saveBatchQueue(batchQueue);
-    } catch (_) {}
+    } catch (caughtErr) { reportError("js/media.js:initSavedBatchQueue", caughtErr); }
   }
 
   if (batchQueue.length > 0) {
@@ -945,7 +199,7 @@ export async function removeBatchItem(index) {
       }
       // Debounced like selection clicks: rapid deletes collapse into one
       // probe, and the list re-renders immediately instead of waiting.
-      if (wasActive || !currentInputFile) {
+      if (wasActive || !mediaState.currentInputFile) {
         requestBatchItemProbePath(batchQueue[selectedBatchIdx >= 0 ? selectedBatchIdx : 0].path);
       }
     }
@@ -1034,7 +288,7 @@ function scheduleBatchProbe(getPath) {
     try {
       const filePath = typeof getPath === "function" ? getPath() : getPath;
       if (filePath) probeMedia(filePath);
-    } catch (_) {}
+    } catch (caughtErr) { reportError("js/media.js:scheduleBatchProbe", caughtErr); }
   }, 120);
 }
 
@@ -1138,7 +392,7 @@ function renderBatchQueueUIInner() {
               <ion-icon name="reorder-two-outline" class="fs-5"></ion-icon>
             </span>
             ${leadingCheckBtn}
-            <span class="fw-medium ${isSelected ? 'text-white' : 'text-body'} text-truncate" style="font-size: 0.88rem;"><strong class="me-2 ${isSelected ? 'text-white' : 'text-body-secondary'}">${idx + 1}.</strong>${item.name}</span>
+            <span class="fw-medium ${isSelected ? 'text-white' : 'text-body'} text-truncate" style="font-size: 0.88rem;"><strong class="me-2 ${isSelected ? 'text-white' : 'text-body-secondary'}">${idx + 1}.</strong>${escapeHtml(item.name)}</span>
           </div>
           <div class="d-flex align-items-center gap-2 flex-shrink-0">
             ${statusBadge}
@@ -1239,7 +493,7 @@ function setupBatchQueueItemDrag(itemEl, dragHandle, index, listContainer) {
         saveBatchQueue(batchQueue);
         if (selectedBatchIdx >= 0 && selectedBatchIdx < batchQueue.length) {
           const activePath = batchQueue[selectedBatchIdx].path;
-          if (activePath && activePath !== currentInputFile) {
+          if (activePath && activePath !== mediaState.currentInputFile) {
             requestBatchItemProbePath(activePath);
           }
         }
@@ -1406,13 +660,18 @@ export function initDragAndDrop(onFileSelected) {
       if (isPdfTool && typeof window.addPdfFilesToPdfQueue === "function") {
         window.addPdfFilesToPdfQueue(filePaths);
       } else if (isImageTool) {
-        await addImageFilesToQueue(filePaths);
+        // Decoupled: image_queue.js listens (was a direct import cycle).
+        try {
+          document.dispatchEvent(
+            new CustomEvent("anedikit:add-image-files", { detail: { paths: filePaths } })
+          );
+        } catch (caughtErr) { reportError("js/media.js:initDragAndDrop", caughtErr); }
       } else if (activeTool === "audio_tags") {
         const { addAudioFilesToQueue } = await import("./audio_tags.js");
         await addAudioFilesToQueue(filePaths);
       } else {
         await addFilesToBatch(filePaths);
-        if (onFileSelected) onFileSelected(currentMediaInfo);
+        if (onFileSelected) onFileSelected(mediaState.currentMediaInfo);
       }
     }
   });
@@ -1447,13 +706,20 @@ export function initDragAndDrop(onFileSelected) {
               if (isPdfTool && typeof window.addPdfFilesToPdfQueue === "function") {
                 window.addPdfFilesToPdfQueue(event.payload.paths);
               } else if (isImageTool) {
-                await addImageFilesToQueue(event.payload.paths);
+                // Decoupled: image_queue.js listens (was a direct import cycle).
+                try {
+                  document.dispatchEvent(
+                    new CustomEvent("anedikit:add-image-files", {
+                      detail: { paths: event.payload.paths },
+                    })
+                  );
+                } catch (caughtErr) { reportError("js/media.js:initDragAndDrop", caughtErr); }
               } else if (activeTool === "audio_tags") {
                 const { addAudioFilesToQueue } = await import("./audio_tags.js");
                 await addAudioFilesToQueue(event.payload.paths);
               } else {
                 await addFilesToBatch(event.payload.paths);
-                if (onFileSelected) onFileSelected(currentMediaInfo);
+                if (onFileSelected) onFileSelected(mediaState.currentMediaInfo);
               }
             }
           }
@@ -1478,28 +744,17 @@ export {
   initTrimmerControls,
 } from "./trimmer.js";
 
-// Re-export image AI queue and lightbox utilities from image_queue.js
-export {
-  initSavedImageAiQueue,
-  getImageAiQueue,
-  updateImageAiItemStatus,
-  updateActiveImageAiProgress,
-  removeImageAiQueueItem,
-  clearImageAiQueue,
-  addImageFilesToQueue,
-  renderImageAiQueueUI,
-  initImageLightbox,
-  openImageLightbox,
-} from "./image_queue.js";
+// NOTE: image-queue utilities moved out: import them from image_queue.js
+// directly (the former re-export facade was half of a static import cycle).
 
 export function clearAllMediaPreviewCaches() {
   let totalBytes = 0;
 
-  // Calculate size in mediaInfoCache
-  for (const [k, v] of mediaInfoCache.entries()) {
+  // Calculate size in mediaState.mediaInfoCache
+  for (const [k, v] of mediaState.mediaInfoCache.entries()) {
     totalBytes += (k.length * 2) + JSON.stringify(v).length * 2;
   }
-  mediaInfoCache.clear();
+  mediaState.mediaInfoCache.clear();
 
   // Calculate size in actionFrameCache (data URIs)
   for (const [k, v] of actionFrameCache.entries()) {

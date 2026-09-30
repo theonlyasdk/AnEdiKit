@@ -8,8 +8,11 @@ import {
 import { setDetectedHardware } from "./commands.js";
 import { applyTitlebarMode } from "./window_caption.js";
 import { applyUserKitsVisibility } from "../kits/index.js";
-import { applyMediaPreviewVisibility } from "./media.js";
-import { refreshToolsUI } from "./tools_manager.js";
+import { applyMediaPreviewVisibility } from "./media/metadata_ui.js";
+import {
+  registerInitToolsCacheControls,
+  requestRefreshToolsUI,
+} from "./tools_ui_bridge.js";
 
 let appSettings = loadSettings();
 let userKitsWarningModalInstance = null;
@@ -366,7 +369,7 @@ export function initToolsCacheControls() {
     btnCheckAll.innerHTML = `<ion-icon name="refresh-outline" class="me-1"></ion-icon>Checking...`;
 
     // Refresh tools status in UI with forced fresh re-fetch
-    refreshToolsUI({ force: true })
+    requestRefreshToolsUI({ force: true })
       .then(() => {
         renderToolsCacheStatus();
       })
@@ -382,3 +385,5 @@ export function initToolsCacheControls() {
   });
 }
 
+// Decoupled from tools_manager.js: it invokes this via the bridge.
+registerInitToolsCacheControls(initToolsCacheControls);

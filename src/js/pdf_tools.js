@@ -4,6 +4,7 @@
 import { setupListDragAndDrop } from "./drag_reorder.js";
 import { rise } from "./cube_motion.js";
 import { saveLastOutputDir } from "./storage.js";
+import { escapeHtml } from "./escape.js";
 
 const PDF_CATEGORIES = [
   {
@@ -192,7 +193,7 @@ async function updatePdfInfo(tool) {
       body.innerHTML = `
         <dl class="row small mb-0">
           <dt class="col-5 text-body-secondary">Source</dt>
-          <dd class="col-7 text-truncate" title="${url}">Web URL</dd>
+          <dd class="col-7 text-truncate" title="${escapeHtml(url)}">Web URL</dd>
         </dl>`;
     } else {
       body.innerHTML = '<span class="small text-body-secondary">No document selected. Select a PDF to view metadata.</span>';
@@ -204,7 +205,7 @@ async function updatePdfInfo(tool) {
   body.innerHTML = `
     <dl class="row small mb-0">
       <dt class="col-5 text-body-secondary">Document</dt>
-      <dd class="col-7 text-truncate" title="${names.join("; ")}">${primaryName}</dd>
+      <dd class="col-7 text-truncate" title="${escapeHtml(names.join("; "))}">${escapeHtml(primaryName)}</dd>
       <dt class="col-5 text-body-secondary">File size</dt>
       <dd class="col-7" id="pdf-info-size">Reading…</dd>
       <dt class="col-5 text-body-secondary">Pages</dt>
@@ -254,8 +255,8 @@ async function updatePdfInfo(tool) {
       body.innerHTML = `
         <dl class="row small mb-0">
           ${rows.map(([label, val, titleVal]) => `
-            <dt class="col-5 text-body-secondary text-truncate" title="${label}">${label}</dt>
-            <dd class="col-7 text-truncate mb-1" title="${titleVal || val}">${val}</dd>
+            <dt class="col-5 text-body-secondary text-truncate" title="${escapeHtml(label)}">${escapeHtml(label)}</dt>
+            <dd class="col-7 text-truncate mb-1" title="${escapeHtml(titleVal || val)}">${escapeHtml(val)}</dd>
           `).join("")}
         </dl>`;
     } catch (_) {

@@ -1,0 +1,202 @@
+<!-- Sidebar Backdrop Overlay for Mobile/Small Screens -->
+        <div class="sidebar-backdrop d-none" id="sidebar-backdrop"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar border-end d-flex flex-column flex-shrink-0 aek-legacy-50459d" id="main-sidebar">
+          <div class="overflow-y-auto flex-grow-1 p-2 position-relative" id="sidebar-scroll-container">
+            <div class="sidebar-indicator" id="sidebar-indicator"></div>
+
+            <!-- Unified tool browser -->
+            <div class="sidebar-section" id="sidebar-all-tools-section">
+              <nav class="nav nav-pills flex-column gap-1" id="all-tools-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="all_tools" type="button" title="Browse every tool by category">
+                  <ion-icon name="apps-outline" class="text-body-secondary"></ion-icon>
+                  <span>All Tools</span>
+                </button>
+              </nav>
+            </div>
+
+            <!-- yt-dlp section -->
+            <div class="sidebar-section" id="sidebar-ytdlp-section">
+              <div class="sidebar-section-header sidebar-section-first"><span>yt-dlp</span></div>
+              <nav class="nav nav-pills flex-column gap-1" id="ytdlp-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_audio" type="button" title="Download audio and extract MP3, M4A, FLAC with metadata">
+                  <ion-icon name="musical-note-outline" class="text-body-secondary"></ion-icon>
+                  <span>Download Audio</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_video" type="button" title="Download video streams with resolution and container options">
+                  <ion-icon name="download-outline" class="text-body-secondary"></ion-icon>
+                  <span>Download Video</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_playlist" type="button" title="Fetch and download playlists, channels, or select videos to download">
+                  <ion-icon name="list-outline" class="text-body-secondary"></ion-icon>
+                  <span>Download Playlist</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ytdlp_subtitles" type="button" title="Download subtitles, closed captions, and video thumbnails">
+                  <ion-icon name="image-outline" class="text-body-secondary"></ion-icon>
+                  <span>Subtitles &amp; Thumbnails</span>
+                </button>
+              </nav>
+            </div>
+
+            <!-- FFmpeg section -->
+            <div class="sidebar-section" id="sidebar-ffmpeg-section">
+              <div class="sidebar-section-header"><span>FFmpeg</span></div>
+              <nav class="nav nav-pills flex-column gap-1" id="tool-nav">
+                <button class="nav-link active text-start d-flex align-items-center gap-2" data-tool="convert" type="button" title="Convert between video formats with codec and quality controls">
+                  <ion-icon name="film-outline" class="text-body-secondary"></ion-icon>
+                  <span>Convert Video</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress" type="button" title="Compress video for Discord, WhatsApp, or custom target size">
+                  <ion-icon name="archive-outline" class="text-body-secondary"></ion-icon>
+                  <span>Compress Video</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="trim" type="button" title="Trim or cut media with timestamps">
+                  <ion-icon name="cut-outline" class="text-body-secondary"></ion-icon>
+                  <span>Trim and Cut</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="speed_motion" type="button" title="Speed up, slow down, timelapse, and optical flow interpolation">
+                  <ion-icon name="speedometer-outline" class="text-body-secondary"></ion-icon>
+                  <span>Speed &amp; Motion</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="aspect_crop" type="button" title="Aspect ratio presets, vertical video crop, and background padding">
+                  <ion-icon name="crop-outline" class="text-body-secondary"></ion-icon>
+                  <span>Aspect &amp; Crop</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="stabilize" type="button" title="Remove shaky camera motion and stabilize handheld video">
+                  <ion-icon name="videocam-outline" class="text-body-secondary"></ion-icon>
+                  <span>Video Stabilization</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="loop_duration" type="button" title="Repeat video or audio to an exact duration or loop count">
+                  <ion-icon name="repeat-outline" class="text-body-secondary"></ion-icon>
+                  <span>Loop to Duration</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="normalize" type="button" title="Standardize audio loudness to Spotify, YouTube, or EBU R128">
+                  <ion-icon name="options-outline" class="text-body-secondary"></ion-icon>
+                  <span>Normalize Loudness</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="mute_replace" type="button" title="Mute or replace background audio">
+                  <ion-icon name="volume-mute-outline" class="text-body-secondary"></ion-icon>
+                  <span>Mute or Replace Audio</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="gif_frames" type="button" title="Generate animated GIFs or extract image frames">
+                  <ion-icon name="images-outline" class="text-body-secondary"></ion-icon>
+                  <span>GIF and Frames</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="extract_audio" type="button" title="Extract audio tracks or convert audio formats">
+                  <ion-icon name="musical-notes-outline" class="text-body-secondary"></ion-icon>
+                  <span>Extract and Convert Audio</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="compress_audio" type="button" title="Compress audio files with target sizes, bitrates, channels, and Opus/MP3/AAC codecs">
+                  <ion-icon name="pulse-outline" class="text-body-secondary"></ion-icon>
+                  <span>Compress Audio</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="audio_tags" type="button" title="Audio Tag &amp; Metadata ID3 Editor for title, artist, album, and album cover artwork">
+                  <ion-icon name="pricetag-outline" class="text-body-secondary"></ion-icon>
+                  <span>Audio Tag Editor</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="merge" type="button" title="Combine multiple audio or video files">
+                  <ion-icon name="library-outline" class="text-body-secondary"></ion-icon>
+                  <span>Merge and Concat</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="custom" type="button" title="Run custom FFmpeg commands with live preview">
+                  <ion-icon name="terminal-outline" class="text-body-secondary"></ion-icon>
+                  <span>Custom Command</span>
+                </button>
+              </nav>
+            </div>
+
+            <!-- Image & AI Tools section -->
+            <div class="sidebar-section" id="sidebar-image-ai-section">
+              <div class="sidebar-section-header"><span>Image &amp; AI Tools</span></div>
+              <nav class="nav nav-pills flex-column gap-1" id="image-ai-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="bg_remover" type="button" title="Remove background and extract subjects locally using on-device neural models">
+                  <ion-icon name="person-circle-outline" class="text-body-secondary"></ion-icon>
+                  <span>Background Remover</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="ai_upscaler" type="button" title="Super-resolution deep learning 2x, 3x, 4x image upscaling and enhancement">
+                  <ion-icon name="scan-outline" class="text-body-secondary"></ion-icon>
+                  <span>AI Image Upscaler</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="vectorizer" type="button" title="Convert raster images (PNG, JPG) to scalable SVG vectors">
+                  <ion-icon name="shapes-outline" class="text-body-secondary"></ion-icon>
+                  <span>Image Vectorizer</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="restore_denoise" type="button" title="Denoise, deblur, and restore low-light or degraded photos">
+                  <ion-icon name="sparkles-outline" class="text-body-secondary"></ion-icon>
+                  <span>Restore &amp; Denoise</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="icon_generator" type="button" title="Generate Windows .ico, Apple .icns, Favicon and PWA icon sets">
+                  <ion-icon name="apps-outline" class="text-body-secondary"></ion-icon>
+                  <span>Icon Generator</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="metadata_cleaner" type="button" title="Inspect and sanitize EXIF, GPS, and camera metadata">
+                  <ion-icon name="shield-checkmark-outline" class="text-body-secondary"></ion-icon>
+                  <span>Metadata Cleaner</span>
+                </button>
+              </nav>
+            </div>
+
+            <!-- PDF Tools section -->
+            <div class="sidebar-section" id="sidebar-pdf-section">
+              <div class="sidebar-section-header"><span>PDF Tools</span></div>
+              <nav class="nav nav-pills flex-column gap-1" id="pdf-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_organize" type="button" title="Merge, split, remove, extract, organize, and scan pages">
+                  <ion-icon name="file-tray-stacked-outline" class="text-body-secondary"></ion-icon>
+                  <span>Organize PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_optimize" type="button" title="Compress, repair, and OCR PDF documents">
+                  <ion-icon name="speedometer-outline" class="text-body-secondary"></ion-icon>
+                  <span>Optimize PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_to" type="button" title="Convert images, Office documents, and webpages to PDF">
+                  <ion-icon name="arrow-down-circle-outline" class="text-body-secondary"></ion-icon>
+                  <span>Convert to PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_from" type="button" title="Convert PDFs to images, Word, PowerPoint, Excel, and Markdown">
+                  <ion-icon name="arrow-up-circle-outline" class="text-body-secondary"></ion-icon>
+                  <span>Convert from PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_edit" type="button" title="Edit text, rotate, crop, add page numbers, watermark, and forms">
+                  <ion-icon name="create-outline" class="text-body-secondary"></ion-icon>
+                  <span>Edit PDF</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_security" type="button" title="Protect, unlock, sign, redact, and compare PDFs">
+                  <ion-icon name="shield-checkmark-outline" class="text-body-secondary"></ion-icon>
+                  <span>PDF Security</span>
+                </button>
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="pdf_intelligence" type="button" title="AI summarizer and document translation">
+                  <ion-icon name="sparkles-outline" class="text-body-secondary"></ion-icon>
+                  <span>PDF Intelligence</span>
+                </button>
+              </nav>
+            </div>
+
+            <!-- User Kits section -->
+            <div id="sidebar-user-kits-section" class="sidebar-section d-none">
+              <div class="sidebar-section-header d-flex align-items-center justify-content-between">
+                <span>User Kits</span>
+              </div>
+              <div class="px-1 mb-3">
+                <button class="btn btn-outline-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" id="btn-sidebar-new-kit" type="button" title="Create a new custom scriptable Kit">
+                  <ion-icon name="add-outline"></ion-icon> New Kit
+                </button>
+              </div>
+              <nav class="nav nav-pills flex-column gap-1" id="user-kits-nav">
+                <!-- Dynamically populated from saved user kits -->
+              </nav>
+            </div>
+
+            <!-- Settings navigation at the very end of sidebar scrollview -->
+            <div class="sidebar-section pt-2" id="sidebar-settings-container">
+              <nav class="nav nav-pills flex-column gap-1" id="settings-nav">
+                <button class="nav-link text-start d-flex align-items-center gap-2" data-tool="settings" type="button" title="Application preferences and hardware acceleration">
+                  <ion-icon name="settings-outline" class="text-body-secondary"></ion-icon>
+                  <span>Settings</span>
+                </button>
+              </nav>
+            </div>
+          </div>
+        </aside>
+
+        
