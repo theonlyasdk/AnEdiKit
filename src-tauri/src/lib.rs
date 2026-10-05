@@ -16,8 +16,7 @@ pub fn run() {
                 #[cfg(target_os = "windows")]
                 {
                     if !system::is_windows_10() {
-                        use window_vibrancy::apply_acrylic;
-                        let _ = apply_acrylic(&window, Some((0, 0, 0, 0)));
+                        // Acrylic transparency disabled for solid background
                     }
                 }
                 #[cfg(target_os = "macos")]

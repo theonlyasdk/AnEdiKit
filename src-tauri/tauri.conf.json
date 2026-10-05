@@ -4,8 +4,8 @@
   "version": "0.6.0",
   "identifier": "com.asdk.anedikit",
   "build": {
-    "beforeDevCommand": "npm --prefix ../frontend run dev",
-    "beforeBuildCommand": "npm --prefix ../frontend run build",
+    "beforeDevCommand": "npm --prefix frontend run dev",
+    "beforeBuildCommand": "npm --prefix frontend run build",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../frontend/dist"
   },
@@ -18,11 +18,8 @@
         "height": 720,
         "minWidth": 1100,
         "minHeight": 720,
-        "transparent": true,
-        "decorations": false,
-        "windowEffects": {
-          "effects": ["acrylic", "mica", "blur"]
-        }
+        "transparent": false,
+        "decorations": false
       }
     ],
     "security": {
