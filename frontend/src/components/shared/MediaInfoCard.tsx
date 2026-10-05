@@ -1,6 +1,8 @@
 import React from 'react';
 import { Film, Clock, HardDrive, Cpu, Radio } from 'lucide-react';
 import { MediaProbeInfo } from '@/services/tauri';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface MediaInfoCardProps {
   info: MediaProbeInfo | null;
@@ -10,9 +12,9 @@ interface MediaInfoCardProps {
 export const MediaInfoCard: React.FC<MediaInfoCardProps> = ({ info, loading }) => {
   if (loading) {
     return (
-      <div className="p-4 rounded-xl border border-border/40 bg-card/40 animate-pulse flex items-center justify-center text-xs text-muted-foreground">
+      <Card className="p-4 bg-card/40 border-dashed animate-pulse flex items-center justify-center text-xs text-muted-foreground">
         Probing media details...
-      </div>
+      </Card>
     );
   }
 
@@ -34,53 +36,64 @@ export const MediaInfoCard: React.FC<MediaInfoCardProps> = ({ info, loading }) =
   const audioCodec = audioStream?.codec_name?.toUpperCase() || 'None';
 
   return (
-    <div className="p-4 rounded-xl border border-border/40 bg-card/50 space-y-3">
-      <div className="flex items-center justify-between text-xs font-semibold text-foreground/80 border-b border-border/30 pb-2">
-        <span className="flex items-center gap-1.5">
-          <Film className="h-4 w-4 text-primary" /> Stream Details
-        </span>
-        <span className="text-[11px] font-normal text-muted-foreground uppercase">
+    <Card className="bg-card/60 backdrop-blur-xs border-border/60">
+      <div className="px-4 py-2.5 flex items-center justify-between border-b border-border/40 text-xs">
+        <div className="flex items-center gap-2 font-semibold text-foreground/90">
+          <Film className="h-4 w-4 text-primary" />
+          <span>Stream Information</span>
+        </div>
+        <Badge variant="secondary" className="font-mono text-[10px] uppercase">
           {info.format?.format_name || 'Container'}
-        </span>
+        </Badge>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <div className="text-[10px] text-muted-foreground">Duration</div>
-            <div className="font-medium text-foreground">{durationStr}</div>
+      <CardContent className="p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground shrink-0">
+              <Clock className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Duration</div>
+              <div className="font-semibold text-foreground">{durationStr}</div>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <HardDrive className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <div className="text-[10px] text-muted-foreground">File Size</div>
-            <div className="font-medium text-foreground">{sizeMb}</div>
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground shrink-0">
+              <HardDrive className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">File Size</div>
+              <div className="font-semibold text-foreground">{sizeMb}</div>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <div className="text-[10px] text-muted-foreground">Resolution / Codec</div>
-            <div className="font-medium text-foreground truncate max-w-[120px]">
-              {resolution} ({videoCodec})
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground shrink-0">
+              <Cpu className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Video Codec</div>
+              <div className="font-semibold text-foreground truncate max-w-[120px]">
+                {resolution} ({videoCodec})
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground shrink-0">
+              <Radio className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Audio Codec</div>
+              <div className="font-semibold text-foreground truncate max-w-[120px]">
+                {audioCodec}
+              </div>
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Radio className="h-4 w-4 text-muted-foreground shrink-0" />
-          <div>
-            <div className="text-[10px] text-muted-foreground">Audio Track</div>
-            <div className="font-medium text-foreground truncate max-w-[120px]">
-              {audioCodec}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

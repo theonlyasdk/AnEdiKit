@@ -1,6 +1,9 @@
 import React, { useRef, useEffect } from 'react';
-import { Terminal as TerminalIcon, XCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Terminal as TerminalIcon, XCircle, CheckCircle2, Loader2, FolderOpen } from 'lucide-react';
 import { FfmpegProgressPayload } from '@/services/tauri';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 interface ExecutionDrawerProps {
   isOpen: boolean;
@@ -45,7 +48,7 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
           {isRunning ? (
             <Loader2 className="h-4 w-4 text-primary animate-spin" />
           ) : isFinished && success ? (
-            <CheckCircle className="h-4 w-4 text-emerald-500" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           ) : (
             <XCircle className="h-4 w-4 text-destructive" />
           )}
@@ -53,65 +56,63 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
             {isRunning ? 'Processing Operation...' : isFinished && success ? 'Job Completed Successfully' : 'Process Terminated'}
           </span>
           {isRunning && (
-            <span className="text-[11px] font-mono bg-muted/60 px-2 py-0.5 rounded text-muted-foreground">
+            <Badge variant="secondary" className="font-mono text-[10px] tracking-normal font-normal">
               {progress.speed ? `${progress.speed} ` : ''}{progress.time ? `(${progress.time})` : ''}
-            </span>
+            </Badge>
           )}
         </div>
 
         <div className="flex items-center gap-2">
           {isRunning && (
-            <button
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={onCancel}
-              className="px-3 py-1 rounded-md text-xs font-semibold bg-destructive/15 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+              className="h-7 text-xs"
             >
               Abort Process
-            </button>
+            </Button>
           )}
 
           {isFinished && success && onOpenFolder && (
-            <button
+            <Button
+              size="sm"
               onClick={onOpenFolder}
-              className="px-3 py-1 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs"
+              className="h-7 text-xs gap-1.5 shadow-sm"
             >
-              Open Output Folder
-            </button>
+              <FolderOpen className="h-3.5 w-3.5" /> Open Folder
+            </Button>
           )}
 
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+            className="h-7 text-xs"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Progress line */}
-      <div className="w-full bg-muted/40 h-1.5 overflow-hidden">
-        <div
-          className={`h-full transition-all duration-200 ${
-            isFinished && !success ? 'bg-destructive' : 'bg-primary'
-          }`}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
+      <Progress value={percent} className="h-1 rounded-none" />
 
       {/* Terminal logs body */}
-      <div className="p-4 bg-black/85 flex-1 min-h-[220px] max-h-[360px] flex flex-col font-mono text-xs">
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10 text-[11px] text-white/50">
-          <span className="flex items-center gap-1.5">
+      <div className="p-4 bg-zinc-950 flex-1 min-h-[220px] max-h-[360px] flex flex-col font-mono text-xs">
+        <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 text-[11px] text-zinc-400">
+          <span className="flex items-center gap-1.5 font-medium">
             <TerminalIcon className="h-3.5 w-3.5 text-primary" /> Process Terminal Output
           </span>
-          <span>{logs.length} lines logged</span>
+          <span className="text-zinc-500">{logs.length} lines logged</span>
         </div>
 
         <div
           ref={logContainerRef}
-          className="flex-1 overflow-y-auto space-y-1 text-white/80 leading-relaxed select-text"
+          className="flex-1 overflow-y-auto space-y-1 text-zinc-300 leading-relaxed select-text"
         >
           {logs.length === 0 ? (
-            <div className="text-white/40 italic">Waiting for process stream...</div>
+            <div className="text-zinc-600 italic">Waiting for process stream...</div>
           ) : (
             logs.map((line, idx) => (
               <div key={idx} className="break-all whitespace-pre-wrap">

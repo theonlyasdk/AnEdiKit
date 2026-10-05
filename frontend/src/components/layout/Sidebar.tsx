@@ -22,6 +22,7 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 export interface ToolItem {
   id: string;
@@ -71,146 +72,72 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTool, onSelectTool }) => {
+  const renderNavGroup = (title: string, category: 'video' | 'audio' | 'ytdlp' | 'image' | 'tools') => {
+    const items = TOOLS.filter(t => t.category === category);
+    if (!items.length) return null;
+
+    return (
+      <div className="space-y-1">
+        <h4 className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+          {title}
+        </h4>
+        <div className="space-y-0.5">
+          {items.map(tool => {
+            const Icon = tool.icon;
+            const isActive = activeTool === tool.id;
+            return (
+              <Button
+                key={tool.id}
+                variant={isActive ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => onSelectTool(tool.id)}
+                className={cn(
+                  "w-full justify-start gap-2.5 h-8 px-2.5 font-medium text-xs",
+                  isActive && "bg-secondary font-semibold text-foreground"
+                )}
+              >
+                <Icon className={cn("h-3.5 w-3.5", isActive ? "text-primary" : "text-muted-foreground")} />
+                <span className="truncate">{tool.name}</span>
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="w-64 h-full border-r border-border/40 bg-card/60 backdrop-blur-md flex flex-col shrink-0 select-none">
-      <div className="p-3 border-b border-border/30">
-        <button
+    <div className="w-60 h-full border-r border-border/40 bg-card/40 backdrop-blur-md flex flex-col shrink-0 select-none">
+      <div className="p-3 border-b border-border/40">
+        <Button
+          variant={activeTool === 'dashboard' ? "default" : "outline"}
+          size="sm"
           onClick={() => onSelectTool('dashboard')}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-            activeTool === 'dashboard'
-              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-              : "hover:bg-muted/60 text-muted-foreground hover:text-foreground"
-          )}
+          className="w-full justify-start gap-2.5 h-9"
         >
           <LayoutGrid className="h-4 w-4" />
           <span>All Tools</span>
-        </button>
+        </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
-        <div>
-          <div className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-            Video Processing
-          </div>
-          <div className="space-y-0.5">
-            {TOOLS.filter(t => t.category === 'video').map(tool => {
-              const Icon = tool.icon;
-              const isActive = activeTool === tool.id;
-              return (
-                <button
-                  key={tool.id}
-                  onClick={() => onSelectTool(tool.id)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium text-left transition-colors",
-                    isActive
-                      ? "bg-primary/15 text-primary font-semibold"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
-                  <span className="truncate">{tool.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <div className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-            Audio
-          </div>
-          <div className="space-y-0.5">
-            {TOOLS.filter(t => t.category === 'audio').map(tool => {
-              const Icon = tool.icon;
-              const isActive = activeTool === tool.id;
-              return (
-                <button
-                  key={tool.id}
-                  onClick={() => onSelectTool(tool.id)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium text-left transition-colors",
-                    isActive
-                      ? "bg-primary/15 text-primary font-semibold"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
-                  <span className="truncate">{tool.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <div className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-            Downloader & Media
-          </div>
-          <div className="space-y-0.5">
-            {TOOLS.filter(t => t.category === 'ytdlp').map(tool => {
-              const Icon = tool.icon;
-              const isActive = activeTool === tool.id;
-              return (
-                <button
-                  key={tool.id}
-                  onClick={() => onSelectTool(tool.id)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium text-left transition-colors",
-                    isActive
-                      ? "bg-primary/15 text-primary font-semibold"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
-                  <span className="truncate">{tool.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <div className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-            AI & Documents
-          </div>
-          <div className="space-y-0.5">
-            {TOOLS.filter(t => t.category === 'image' || t.category === 'tools').map(tool => {
-              const Icon = tool.icon;
-              const isActive = activeTool === tool.id;
-              return (
-                <button
-                  key={tool.id}
-                  onClick={() => onSelectTool(tool.id)}
-                  className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-1.5 rounded-md text-xs font-medium text-left transition-colors",
-                    isActive
-                      ? "bg-primary/15 text-primary font-semibold"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                  )}
-                >
-                  <Icon className={cn("h-4 w-4 shrink-0", isActive ? "text-primary" : "text-muted-foreground")} />
-                  <span className="truncate">{tool.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      <div className="flex-1 overflow-y-auto p-2 space-y-4">
+        {renderNavGroup("Video Processing", "video")}
+        {renderNavGroup("Audio Tools", "audio")}
+        {renderNavGroup("Download Suite", "ytdlp")}
+        {renderNavGroup("AI & Documents", "image")}
+        {renderNavGroup("Advanced Tools", "tools")}
       </div>
 
-      <div className="p-3 border-t border-border/30">
-        <button
+      <div className="p-2.5 border-t border-border/40">
+        <Button
+          variant={activeTool === 'settings' ? "secondary" : "ghost"}
+          size="sm"
           onClick={() => onSelectTool('settings')}
-          className={cn(
-            "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors",
-            activeTool === 'settings'
-              ? "bg-primary/15 text-primary font-semibold"
-              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          )}
+          className="w-full justify-start gap-2.5 h-8.5 font-medium text-xs"
         >
-          <Settings className="h-4 w-4" />
-          <span>Preferences & Binaries</span>
-        </button>
+          <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+          <span>Settings & Binaries</span>
+        </Button>
       </div>
     </div>
   );

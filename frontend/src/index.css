@@ -1,82 +1,68 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   :root {
     --background: 240 10% 98%;
-    --foreground: 240 10% 10%;
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
-    --primary: 258 90% 66%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 94%;
-    --secondary-foreground: 240 10% 15%;
-    --muted: 240 5% 94%;
-    --muted-foreground: 240 5% 45%;
-    --accent: 240 5% 92%;
-    --accent-foreground: 240 10% 15%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 6% 88%;
-    --input: 240 6% 88%;
-    --ring: 258 90% 66%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 262.1 83.3% 57.8%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262.1 83.3% 57.8%;
     --radius: 0.75rem;
-
-    /* Custom Acrylic & Glass variables */
-    --surface-glass: rgba(255, 255, 255, 0.72);
-    --surface-border: rgba(0, 0, 0, 0.08);
   }
 
   .dark {
-    --background: 228 15% 10%;
-    --foreground: 210 20% 96%;
-    --card: 228 16% 12%;
-    --card-foreground: 210 20% 96%;
-    --popover: 228 16% 12%;
-    --popover-foreground: 210 20% 96%;
-    --primary: 258 90% 70%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 228 14% 18%;
-    --secondary-foreground: 210 20% 96%;
-    --muted: 228 14% 18%;
-    --muted-foreground: 217 10% 65%;
-    --accent: 228 14% 18%;
-    --accent-foreground: 210 20% 96%;
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 228 14% 20%;
-    --input: 228 14% 20%;
-    --ring: 258 90% 70%;
-
-    /* Dark Acrylic & Glass */
-    --surface-glass: rgba(18, 20, 29, 0.75);
-    --surface-border: rgba(255, 255, 255, 0.08);
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 5.5%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 5.5%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 263.4 70% 50.4%;
   }
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  user-select: none;
-  -webkit-user-select: none;
-  overflow: hidden;
-  height: 100vh;
-  width: 100vw;
-  background-color: transparent;
-  color: hsl(var(--foreground));
-}
-
-#root {
-  height: 100vh;
-  width: 100vw;
-  display: flex;
-  flex-direction: column;
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    user-select: none;
+    -webkit-user-select: none;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
 }
 
 /* Custom scrollbars */
@@ -84,16 +70,13 @@ body {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(150, 150, 150, 0.25);
-  border-radius: 3px;
+  background: rgba(150, 150, 150, 0.2);
+  border-radius: 9999px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 150, 150, 0.45);
+  background: rgba(150, 150, 150, 0.4);
 }

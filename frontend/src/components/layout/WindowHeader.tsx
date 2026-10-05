@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { Minus, Square, Copy, X } from 'lucide-react';
+import { Minus, Square, Copy, X, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export const WindowHeader: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -10,7 +11,7 @@ export const WindowHeader: React.FC = () => {
       const appWin = getCurrentWindow();
       appWin.isMaximized().then(setIsMaximized).catch(() => {});
     } catch {
-      // Running outside Tauri webview
+      // Outside Tauri
     }
   }, []);
 
@@ -43,38 +44,38 @@ export const WindowHeader: React.FC = () => {
   return (
     <div
       data-tauri-drag-region
-      className="h-10 w-full flex items-center justify-between px-3 select-none border-b border-border/40 backdrop-blur-md bg-background/80 shrink-0 z-50"
+      className="h-10 w-full flex items-center justify-between px-3.5 select-none border-b border-border/40 bg-background/80 backdrop-blur-md shrink-0 z-50"
     >
-      <div data-tauri-drag-region className="flex items-center gap-2">
-        <div className="h-5 w-5 rounded bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-          A
+      <div data-tauri-drag-region className="flex items-center gap-2.5">
+        <div className="h-6 w-6 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs">
+          <Sparkles className="h-3.5 w-3.5" />
         </div>
         <span className="font-semibold text-xs tracking-wider uppercase text-foreground/90">
           AnEdiKit
         </span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+        <Badge variant="secondary" className="text-[10px] h-4.5 px-1.5 font-medium tracking-normal">
           v0.6.0
-        </span>
+        </Badge>
       </div>
 
-      <div className="flex items-center">
+      <div className="flex items-center gap-0.5">
         <button
           onClick={handleMinimize}
-          className="h-8 w-9 inline-flex items-center justify-center rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+          className="h-7 w-8 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           title="Minimize"
         >
           <Minus className="h-3.5 w-3.5" />
         </button>
         <button
           onClick={handleMaximize}
-          className="h-8 w-9 inline-flex items-center justify-center rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+          className="h-7 w-8 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
           title={isMaximized ? "Restore" : "Maximize"}
         >
-          {isMaximized ? <Copy className="h-3.5 w-3.5" /> : <Square className="h-3.5 w-3.5" />}
+          {isMaximized ? <Copy className="h-3 w-3" /> : <Square className="h-3 w-3" />}
         </button>
         <button
           onClick={handleClose}
-          className="h-8 w-9 inline-flex items-center justify-center rounded hover:bg-destructive hover:text-destructive-foreground text-muted-foreground transition-colors"
+          className="h-7 w-8 inline-flex items-center justify-center rounded-md hover:bg-destructive hover:text-destructive-foreground text-muted-foreground transition-colors"
           title="Close"
         >
           <X className="h-3.5 w-3.5" />
