@@ -4,7 +4,10 @@
   "version": "0.6.0",
   "identifier": "com.asdk.anedikit",
   "build": {
-    "frontendDist": "../src"
+    "beforeDevCommand": "npm --prefix ../frontend run dev",
+    "beforeBuildCommand": "npm --prefix ../frontend run build",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../frontend/dist"
   },
   "app": {
     "withGlobalTauri": true,
