@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Settings2, Sparkles, ArrowLeft } from 'lucide-react';
+import { Play, Settings2, ArrowLeft } from 'lucide-react';
 import { FilePicker } from '@/components/shared/FilePicker';
 import { MediaInfoCard } from '@/components/shared/MediaInfoCard';
 import { ExecutionDrawer } from '@/components/shared/ExecutionDrawer';
@@ -7,7 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   getMediaInfo,
   executeFfmpeg,
@@ -35,7 +44,6 @@ export const ConvertTool: React.FC<ConvertToolProps> = ({ onBack }) => {
   const [audioCodec, setAudioCodec] = useState<string>('aac');
   const [crf, setCrf] = useState<number>(23);
   const [preset, setPreset] = useState<string>('medium');
-  const [hardwareAccel, setHardwareAccel] = useState<boolean>(false);
 
   // Runner execution state
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -91,16 +99,13 @@ export const ConvertTool: React.FC<ConvertToolProps> = ({ onBack }) => {
   const handleStartConversion = async () => {
     if (!filePath) return;
 
-    // Determine target output path
     const lastDot = filePath.lastIndexOf('.');
     const base = lastDot !== -1 ? filePath.substring(0, lastDot) : filePath;
     const targetOut = `${base}_converted.${format}`;
     setOutputPath(targetOut);
 
-    // Build FFmpeg argument vector
     const args = ['-y', '-i', filePath];
 
-    // Hardware acceleration or codec flags
     if (videoCodec === 'copy') {
       args.push('-c:v', 'copy');
     } else {
@@ -121,7 +126,6 @@ export const ConvertTool: React.FC<ConvertToolProps> = ({ onBack }) => {
 
     args.push(targetOut);
 
-    // Reset and start drawer
     setLogs([]);
     setProgress({});
     setIsRunning(true);
@@ -147,172 +151,178 @@ export const ConvertTool: React.FC<ConvertToolProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="flex-1 h-full overflow-y-auto p-8 space-y-6">
-      {/* Top title and breadcrumb */}
-      <div className="flex items-center justify-between pb-2 border-b border-border/40">
-        <div className="flex items-center gap-3">
-          {onBack && (
-            <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          )}
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Convert Video
-              </h1>
-              <Badge variant="secondary" className="text-xs">
-                FFmpeg Transcode
-              </Badge>
+    <ScrollArea className="flex-1 h-full">
+      <div className="p-8 space-y-6">
+        {/* Header bar */}
+        <div className="flex items-center justify-between pb-2">
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <Button variant="ghost" size="icon" onClick={onBack} className="h-9 w-9">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                  Convert Video
+                </h1>
+                <Badge variant="secondary" className="text-xs">
+                  FFmpeg Transcode
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Transcode media streams into modern containers and codecs with customizable quality presets
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Transcode media streams into modern containers and codecs with customizable quality presets
-            </p>
           </div>
         </div>
-      </div>
 
-      <div className="space-y-5">
-        <FilePicker
-          filePath={filePath}
-          onSelectFile={handleSelectFile}
-          title="Select video file to convert"
-          subtitle="Supports MP4, MKV, WebM, MOV, AVI, FLV, TS"
+        <Separator />
+
+        <div className="space-y-5">
+          <FilePicker
+            filePath={filePath}
+            onSelectFile={handleSelectFile}
+            title="Select video file to convert"
+            subtitle="Supports MP4, MKV, WebM, MOV, AVI, FLV, TS"
+          />
+
+          <MediaInfoCard info={mediaInfo} loading={probing} />
+
+          {filePath && (
+            <Card>
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-base font-semibold">Encoding Parameters</CardTitle>
+                </div>
+                <CardDescription className="text-xs">
+                  Fine-tune output container, video codecs, compression factor, and audio streams
+                </CardDescription>
+              </CardHeader>
+
+              <Separator />
+
+              <CardContent className="p-6 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  {/* Container select */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Output Container</Label>
+                    <Select value={format} onValueChange={setFormat}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select container" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mp4">MP4 (.mp4)</SelectItem>
+                        <SelectItem value="mkv">MKV (.mkv)</SelectItem>
+                        <SelectItem value="webm">WebM (.webm)</SelectItem>
+                        <SelectItem value="mov">QuickTime MOV (.mov)</SelectItem>
+                        <SelectItem value="avi">AVI (.avi)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Video codec select */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Video Codec</Label>
+                    <Select value={videoCodec} onValueChange={setVideoCodec}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select video codec" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="libx264">H.264 / AVC (libx264)</SelectItem>
+                        <SelectItem value="libx265">H.265 / HEVC (libx265)</SelectItem>
+                        <SelectItem value="libvpx-vp9">VP9 (libvpx-vp9)</SelectItem>
+                        <SelectItem value="copy">Stream Copy (No Re-encode)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Audio codec select */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Audio Codec</Label>
+                    <Select value={audioCodec} onValueChange={setAudioCodec}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select audio codec" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="aac">AAC (Standard)</SelectItem>
+                        <SelectItem value="libmp3lame">MP3 (libmp3lame)</SelectItem>
+                        <SelectItem value="libopus">Opus (libopus)</SelectItem>
+                        <SelectItem value="copy">Stream Copy</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* CRF Quality Slider */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Quality Factor (CRF)</Label>
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {crf}
+                      </Badge>
+                    </div>
+                    <Slider
+                      min={0}
+                      max={51}
+                      step={1}
+                      value={[crf]}
+                      onValueChange={(val) => setCrf(val[0])}
+                    />
+                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                      <span>Lossless (0)</span>
+                      <span>Default (23)</span>
+                      <span>Small (51)</span>
+                    </div>
+                  </div>
+
+                  {/* Preset select */}
+                  <div className="space-y-2">
+                    <Label className="text-xs">Encoder Preset</Label>
+                    <Select value={preset} onValueChange={setPreset}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ultrafast">Ultrafast (Fastest)</SelectItem>
+                        <SelectItem value="fast">Fast</SelectItem>
+                        <SelectItem value="medium">Medium (Standard)</SelectItem>
+                        <SelectItem value="slow">Slow (Better compression)</SelectItem>
+                        <SelectItem value="veryslow">Very Slow</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-end">
+                  <Button
+                    disabled={isRunning}
+                    onClick={handleStartConversion}
+                    className="gap-2"
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    {isRunning ? 'Converting...' : 'Start Conversion'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <ExecutionDrawer
+          isOpen={drawerOpen}
+          isRunning={isRunning}
+          isFinished={isFinished}
+          success={success}
+          progress={progress}
+          logs={logs}
+          onCancel={handleCancel}
+          onClose={() => setDrawerOpen(false)}
+          onOpenFolder={() => outputPath && openFileFolder(outputPath)}
         />
-
-        <MediaInfoCard info={mediaInfo} loading={probing} />
-
-        {filePath && (
-          <Card className="bg-card/60 backdrop-blur-xs border-border/60">
-            <CardHeader className="pb-4 border-b border-border/40">
-              <div className="flex items-center gap-2">
-                <Settings2 className="h-4 w-4 text-primary" />
-                <CardTitle className="text-sm font-semibold">Encoding Parameters</CardTitle>
-              </div>
-              <CardDescription className="text-xs">
-                Fine-tune output container, video codecs, compression factor, and audio streams
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="p-5 space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 text-xs">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-medium text-foreground">
-                    Output Container
-                  </label>
-                  <select
-                    value={format}
-                    onChange={(e) => setFormat(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-muted/30 border border-input text-foreground text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                  >
-                    <option value="mp4">MP4 (.mp4)</option>
-                    <option value="mkv">MKV (.mkv)</option>
-                    <option value="webm">WebM (.webm)</option>
-                    <option value="mov">QuickTime MOV (.mov)</option>
-                    <option value="avi">AVI (.avi)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-medium text-foreground">
-                    Video Codec
-                  </label>
-                  <select
-                    value={videoCodec}
-                    onChange={(e) => setVideoCodec(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-muted/30 border border-input text-foreground text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                  >
-                    <option value="libx264">H.264 / AVC (libx264)</option>
-                    <option value="libx265">H.265 / HEVC (libx265)</option>
-                    <option value="libvpx-vp9">VP9 (libvpx-vp9)</option>
-                    <option value="copy">Stream Copy (No Re-encode)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-medium text-foreground">
-                    Audio Codec
-                  </label>
-                  <select
-                    value={audioCodec}
-                    onChange={(e) => setAudioCodec(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-muted/30 border border-input text-foreground text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                  >
-                    <option value="aac">AAC (Standard)</option>
-                    <option value="libmp3lame">MP3 (libmp3lame)</option>
-                    <option value="libopus">Opus (libopus)</option>
-                    <option value="copy">Stream Copy</option>
-                  </select>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-medium text-foreground">
-                      Quality Level (CRF)
-                    </label>
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {crf}
-                    </Badge>
-                  </div>
-                  <Slider
-                    min={0}
-                    max={51}
-                    step={1}
-                    value={[crf]}
-                    onValueChange={(val) => setCrf(val[0])}
-                    className="py-1"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>Lossless (0)</span>
-                    <span>Default (23)</span>
-                    <span>Small Size (51)</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-medium text-foreground">
-                    Encoder Preset
-                  </label>
-                  <select
-                    value={preset}
-                    onChange={(e) => setPreset(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-muted/30 border border-input text-foreground text-xs focus:ring-1 focus:ring-primary focus:outline-none"
-                  >
-                    <option value="ultrafast">Ultrafast (Fastest)</option>
-                    <option value="fast">Fast</option>
-                    <option value="medium">Medium (Standard)</option>
-                    <option value="slow">Slow (High Compression)</option>
-                    <option value="veryslow">Very Slow</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-border/40 flex items-center justify-end">
-                <Button
-                  disabled={isRunning}
-                  onClick={handleStartConversion}
-                  className="gap-2 shadow-sm"
-                >
-                  <Play className="h-3.5 w-3.5 fill-current" />
-                  {isRunning ? 'Converting...' : 'Start Conversion'}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
-
-      <ExecutionDrawer
-        isOpen={drawerOpen}
-        isRunning={isRunning}
-        isFinished={isFinished}
-        success={success}
-        progress={progress}
-        logs={logs}
-        onCancel={handleCancel}
-        onClose={() => setDrawerOpen(false)}
-        onOpenFolder={() => outputPath && openFileFolder(outputPath)}
-      />
-    </div>
+    </ScrollArea>
   );
 };

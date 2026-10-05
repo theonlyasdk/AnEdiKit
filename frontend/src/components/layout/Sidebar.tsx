@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 export interface ToolItem {
   id: string;
@@ -78,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, onSelectTool }) =>
 
     return (
       <div className="space-y-1">
-        <h4 className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+        <h4 className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
           {title}
         </h4>
         <div className="space-y-0.5">
@@ -92,11 +94,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, onSelectTool }) =>
                 size="sm"
                 onClick={() => onSelectTool(tool.id)}
                 className={cn(
-                  "w-full justify-start gap-2.5 h-8 px-2.5 font-medium text-xs",
-                  isActive && "bg-secondary font-semibold text-foreground"
+                  "w-full justify-start gap-2.5 h-8 px-2.5 font-normal text-xs",
+                  isActive && "font-medium"
                 )}
               >
-                <Icon className={cn("h-3.5 w-3.5", isActive ? "text-primary" : "text-muted-foreground")} />
+                <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
                 <span className="truncate">{tool.name}</span>
               </Button>
             );
@@ -107,8 +109,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, onSelectTool }) =>
   };
 
   return (
-    <div className="w-60 h-full border-r border-border/40 bg-card/40 backdrop-blur-md flex flex-col shrink-0 select-none">
-      <div className="p-3 border-b border-border/40">
+    <div className="w-60 h-full border-r bg-card/50 flex flex-col shrink-0 select-none">
+      <div className="p-3">
         <Button
           variant={activeTool === 'dashboard' ? "default" : "outline"}
           size="sm"
@@ -120,22 +122,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTool, onSelectTool }) =>
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 space-y-4">
-        {renderNavGroup("Video Processing", "video")}
-        {renderNavGroup("Audio Tools", "audio")}
-        {renderNavGroup("Download Suite", "ytdlp")}
-        {renderNavGroup("AI & Documents", "image")}
-        {renderNavGroup("Advanced Tools", "tools")}
-      </div>
+      <Separator />
 
-      <div className="p-2.5 border-t border-border/40">
+      <ScrollArea className="flex-1 p-2">
+        <div className="space-y-4 py-2">
+          {renderNavGroup("Video Processing", "video")}
+          {renderNavGroup("Audio Tools", "audio")}
+          {renderNavGroup("Download Suite", "ytdlp")}
+          {renderNavGroup("AI & Documents", "image")}
+          {renderNavGroup("Advanced Tools", "tools")}
+        </div>
+      </ScrollArea>
+
+      <Separator />
+
+      <div className="p-2.5">
         <Button
           variant={activeTool === 'settings' ? "secondary" : "ghost"}
           size="sm"
           onClick={() => onSelectTool('settings')}
-          className="w-full justify-start gap-2.5 h-8.5 font-medium text-xs"
+          className="w-full justify-start gap-2.5 h-8.5 font-normal text-xs"
         >
-          <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+          <Settings className="h-4 w-4 text-muted-foreground" />
           <span>Settings & Binaries</span>
         </Button>
       </div>
