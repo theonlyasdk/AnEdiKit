@@ -1,65 +1,116 @@
-import React, { useState } from 'react';
-import { WindowHeader } from '@/components/layout/WindowHeader';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { Dashboard } from '@/components/dashboard/Dashboard';
-import { ConvertTool } from '@/components/tools/ConvertTool';
-import { Construction } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useCallback, useState } from "react";
+import { WindowHeader } from "@/components/layout/WindowHeader";
+import { Sidebar, TOOLS } from "@/components/layout/Sidebar";
+import { Dashboard } from "@/components/dashboard/Dashboard";
+import { Workspace } from "@/components/dashboard/Workspace";
+import { ConvertTool } from "@/components/tools/ConvertTool";
+import { SettingsTool } from "@/components/tools/SettingsTool";
+import { ThemeProvider } from "@/components/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
+import { ConstructionIcon, ArrowRightIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export function App() {
-  const [activeTool, setActiveTool] = useState<string>('dashboard');
+function formatToolName(id: string): string {
+  return id.replace(/-/g, " ");
+}
+
+function toolLabel(id: string): string {
+  if (id === "dashboard") return "Dashboard";
+  if (id === "workspace") return "Quick workspace";
+  const tool = TOOLS.find((t) => t.id === id);
+  return tool ? tool.name : formatToolName(id);
+}
+
+function AppShell() {
+  const [activeTool, setActiveTool] = useState<string>("dashboard");
+  const [pendingFile, setPendingFile] = useState<string | null>(null);
+
+  const handleDropFile = useCallback((path: string) => {
+    setPendingFile(path);
+    setActiveTool("convert");
+  }, []);
+
+  const handleConsumeFile = useCallback(() => {
+    setPendingFile(null);
+  }, []);
+
+  const isKnownView =
+    activeTool === "dashboard" ||
+    activeTool === "workspace" ||
+    activeTool === "convert" ||
+    activeTool === "settings";
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-background text-foreground overflow-hidden font-sans select-none antialiased dark">
-      {/* Frameless window header with drag region */}
+    <div className="h-full w-full flex flex-col bg-background text-foreground overflow-hidden font-sans antialiased">
       <WindowHeader />
 
-      {/* Main app body */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar navigation */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
         <Sidebar activeTool={activeTool} onSelectTool={setActiveTool} />
 
-        {/* View container */}
-        <main className="flex-1 h-full overflow-hidden flex flex-col bg-background/50">
-          {activeTool === 'dashboard' && <Dashboard onSelectTool={setActiveTool} />}
-          {activeTool === 'convert' && <ConvertTool onBack={() => setActiveTool('dashboard')} />}
-          {activeTool !== 'dashboard' && activeTool !== 'convert' && (
-            <div className="flex-1 h-full flex flex-col items-center justify-center p-8 text-center space-y-4">
-              <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs">
-                <Construction className="h-8 w-8" />
-              </div>
-              <div className="space-y-1">
-                <h2 className="text-lg font-bold text-foreground capitalize">
-                  {activeTool.replace('-', ' ')} Tool
+        <main className="flex-1 h-full overflow-hidden flex flex-col bg-background">
+          {activeTool === "dashboard" && (
+            <Dashboard onSelectTool={setActiveTool} />
+          )}
+          {activeTool === "workspace" && (
+            <Workspace onSelectTool={setActiveTool} onDropFile={handleDropFile} />
+          )}
+          {activeTool === "convert" && (
+            <ConvertTool
+              initialFilePath={pendingFile}
+              onConsumeInitialFile={handleConsumeFile}
+              onBack={() => setActiveTool("dashboard")}
+            />
+          )}
+          {activeTool === "settings" && (
+            <SettingsTool onBack={() => setActiveTool("dashboard")} />
+          )}
+          {!isKnownView && (
+            <div className="flex-1 h-full flex flex-col items-center justify-center p-8 text-center gap-4">
+              <ConstructionIcon
+                aria-hidden="true"
+                className="size-8 text-primary"
+              />
+              <div className="flex flex-col gap-1">
+                <h2 className="text-lg font-bold text-foreground">
+                  {toolLabel(activeTool)}
                 </h2>
                 <p className="text-xs text-muted-foreground max-w-sm">
-                  This tool view is scheduled for porting in the next slice. The Convert tool is fully ready with complete UI and IPC execution.
+                  This tool view is scheduled for porting in the next slice.
+                  The Convert tool is fully ready with complete UI and IPC
+                  execution.
                 </p>
               </div>
-              <Button
-                onClick={() => setActiveTool('convert')}
-                size="sm"
-                className="gap-2"
-              >
+              <Button onClick={() => setActiveTool("convert")} size="sm">
                 Launch Convert Tool
+                <ArrowRightIcon aria-hidden="true" />
               </Button>
             </div>
           )}
         </main>
       </div>
 
-      {/* Bottom status footer */}
-      <footer className="h-6 w-full border-t border-border/40 bg-muted/20 px-3.5 flex items-center justify-between text-[11px] text-muted-foreground select-none">
+      <footer className="h-6 w-full border-t border-border bg-muted/20 px-3.5 flex items-center justify-between text-xs text-muted-foreground select-none-chrome">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-          <span>Tauri v2 IPC Ready</span>
+          <span aria-hidden="true" className="size-2 rounded-full bg-primary inline-block" />
+          <span>Local processing</span>
         </div>
         <div className="flex items-center gap-4">
-          <span className="capitalize">{activeTool.replace('-', ' ')}</span>
-          <span>React 19 + shadcn/ui</span>
+          <span>{toolLabel(activeTool)}</span>
         </div>
       </footer>
+      <Toaster />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <ThemeProvider>
+      <TooltipProvider delayDuration={400}>
+        <AppShell />
+      </TooltipProvider>
+    </ThemeProvider>
   );
 }
 

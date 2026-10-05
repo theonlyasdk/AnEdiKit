@@ -1,97 +1,104 @@
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
-export interface MediaProbeInfo {
-  format?: {
-    format_name?: string;
-    duration?: string;
-    size?: string;
-    bit_rate?: string;
-  };
-  streams?: Array<{
-    codec_type?: string;
-    codec_name?: string;
-    width?: number;
-    height?: number;
-    r_frame_rate?: string;
-    bit_rate?: string;
-  }>;
+export interface MediaInfo {
+  file_path: string;
+  file_name: string;
+  duration_seconds: number;
+  duration_string: string;
+  resolution: string;
+  video_codec: string;
+  audio_codec: string;
+  file_size_mb: number;
+  file_size_formatted: string;
+  bitrate_kbps: number;
+  album_art_url: string | null;
 }
 
-export interface FfmpegProgressPayload {
-  percent?: number;
-  time?: string;
-  speed?: string;
-  frame?: number;
-  fps?: number;
-  size?: string;
-  bitrate?: string;
+export interface FfmpegProgress {
+  time: string;
+  eta: string | null;
+  fps: string;
+  speed: string;
+  bitrate: string;
+  pct: number;
+  playlist_item: number | null;
+  playlist_total: number | null;
+  current_item_title: string | null;
 }
 
-export interface FfmpegLogPayload {
+export interface FfmpegLog {
   line: string;
 }
 
-export interface FfmpegFinishedPayload {
-  code: number;
+export interface FfmpegFinish {
   success: boolean;
-  message?: string;
+  exit_code: number;
+  message: string;
 }
 
-export async function pickFile(extensions: string[] = []): Promise<string | null> {
-  try {
-    const res = await invoke<string | null>('pick_file', { extensions });
-    return res;
-  } catch (err) {
-    console.error('pickFile failed:', err);
-    return null;
-  }
+export type PickFilter = "pdf" | "image" | "audio" | "video";
+
+export function pickFile(filterMode?: PickFilter): Promise<string | null> {
+  return invoke<string | null>("pick_file", { filterMode: filterMode ?? null });
 }
 
-export async function pickFolder(): Promise<string | null> {
-  try {
-    const res = await invoke<string | null>('pick_folder');
-    return res;
-  } catch (err) {
-    console.error('pickFolder failed:', err);
-    return null;
-  }
+export function pickFolder(defaultPath?: string): Promise<string | null> {
+  return invoke<string | null>("pick_folder", {
+    defaultPath: defaultPath ?? null,
+  });
 }
 
-export async function getMediaInfo(filePath: string): Promise<MediaProbeInfo | null> {
-  try {
-    const info = await invoke<MediaProbeInfo>('get_media_info', { filePath });
-    return info;
-  } catch (err) {
-    console.error('getMediaInfo error:', err);
-    return null;
-  }
+export function getMediaInfo(filePath: string): Promise<MediaInfo> {
+  return invoke<MediaInfo>("get_media_info", { filePath });
 }
 
-export async function executeFfmpeg(args: string[]): Promise<void> {
-  return await invoke<void>('execute_ffmpeg', { args });
+export function checkFileExists(filePath: string): Promise<boolean> {
+  return invoke<boolean>("check_file_exists", { filePath });
 }
 
-export async function cancelFfmpeg(): Promise<void> {
-  return await invoke<void>('cancel_ffmpeg');
+export function showInFolder(filePath: string): Promise<void> {
+  return invoke<void>("show_in_folder", { filePath });
 }
 
-export async function checkFileExists(path: string): Promise<boolean> {
-  return await invoke<boolean>('check_file_exists', { path });
+export function executeFfmpeg(
+  args: string[],
+  totalDuration?: number,
+): Promise<void> {
+  return invoke<void>("execute_ffmpeg", {
+    args,
+    totalDuration: totalDuration ?? null,
+  });
 }
 
-export async function openFileFolder(path: string): Promise<void> {
-  return await invoke<void>('open_file_folder', { path });
+export function cancelFfmpeg(): Promise<void> {
+  return invoke<void>("cancel_ffmpeg");
 }
 
-export function onFfmpegProgress(cb: (payload: FfmpegProgressPayload) => void): Promise<UnlistenFn> {
-  return listen<FfmpegProgressPayload>('ffmpeg-progress', (event) => cb(event.payload));
+export function onFfmpegProgress(
+  handler: (payload: FfmpegProgress) => void,
+): Promise<UnlistenFn> {
+  return listen<FfmpegProgress>("ffmpeg-progress", (event) =>
+    handler(event.payload),
+  );
 }
 
-export function onFfmpegLog(cb: (payload: FfmpegLogPayload) => void): Promise<UnlistenFn> {
-  return listen<FfmpegLogPayload>('ffmpeg-log', (event) => cb(event.payload));
+export function onFfmpegLog(
+  handler: (payload: FfmpegLog) => void,
+): Promise<UnlistenFn> {
+  return listen<FfmpegLog>("ffmpeg-log", (event) => handler(event.payload));
 }
 
-export function onFfmpegFinished(cb: (payload: FfmpegFinishedPayload) => void): Promise<UnlistenFn> {
-  return listen<FfmpegFinishedPayload>('ffmpeg-finished', (event) => cb(event.payload));
+export function onFfmpegFinished(
+  handler: (payload: FfmpegFinish) => void,
+): Promise<UnlistenFn> {
+  return listen<FfmpegFinish>("ffmpeg-finished", (event) =>
+    handler(event.payload),
+  );
+}
+
+export function onConfirmExitRequested(
+  handler: () => void,
+): Promise<UnlistenFn> {
+  return listen("confirm-exit-requested", () => handler());
 }

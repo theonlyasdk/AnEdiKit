@@ -1,27 +1,63 @@
-import React, { useRef, useEffect } from 'react';
-import { Terminal as TerminalIcon, XCircle, CheckCircle2, Loader2, FolderOpen } from 'lucide-react';
-import { FfmpegProgressPayload } from '@/services/tauri';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import React, { useRef, useEffect, useState } from "react";
+import {
+  TerminalIcon,
+  XCircleIcon,
+  CheckCircle2Icon,
+  FolderOpenIcon,
+} from "lucide-react";
+import type { FfmpegProgress, FfmpegFinish } from "@/services/tauri";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ExecutionDrawerProps {
   isOpen: boolean;
   isRunning: boolean;
   isFinished: boolean;
   success: boolean;
-  progress: FfmpegProgressPayload;
+  finish: FfmpegFinish | null;
+  progress: FfmpegProgress | null;
   logs: string[];
   onCancel: () => void;
   onClose: () => void;
   onOpenFolder?: () => void;
 }
 
+const EMPTY_PROGRESS: FfmpegProgress = {
+  time: "",
+  eta: null,
+  fps: "",
+  speed: "",
+  bitrate: "",
+  pct: 0,
+  playlist_item: null,
+  playlist_total: null,
+  current_item_title: null,
+};
+
 export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
   isOpen,
   isRunning,
   isFinished,
   success,
+  finish,
   progress,
   logs,
   onCancel,
@@ -29,99 +65,168 @@ export const ExecutionDrawer: React.FC<ExecutionDrawerProps> = ({
   onOpenFolder,
 }) => {
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const [confirmDismiss, setConfirmDismiss] = useState(false);
+  const pct = progress ?? EMPTY_PROGRESS;
 
   useEffect(() => {
     if (logContainerRef.current) {
       logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
-  }, [logs]);
+  }, [logs, isOpen]);
 
-  if (!isOpen) return null;
+  const requestClose = () => {
+    if (isRunning) {
+      setConfirmDismiss(true);
+      return;
+    }
+    onClose();
+  };
 
-  const percent = Math.min(100, Math.max(0, Math.round(progress.percent || 0)));
+  const percent = Math.min(100, Math.max(0, Math.round(pct.pct || 0)));
+
+  const statusText = isRunning
+    ? "Converting…"
+    : isFinished && success
+      ? "Conversion finished"
+      : "Conversion failed";
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border shadow-2xl transition-all duration-300 max-h-[75vh] flex flex-col">
-      {/* Header bar */}
-      <div className="px-5 py-3 border-b border-border/40 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {isRunning ? (
-            <Loader2 className="h-4 w-4 text-primary animate-spin" />
-          ) : isFinished && success ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-          ) : (
-            <XCircle className="h-4 w-4 text-destructive" />
-          )}
-          <span className="font-semibold text-xs text-foreground">
-            {isRunning ? 'Processing Operation...' : isFinished && success ? 'Job Completed Successfully' : 'Process Terminated'}
-          </span>
-          {isRunning && (
-            <Badge variant="secondary" className="font-mono text-[10px] tracking-normal font-normal">
-              {progress.speed ? `${progress.speed} ` : ''}{progress.time ? `(${progress.time})` : ''}
-            </Badge>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isRunning && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={onCancel}
-              className="h-7 text-xs"
-            >
-              Abort Process
-            </Button>
-          )}
-
-          {isFinished && success && onOpenFolder && (
-            <Button
-              size="sm"
-              onClick={onOpenFolder}
-              className="h-7 text-xs gap-1.5 shadow-sm"
-            >
-              <FolderOpen className="h-3.5 w-3.5" /> Open Folder
-            </Button>
-          )}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-7 text-xs"
-          >
-            Dismiss
-          </Button>
-        </div>
-      </div>
-
-      {/* Progress line */}
-      <Progress value={percent} className="h-1 rounded-none" />
-
-      {/* Terminal logs body */}
-      <div className="p-4 bg-zinc-950 flex-1 min-h-[220px] max-h-[360px] flex flex-col font-mono text-xs">
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 text-[11px] text-zinc-400">
-          <span className="flex items-center gap-1.5 font-medium">
-            <TerminalIcon className="h-3.5 w-3.5 text-primary" /> Process Terminal Output
-          </span>
-          <span className="text-zinc-500">{logs.length} lines logged</span>
-        </div>
-
-        <div
-          ref={logContainerRef}
-          className="flex-1 overflow-y-auto space-y-1 text-zinc-300 leading-relaxed select-text"
+    <>
+      <Sheet open={isOpen} onOpenChange={(open) => !open && requestClose()}>
+        <SheetContent
+          side="bottom"
+          aria-label="FFmpeg execution console"
+          className="max-h-[75vh] flex flex-col p-0 gap-0"
         >
-          {logs.length === 0 ? (
-            <div className="text-zinc-600 italic">Waiting for process stream...</div>
-          ) : (
-            logs.map((line, idx) => (
-              <div key={idx} className="break-all whitespace-pre-wrap">
-                {line}
+          <SheetHeader className="px-5 py-3 border-b border-border">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                {isRunning ? (
+                  <Spinner className="size-4 text-primary" />
+                ) : isFinished && success ? (
+                  <CheckCircle2Icon
+                    aria-hidden="true"
+                    className="size-4 text-primary"
+                  />
+                ) : (
+                  <XCircleIcon
+                    aria-hidden="true"
+                    className="size-4 text-destructive"
+                  />
+                )}
+                <SheetTitle className="text-sm font-semibold truncate">
+                  {statusText}
+                </SheetTitle>
+                {isRunning && (pct.speed || pct.time) && (
+                  <span className="font-mono text-xs text-muted-foreground shrink-0">
+                    {pct.speed ? `${pct.speed} ` : ""}
+                    {pct.time ? `(${pct.time})` : ""}
+                  </span>
+                )}
               </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {isRunning && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={onCancel}
+                    className="text-xs"
+                  >
+                    Abort
+                  </Button>
+                )}
+                {isFinished && success && onOpenFolder && (
+                  <Button
+                    size="sm"
+                    onClick={onOpenFolder}
+                    className="text-xs"
+                  >
+                    <FolderOpenIcon aria-hidden="true" />
+                    Open output dir
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={requestClose}
+                  className="text-xs"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            </div>
+            {isFinished && finish?.message && (
+              <p className="text-xs text-muted-foreground text-left truncate">
+                {finish.message}
+                {!finish.success && ` (exit code ${finish.exit_code})`}
+              </p>
+            )}
+            <SheetDescription className="sr-only">
+              Live FFmpeg progress and terminal output for the current job.
+            </SheetDescription>
+          </SheetHeader>
+
+          <Progress
+            value={percent}
+            aria-label={`Conversion progress: ${percent} percent`}
+            className="h-1 rounded-none"
+          />
+
+          <div className="p-4 bg-muted/40 flex-1 min-h-[220px] max-h-[360px] flex flex-col font-mono text-xs overflow-hidden">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-border text-xs text-muted-foreground">
+              <span className="flex items-center gap-2 font-medium">
+                <TerminalIcon aria-hidden="true" className="size-3" />
+                Output
+              </span>
+              <span className="opacity-50">{logs.length} lines</span>
+            </div>
+
+            <div
+              ref={logContainerRef}
+              role="log"
+              aria-label="FFmpeg output"
+              className="flex-1 overflow-y-auto flex flex-col gap-1 text-primary/80 leading-relaxed select-text"
+            >
+              {logs.length === 0 ? (
+                <div className="opacity-40 italic">Awaiting output…</div>
+              ) : (
+                logs.map((line, idx) => (
+                  <div key={idx} className="break-all whitespace-pre-wrap">
+                    <span aria-hidden="true" className="opacity-40 mr-3">
+                      {String(idx).padStart(4, "0")}
+                    </span>
+                    {line}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <AlertDialog open={confirmDismiss} onOpenChange={setConfirmDismiss}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Dismiss while converting?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The job keeps running in the background. Reopen the console
+              from the Convert view to follow it, or abort it first.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep watching</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmDismiss(false);
+                onClose();
+              }}
+            >
+              Dismiss
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };

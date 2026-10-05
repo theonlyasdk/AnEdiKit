@@ -2,82 +2,215 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   AnEdiKit design tokens
+
+   Every value below was verified against WCAG 2.2 contrast requirements
+   (AA 4.5:1 for text, 3:1 for focus rings) in both themes. Do not hand-edit
+   a token without re-validating it -- `--border` is deliberately exempt
+   because shadcn borders are decorative separators, never the sole carrier
+   of state.
+
+   The `.dark` class is applied to <html> by ThemeProvider so that portaled
+   overlays (Select, Tooltip, Sheet, DropdownMenu) inherit the right theme.
+   ========================================================================== */
+
 @layer base {
   :root {
+    color-scheme: light;
+
+    --radius: 0.625rem;
+
     --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --foreground: 222.2 47.4% 11.2%;
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card-foreground: 222.2 47.4% 11.2%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 262.1 83.3% 57.8%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 262.1 83.3% 57.8%;
-    --radius: 0.5rem;
+    --popover-foreground: 222.2 47.4% 11.2%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214.3 31.8% 95%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 214.3 31.8% 95%;
+    --muted-foreground: 215.4 16.3% 43%;
+    --accent: 214.3 31.8% 92%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 72.2% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142.1 70.6% 31%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 90% 35%;
+    --warning-foreground: 0 0% 100%;
+    --border: 214.3 31.8% 89%;
+    --input: 214.3 31.8% 89%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --chart-1: 221.2 83.2% 53.3%;
+    --chart-2: 190 85% 40%;
+    --chart-3: 160 84% 39%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 78% 52%;
+
+    --sidebar: 214.3 31.8% 97.5%;
+    --sidebar-foreground: 222.2 47.4% 11.2%;
+    --sidebar-primary: 221.2 83.2% 53.3%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 214.3 31.8% 92%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+    --sidebar-border: 214.3 31.8% 89%;
+    --sidebar-ring: 221.2 83.2% 53.3%;
+
+    --scrollbar-thumb: 222.2 47.4% 25%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 5%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 263.4 70% 50.4%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 263.4 70% 50.4%;
+    color-scheme: dark;
+
+    --background: 222.2 47.4% 7%;
+    --foreground: 210 40% 96%;
+    --card: 222.2 42% 9.5%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222.2 42% 9.5%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 8%;
+    --secondary: 217.2 32% 15%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 217.2 32% 15%;
+    --muted-foreground: 215 20.2% 68%;
+    --accent: 217.2 32% 18%;
+    --accent-foreground: 210 40% 96%;
+    --destructive: 0 82% 64%;
+    --destructive-foreground: 222.2 47.4% 8%;
+    --success: 142.1 65% 45%;
+    --success-foreground: 222.2 47.4% 8%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 222.2 47.4% 8%;
+    --border: 217.2 32% 20%;
+    --input: 217.2 32% 20%;
+    --ring: 217.2 91.2% 59.8%;
+
+    --chart-1: 217.2 91.2% 59.8%;
+    --chart-2: 190 85% 52%;
+    --chart-3: 160 80% 45%;
+    --chart-4: 280 70% 70%;
+    --chart-5: 340 82% 64%;
+
+    --sidebar: 222.2 47.4% 8.5%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 222.2 47.4% 8%;
+    --sidebar-accent: 217.2 32% 16%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 217.2 32% 18%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --scrollbar-thumb: 210 40% 96%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
-    box-sizing: border-box;
   }
-  html, body {
-    background-color: hsl(240 10% 3.9%) !important;
-    color: hsl(0 0% 98%) !important;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    user-select: none;
-    -webkit-user-select: none;
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* This is a fixed-size desktop shell: the document itself never scrolls,
+     and 100dvh keeps the layout correct when a display scale change or a
+     devtools dock briefly alters the visual viewport. */
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html,
+  body {
     overflow: hidden;
-    height: 100vh;
-    width: 100vw;
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  ::selection {
+    @apply bg-primary/30 text-foreground;
+  }
+
+  /* Keyboard users must always be able to see where they are. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Token-driven scrollbars: matches the theme in both WebView2 (Chromium
+     pseudo-elements) and any standards-based scrollbar (`scrollbar-color`). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--scrollbar-thumb) / 0.45) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--scrollbar-thumb) / 0.4);
+    background-clip: content-box;
+    border: 3px solid transparent;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--scrollbar-thumb) / 0.65);
   }
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@layer utilities {
+  /* Window chrome (titlebar, status bar, nav labels) should not be
+     text-selectable -- it fights the window drag region and reads as a bug.
+     Content -- file paths, logs, error messages -- must stay selectable so
+     it can be copied, searched and read by assistive tech. */
+  .select-none-chrome {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Blueprint grid backdrop for the workspace dropzone. Uses currentColor
+     so it inherits the surrounding muted tone via a text-color utility. */
+  .workspace-grid {
+    background-image:
+      linear-gradient(to right, currentColor 1px, transparent 1px),
+      linear-gradient(to bottom, currentColor 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(150, 150, 150, 0.2);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 150, 150, 0.4);
+
+/* Honour the OS "reduce motion" setting. Progress indicators are exempt
+   because they communicate state rather than decoration. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-motion-essential],
+  [role="status"][aria-label="Loading"] {
+    animation-duration: 1.5s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
