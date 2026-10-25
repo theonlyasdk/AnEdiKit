@@ -46,6 +46,43 @@ Run these from the project root.
 - **`tools/Scripts/prompt.js`** — shared prompt helper used by the other scripts.
 - **`tools/reset_anedikit_data.bat`** — wipes app data so the next launch feels like a fresh install.
 
+## Cleaning up after a run
+
+After closing the app and stopping builds/dev servers, run:
+
+```powershell
+powershell -NoProfile -File .\tools\clean_caches.ps1
+```
+
+The script works from any working directory. It removes the project's Rust
+`target` folders, generated `dist`/`dist-ssr` output, `node_modules/.cache`, and
+root-level Python test/lint/bytecode caches. **Rust binaries and installers inside
+`target` are deleted too**; copy any you want to keep first. The next build will
+take longer. Source files, installed dependencies, Rust toolchains, app data, and
+the separate `release` folder are preserved. Custom Cargo target directories are
+not cleaned.
+
+A small WinForms window shows progress through the cache locations and displays
+the space removed in a completion message. Large deletions run in the background
+so the window stays responsive. Use `-NoGui` for console-only runs; `-WhatIf`
+also stays in the console. Progress counts cache locations, not bytes deleted.
+
+Preview deletions or include shared dependency caches:
+
+```powershell
+powershell -NoProfile -File .\tools\clean_caches.ps1 -WhatIf
+powershell -NoProfile -File .\tools\clean_caches.ps1 -CargoCache -NpmCache
+```
+
+`-CargoCache` removes Cargo registry downloads, extracted sources, indexes and Git
+dependency caches from `CARGO_HOME` (default: `~/.cargo`). `-NpmCache` removes npm
+downloads, logs and npx packages from the cache reported by `npm config get cache`.
+These caches are shared across projects; subsequent builds/installs may need an
+internet connection. Neither option uninstalls Rust or npm. No administrator
+access is needed. Linked directories are refused, and locked files are reported.
+The final size is the logical size of successfully removed directories; actual
+disk space reclaimed may differ.
+
 ## Running the project
 
 Once installed, open a fresh terminal in the project root and run:
